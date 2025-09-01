@@ -1,0 +1,235 @@
+import React from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+
+const StudentDashboard: React.FC = () => {
+    const { username, logout } = useAuth();
+
+    const stats = [
+        { name: 'Điểm rèn luyện HK này', value: '85', icon: '⭐' },
+        { name: 'Sự kiện đã tham gia', value: '12', icon: '🎯' },
+        { name: 'Hoạt động chờ duyệt', value: '3', icon: '⏳' },
+        { name: 'Tin nhắn mới', value: '2', icon: '💬' },
+    ];
+
+    const quickActions = [
+        { name: 'Xem điểm rèn luyện', href: '/student/scores', icon: '📊' },
+        { name: 'Tham gia sự kiện', href: '/student/events', icon: '📅' },
+        { name: 'Nộp bài thu hoạch', href: '/student/submissions', icon: '📄' },
+        { name: 'Cập nhật thông tin', href: '/student/profile', icon: '👤' },
+        { name: 'Tin nhắn hỗ trợ', href: '/student/messages', icon: '💬' },
+        { name: 'Lịch sử hoạt động', href: '/student/history', icon: '📋' },
+    ];
+
+    const upcomingEvents = [
+        {
+            name: 'Hội thảo Khởi nghiệp',
+            date: '15/01/2024',
+            time: '14:00',
+            location: 'Hội trường A',
+            registered: true
+        },
+        {
+            name: 'Workshop công nghệ AI',
+            date: '25/01/2024',
+            time: '09:00',
+            location: 'Phòng Lab 1',
+            registered: false
+        },
+        {
+            name: 'Tình nguyện mùa đông',
+            date: '28/01/2024',
+            time: '08:00',
+            location: 'Sân trường',
+            registered: true
+        },
+    ];
+
+    const recentScores = [
+        { criterion: 'Khen thưởng, kỷ luật', score: 20, maxScore: 25 },
+        { criterion: 'Hoạt động xã hội', score: 18, maxScore: 20 },
+        { criterion: 'Học tập', score: 25, maxScore: 25 },
+        { criterion: 'Ý thức công dân', score: 22, maxScore: 25 },
+    ];
+
+    return (
+        <div className="min-h-screen bg-gray-50">
+            {/* Header */}
+            <header className="bg-white shadow">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-between items-center py-6">
+                        <div>
+                            <h1 className="text-3xl font-bold text-gray-900">Student Dashboard</h1>
+                            <p className="text-gray-600">Chào mừng, {username}</p>
+                        </div>
+                        <button
+                            onClick={logout}
+                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                        >
+                            Đăng xuất
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+                {/* Stats */}
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+                    {stats.map((stat) => (
+                        <div key={stat.name} className="bg-white overflow-hidden shadow rounded-lg">
+                            <div className="p-5">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <span className="text-2xl">{stat.icon}</span>
+                                    </div>
+                                    <div className="ml-5 w-0 flex-1">
+                                        <dl>
+                                            <dt className="text-sm font-medium text-gray-500 truncate">
+                                                {stat.name}
+                                            </dt>
+                                            <dd className="text-lg font-medium text-gray-900">
+                                                {stat.value}
+                                            </dd>
+                                        </dl>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Quick Actions */}
+                    <div className="lg:col-span-2">
+                        <div className="bg-white shadow rounded-lg mb-8">
+                            <div className="px-4 py-5 sm:p-6">
+                                <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                                    Thao tác nhanh
+                                </h3>
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                    {quickActions.map((action) => (
+                                        <a
+                                            key={action.name}
+                                            href={action.href}
+                                            className="relative group bg-white p-4 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all"
+                                        >
+                                            <div>
+                                                <span className="text-xl mb-2 block">{action.icon}</span>
+                                                <div className="text-sm font-medium text-gray-900">
+                                                    {action.name}
+                                                </div>
+                                            </div>
+                                            <span
+                                                className="absolute inset-0"
+                                                aria-hidden="true"
+                                            />
+                                        </a>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Recent Scores */}
+                        <div className="bg-white shadow rounded-lg">
+                            <div className="px-4 py-5 sm:p-6">
+                                <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                                    Điểm rèn luyện gần đây
+                                </h3>
+                                <div className="space-y-4">
+                                    {recentScores.map((score, index) => (
+                                        <div key={index} className="flex items-center justify-between">
+                                            <div className="flex-1">
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <span className="text-sm font-medium text-gray-900">{score.criterion}</span>
+                                                    <span className="text-sm text-gray-500">{score.score}/{score.maxScore}</span>
+                                                </div>
+                                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                                    <div
+                                                        className="bg-primary-600 h-2 rounded-full"
+                                                        style={{ width: `${(score.score / score.maxScore) * 100}%` }}
+                                                    ></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="mt-4 pt-4 border-t border-gray-200">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-lg font-semibold text-gray-900">Tổng điểm:</span>
+                                        <span className="text-xl font-bold text-primary-600">
+                                            {recentScores.reduce((sum, score) => sum + score.score, 0)}/
+                                            {recentScores.reduce((sum, score) => sum + score.maxScore, 0)}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Upcoming Events */}
+                    <div className="space-y-8">
+                        <div className="bg-white shadow rounded-lg">
+                            <div className="px-4 py-5 sm:p-6">
+                                <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                                    Sự kiện sắp tới
+                                </h3>
+                                <div className="space-y-4">
+                                    {upcomingEvents.map((event, index) => (
+                                        <div key={index} className="border border-gray-200 rounded-lg p-4">
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex-1">
+                                                    <h4 className="text-sm font-medium text-gray-900">{event.name}</h4>
+                                                    <p className="text-xs text-gray-500 mt-1">📅 {event.date} - {event.time}</p>
+                                                    <p className="text-xs text-gray-500">📍 {event.location}</p>
+                                                </div>
+                                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${event.registered
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : 'bg-gray-100 text-gray-800'
+                                                    }`}>
+                                                    {event.registered ? 'Đã đăng ký' : 'Chưa đăng ký'}
+                                                </span>
+                                            </div>
+                                            {!event.registered && (
+                                                <button className="mt-2 w-full bg-primary-600 text-white px-3 py-1 rounded text-xs hover:bg-primary-700">
+                                                    Đăng ký ngay
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Quick Stats */}
+                        <div className="bg-white shadow rounded-lg">
+                            <div className="px-4 py-5 sm:p-6">
+                                <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                                    Thống kê nhanh
+                                </h3>
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-gray-600">Xếp hạng lớp:</span>
+                                        <span className="text-sm font-medium text-gray-900">#5/45</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-gray-600">Điểm trung bình:</span>
+                                        <span className="text-sm font-medium text-gray-900">85/100</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-gray-600">Hoạt động tháng này:</span>
+                                        <span className="text-sm font-medium text-gray-900">8 sự kiện</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-gray-600">Thành tích:</span>
+                                        <span className="text-sm font-medium text-primary-600">Sinh viên tích cực</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    );
+};
+
+export default StudentDashboard;
