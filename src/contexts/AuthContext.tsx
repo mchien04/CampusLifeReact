@@ -47,7 +47,6 @@ const getRoleFromToken = (decodedToken: DecodedToken): Role => {
     // Get role directly from token if available
     if (decodedToken.role) {
         const tokenRole = decodedToken.role.toUpperCase();
-        console.log('AuthContext: role found in token:', tokenRole); // Debug log
 
         // Map token role to Role enum
         switch (tokenRole) {
@@ -58,13 +57,11 @@ const getRoleFromToken = (decodedToken: DecodedToken): Role => {
             case 'STUDENT':
                 return Role.STUDENT;
             default:
-                console.log('AuthContext: unknown role in token, defaulting to STUDENT'); // Debug log
                 return Role.STUDENT;
         }
     }
 
     // Fallback: if no role in token, use username pattern (temporary)
-    console.log('AuthContext: no role in token, using username fallback'); // Debug log
     const lowerUsername = decodedToken.sub.toLowerCase();
 
     if (lowerUsername.includes('admin')) {
@@ -106,26 +103,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const login = (token: string) => {
         try {
-            console.log('AuthContext: login called with token:', token); // Debug log
-
             localStorage.setItem('token', token);
-            console.log('AuthContext: token saved to localStorage'); // Debug log
-
             const decoded = decodeToken(token);
-            console.log('AuthContext: decoded token:', decoded); // Debug log
 
             if (decoded) {
-                console.log('AuthContext: full decoded token:', decoded); // Debug log
-                console.log('AuthContext: token keys:', Object.keys(decoded)); // Debug log
                 const role = getRoleFromToken(decoded);
-                console.log('AuthContext: username:', decoded.sub); // Debug log
-                console.log('AuthContext: determined role:', role); // Debug log
-
                 setIsAuthenticated(true);
                 setUsername(decoded.sub);
                 setUserRole(role);
-
-                console.log('AuthContext: state updated - isAuthenticated: true, username:', decoded.sub, 'role:', role); // Debug log
             }
         } catch (error) {
             console.error('AuthContext: error during login:', error);

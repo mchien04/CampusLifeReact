@@ -4,6 +4,13 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/common';
 import { Login, Register, VerifyAccount } from './components/auth';
 import { Home, Dashboard, CreateEvent, EventList, EditEvent, EventDetail } from './pages';
+import DepartmentManagement from './pages/admin/DepartmentManagement';
+import AcademicYearManagement from './pages/admin/AcademicYearManagement';
+import SemesterManagement from './pages/admin/SemesterManagement';
+import CriteriaGroupManagement from './pages/admin/CriteriaGroupManagement';
+import CriteriaItemManagement from './pages/admin/CriteriaItemManagement';
+import EditSemester from './pages/admin/EditSemester';
+import EditCriteriaItem from './pages/admin/EditCriteriaItem';
 import { Role } from './types';
 
 function App() {
@@ -40,6 +47,64 @@ function App() {
               element={
                 <ProtectedRoute requireAuth={true}>
                   <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Admin Management Routes */}
+            <Route
+              path="/admin/departments/*"
+              element={
+                <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
+                  <DepartmentManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/academic-years/*"
+              element={
+                <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
+                  <AcademicYearManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/academic-years/:yearId/semesters/*"
+              element={
+                <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
+                  <SemesterManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/semesters/:id/edit"
+              element={
+                <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
+                  <EditSemester />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/criteria-groups/*"
+              element={
+                <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
+                  <CriteriaGroupManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/criteria-groups/:groupId/items/*"
+              element={
+                <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
+                  <CriteriaItemManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/criteria-items/:id/edit"
+              element={
+                <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
+                  <EditCriteriaItem />
                 </ProtectedRoute>
               }
             />

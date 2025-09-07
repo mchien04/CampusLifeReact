@@ -74,32 +74,14 @@ const Login: React.FC = () => {
             }
 
             if (token) {
-                console.log('Token found, proceeding with login...'); // Debug log
-
-                // Call login function
                 login(token);
-                console.log('Login function called, navigating to dashboard...'); // Debug log
-
-                // Navigate to dashboard with fallback
                 setTimeout(() => {
-                    console.log('Attempting navigation to dashboard...'); // Debug log
                     try {
                         navigate('/dashboard', { replace: true });
-                        console.log('Navigation successful'); // Debug log
                     } catch (error) {
-                        console.log('Navigation failed, using fallback...'); // Debug log
-                        // Fallback navigation
                         window.location.href = '/dashboard';
                     }
                 }, 100);
-
-                // Additional fallback after longer delay
-                setTimeout(() => {
-                    if (window.location.pathname !== '/dashboard') {
-                        console.log('Final fallback: forcing navigation...'); // Debug log
-                        window.location.href = '/dashboard';
-                    }
-                }, 500);
 
 
             } else {
