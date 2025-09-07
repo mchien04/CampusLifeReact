@@ -6,10 +6,7 @@ import { AdminDashboard, ManagerDashboard, StudentDashboard } from '../component
 const Dashboard: React.FC = () => {
     const { userRole, isAuthenticated, username } = useAuth();
 
-    console.log('Dashboard component:', { userRole, isAuthenticated, username }); // Debug log
-
     const renderDashboard = () => {
-        console.log('Rendering dashboard for role:', userRole); // Debug log
 
         switch (userRole) {
             case Role.ADMIN:

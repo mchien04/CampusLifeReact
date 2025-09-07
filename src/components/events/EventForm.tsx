@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ChangeEvent } from 'react';
+import React, { useState } from 'react';
 import { CreateActivityRequest, ActivityType } from '../../types/activity';
 import { uploadAPI } from '../../services/uploadAPI';
 import { getImageUrl } from '../../utils/imageUtils';
