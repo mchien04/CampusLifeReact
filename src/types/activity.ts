@@ -1,0 +1,51 @@
+
+
+export interface CreateActivityRequest {
+    name: string;
+    type: ActivityType;
+    description?: string;
+    startDate: string;
+    endDate: string;
+    departmentId: number;
+    requiresSubmission: boolean;
+    maxPoints?: number;
+    registrationDeadline?: string;
+    shareLink?: string;
+    isImportant: boolean;
+    bannerUrl?: string;
+    bannerFile?: File; // Add support for file upload
+    location: string;
+}
+
+export interface ActivityResponse {
+    id: number;
+    name: string;
+    type: ActivityType;
+    description?: string;
+    startDate: string;
+    endDate: string;
+    departmentId: number;
+    departmentName?: string;
+    requiresSubmission: boolean;
+    maxPoints?: number;
+    registrationDeadline?: string;
+    shareLink?: string;
+    isImportant: boolean;
+    bannerUrl?: string;
+    location: string;
+    status?: string;
+    participantCount?: number;
+    createdAt: string;
+    updatedAt: string;
+    createdBy?: string;
+    lastModifiedBy?: string;
+}
+
+export enum ActivityType {
+    SUKIEN = 'SUKIEN',
+    MINIGAME = 'MINIGAME',
+    CONG_TAC_XA_HOI = 'CONG_TAC_XA_HOI',
+    CHUYEN_DE_DOANH_NGHIEP = 'CHUYEN_DE_DOANH_NGHIEP'
+}
+
+// Department types moved to admin.ts to avoid duplication
