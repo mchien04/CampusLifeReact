@@ -3,36 +3,51 @@
 export interface CreateActivityRequest {
     name: string;
     type: ActivityType;
+    scoreType: ScoreType;
     description?: string;
     startDate: string;
     endDate: string;
-    departmentId: number;
     requiresSubmission: boolean;
     maxPoints?: number;
+    penaltyPointsIncomplete?: number;
+    registrationStartDate?: string;
     registrationDeadline?: string;
     shareLink?: string;
     isImportant: boolean;
     bannerUrl?: string;
     bannerFile?: File; // Add support for file upload
     location: string;
+    ticketQuantity?: number;
+    benefits?: string;
+    requirements?: string;
+    contactInfo?: string;
+    mandatoryForFacultyStudents: boolean;
+    organizerIds: number[];
 }
 
 export interface ActivityResponse {
     id: number;
     name: string;
     type: ActivityType;
+    scoreType: ScoreType;
     description?: string;
     startDate: string;
     endDate: string;
-    departmentId: number;
-    departmentName?: string;
     requiresSubmission: boolean;
     maxPoints?: number;
+    penaltyPointsIncomplete?: number;
+    registrationStartDate?: string;
     registrationDeadline?: string;
     shareLink?: string;
     isImportant: boolean;
     bannerUrl?: string;
     location: string;
+    ticketQuantity?: number;
+    benefits?: string;
+    requirements?: string;
+    contactInfo?: string;
+    mandatoryForFacultyStudents: boolean;
+    organizerIds: number[];
     status?: string;
     participantCount?: number;
     createdAt: string;
@@ -48,4 +63,10 @@ export enum ActivityType {
     CHUYEN_DE_DOANH_NGHIEP = 'CHUYEN_DE_DOANH_NGHIEP'
 }
 
-// Department types moved to admin.ts to avoid duplication
+export enum ScoreType {
+    REN_LUYEN = 'REN_LUYEN',
+    CONG_TAC_XA_HOI = 'CONG_TAC_XA_HOI',
+    CHUYEN_DE = 'CHUYEN_DE',
+    KHAC = 'KHAC'
+}
+

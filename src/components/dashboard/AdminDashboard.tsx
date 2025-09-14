@@ -1,59 +1,24 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 const AdminDashboard: React.FC = () => {
     const { username, logout } = useAuth();
-    const navigate = useNavigate();
 
-    const handleLogout = () => {
-        logout();
-        navigate('/login');
-    };
+    const stats = [
+        { name: 'Tổng sinh viên', value: '1,234', icon: '👥', color: 'bg-blue-500' },
+        { name: 'Sự kiện hoạt động', value: '56', icon: '📅', color: 'bg-green-500' },
+        { name: 'Năm học hiện tại', value: '2024-2025', icon: '📚', color: 'bg-yellow-500' },
+        { name: 'Phòng ban', value: '12', icon: '🏢', color: 'bg-purple-500' },
+    ];
 
-    const adminFeatures = [
-        {
-            title: 'Quản lý Khoa/Phòng ban',
-            description: 'Quản lý thông tin các khoa và phòng ban trong trường',
-            icon: '🏢',
-            link: '/admin/departments',
-            color: 'bg-blue-500 hover:bg-blue-600'
-        },
-        {
-            title: 'Quản lý Niên khóa',
-            description: 'Quản lý các năm học và thời gian hoạt động',
-            icon: '📅',
-            link: '/admin/academic-years',
-            color: 'bg-green-500 hover:bg-green-600'
-        },
-        {
-            title: 'Quản lý Học kỳ',
-            description: 'Quản lý các học kỳ và trạng thái mở/đóng',
-            icon: '📚',
-            link: '/admin/academic-years',
-            color: 'bg-purple-500 hover:bg-purple-600'
-        },
-        {
-            title: 'Quản lý Nhóm tiêu chí',
-            description: 'Quản lý các nhóm tiêu chí đánh giá điểm rèn luyện',
-            icon: '📋',
-            link: '/admin/criteria-groups',
-            color: 'bg-orange-500 hover:bg-orange-600'
-        },
-        {
-            title: 'Quản lý Tiêu chí',
-            description: 'Quản lý chi tiết các tiêu chí đánh giá',
-            icon: '✅',
-            link: '/admin/criteria-groups',
-            color: 'bg-red-500 hover:bg-red-600'
-        },
-        {
-            title: 'Quản lý Sự kiện',
-            description: 'Quản lý các sự kiện và hoạt động',
-            icon: '🎉',
-            link: '/manager/events',
-            color: 'bg-indigo-500 hover:bg-indigo-600'
-        }
+    const quickActions = [
+        { name: 'Quản lý sự kiện', href: '/manager/events', icon: '📅', description: 'Tạo và quản lý các sự kiện hoạt động' },
+        { name: 'Quản lý năm học', href: '/admin/academic-years', icon: '📚', description: 'Quản lý năm học và học kỳ' },
+        { name: 'Quản lý phòng ban', href: '/admin/departments', icon: '🏢', description: 'Quản lý khoa và phòng ban' },
+        { name: 'Quản lý tiêu chí', href: '/admin/criteria', icon: '📊', description: 'Quản lý tiêu chí đánh giá' },
+        { name: 'Quản lý sinh viên', href: '/admin/students', icon: '🎓', description: 'Quản lý thông tin sinh viên' },
+        { name: 'Báo cáo thống kê', href: '/admin/reports', icon: '📈', description: 'Xem báo cáo và thống kê hệ thống' },
     ];
 
     return (
@@ -68,56 +33,35 @@ const AdminDashboard: React.FC = () => {
                                 Chào mừng, {username}! Quản lý hệ thống Campus Life
                             </p>
                         </div>
-                        <div className="flex items-center space-x-4">
-                            <Link
-                                to="/dashboard"
-                                className="text-gray-500 hover:text-gray-700 text-sm font-medium"
-                            >
-                                ← Quay lại Dashboard
-                            </Link>
-                            <button
-                                onClick={handleLogout}
-                                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                            >
-                                Đăng xuất
-                            </button>
-                        </div>
+                        <button
+                            onClick={logout}
+                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                        >
+                            Đăng xuất
+                        </button>
                     </div>
                 </div>
             </div>
 
-            {/* Main Content */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {/* Quick Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                    <div className="bg-white overflow-hidden shadow rounded-lg">
-                        <div className="p-5">
-                            <div className="flex items-center">
-                                <div className="flex-shrink-0">
-                                    <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
-                                        <span className="text-white text-sm">🏢</span>
+            <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+                {/* Stats */}
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+                    {stats.map((stat) => (
+                        <div key={stat.name} className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow">
+                            <div className="p-5">
+                                <div className="flex items-center">
+                                    <div className={`flex-shrink-0 w-12 h-12 ${stat.color} rounded-lg flex items-center justify-center`}>
+                                        <span className="text-2xl text-white">{stat.icon}</span>
                                     </div>
-                                </div>
-                                <div className="ml-5 w-0 flex-1">
-                                    <dl>
-                                        <dt className="text-sm font-medium text-gray-500 truncate">
-                                            Khoa/Phòng ban
-                                        </dt>
-                                        <dd className="text-lg font-medium text-gray-900">
-                                            Quản lý
-                                        </dd>
-                                    </dl>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white overflow-hidden shadow rounded-lg">
-                        <div className="p-5">
-                            <div className="flex items-center">
-                                <div className="flex-shrink-0">
-                                    <div className="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
-                                        <span className="text-white text-sm">📅</span>
+                                    <div className="ml-5 w-0 flex-1">
+                                        <dl>
+                                            <dt className="text-sm font-medium text-gray-500 truncate">
+                                                {stat.name}
+                                            </dt>
+                                            <dd className="text-2xl font-bold text-gray-900">
+                                                {stat.value}
+                                            </dd>
+                                        </dl>
                                     </div>
                                 </div>
                                 <div className="ml-5 w-0 flex-1">
@@ -132,101 +76,142 @@ const AdminDashboard: React.FC = () => {
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <div className="bg-white overflow-hidden shadow rounded-lg">
-                        <div className="p-5">
-                            <div className="flex items-center">
-                                <div className="flex-shrink-0">
-                                    <div className="w-8 h-8 bg-purple-500 rounded-md flex items-center justify-center">
-                                        <span className="text-white text-sm">📚</span>
-                                    </div>
-                                </div>
-                                <div className="ml-5 w-0 flex-1">
-                                    <dl>
-                                        <dt className="text-sm font-medium text-gray-500 truncate">
-                                            Học kỳ
-                                        </dt>
-                                        <dd className="text-lg font-medium text-gray-900">
-                                            Quản lý
-                                        </dd>
-                                    </dl>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white overflow-hidden shadow rounded-lg">
-                        <div className="p-5">
-                            <div className="flex items-center">
-                                <div className="flex-shrink-0">
-                                    <div className="w-8 h-8 bg-orange-500 rounded-md flex items-center justify-center">
-                                        <span className="text-white text-sm">📋</span>
-                                    </div>
-                                </div>
-                                <div className="ml-5 w-0 flex-1">
-                                    <dl>
-                                        <dt className="text-sm font-medium text-gray-500 truncate">
-                                            Tiêu chí
-                                        </dt>
-                                        <dd className="text-lg font-medium text-gray-900">
-                                            Quản lý
-                                        </dd>
-                                    </dl>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Admin Features Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {adminFeatures.map((feature, index) => (
-                        <Link
-                            key={index}
-                            to={feature.link}
-                            className="group relative bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg shadow hover:shadow-lg transition-shadow duration-200"
-                        >
-                            <div>
-                                <span className="rounded-lg inline-flex p-3 text-3xl bg-gray-50 text-gray-600 group-hover:bg-gray-100">
-                                    {feature.icon}
-                                </span>
-                            </div>
-                            <div className="mt-4">
-                                <h3 className="text-lg font-medium text-gray-900 group-hover:text-primary-600">
-                                    {feature.title}
-                                </h3>
-                                <p className="mt-2 text-sm text-gray-500">
-                                    {feature.description}
-                                </p>
-                            </div>
-                            <span
-                                className="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
-                                aria-hidden="true"
-                            >
-                                <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
-                                </svg>
-                            </span>
-                        </Link>
                     ))}
                 </div>
 
+                {/* Quick Actions */}
+                <div className="bg-white shadow rounded-lg">
+                    <div className="px-4 py-5 sm:p-6">
+                        <h3 className="text-lg leading-6 font-medium text-gray-900 mb-6">
+                            Thao tác nhanh
+                        </h3>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            {quickActions.map((action) => (
+                                <Link
+                                    key={action.name}
+                                    to={action.href}
+                                    className="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-500 rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-200"
+                                >
+                                    <div>
+                                        <div className="flex items-center mb-3">
+                                            <span className="text-3xl mr-3">{action.icon}</span>
+                                            <div className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                                                {action.name}
+                                            </div>
+                                        </div>
+                                        <p className="text-sm text-gray-500 group-hover:text-gray-700 transition-colors">
+                                            {action.description}
+                                        </p>
+                                    </div>
+                                    <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+
                 {/* Recent Activity */}
-                <div className="mt-8">
+                <div className="mt-8 bg-white shadow rounded-lg">
+                    <div className="px-4 py-5 sm:p-6">
+                        <h3 className="text-lg leading-6 font-medium text-gray-900 mb-6">
+                            Hoạt động gần đây
+                        </h3>
+                        <div className="flow-root">
+                            <ul className="-mb-8">
+                                {[
+                                    { action: 'Tạo sự kiện mới', user: 'Manager A', time: '2 giờ trước', icon: '📅', color: 'bg-green-500' },
+                                    { action: 'Cập nhật tiêu chí đánh giá', user: 'Admin', time: '4 giờ trước', icon: '📊', color: 'bg-purple-500' },
+                                    { action: 'Tạo học kỳ mới', user: 'Admin', time: '6 giờ trước', icon: '📚', color: 'bg-yellow-500' },
+                                    { action: 'Thêm phòng ban mới', user: 'Admin', time: '1 ngày trước', icon: '🏢', color: 'bg-blue-500' },
+                                ].map((item, index) => (
+                                    <li key={index}>
+                                        <div className="relative pb-8">
+                                            {index !== 3 && (
+                                                <span
+                                                    className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200"
+                                                    aria-hidden="true"
+                                                />
+                                            )}
+                                            <div className="relative flex space-x-3">
+                                                <div>
+                                                    <span className={`h-8 w-8 rounded-full ${item.color} flex items-center justify-center ring-8 ring-white`}>
+                                                        <span className="text-white text-sm">{item.icon}</span>
+                                                    </span>
+                                                </div>
+                                                <div className="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
+                                                    <div>
+                                                        <p className="text-sm text-gray-500">
+                                                            <span className="font-medium text-gray-900">{item.user}</span>{' '}
+                                                            {item.action}
+                                                        </p>
+                                                    </div>
+                                                    <div className="text-right text-sm whitespace-nowrap text-gray-500">
+                                                        {item.time}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Quick Stats */}
+                <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
                     <div className="bg-white shadow rounded-lg">
                         <div className="px-4 py-5 sm:p-6">
                             <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-                                Hoạt động gần đây
+                                Thống kê nhanh
                             </h3>
-                            <div className="text-sm text-gray-500">
-                                <p>Chưa có hoạt động nào gần đây.</p>
-                                <p className="mt-2">Bắt đầu quản lý hệ thống bằng cách chọn một chức năng ở trên.</p>
+                            <div className="space-y-3">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-gray-500">Sự kiện đang diễn ra</span>
+                                    <span className="text-lg font-semibold text-green-600">12</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-gray-500">Học kỳ đang mở</span>
+                                    <span className="text-lg font-semibold text-yellow-600">2</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-gray-500">Sinh viên tham gia</span>
+                                    <span className="text-lg font-semibold text-blue-600">1,234</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white shadow rounded-lg">
+                        <div className="px-4 py-5 sm:p-6">
+                            <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                                Hệ thống
+                            </h3>
+                            <div className="space-y-3">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-gray-500">Trạng thái hệ thống</span>
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        Hoạt động bình thường
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-gray-500">Phiên bản</span>
+                                    <span className="text-sm font-medium text-gray-900">v2.1.0</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-gray-500">Cập nhật cuối</span>
+                                    <span className="text-sm text-gray-500">2 ngày trước</span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </main>
         </div>
     );
 };

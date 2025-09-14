@@ -5,6 +5,7 @@ interface AuthContextType {
     isAuthenticated: boolean;
     userRole: Role | null;
     username: string | null;
+    user: { role: Role; username: string } | null;
     login: (token: string) => void;
     logout: () => void;
     loading: boolean;
@@ -128,6 +129,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isAuthenticated,
         userRole,
         username,
+        user: userRole && username ? { role: userRole, username } : null,
         login,
         logout,
         loading,

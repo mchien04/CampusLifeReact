@@ -53,4 +53,24 @@ export const authAPI = {
     },
 };
 
+export const departmentAPI = {
+    getAll: async (): Promise<Response<any[]>> => {
+        const response = await api.get('/api/departments');
+        return {
+            status: true,
+            message: 'Departments retrieved successfully',
+            data: response.data
+        };
+    },
+
+    getById: async (id: number): Promise<Response<any>> => {
+        const response = await api.get(`/api/departments/${id}`);
+        return {
+            status: true,
+            message: 'Department retrieved successfully',
+            data: response.data
+        };
+    },
+};
+
 export default api;

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 const StudentDashboard: React.FC = () => {
@@ -12,12 +13,12 @@ const StudentDashboard: React.FC = () => {
     ];
 
     const quickActions = [
-        { name: 'Xem điểm rèn luyện', href: '/student/scores', icon: '📊' },
-        { name: 'Tham gia sự kiện', href: '/student/events', icon: '📅' },
-        { name: 'Nộp bài thu hoạch', href: '/student/submissions', icon: '📄' },
-        { name: 'Cập nhật thông tin', href: '/student/profile', icon: '👤' },
-        { name: 'Tin nhắn hỗ trợ', href: '/student/messages', icon: '💬' },
-        { name: 'Lịch sử hoạt động', href: '/student/history', icon: '📋' },
+        { name: 'Xem sự kiện', href: '/events', icon: '📅', description: 'Xem danh sách sự kiện có sẵn' },
+        { name: 'Đăng ký sự kiện', href: '/student/registrations', icon: '📝', description: 'Quản lý đăng ký sự kiện' },
+        { name: 'Nhiệm vụ của tôi', href: '/student/tasks', icon: '✅', description: 'Xem và cập nhật nhiệm vụ' },
+        { name: 'Xem điểm rèn luyện', href: '/student/scores', icon: '📊', description: 'Xem điểm rèn luyện hiện tại' },
+        { name: 'Nộp bài thu hoạch', href: '/student/submissions', icon: '📄', description: 'Nộp bài thu hoạch' },
+        { name: 'Cập nhật thông tin', href: '/student/profile', icon: '👤', description: 'Cập nhật thông tin cá nhân' },
     ];
 
     const upcomingEvents = [
@@ -107,22 +108,23 @@ const StudentDashboard: React.FC = () => {
                                 </h3>
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                     {quickActions.map((action) => (
-                                        <a
+                                        <Link
                                             key={action.name}
-                                            href={action.href}
-                                            className="relative group bg-white p-4 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all"
+                                            to={action.href}
+                                            className="relative group bg-white p-4 focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-500 rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all"
                                         >
                                             <div>
                                                 <span className="text-xl mb-2 block">{action.icon}</span>
-                                                <div className="text-sm font-medium text-gray-900">
+                                                <div className="text-sm font-medium text-gray-900 group-hover:text-blue-600">
                                                     {action.name}
                                                 </div>
+                                                {action.description && (
+                                                    <div className="text-xs text-gray-500 mt-1">
+                                                        {action.description}
+                                                    </div>
+                                                )}
                                             </div>
-                                            <span
-                                                className="absolute inset-0"
-                                                aria-hidden="true"
-                                            />
-                                        </a>
+                                        </Link>
                                     ))}
                                 </div>
                             </div>
