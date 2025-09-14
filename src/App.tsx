@@ -4,13 +4,16 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/common';
 import { Login, Register, VerifyAccount } from './components/auth';
 import { Home, Dashboard, CreateEvent, EventList, EditEvent, EventDetail } from './pages';
-import DepartmentManagement from './pages/admin/DepartmentManagement';
-import AcademicYearManagement from './pages/admin/AcademicYearManagement';
-import SemesterManagement from './pages/admin/SemesterManagement';
-import CriteriaGroupManagement from './pages/admin/CriteriaGroupManagement';
-import CriteriaItemManagement from './pages/admin/CriteriaItemManagement';
-import EditSemester from './pages/admin/EditSemester';
-import EditCriteriaItem from './pages/admin/EditCriteriaItem';
+import AcademicYears from './pages/admin/AcademicYears';
+import Departments from './pages/admin/Departments';
+import Criteria from './pages/admin/Criteria';
+import Students from './pages/admin/Students';
+import Reports from './pages/admin/Reports';
+import EventRegistrations from './pages/admin/EventRegistrations';
+import StudentRegistrations from './pages/StudentRegistrations';
+import ManagerRegistrations from './pages/ManagerRegistrations';
+import StudentTasks from './pages/StudentTasks';
+import TaskManagement from './pages/TaskManagement';
 import { Role } from './types';
 
 function App() {
@@ -139,6 +142,92 @@ function App() {
               element={
                 <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
                   <EditEvent />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Admin Routes */}
+            <Route
+              path="/admin/academic-years"
+              element={
+                <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
+                  <AcademicYears />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/departments"
+              element={
+                <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
+                  <Departments />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/criteria"
+              element={
+                <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
+                  <Criteria />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/students"
+              element={
+                <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
+                  <Students />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/reports"
+              element={
+                <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
+                  <Reports />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/events/:id/registrations"
+              element={
+                <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                  <EventRegistrations />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Student Routes */}
+            <Route
+              path="/student/registrations"
+              element={
+                <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
+                  <StudentRegistrations />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/student/tasks"
+              element={
+                <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
+                  <StudentTasks />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Manager Routes */}
+            <Route
+              path="/manager/registrations"
+              element={
+                <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                  <ManagerRegistrations />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/manager/tasks"
+              element={
+                <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                  <TaskManagement />
                 </ProtectedRoute>
               }
             />
