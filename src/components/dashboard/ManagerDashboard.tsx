@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 const ManagerDashboard: React.FC = () => {
@@ -12,12 +13,12 @@ const ManagerDashboard: React.FC = () => {
     ];
 
     const quickActions = [
-        { name: 'Tạo sự kiện mới', href: '/manager/events/create', icon: '➕' },
-        { name: 'Quản lý sự kiện', href: '/manager/events', icon: '📅' },
-        { name: 'Nhập điểm rèn luyện', href: '/manager/scores', icon: '📝' },
-        { name: 'Duyệt bài thu hoạch', href: '/manager/submissions', icon: '✅' },
-        { name: 'Tin nhắn từ sinh viên', href: '/manager/messages', icon: '💬' },
-        { name: 'Báo cáo hoạt động', href: '/manager/reports', icon: '📈' },
+        { name: 'Tạo sự kiện mới', href: '/manager/events/create', icon: '➕', description: 'Tạo sự kiện hoạt động mới' },
+        { name: 'Quản lý sự kiện', href: '/manager/events', icon: '📅', description: 'Xem và quản lý sự kiện' },
+        { name: 'Quản lý đăng ký', href: '/manager/registrations', icon: '📝', description: 'Duyệt đăng ký sự kiện' },
+        { name: 'Quản lý nhiệm vụ', href: '/manager/tasks', icon: '✅', description: 'Tổng quan quản lý nhiệm vụ' },
+        { name: 'Nhập điểm rèn luyện', href: '/manager/scores', icon: '📊', description: 'Nhập điểm cho sinh viên' },
+        { name: 'Báo cáo hoạt động', href: '/manager/reports', icon: '📈', description: 'Xem báo cáo thống kê' },
     ];
 
     const upcomingEvents = [
@@ -96,22 +97,23 @@ const ManagerDashboard: React.FC = () => {
                             </h3>
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 {quickActions.map((action) => (
-                                    <a
+                                    <Link
                                         key={action.name}
-                                        href={action.href}
-                                        className="relative group bg-white p-4 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all"
+                                        to={action.href}
+                                        className="relative group bg-white p-4 focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-500 rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all"
                                     >
                                         <div>
                                             <span className="text-xl mb-2 block">{action.icon}</span>
-                                            <div className="text-sm font-medium text-gray-900">
+                                            <div className="text-sm font-medium text-gray-900 group-hover:text-blue-600">
                                                 {action.name}
                                             </div>
+                                            {action.description && (
+                                                <div className="text-xs text-gray-500 mt-1">
+                                                    {action.description}
+                                                </div>
+                                            )}
                                         </div>
-                                        <span
-                                            className="absolute inset-0"
-                                            aria-hidden="true"
-                                        />
-                                    </a>
+                                    </Link>
                                 ))}
                             </div>
                         </div>

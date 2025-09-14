@@ -139,20 +139,62 @@ export const eventAPI = {
         }
     },
 
-    // Get events by type
-    getEventsByType: async (type: string): Promise<Response<ActivityResponse[]>> => {
+    // Get events by score type
+    getEventsByScoreType: async (scoreType: string): Promise<Response<ActivityResponse[]>> => {
         try {
-            const response = await api.get(`/api/activities/type/${type}`);
+            const response = await api.get(`/api/activities/score-type/${scoreType}`);
             return {
                 status: response.data.status,
                 message: response.data.message,
                 data: response.data.body || response.data.data
             };
         } catch (error: any) {
-            console.error('Error fetching events by type:', error);
+            console.error('Error fetching events by score type:', error);
             return {
                 status: false,
-                message: 'Failed to fetch events by type',
+                message: 'Failed to fetch events by score type',
+                data: undefined
+            };
+        }
+    },
+
+    // Get events by month
+    getEventsByMonth: async (year?: number, month?: number): Promise<Response<ActivityResponse[]>> => {
+        try {
+            const params = new URLSearchParams();
+            if (year) params.append('year', year.toString());
+            if (month) params.append('month', month.toString());
+
+            const response = await api.get(`/api/activities/month?${params.toString()}`);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Error fetching events by month:', error);
+            return {
+                status: false,
+                message: 'Failed to fetch events by month',
+                data: undefined
+            };
+        }
+    },
+
+    // Get my events
+    getMyEvents: async (): Promise<Response<ActivityResponse[]>> => {
+        try {
+            const response = await api.get('/api/activities/my');
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Error fetching my events:', error);
+            return {
+                status: false,
+                message: 'Failed to fetch my events',
                 data: undefined
             };
         }

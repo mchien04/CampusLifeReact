@@ -115,17 +115,25 @@ const EditEvent: React.FC = () => {
     const initialData: Partial<CreateActivityRequest> = {
         name: event.name,
         type: event.type,
+        scoreType: event.scoreType,
         description: event.description,
         startDate: event.startDate,
         endDate: event.endDate,
-        departmentId: event.departmentId,
         requiresSubmission: event.requiresSubmission,
         maxPoints: event.maxPoints,
+        penaltyPointsIncomplete: event.penaltyPointsIncomplete,
+        registrationStartDate: event.registrationStartDate,
         registrationDeadline: event.registrationDeadline,
         shareLink: event.shareLink,
         isImportant: event.isImportant,
         bannerUrl: event.bannerUrl,
-        location: event.location
+        location: event.location,
+        ticketQuantity: event.ticketQuantity,
+        benefits: event.benefits,
+        requirements: event.requirements,
+        contactInfo: event.contactInfo,
+        mandatoryForFacultyStudents: event.mandatoryForFacultyStudents,
+        organizerIds: event.organizerIds || []
     };
 
     return (
