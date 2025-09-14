@@ -70,14 +70,3 @@ export enum ScoreType {
     KHAC = 'KHAC'
 }
 
-export interface Department {
-    id: number;
-    name: string;
-    type: DepartmentType;
-    description?: string;
-}
-
-export enum DepartmentType {
-    PHONG_BAN = 'PHONG_BAN',
-    KHOA = 'KHOA'
-}

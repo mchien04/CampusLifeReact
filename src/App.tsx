@@ -59,7 +59,7 @@ function App() {
               path="/admin/departments/*"
               element={
                 <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
-                  <DepartmentManagement />
+                  <Departments />
                 </ProtectedRoute>
               }
             />
@@ -67,47 +67,15 @@ function App() {
               path="/admin/academic-years/*"
               element={
                 <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
-                  <AcademicYearManagement />
+                  <AcademicYears />
                 </ProtectedRoute>
               }
             />
             <Route
-              path="/admin/academic-years/:yearId/semesters/*"
+              path="/admin/criteria/*"
               element={
                 <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
-                  <SemesterManagement />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/semesters/:id/edit"
-              element={
-                <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
-                  <EditSemester />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/criteria-groups/*"
-              element={
-                <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
-                  <CriteriaGroupManagement />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/criteria-groups/:groupId/items/*"
-              element={
-                <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
-                  <CriteriaItemManagement />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/criteria-items/:id/edit"
-              element={
-                <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
-                  <EditCriteriaItem />
+                  <Criteria />
                 </ProtectedRoute>
               }
             />
