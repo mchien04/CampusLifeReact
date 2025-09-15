@@ -220,12 +220,20 @@ const EventList: React.FC = () => {
                             <h1 className="text-2xl font-bold text-gray-900">Quản lý sự kiện</h1>
                             <p className="text-gray-600 mt-1">Danh sách tất cả sự kiện</p>
                         </div>
-                        <Link
-                            to="/manager/events/create"
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                        >
-                            + Tạo sự kiện mới
-                        </Link>
+                        <div className="flex space-x-3">
+                            <Link
+                                to="/dashboard"
+                                className="px-4 py-2 text-gray-600 hover:text-gray-900"
+                            >
+                                ← Quay lại Dashboard
+                            </Link>
+                            <Link
+                                to="/manager/events/create"
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                            >
+                                + Tạo sự kiện mới
+                            </Link>
+                        </div>
                     </div>
                 </div>
             </div>

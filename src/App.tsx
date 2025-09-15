@@ -3,7 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/common';
 import { Login, Register, VerifyAccount } from './components/auth';
-import { Home, Dashboard, CreateEvent, EventList, EditEvent, EventDetail } from './pages';
+import { Home, Dashboard, CreateEvent, EventList, EditEvent, EventDetail, StudentEvents } from './pages';
+import StudentEventDetail from './pages/StudentEventDetail';
 import AcademicYears from './pages/admin/AcademicYears';
 import Departments from './pages/admin/Departments';
 import Criteria from './pages/admin/Criteria';
@@ -165,6 +166,22 @@ function App() {
             />
 
             {/* Student Routes */}
+            <Route
+              path="/student/events"
+              element={
+                <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
+                  <StudentEvents />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/student/events/:id"
+              element={
+                <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
+                  <StudentEventDetail />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/student/registrations"
               element={

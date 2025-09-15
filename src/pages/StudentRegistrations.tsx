@@ -31,13 +31,27 @@ const StudentRegistrations: React.FC = () => {
     };
 
     const handleCancelRegistration = async (activityId: number) => {
-        if (window.confirm('Bạn có chắc chắn muốn hủy đăng ký sự kiện này?')) {
+        // Tìm registration để kiểm tra trạng thái
+        const registration = registrations.find(reg => reg.activityId === activityId);
+
+        if (registration?.status === 'APPROVED') {
+            alert('Không thể hủy đăng ký đã được duyệt!');
+            return;
+        }
+
+        const confirmed = window.confirm(
+            'Bạn có chắc chắn muốn hủy đăng ký sự kiện này?\n\n' +
+            '⚠️ Lưu ý: Sau khi hủy, bạn sẽ không thể đăng ký lại sự kiện này.'
+        );
+
+        if (confirmed) {
             try {
                 await registrationAPI.cancelRegistration(activityId);
                 await loadData(); // Reload data
-            } catch (error) {
+                alert('Hủy đăng ký thành công!');
+            } catch (error: any) {
                 console.error('Error canceling registration:', error);
-                alert('Có lỗi xảy ra khi hủy đăng ký');
+                alert('Có lỗi xảy ra khi hủy đăng ký: ' + (error.response?.data?.message || error.message));
             }
         }
     };
@@ -81,8 +95,8 @@ const StudentRegistrations: React.FC = () => {
                             <button
                                 onClick={() => setActiveTab('registrations')}
                                 className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'registrations'
-                                        ? 'border-blue-500 text-blue-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    ? 'border-blue-500 text-blue-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                     }`}
                             >
                                 Đăng ký sự kiện ({registrations.length})
@@ -90,8 +104,8 @@ const StudentRegistrations: React.FC = () => {
                             <button
                                 onClick={() => setActiveTab('participations')}
                                 className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'participations'
-                                        ? 'border-blue-500 text-blue-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    ? 'border-blue-500 text-blue-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                     }`}
                             >
                                 Lịch sử tham gia ({participations.length})
@@ -108,7 +122,7 @@ const StudentRegistrations: React.FC = () => {
                                 <div className="flex justify-between items-center mb-6">
                                     <h2 className="text-lg font-medium text-gray-900">Đăng ký sự kiện</h2>
                                     <Link
-                                        to="/events"
+                                        to="/student/events"
                                         className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                     >
                                         Xem sự kiện

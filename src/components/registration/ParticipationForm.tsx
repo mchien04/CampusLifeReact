@@ -18,7 +18,7 @@ const ParticipationForm: React.FC<ParticipationFormProps> = ({
 }) => {
     const [formData, setFormData] = useState<ActivityParticipationRequest>({
         activityId,
-        participationType: ParticipationType.ATTENDANCE,
+        participationType: ParticipationType.ATTENDED,
         pointsEarned: 0,
         notes: ''
     });

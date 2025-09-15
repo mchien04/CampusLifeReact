@@ -48,12 +48,20 @@ const CreateEvent: React.FC = () => {
                             <h1 className="text-2xl font-bold text-gray-900">Tạo sự kiện mới</h1>
                             <p className="text-gray-600 mt-1">Tạo và quản lý sự kiện cho sinh viên</p>
                         </div>
-                        <button
-                            onClick={() => navigate('/manager/events')}
-                            className="px-4 py-2 text-gray-600 hover:text-gray-900"
-                        >
-                            ← Quay lại danh sách
-                        </button>
+                        <div className="flex space-x-3">
+                            <button
+                                onClick={() => navigate('/dashboard')}
+                                className="px-4 py-2 text-gray-600 hover:text-gray-900"
+                            >
+                                ← Quay lại Dashboard
+                            </button>
+                            <button
+                                onClick={() => navigate('/manager/events')}
+                                className="px-4 py-2 text-gray-600 hover:text-gray-900"
+                            >
+                                ← Quay lại danh sách
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
