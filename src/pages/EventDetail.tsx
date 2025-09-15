@@ -380,6 +380,12 @@ const EventDetail: React.FC = () => {
                                 Chỉnh sửa
                             </Link>
                             <button
+                                onClick={() => navigate('/dashboard')}
+                                className="px-4 py-2 text-gray-600 hover:text-gray-900"
+                            >
+                                ← Quay lại Dashboard
+                            </button>
+                            <button
                                 onClick={() => navigate('/manager/events')}
                                 className="px-4 py-2 text-gray-600 hover:text-gray-900"
                             >
@@ -622,9 +628,9 @@ const EventDetail: React.FC = () => {
                                     <div className="text-center">
                                         <div className="mb-4">
                                             <span className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${registrationStatus.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                                                    registrationStatus.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
-                                                        registrationStatus.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
-                                                            'bg-gray-100 text-gray-800'
+                                                registrationStatus.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
+                                                    registrationStatus.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
+                                                        'bg-gray-100 text-gray-800'
                                                 }`}>
                                                 {registrationStatus.status === 'PENDING' ? 'Chờ duyệt' :
                                                     registrationStatus.status === 'APPROVED' ? 'Đã duyệt' :

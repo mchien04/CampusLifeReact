@@ -146,12 +146,20 @@ const EditEvent: React.FC = () => {
                             <h1 className="text-2xl font-bold text-gray-900">Chỉnh sửa sự kiện</h1>
                             <p className="text-gray-600 mt-1">Cập nhật thông tin sự kiện: {event.name}</p>
                         </div>
-                        <button
-                            onClick={() => navigate('/manager/events')}
-                            className="px-4 py-2 text-gray-600 hover:text-gray-900"
-                        >
-                            ← Quay lại danh sách
-                        </button>
+                        <div className="flex space-x-3">
+                            <button
+                                onClick={() => navigate('/dashboard')}
+                                className="px-4 py-2 text-gray-600 hover:text-gray-900"
+                            >
+                                ← Quay lại Dashboard
+                            </button>
+                            <button
+                                onClick={() => navigate('/manager/events')}
+                                className="px-4 py-2 text-gray-600 hover:text-gray-900"
+                            >
+                                ← Quay lại danh sách
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

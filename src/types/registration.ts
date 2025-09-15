@@ -6,11 +6,9 @@ export enum RegistrationStatus {
 }
 
 export enum ParticipationType {
-    ATTENDANCE = 'ATTENDANCE',
-    SUBMISSION = 'SUBMISSION',
-    VOLUNTEER = 'VOLUNTEER',
-    ORGANIZER = 'ORGANIZER',
-    OTHER = 'OTHER'
+    REGISTERED = 'REGISTERED',
+    ATTENDED = 'ATTENDED',
+    CHECKED_IN = 'CHECKED_IN'
 }
 
 export interface ActivityRegistrationRequest {
@@ -73,16 +71,12 @@ export const getRegistrationStatusLabel = (status: RegistrationStatus): string =
 
 export const getParticipationTypeLabel = (type: ParticipationType): string => {
     switch (type) {
-        case ParticipationType.ATTENDANCE:
+        case ParticipationType.ATTENDED:
             return 'Tham gia';
-        case ParticipationType.SUBMISSION:
-            return 'Nộp bài';
-        case ParticipationType.VOLUNTEER:
-            return 'Tình nguyện';
-        case ParticipationType.ORGANIZER:
-            return 'Tổ chức';
-        case ParticipationType.OTHER:
-            return 'Khác';
+        case ParticipationType.REGISTERED:
+            return 'Đã đăng ký';
+        case ParticipationType.CHECKED_IN:
+            return 'Đã check-in';
         default:
             return type;
     }

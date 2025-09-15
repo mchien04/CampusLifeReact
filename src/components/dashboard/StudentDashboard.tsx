@@ -1,9 +1,16 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { eventAPI } from '../../services/eventAPI';
+import { registrationAPI } from '../../services/registrationAPI';
+import { ActivityResponse } from '../../types';
+import { RegistrationStatus } from '../../types/registration';
 
 const StudentDashboard: React.FC = () => {
     const { username, logout } = useAuth();
+    const [upcomingEvents, setUpcomingEvents] = useState<ActivityResponse[]>([]);
+    const [registrationStatuses, setRegistrationStatuses] = useState<Map<number, RegistrationStatus>>(new Map());
+    const [loading, setLoading] = useState(true);
 
     const stats = [
         { name: 'Điểm rèn luyện HK này', value: '85', icon: '⭐' },
@@ -13,37 +20,72 @@ const StudentDashboard: React.FC = () => {
     ];
 
     const quickActions = [
-        { name: 'Xem sự kiện', href: '/events', icon: '📅', description: 'Xem danh sách sự kiện có sẵn' },
+        { name: 'Xem sự kiện', href: '/student/events', icon: '📅', description: 'Xem danh sách sự kiện có sẵn' },
         { name: 'Đăng ký sự kiện', href: '/student/registrations', icon: '📝', description: 'Quản lý đăng ký sự kiện' },
         { name: 'Nhiệm vụ của tôi', href: '/student/tasks', icon: '✅', description: 'Xem và cập nhật nhiệm vụ' },
         { name: 'Xem điểm rèn luyện', href: '/student/scores', icon: '📊', description: 'Xem điểm rèn luyện hiện tại' },
         { name: 'Nộp bài thu hoạch', href: '/student/submissions', icon: '📄', description: 'Nộp bài thu hoạch' },
         { name: 'Cập nhật thông tin', href: '/student/profile', icon: '👤', description: 'Cập nhật thông tin cá nhân' },
+
     ];
 
-    const upcomingEvents = [
-        {
-            name: 'Hội thảo Khởi nghiệp',
-            date: '15/01/2024',
-            time: '14:00',
-            location: 'Hội trường A',
-            registered: true
-        },
-        {
-            name: 'Workshop công nghệ AI',
-            date: '25/01/2024',
-            time: '09:00',
-            location: 'Phòng Lab 1',
-            registered: false
-        },
-        {
-            name: 'Tình nguyện mùa đông',
-            date: '28/01/2024',
-            time: '08:00',
-            location: 'Sân trường',
-            registered: true
-        },
-    ];
+    useEffect(() => {
+        loadUpcomingEvents();
+    }, []);
+
+    const loadUpcomingEvents = async () => {
+        try {
+            setLoading(true);
+            const response = await eventAPI.getEvents();
+            if (response.status && response.data) {
+                // Filter upcoming events (next 30 days)
+                const now = new Date();
+                const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+                const upcoming = response.data.filter((event: ActivityResponse) => {
+                    const eventDate = new Date(event.startDate);
+                    return eventDate >= now && eventDate <= thirtyDaysFromNow;
+                }).slice(0, 3); // Show only 3 upcoming events
+
+                setUpcomingEvents(upcoming);
+                await loadRegistrationStatuses(upcoming);
+            }
+        } catch (error) {
+            console.error('Error loading upcoming events:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadRegistrationStatuses = async (events: ActivityResponse[]) => {
+        const statusMap = new Map<number, RegistrationStatus>();
+
+        for (const event of events) {
+            try {
+                const status = await registrationAPI.checkRegistrationStatus(event.id);
+                statusMap.set(event.id, status.status);
+            } catch (err) {
+                console.error(`Error checking registration status for event ${event.id}:`, err);
+            }
+        }
+
+        setRegistrationStatuses(statusMap);
+    };
+
+    const handleQuickRegister = async (eventId: number) => {
+        try {
+            const response = await registrationAPI.registerForActivity({ activityId: eventId });
+            if (response.status) {
+                setRegistrationStatuses(prev => new Map(prev.set(eventId, RegistrationStatus.PENDING)));
+                alert('Đăng ký thành công! Vui lòng chờ phê duyệt.');
+            } else {
+                alert('Đăng ký thất bại');
+            }
+        } catch (err) {
+            alert('Có lỗi xảy ra khi đăng ký');
+            console.error('Error registering for event:', err);
+        }
+    };
 
     const recentScores = [
         { criterion: 'Khen thưởng, kỷ luật', score: 20, maxScore: 25 },
@@ -175,28 +217,47 @@ const StudentDashboard: React.FC = () => {
                                     Sự kiện sắp tới
                                 </h3>
                                 <div className="space-y-4">
-                                    {upcomingEvents.map((event, index) => (
-                                        <div key={index} className="border border-gray-200 rounded-lg p-4">
-                                            <div className="flex items-start justify-between">
-                                                <div className="flex-1">
-                                                    <h4 className="text-sm font-medium text-gray-900">{event.name}</h4>
-                                                    <p className="text-xs text-gray-500 mt-1">📅 {event.date} - {event.time}</p>
-                                                    <p className="text-xs text-gray-500">📍 {event.location}</p>
-                                                </div>
-                                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${event.registered
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : 'bg-gray-100 text-gray-800'
-                                                    }`}>
-                                                    {event.registered ? 'Đã đăng ký' : 'Chưa đăng ký'}
-                                                </span>
-                                            </div>
-                                            {!event.registered && (
-                                                <button className="mt-2 w-full bg-primary-600 text-white px-3 py-1 rounded text-xs hover:bg-primary-700">
-                                                    Đăng ký ngay
-                                                </button>
-                                            )}
+                                    {loading ? (
+                                        <div className="text-center py-4">
+                                            <div className="text-gray-500">Đang tải...</div>
                                         </div>
-                                    ))}
+                                    ) : upcomingEvents.length === 0 ? (
+                                        <div className="text-center py-4">
+                                            <div className="text-gray-500">Không có sự kiện sắp tới</div>
+                                        </div>
+                                    ) : (
+                                        upcomingEvents.map((event) => {
+                                            const registrationStatus = registrationStatuses.get(event.id);
+                                            const isRegistered = registrationStatus === RegistrationStatus.APPROVED || registrationStatus === RegistrationStatus.PENDING;
+                                            const canRegister = !isRegistered;
+
+                                            return (
+                                                <div key={event.id} className="border border-gray-200 rounded-lg p-4">
+                                                    <div className="flex items-start justify-between">
+                                                        <div className="flex-1">
+                                                            <h4 className="text-sm font-medium text-gray-900">{event.name}</h4>
+                                                            <p className="text-xs text-gray-500 mt-1">
+                                                                📅 {new Date(event.startDate).toLocaleDateString('vi-VN')} - {new Date(event.endDate).toLocaleDateString('vi-VN')}
+                                                            </p>
+                                                            <p className="text-xs text-gray-500">📍 {event.location}</p>
+                                                        </div>
+                                                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${isRegistered ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                                                            }`}>
+                                                            {isRegistered ? 'Đã đăng ký' : 'Chưa đăng ký'}
+                                                        </span>
+                                                    </div>
+                                                    {canRegister && (
+                                                        <button
+                                                            onClick={() => handleQuickRegister(event.id)}
+                                                            className="mt-2 w-full bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700"
+                                                        >
+                                                            Đăng ký ngay
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            );
+                                        })
+                                    )}
                                 </div>
                             </div>
                         </div>
