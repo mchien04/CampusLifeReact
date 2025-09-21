@@ -5,16 +5,20 @@ import { ProtectedRoute } from './components/common';
 import { Login, Register, VerifyAccount } from './components/auth';
 import { Home, Dashboard, CreateEvent, EventList, EditEvent, EventDetail, StudentEvents } from './pages';
 import StudentEventDetail from './pages/StudentEventDetail';
+import StudentParticipationHistory from './pages/StudentParticipationHistory';
+import StudentAddressManagement from './pages/StudentAddressManagement';
+import StudentProfile from './pages/StudentProfile';
 import AcademicYears from './pages/admin/AcademicYears';
 import Departments from './pages/admin/Departments';
 import Criteria from './pages/admin/Criteria';
 import Students from './pages/admin/Students';
 import Reports from './pages/admin/Reports';
 import EventRegistrations from './pages/admin/EventRegistrations';
+import ClassManagement from './pages/admin/ClassManagement';
+import TaskManagement from './pages/admin/TaskManagement';
 import StudentRegistrations from './pages/StudentRegistrations';
 import ManagerRegistrations from './pages/ManagerRegistrations';
 import StudentTasks from './pages/StudentTasks';
-import TaskManagement from './pages/TaskManagement';
 import { Role } from './types';
 
 function App() {
@@ -164,6 +168,22 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/admin/classes"
+              element={
+                <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                  <ClassManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/tasks"
+              element={
+                <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                  <TaskManagement />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Student Routes */}
             <Route
@@ -195,6 +215,30 @@ function App() {
               element={
                 <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
                   <StudentTasks />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/student/participation-history"
+              element={
+                <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
+                  <StudentParticipationHistory />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/student/address"
+              element={
+                <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
+                  <StudentAddressManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/student/profile"
+              element={
+                <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
+                  <StudentProfile />
                 </ProtectedRoute>
               }
             />

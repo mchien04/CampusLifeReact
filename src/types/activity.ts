@@ -1,5 +1,8 @@
 
 
+import { Department } from './admin';
+import { User } from './auth';
+
 export interface CreateActivityRequest {
     name: string;
     type: ActivityType;
@@ -23,6 +26,30 @@ export interface CreateActivityRequest {
     contactInfo?: string;
     mandatoryForFacultyStudents: boolean;
     organizerIds: number[];
+}
+
+// New Activity interface matching backend
+export interface Activity {
+    id: number;
+    name: string;
+    description?: string;
+    type: 'ACADEMIC' | 'CULTURAL' | 'SPORTS' | 'SOCIAL' | 'OTHER';
+    location?: string;
+    startDate: string;
+    endDate: string;
+    registrationDeadline: string;
+    maxParticipants?: number;
+    currentParticipants: number;
+    isImportant: boolean;
+    bannerUrl?: string;
+    requiresSubmission: boolean;
+    maxPoints?: number;
+    ticketQuantity?: number;
+    mandatoryForFacultyStudents: boolean;
+    department: Department;
+    createdBy: User;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export interface ActivityResponse {

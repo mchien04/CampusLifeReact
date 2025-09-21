@@ -101,7 +101,7 @@ const EventDetail: React.FC = () => {
 
     const handleCreateTask = async (data: CreateActivityTaskRequest) => {
         try {
-            const response = await taskAPI.createTask(data);
+            const response = await taskAPI.createTaskNew(data);
             if (response.status) {
                 setShowTaskForm(false);
                 loadTasks(); // Reload tasks
@@ -119,7 +119,7 @@ const EventDetail: React.FC = () => {
         if (!editingTask) return;
 
         try {
-            const response = await taskAPI.updateTask(editingTask.id, data);
+            const response = await taskAPI.updateTaskNew(editingTask.id, data);
             if (response.status) {
                 setShowTaskForm(false);
                 setEditingTask(null);
@@ -140,7 +140,7 @@ const EventDetail: React.FC = () => {
         }
 
         try {
-            const response = await taskAPI.deleteTask(taskId);
+            const response = await taskAPI.deleteTaskNew(taskId);
             if (response.status) {
                 loadTasks(); // Reload tasks
                 alert('Xóa nhiệm vụ thành công!');
@@ -155,7 +155,7 @@ const EventDetail: React.FC = () => {
 
     const handleAssignTask = async (data: TaskAssignmentRequest) => {
         try {
-            const response = await taskAPI.assignTask(data);
+            const response = await taskAPI.assignTaskNew(data);
             if (response.status) {
                 setShowAssignmentModal(false);
                 setSelectedTask(null);
@@ -174,7 +174,7 @@ const EventDetail: React.FC = () => {
         setSelectedTask(task);
         setLoadingAssignments(true);
         try {
-            const response = await taskAPI.getTaskAssignments(task.id);
+            const response = await taskAPI.getTaskAssignmentsNew(task.id);
             if (response.status && response.data) {
                 setTaskAssignments(response.data);
                 setShowAssignments(true);

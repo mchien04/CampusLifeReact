@@ -9,7 +9,7 @@ const StudentTasks: React.FC = () => {
     const [filter, setFilter] = useState<TaskStatus | 'ALL'>('ALL');
     const [updatingId, setUpdatingId] = useState<number | null>(null);
 
-    // Mock student ID - in real app, get from auth context
+    // TODO: Get student ID from auth context
     const studentId = 1;
 
     useEffect(() => {
@@ -19,7 +19,7 @@ const StudentTasks: React.FC = () => {
     const loadStudentTasks = async () => {
         setLoading(true);
         try {
-            const response = await taskAPI.getStudentTasks(studentId);
+            const response = await taskAPI.getStudentTasksNew(studentId);
             if (response.status && response.data) {
                 setAssignments(response.data);
             } else {

@@ -21,12 +21,10 @@ const StudentDashboard: React.FC = () => {
 
     const quickActions = [
         { name: 'Xem sự kiện', href: '/student/events', icon: '📅', description: 'Xem danh sách sự kiện có sẵn' },
-        { name: 'Đăng ký sự kiện', href: '/student/registrations', icon: '📝', description: 'Quản lý đăng ký sự kiện' },
+        { name: 'Lịch sử tham gia', href: '/student/participation-history', icon: '📝', description: 'Xem lịch sử tham gia sự kiện' },
         { name: 'Nhiệm vụ của tôi', href: '/student/tasks', icon: '✅', description: 'Xem và cập nhật nhiệm vụ' },
-        { name: 'Xem điểm rèn luyện', href: '/student/scores', icon: '📊', description: 'Xem điểm rèn luyện hiện tại' },
-        { name: 'Nộp bài thu hoạch', href: '/student/submissions', icon: '📄', description: 'Nộp bài thu hoạch' },
-        { name: 'Cập nhật thông tin', href: '/student/profile', icon: '👤', description: 'Cập nhật thông tin cá nhân' },
-
+        { name: 'Quản lý địa chỉ', href: '/student/address', icon: '📍', description: 'Cập nhật thông tin địa chỉ' },
+        { name: 'Cập nhật profile', href: '/student/profile', icon: '👤', description: 'Cập nhật thông tin cá nhân' },
     ];
 
     useEffect(() => {

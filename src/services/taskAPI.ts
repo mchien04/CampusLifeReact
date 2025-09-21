@@ -1,16 +1,99 @@
 import api from './api';
 import {
+    ActivityTask,
+    TaskAssignment,
+    CreateTaskRequest,
+    UpdateTaskRequest,
+    AssignTaskRequest,
+    UpdateAssignmentStatusRequest,
+    TaskFilters,
+    TaskListResponse,
+    AssignmentListResponse,
+    // New interfaces for updated backend
     CreateActivityTaskRequest,
     ActivityTaskResponse,
     TaskAssignmentRequest,
-    TaskAssignmentResponse,
-    Student
+    TaskAssignmentResponse
 } from '../types/task';
+import { Student } from '../types/student';
 import { Response } from '../types/auth';
 
 export const taskAPI = {
+    // Original API methods (keeping existing functionality)
+    // Lấy danh sách nhiệm vụ
+    getTasks: async (filters?: TaskFilters): Promise<TaskListResponse> => {
+        const params = new URLSearchParams();
+        if (filters?.activityId) params.append('activityId', filters.activityId.toString());
+        if (filters?.status) params.append('status', filters.status);
+        if (filters?.search) params.append('search', filters.search);
+        if (filters?.page) params.append('page', filters.page.toString());
+        if (filters?.size) params.append('size', filters.size.toString());
+
+        const response = await api.get(`/api/tasks?${params.toString()}`);
+        return response.data.body;
+    },
+
+    // Lấy chi tiết nhiệm vụ
+    getTaskById: async (taskId: number): Promise<ActivityTask> => {
+        const response = await api.get(`/api/tasks/${taskId}`);
+        return response.data.body;
+    },
+
+    // Tạo nhiệm vụ mới
+    createTask: async (data: CreateTaskRequest): Promise<ActivityTask> => {
+        const response = await api.post('/api/tasks', data);
+        return response.data.body;
+    },
+
+    // Cập nhật nhiệm vụ
+    updateTask: async (taskId: number, data: UpdateTaskRequest): Promise<ActivityTask> => {
+        const response = await api.put(`/api/tasks/${taskId}`, data);
+        return response.data.body;
+    },
+
+    // Xóa nhiệm vụ
+    deleteTask: async (taskId: number): Promise<void> => {
+        await api.delete(`/api/tasks/${taskId}`);
+    },
+
+    // Lấy nhiệm vụ của sinh viên
+    getStudentTasks: async (studentId: number): Promise<AssignmentListResponse> => {
+        const response = await api.get(`/api/assignments/student/${studentId}`);
+        return response.data.body;
+    },
+
+    // Lấy nhiệm vụ của sinh viên hiện tại
+    getMyTasks: async (): Promise<AssignmentListResponse> => {
+        const response = await api.get('/api/assignments/my');
+        return response.data.body;
+    },
+
+    // Cập nhật trạng thái nhiệm vụ
+    updateAssignmentStatus: async (assignmentId: number, data: UpdateAssignmentStatusRequest): Promise<TaskAssignment> => {
+        const response = await api.put(`/api/assignments/${assignmentId}/status`, data);
+        return response.data.body;
+    },
+
+    // Hủy phân công
+    removeAssignment: async (assignmentId: number): Promise<void> => {
+        await api.delete(`/api/assignments/${assignmentId}`);
+    },
+
+    // Phân công nhiệm vụ
+    assignTask: async (data: AssignTaskRequest): Promise<TaskAssignment[]> => {
+        const response = await api.post('/api/assignments', data);
+        return response.data.body;
+    },
+
+    // Lấy danh sách phân công của nhiệm vụ
+    getTaskAssignments: async (taskId: number): Promise<AssignmentListResponse> => {
+        const response = await api.get(`/api/assignments/task/${taskId}`);
+        return response.data.body;
+    },
+
+    // New API methods for updated backend
     // Task Management
-    createTask: async (data: CreateActivityTaskRequest): Promise<Response<ActivityTaskResponse>> => {
+    createTaskNew: async (data: CreateActivityTaskRequest): Promise<Response<ActivityTaskResponse>> => {
         try {
             const response = await api.post('/api/tasks', data);
             return {
@@ -46,7 +129,7 @@ export const taskAPI = {
         }
     },
 
-    getTaskById: async (taskId: number): Promise<Response<ActivityTaskResponse>> => {
+    getTaskByIdNew: async (taskId: number): Promise<Response<ActivityTaskResponse>> => {
         try {
             const response = await api.get(`/api/tasks/${taskId}`);
             return {
@@ -64,7 +147,7 @@ export const taskAPI = {
         }
     },
 
-    updateTask: async (taskId: number, data: CreateActivityTaskRequest): Promise<Response<ActivityTaskResponse>> => {
+    updateTaskNew: async (taskId: number, data: CreateActivityTaskRequest): Promise<Response<ActivityTaskResponse>> => {
         try {
             const response = await api.put(`/api/tasks/${taskId}`, data);
             return {
@@ -82,7 +165,7 @@ export const taskAPI = {
         }
     },
 
-    deleteTask: async (taskId: number): Promise<Response<void>> => {
+    deleteTaskNew: async (taskId: number): Promise<Response<void>> => {
         try {
             const response = await api.delete(`/api/tasks/${taskId}`);
             return {
@@ -101,7 +184,7 @@ export const taskAPI = {
     },
 
     // Task Assignment Management
-    assignTask: async (data: TaskAssignmentRequest): Promise<Response<TaskAssignmentResponse[]>> => {
+    assignTaskNew: async (data: TaskAssignmentRequest): Promise<Response<TaskAssignmentResponse[]>> => {
         try {
             const response = await api.post('/api/tasks/assign', data);
             return {
@@ -119,7 +202,7 @@ export const taskAPI = {
         }
     },
 
-    getTaskAssignments: async (taskId: number): Promise<Response<TaskAssignmentResponse[]>> => {
+    getTaskAssignmentsNew: async (taskId: number): Promise<Response<TaskAssignmentResponse[]>> => {
         try {
             const response = await api.get(`/api/tasks/${taskId}/assignments`);
             return {
@@ -137,7 +220,7 @@ export const taskAPI = {
         }
     },
 
-    getStudentTasks: async (studentId: number): Promise<Response<TaskAssignmentResponse[]>> => {
+    getStudentTasksNew: async (studentId: number): Promise<Response<TaskAssignmentResponse[]>> => {
         try {
             const response = await api.get(`/api/assignments/student/${studentId}`);
             return {

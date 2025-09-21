@@ -28,10 +28,10 @@ export const eventAPI = {
                 status: error.response?.status,
                 statusText: error.response?.statusText
             });
-            // Return mock data as fallback
+            // Return empty data on error
             return {
-                status: true,
-                message: 'Using mock data',
+                status: false,
+                message: 'Failed to fetch events',
                 data: []
             };
         }
