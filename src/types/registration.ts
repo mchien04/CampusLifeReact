@@ -1,8 +1,29 @@
+import { Activity } from './activity';
+import { Student } from './student';
+import { User } from './auth';
+
 export enum RegistrationStatus {
     PENDING = 'PENDING',
     APPROVED = 'APPROVED',
     REJECTED = 'REJECTED',
     CANCELLED = 'CANCELLED'
+}
+
+// New ActivityRegistration interface matching backend
+export interface ActivityRegistration {
+    id: number;
+    activity: Activity;
+    student: Student;
+    registrationDate: string;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+    participationType: 'INDIVIDUAL' | 'GROUP';
+    groupName?: string;
+    notes?: string;
+    approvedBy?: User;
+    approvedAt?: string;
+    rejectionReason?: string;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export enum ParticipationType {

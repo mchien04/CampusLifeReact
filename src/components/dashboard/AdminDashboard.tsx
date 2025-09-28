@@ -14,6 +14,8 @@ const AdminDashboard: React.FC = () => {
 
     const quickActions = [
         { name: 'Quản lý sự kiện', href: '/manager/events', icon: '📅', description: 'Tạo và quản lý các sự kiện hoạt động' },
+        { name: 'Quản lý lớp học', href: '/admin/classes', icon: '🏫', description: 'Quản lý lớp học và sinh viên' },
+        { name: 'Quản lý nhiệm vụ', href: '/admin/tasks', icon: '📋', description: 'Tạo và phân công nhiệm vụ' },
         { name: 'Quản lý năm học', href: '/admin/academic-years', icon: '📚', description: 'Quản lý năm học và học kỳ' },
         { name: 'Quản lý phòng ban', href: '/admin/departments', icon: '🏢', description: 'Quản lý khoa và phòng ban' },
         { name: 'Quản lý tiêu chí', href: '/admin/criteria', icon: '📊', description: 'Quản lý tiêu chí đánh giá' },

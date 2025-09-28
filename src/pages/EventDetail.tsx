@@ -7,7 +7,8 @@ import { eventAPI } from '../services/eventAPI';
 import { taskAPI } from '../services/taskAPI';
 import { registrationAPI } from '../services/registrationAPI';
 import { getImageUrl } from '../utils/imageUtils';
-import { TaskList, TaskForm, TaskAssignmentModal, TaskAssignmentsList } from '../components/tasks';
+import { TaskList, TaskForm, TaskAssignmentsList } from '../components/tasks';
+import { TaskAssignmentModal } from '../components/task/TaskAssignmentModal';
 import { RegistrationForm, ParticipationForm } from '../components/registration';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -101,7 +102,7 @@ const EventDetail: React.FC = () => {
 
     const handleCreateTask = async (data: CreateActivityTaskRequest) => {
         try {
-            const response = await taskAPI.createTask(data);
+            const response = await taskAPI.createTaskNew(data);
             if (response.status) {
                 setShowTaskForm(false);
                 loadTasks(); // Reload tasks
@@ -119,7 +120,7 @@ const EventDetail: React.FC = () => {
         if (!editingTask) return;
 
         try {
-            const response = await taskAPI.updateTask(editingTask.id, data);
+            const response = await taskAPI.updateTaskNew(editingTask.id, data);
             if (response.status) {
                 setShowTaskForm(false);
                 setEditingTask(null);
@@ -140,7 +141,7 @@ const EventDetail: React.FC = () => {
         }
 
         try {
-            const response = await taskAPI.deleteTask(taskId);
+            const response = await taskAPI.deleteTaskNew(taskId);
             if (response.status) {
                 loadTasks(); // Reload tasks
                 alert('Xóa nhiệm vụ thành công!');
@@ -155,7 +156,7 @@ const EventDetail: React.FC = () => {
 
     const handleAssignTask = async (data: TaskAssignmentRequest) => {
         try {
-            const response = await taskAPI.assignTask(data);
+            const response = await taskAPI.assignTaskNew(data);
             if (response.status) {
                 setShowAssignmentModal(false);
                 setSelectedTask(null);
@@ -174,7 +175,7 @@ const EventDetail: React.FC = () => {
         setSelectedTask(task);
         setLoadingAssignments(true);
         try {
-            const response = await taskAPI.getTaskAssignments(task.id);
+            const response = await taskAPI.getTaskAssignmentsNew(task.id);
             if (response.status && response.data) {
                 setTaskAssignments(response.data);
                 setShowAssignments(true);
@@ -502,7 +503,7 @@ const EventDetail: React.FC = () => {
                                             </p>
                                         </div>
                                     </div>
-                                    {event.maxPoints && event.maxPoints > 0 && (
+                                    {event.maxPoints && parseFloat(event.maxPoints) > 0 && (
                                         <div className="flex items-center">
                                             <span className="w-5 h-5 mr-3 text-yellow-600">🏆</span>
                                             <div>
@@ -511,7 +512,7 @@ const EventDetail: React.FC = () => {
                                             </div>
                                         </div>
                                     )}
-                                    {event.penaltyPointsIncomplete && event.penaltyPointsIncomplete > 0 && (
+                                    {event.penaltyPointsIncomplete && parseFloat(event.penaltyPointsIncomplete) > 0 && (
                                         <div className="flex items-center">
                                             <span className="w-5 h-5 mr-3 text-red-600">⚠️</span>
                                             <div>
@@ -756,15 +757,16 @@ const EventDetail: React.FC = () => {
             )}
 
             {/* Task Assignment Modal */}
-            <TaskAssignmentModal
-                task={selectedTask}
-                isOpen={showAssignmentModal}
-                onClose={() => {
-                    setShowAssignmentModal(false);
-                    setSelectedTask(null);
-                }}
-                onAssign={handleAssignTask}
-            />
+            {showAssignmentModal && selectedTask && (
+                <TaskAssignmentModal
+                    task={selectedTask}
+                    onClose={() => {
+                        setShowAssignmentModal(false);
+                        setSelectedTask(null);
+                    }}
+                    onRefresh={() => loadTasks()}
+                />
+            )}
 
             {/* Task Assignments Modal */}
             {showAssignments && selectedTask && (

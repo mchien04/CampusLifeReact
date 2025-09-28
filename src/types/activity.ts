@@ -1,5 +1,8 @@
 
 
+import { Department } from './admin';
+import { User } from './auth';
+
 export interface CreateActivityRequest {
     name: string;
     type: ActivityType;
@@ -8,8 +11,8 @@ export interface CreateActivityRequest {
     startDate: string;
     endDate: string;
     requiresSubmission: boolean;
-    maxPoints?: number;
-    penaltyPointsIncomplete?: number;
+    maxPoints?: string; // Changed to string to match BigDecimal
+    penaltyPointsIncomplete?: string; // Changed to string to match BigDecimal
     registrationStartDate?: string;
     registrationDeadline?: string;
     shareLink?: string;
@@ -25,6 +28,30 @@ export interface CreateActivityRequest {
     organizerIds: number[];
 }
 
+// New Activity interface matching backend
+export interface Activity {
+    id: number;
+    name: string;
+    description?: string;
+    type: 'ACADEMIC' | 'CULTURAL' | 'SPORTS' | 'SOCIAL' | 'OTHER';
+    location?: string;
+    startDate: string;
+    endDate: string;
+    registrationDeadline: string;
+    maxParticipants?: number;
+    currentParticipants: number;
+    isImportant: boolean;
+    bannerUrl?: string;
+    requiresSubmission: boolean;
+    maxPoints?: number;
+    ticketQuantity?: number;
+    mandatoryForFacultyStudents: boolean;
+    department: Department;
+    createdBy: User;
+    createdAt: string;
+    updatedAt: string;
+}
+
 export interface ActivityResponse {
     id: number;
     name: string;
@@ -34,8 +61,8 @@ export interface ActivityResponse {
     startDate: string;
     endDate: string;
     requiresSubmission: boolean;
-    maxPoints?: number;
-    penaltyPointsIncomplete?: number;
+    maxPoints?: string; // Changed to string to match BigDecimal
+    penaltyPointsIncomplete?: string; // Changed to string to match BigDecimal
     registrationStartDate?: string;
     registrationDeadline?: string;
     shareLink?: string;

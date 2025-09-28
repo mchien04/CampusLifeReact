@@ -28,10 +28,10 @@ export const eventAPI = {
                 status: error.response?.status,
                 statusText: error.response?.statusText
             });
-            // Return mock data as fallback
+            // Return empty data on error
             return {
-                status: true,
-                message: 'Using mock data',
+                status: false,
+                message: 'Failed to fetch events',
                 data: []
             };
         }
@@ -268,5 +268,22 @@ export const eventAPI = {
             },
         });
         return response.data;
+    },
+
+    // Debug endpoint to check user info
+    debugUserInfo: async (): Promise<Response<any>> => {
+        try {
+            console.log('🔍 eventAPI: debugUserInfo called');
+            const response = await api.get('/api/activities/debug/user-info');
+            console.log('🔍 eventAPI: debugUserInfo response:', response.data);
+            return response.data;
+        } catch (error: any) {
+            console.error('🔍 eventAPI: debugUserInfo failed:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Failed to get user info',
+                data: null
+            };
+        }
     }
 };

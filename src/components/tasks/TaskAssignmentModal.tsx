@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { ActivityTaskResponse, TaskAssignmentRequest, Student, TaskStatus } from '../../types/task';
+import { ActivityTaskResponse, TaskAssignmentRequest, TaskStatus } from '../../types/task';
+import { StudentResponse } from '../../types/student';
+import { Role } from '../../types/auth';
 import { departmentAPI } from '../../services/api';
+import { studentAPI } from '../../services/studentAPI';
 
 interface TaskAssignmentModalProps {
     task: ActivityTaskResponse | null;
@@ -17,7 +20,7 @@ const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
     onAssign,
     loading = false
 }) => {
-    const [students, setStudents] = useState<Student[]>([]);
+    const [students, setStudents] = useState<StudentResponse[]>([]);
     const [selectedStudentIds, setSelectedStudentIds] = useState<number[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [loadingStudents, setLoadingStudents] = useState(false);
@@ -31,18 +34,11 @@ const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
     const loadStudents = async () => {
         setLoadingStudents(true);
         try {
-            // Load all departments first
-            const deptResponse = await departmentAPI.getAll();
-            if (deptResponse.status && deptResponse.data) {
-                // Mock students data - in real app, you'd have a student API
-                const mockStudents: Student[] = [
-                    { id: 1, fullName: 'Nguyễn Văn A', studentCode: 'SV001', email: 'a@example.com', departmentId: 1, departmentName: 'Khoa CNTT' },
-                    { id: 2, fullName: 'Trần Thị B', studentCode: 'SV002', email: 'b@example.com', departmentId: 1, departmentName: 'Khoa CNTT' },
-                    { id: 3, fullName: 'Lê Văn C', studentCode: 'SV003', email: 'c@example.com', departmentId: 2, departmentName: 'Khoa Kinh tế' },
-                    { id: 4, fullName: 'Phạm Thị D', studentCode: 'SV004', email: 'd@example.com', departmentId: 2, departmentName: 'Khoa Kinh tế' },
-                    { id: 5, fullName: 'Hoàng Văn E', studentCode: 'SV005', email: 'e@example.com', departmentId: 1, departmentName: 'Khoa CNTT' },
-                ];
-                setStudents(mockStudents);
+            const response = await studentAPI.getAllStudents();
+            if (response.status && response.data) {
+                setStudents(response.data.content || []);
+            } else {
+                setStudents([]);
             }
         } catch (error) {
             console.error('Error loading students:', error);
@@ -158,7 +154,7 @@ const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                                                     {student.fullName}
                                                 </div>
                                                 <div className="text-sm text-gray-500">
-                                                    {student.studentCode} • {student.departmentName}
+                                                    {student.studentCode} • {student.email}
                                                 </div>
                                             </div>
                                         </label>

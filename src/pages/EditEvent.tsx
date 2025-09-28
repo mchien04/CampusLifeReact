@@ -3,9 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import EventForm from '../components/events/EventForm';
 import { CreateActivityRequest, ActivityResponse } from '../types/activity';
 import { eventAPI } from '../services/eventAPI';
+import { useAuth } from '../contexts/AuthContext';
 
 const EditEvent: React.FC = () => {
     const { id } = useParams<{ id: string }>();
+    const { isAuthenticated, userRole, username } = useAuth();
     const [loading, setLoading] = useState(false);
     const [loadingEvent, setLoadingEvent] = useState(true);
     const [error, setError] = useState('');
@@ -38,11 +40,28 @@ const EditEvent: React.FC = () => {
         fetchEvent();
     }, [id]);
 
+    const testUserInfo = async () => {
+        try {
+            console.log('🔍 EditEvent: Testing user info...');
+            const response = await eventAPI.debugUserInfo();
+            console.log('🔍 EditEvent: User info response:', response);
+            alert(`User Info: ${JSON.stringify(response, null, 2)}`);
+        } catch (error) {
+            console.error('🔍 EditEvent: Test user info failed:', error);
+            alert('Failed to get user info');
+        }
+    };
+
     const handleSubmit = async (data: CreateActivityRequest) => {
         if (!id) {
             setError('ID sự kiện không hợp lệ');
             return;
         }
+
+        console.log('🔍 EditEvent: handleSubmit called');
+        console.log('🔍 EditEvent: Auth status:', { isAuthenticated, userRole, username });
+        console.log('🔍 EditEvent: Token in localStorage:', localStorage.getItem('token'));
+        console.log('🔍 EditEvent: Data to send:', data);
 
         setLoading(true);
         setError('');
@@ -57,7 +76,6 @@ const EditEvent: React.FC = () => {
                 setError(response.message || 'Có lỗi xảy ra khi cập nhật sự kiện');
             }
         } catch (err: any) {
-            console.error('Update event error:', err);
             setError(err.message || 'Có lỗi xảy ra khi cập nhật sự kiện');
         } finally {
             setLoading(false);
@@ -120,8 +138,8 @@ const EditEvent: React.FC = () => {
         startDate: event.startDate,
         endDate: event.endDate,
         requiresSubmission: event.requiresSubmission,
-        maxPoints: event.maxPoints,
-        penaltyPointsIncomplete: event.penaltyPointsIncomplete,
+        maxPoints: event.maxPoints?.toString() || '0',
+        penaltyPointsIncomplete: event.penaltyPointsIncomplete?.toString() || '0',
         registrationStartDate: event.registrationStartDate,
         registrationDeadline: event.registrationDeadline,
         shareLink: event.shareLink,
@@ -138,6 +156,35 @@ const EditEvent: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
+            {/* Debug Banner */}
+            <div className="bg-yellow-50 border-b border-yellow-200 p-4">
+                <div className="max-w-7xl mx-auto">
+                    <h3 className="text-sm font-medium text-yellow-800 mb-2">🔍 Debug Info:</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                        <div>
+                            <strong>Auth Status:</strong> {isAuthenticated ? '✅ Authenticated' : '❌ Not Authenticated'}
+                        </div>
+                        <div>
+                            <strong>Username:</strong> {username || 'N/A'}
+                        </div>
+                        <div>
+                            <strong>Role:</strong> {userRole || 'N/A'}
+                        </div>
+                    </div>
+                    <div className="mt-2">
+                        <strong>Token:</strong> {localStorage.getItem('token') ? '✅ Present' : '❌ Missing'}
+                    </div>
+                    <div className="mt-2">
+                        <button
+                            onClick={testUserInfo}
+                            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs"
+                        >
+                            Test User Info
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             {/* Header */}
             <div className="bg-white shadow">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -193,6 +240,7 @@ const EditEvent: React.FC = () => {
                 title="Chỉnh sửa sự kiện"
                 onCancel={() => navigate('/manager/events')}
             />
+
         </div>
     );
 };

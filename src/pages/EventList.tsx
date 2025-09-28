@@ -26,96 +26,8 @@ const EventList: React.FC = () => {
                     console.log('🔍 EventList: API successful, setting events:', response.data);
                     setEvents(response.data);
                 } else {
-                    // Fallback to mock data if API fails
-                    console.warn('🔍 EventList: API failed, using mock data');
-                    console.warn('🔍 EventList: Response status:', response.status);
-                    console.warn('🔍 EventList: Response message:', response.message);
-                    const mockEvents: ActivityResponse[] = [
-                        {
-                            id: 1,
-                            name: 'Hội thảo Khởi nghiệp',
-                            type: ActivityType.CHUYEN_DE_DOANH_NGHIEP,
-                            scoreType: ScoreType.CHUYEN_DE,
-                            description: 'Hội thảo về khởi nghiệp và phát triển ý tưởng kinh doanh',
-                            startDate: '2024-01-15',
-                            endDate: '2024-01-15',
-                            requiresSubmission: true,
-                            maxPoints: 10,
-                            penaltyPointsIncomplete: 2,
-                            registrationStartDate: '2024-01-01',
-                            registrationDeadline: '2024-01-10',
-                            shareLink: 'https://example.com/startup-seminar',
-                            isImportant: true,
-                            bannerUrl: 'https://example.com/banner1.jpg',
-                            location: 'Hội trường A1',
-                            ticketQuantity: 100,
-                            benefits: 'Chứng nhận tham gia, cơ hội kết nối với nhà đầu tư',
-                            requirements: 'Sinh viên năm 3,4 hoặc đã tốt nghiệp',
-                            contactInfo: 'startup@university.edu.vn',
-                            mandatoryForFacultyStudents: false,
-                            organizerIds: [1, 2],
-                            status: 'ACTIVE',
-                            participantCount: 45,
-                            createdAt: '2024-01-01T00:00:00',
-                            updatedAt: '2024-01-01T00:00:00'
-                        },
-                        {
-                            id: 2,
-                            name: 'Tình nguyện mùa đông',
-                            type: ActivityType.CONG_TAC_XA_HOI,
-                            scoreType: ScoreType.CONG_TAC_XA_HOI,
-                            description: 'Hoạt động tình nguyện giúp đỡ người dân trong mùa đông',
-                            startDate: '2024-01-20',
-                            endDate: '2024-01-20',
-                            requiresSubmission: false,
-                            maxPoints: 5,
-                            registrationStartDate: '2024-01-10',
-                            registrationDeadline: '2024-01-15',
-                            shareLink: 'https://example.com/winter-volunteer',
-                            isImportant: false,
-                            bannerUrl: 'https://example.com/banner2.jpg',
-                            location: 'Trung tâm thành phố',
-                            ticketQuantity: 50,
-                            benefits: 'Chứng nhận tình nguyện, kinh nghiệm xã hội',
-                            requirements: 'Tinh thần tình nguyện, sức khỏe tốt',
-                            contactInfo: 'volunteer@university.edu.vn',
-                            mandatoryForFacultyStudents: true,
-                            organizerIds: [2],
-                            status: 'ACTIVE',
-                            participantCount: 32,
-                            createdAt: '2024-01-02T00:00:00',
-                            updatedAt: '2024-01-02T00:00:00'
-                        },
-                        {
-                            id: 3,
-                            name: 'Mini Game Coding',
-                            type: ActivityType.MINIGAME,
-                            scoreType: ScoreType.REN_LUYEN,
-                            description: 'Cuộc thi lập trình mini game trong 2 giờ',
-                            startDate: '2024-01-25',
-                            endDate: '2024-01-25',
-                            requiresSubmission: true,
-                            maxPoints: 8,
-                            registrationStartDate: '2024-01-15',
-                            registrationDeadline: '2024-01-20',
-                            shareLink: 'https://example.com/minigame-coding',
-                            isImportant: false,
-                            bannerUrl: 'https://example.com/banner3.jpg',
-                            location: 'Phòng lab A2',
-                            ticketQuantity: 30,
-                            benefits: 'Giải thưởng tiền mặt, cơ hội thực tập',
-                            requirements: 'Kiến thức lập trình cơ bản',
-                            contactInfo: 'coding@university.edu.vn',
-                            mandatoryForFacultyStudents: false,
-                            organizerIds: [1],
-                            status: 'ACTIVE',
-                            participantCount: 28,
-                            createdAt: '2024-01-03T00:00:00',
-                            updatedAt: '2024-01-03T00:00:00'
-                        }
-                    ];
-
-                    setEvents(mockEvents);
+                    console.warn('🔍 EventList: API failed, no data available');
+                    setEvents([]);
                 }
             } catch (error) {
                 console.error('Error fetching events:', error);
@@ -355,7 +267,7 @@ const EventList: React.FC = () => {
                                                 <span className="w-4 h-4 mr-2">👥</span>
                                                 {event.participantCount} người tham gia
                                             </div>
-                                            {event.maxPoints && event.maxPoints > 0 && (
+                                            {event.maxPoints && parseFloat(event.maxPoints) > 0 && (
                                                 <div className="flex items-center">
                                                     <span className="w-4 h-4 mr-2">🏆</span>
                                                     {event.maxPoints} điểm

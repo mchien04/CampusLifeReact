@@ -1,35 +1,177 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { TaskAssignmentResponse, TaskStatus } from '../types/task';
 import { taskAPI } from '../services/taskAPI';
+import { studentAPI } from '../services/studentAPI';
+import { useAuth } from '../contexts/AuthContext';
+import {
+    SubmissionRequirementResponse,
+    TaskSubmissionResponse,
+    CreateSubmissionRequest,
+    UpdateSubmissionRequest,
+    SubmissionStatus
+} from '../types/submission';
+import { submissionAPI } from '../services/submissionAPI';
+import { getSubmissionStatusColor, getSubmissionStatusLabel } from '../utils/submissionUtils';
 
 const StudentTasks: React.FC = () => {
+    const { username } = useAuth(); // Get username from auth context
     const [assignments, setAssignments] = useState<TaskAssignmentResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [filter, setFilter] = useState<TaskStatus | 'ALL'>('ALL');
     const [updatingId, setUpdatingId] = useState<number | null>(null);
 
-    // Mock student ID - in real app, get from auth context
-    const studentId = 1;
+    // Submission states
+    const [isSubmissionModalOpen, setIsSubmissionModalOpen] = useState(false);
+    const [currentTaskForSubmission, setCurrentTaskForSubmission] = useState<TaskAssignmentResponse | null>(null);
+    const [currentSubmission, setCurrentSubmission] = useState<TaskSubmissionResponse | null>(null);
+    const [submissionContent, setSubmissionContent] = useState('');
+    const [submissionFiles, setSubmissionFiles] = useState<File[]>([]);
+    const [submissionFilePreviews, setSubmissionFilePreviews] = useState<string[]>([]);
+    const [submissionLoading, setSubmissionLoading] = useState(false);
+    const [submissionError, setSubmissionError] = useState('');
+    const [submissionSuccess, setSubmissionSuccess] = useState('');
 
-    useEffect(() => {
-        loadStudentTasks();
-    }, []);
+    const loadStudentTasks = useCallback(async () => {
+        if (!username) {
+            setError('Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.');
+            setLoading(false);
+            return;
+        }
 
-    const loadStudentTasks = async () => {
         setLoading(true);
+        setError('');
         try {
-            const response = await taskAPI.getStudentTasks(studentId);
+            // Get student ID from profile
+            const studentProfile = await studentAPI.getMyProfile();
+            const studentId = studentProfile.id;
+            const response = await taskAPI.getStudentTasksNew(studentId);
             if (response.status && response.data) {
-                setAssignments(response.data);
+                // For each task, check if it requires submission
+                const tasksWithSubmissionInfo = await Promise.all(response.data.map(async (assignment) => {
+                    try {
+                        const submissionReqResponse = await submissionAPI.checkSubmissionRequirement(assignment.activityId);
+                        return {
+                            ...assignment,
+                            requiresSubmission: submissionReqResponse.status && submissionReqResponse.data?.requiresSubmission,
+                        };
+                    } catch (subError) {
+                        console.warn(`Error checking submission requirement for activity ${assignment.activityId}:`, subError);
+                        return { ...assignment, requiresSubmission: false };
+                    }
+                }));
+                setAssignments(tasksWithSubmissionInfo);
             } else {
                 setError(response.message || 'Có lỗi xảy ra khi tải nhiệm vụ');
             }
-        } catch (error) {
-            console.error('Error loading student tasks:', error);
+        } catch (err) {
+            console.error('Error loading student tasks:', err);
             setError('Có lỗi xảy ra khi tải nhiệm vụ');
         } finally {
             setLoading(false);
+        }
+    }, [username]);
+
+    useEffect(() => {
+        loadStudentTasks();
+    }, [loadStudentTasks]);
+
+    const loadMySubmission = useCallback(async (taskId: number) => {
+        setSubmissionLoading(true);
+        setSubmissionError('');
+        setSubmissionSuccess('');
+        try {
+            const response = await submissionAPI.getMySubmissionForTask(taskId);
+            if (response.status && response.data) {
+                setCurrentSubmission(response.data);
+                setSubmissionContent(response.data.content || '');
+                // If fileUrls is a comma-separated string, split it
+                if (response.data.fileUrls && typeof response.data.fileUrls === 'string') {
+                    setSubmissionFilePreviews(response.data.fileUrls.split(',').map((url: string) => url.trim()));
+                } else if (Array.isArray(response.data.fileUrls)) {
+                    setSubmissionFilePreviews(response.data.fileUrls);
+                } else {
+                    setSubmissionFilePreviews([]);
+                }
+                setSubmissionFiles([]); // Clear file input for existing submissions
+            } else {
+                setCurrentSubmission(null);
+                setSubmissionContent('');
+                setSubmissionFiles([]);
+                setSubmissionFilePreviews([]);
+            }
+        } catch (error) {
+            console.error('Error loading submission:', error);
+            setSubmissionError('Không thể tải bài nộp của bạn.');
+            setCurrentSubmission(null);
+            setSubmissionContent('');
+            setSubmissionFiles([]);
+            setSubmissionFilePreviews([]);
+        } finally {
+            setSubmissionLoading(false);
+        }
+    }, []);
+
+    const openSubmissionModal = async (assignment: TaskAssignmentResponse) => {
+        setCurrentTaskForSubmission(assignment);
+        setIsSubmissionModalOpen(true);
+        await loadMySubmission(assignment.taskId);
+    };
+
+    const closeSubmissionModal = () => {
+        setIsSubmissionModalOpen(false);
+        setCurrentTaskForSubmission(null);
+        setCurrentSubmission(null);
+        setSubmissionContent('');
+        setSubmissionFiles([]);
+        setSubmissionFilePreviews([]);
+        setSubmissionError('');
+        setSubmissionSuccess('');
+        loadStudentTasks(); // Reload tasks to update submission status
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            setSubmissionFiles(Array.from(e.target.files));
+            // Generate previews for newly selected files
+            const newPreviews = Array.from(e.target.files).map(file => URL.createObjectURL(file));
+            setSubmissionFilePreviews(prev => [...prev, ...newPreviews]);
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!currentTaskForSubmission || !username) return;
+
+        setSubmissionLoading(true);
+        setSubmissionError('');
+        setSubmissionSuccess('');
+
+        try {
+            const data: CreateSubmissionRequest = {
+                content: submissionContent.trim() || undefined,
+                files: submissionFiles.length > 0 ? submissionFiles : undefined,
+            };
+
+            let response;
+            if (currentSubmission) {
+                response = await submissionAPI.updateSubmission(currentSubmission.id, data);
+            } else {
+                response = await submissionAPI.submitTask(currentTaskForSubmission.taskId, data);
+            }
+
+            if (response.status) {
+                setSubmissionSuccess(currentSubmission ? 'Cập nhật bài nộp thành công!' : 'Nộp bài thành công!');
+                await loadMySubmission(currentTaskForSubmission.taskId); // Reload submission after action
+                setSubmissionFiles([]); // Clear new files after successful upload
+            } else {
+                setSubmissionError(response.message || 'Có lỗi xảy ra khi nộp bài.');
+            }
+        } catch (err) {
+            console.error('Error submitting task:', err);
+            setSubmissionError('Có lỗi xảy ra khi nộp bài.');
+        } finally {
+            setSubmissionLoading(false);
         }
     };
 
@@ -97,8 +239,8 @@ const StudentTasks: React.FC = () => {
             } else {
                 alert(response.message || 'Có lỗi xảy ra khi cập nhật trạng thái');
             }
-        } catch (error) {
-            console.error('Error updating status:', error);
+        } catch (err) {
+            console.error('Error updating status:', err);
             alert('Có lỗi xảy ra khi cập nhật trạng thái');
         } finally {
             setUpdatingId(null);
@@ -114,6 +256,7 @@ const StudentTasks: React.FC = () => {
             minute: '2-digit'
         });
     };
+
 
     if (loading) {
         return (
@@ -212,6 +355,7 @@ const StudentTasks: React.FC = () => {
                     <div className="space-y-4">
                         {filteredAssignments.map((assignment) => {
                             const nextStatus = getNextStatus(assignment.status);
+                            const isLate = assignment.submissionDeadline ? new Date() > new Date(assignment.submissionDeadline) : false;
 
                             return (
                                 <div key={assignment.id} className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow">
@@ -221,11 +365,17 @@ const StudentTasks: React.FC = () => {
                                                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
                                                     {assignment.taskName}
                                                 </h3>
-                                                <div className="flex items-center space-x-4 text-sm text-gray-500">
+                                                <div className="flex items-center space-x-4 text-sm text-gray-500 mb-2">
                                                     <span>Mã sinh viên: {assignment.studentCode}</span>
                                                     <span>•</span>
                                                     <span>Cập nhật: {formatDate(assignment.updatedAt)}</span>
                                                 </div>
+                                                {assignment.submissionDeadline && (
+                                                    <p className={`text-sm ${isLate ? 'text-red-600 font-medium' : 'text-gray-600'}`}>
+                                                        Hạn nộp: {formatDate(assignment.submissionDeadline)}
+                                                        {isLate && ' (Đã quá hạn)'}
+                                                    </p>
+                                                )}
                                             </div>
 
                                             <div className="flex items-center space-x-3">
@@ -244,8 +394,31 @@ const StudentTasks: React.FC = () => {
                                                                 nextStatus === TaskStatus.COMPLETED ? 'Hoàn thành' : 'Tiếp tục'}
                                                     </button>
                                                 )}
+                                                {assignment.requiresSubmission && (
+                                                    <button
+                                                        onClick={() => openSubmissionModal(assignment)}
+                                                        className="px-4 py-2 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                    >
+                                                        {currentSubmission && currentSubmission.taskId === assignment.taskId ? 'Xem/Sửa bài nộp' : 'Nộp bài'}
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
+                                        {currentSubmission && currentSubmission.taskId === assignment.taskId && (
+                                            <div className="mt-4 p-3 bg-gray-50 rounded-md text-sm">
+                                                <p className="font-medium text-gray-700">Trạng thái nộp bài:
+                                                    <span className={`ml-2 px-2 py-1 rounded-full ${getSubmissionStatusColor(currentSubmission.status)}`}>
+                                                        {getSubmissionStatusLabel(currentSubmission.status)}
+                                                    </span>
+                                                </p>
+                                                {currentSubmission.score !== undefined && (
+                                                    <p className="font-medium text-gray-700 mt-1">Điểm: {currentSubmission.score}</p>
+                                                )}
+                                                {currentSubmission.feedback && (
+                                                    <p className="font-medium text-gray-700 mt-1">Phản hồi: {currentSubmission.feedback}</p>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             );
@@ -253,6 +426,84 @@ const StudentTasks: React.FC = () => {
                     </div>
                 )}
             </div>
+
+            {/* Submission Modal */}
+            {isSubmissionModalOpen && currentTaskForSubmission && (
+                <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+                            <h3 className="text-xl font-semibold text-gray-900">Nộp bài cho: {currentTaskForSubmission.taskName}</h3>
+                            <button onClick={closeSubmissionModal} className="text-gray-400 hover:text-gray-600">
+                                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                            <div>
+                                <label htmlFor="submissionContent" className="block text-sm font-medium text-gray-700">Nội dung (tùy chọn)</label>
+                                <textarea
+                                    id="submissionContent"
+                                    rows={5}
+                                    value={submissionContent}
+                                    onChange={(e) => setSubmissionContent(e.target.value)}
+                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="Nhập nội dung bài nộp của bạn..."
+                                ></textarea>
+                            </div>
+                            <div>
+                                <label htmlFor="submissionFiles" className="block text-sm font-medium text-gray-700">File đính kèm (tùy chọn)</label>
+                                <input
+                                    type="file"
+                                    id="submissionFiles"
+                                    multiple
+                                    onChange={handleFileChange}
+                                    className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                />
+                                <p className="mt-1 text-xs text-gray-500">Cho phép nhiều file.</p>
+                                {submissionFilePreviews.length > 0 && (
+                                    <div className="mt-2 grid grid-cols-2 gap-2">
+                                        {submissionFilePreviews.map((fileUrl, index) => (
+                                            <div key={index} className="flex items-center space-x-2 p-2 border border-gray-200 rounded-md">
+                                                <svg className="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0113 3.414L16.586 7A2 2 0 0118 8.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 0v12h10V8.414L11.586 4H6z" clipRule="evenodd" />
+                                                </svg>
+                                                <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm truncate">{fileUrl.split('/').pop()}</a>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            {submissionError && (
+                                <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+                                    {submissionError}
+                                </div>
+                            )}
+                            {submissionSuccess && (
+                                <div className="p-3 bg-green-50 border border-green-200 rounded-md text-green-700 text-sm">
+                                    {submissionSuccess}
+                                </div>
+                            )}
+                            <div className="flex justify-end space-x-3">
+                                <button
+                                    type="button"
+                                    onClick={closeSubmissionModal}
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                                >
+                                    Hủy
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={submissionLoading}
+                                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                                >
+                                    {submissionLoading ? 'Đang lưu...' : (currentSubmission ? 'Cập nhật bài nộp' : 'Nộp bài')}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
