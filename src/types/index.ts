@@ -4,6 +4,7 @@ export * from './address';
 export * from './notification';
 export * from './student';
 export * from './task';
+export * from './submission';
 export * from './registration';
 export * from './auth';
 export * from './class';

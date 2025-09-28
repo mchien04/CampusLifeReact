@@ -503,7 +503,7 @@ const EventDetail: React.FC = () => {
                                             </p>
                                         </div>
                                     </div>
-                                    {event.maxPoints && event.maxPoints > 0 && (
+                                    {event.maxPoints && parseFloat(event.maxPoints) > 0 && (
                                         <div className="flex items-center">
                                             <span className="w-5 h-5 mr-3 text-yellow-600">🏆</span>
                                             <div>
@@ -512,7 +512,7 @@ const EventDetail: React.FC = () => {
                                             </div>
                                         </div>
                                     )}
-                                    {event.penaltyPointsIncomplete && event.penaltyPointsIncomplete > 0 && (
+                                    {event.penaltyPointsIncomplete && parseFloat(event.penaltyPointsIncomplete) > 0 && (
                                         <div className="flex items-center">
                                             <span className="w-5 h-5 mr-3 text-red-600">⚠️</span>
                                             <div>

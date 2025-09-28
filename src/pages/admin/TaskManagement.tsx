@@ -4,6 +4,9 @@ import { ActivityTask, ActivityResponse, TaskFilters } from '../../types';
 import { taskAPI, eventAPI } from '../../services';
 import { TaskForm } from '../../components/task/TaskForm';
 import { TaskAssignmentModal } from '../../components/task/TaskAssignmentModal';
+import SubmissionDetailsModal from '../../components/task/SubmissionDetailsModal';
+import { submissionAPI } from '../../services/submissionAPI';
+import { getSubmissionStatusColor, getSubmissionStatusLabel } from '../../utils/submissionUtils';
 
 const TaskManagement: React.FC = () => {
     const [tasks, setTasks] = useState<ActivityTask[]>([]);
@@ -14,6 +17,8 @@ const TaskManagement: React.FC = () => {
     const [editingTask, setEditingTask] = useState<ActivityTask | null>(null);
     const [showAssignmentModal, setShowAssignmentModal] = useState(false);
     const [selectedTask, setSelectedTask] = useState<ActivityTask | null>(null);
+    const [showSubmissionDetailsModal, setShowSubmissionDetailsModal] = useState(false);
+    const [selectedTaskForSubmission, setSelectedTaskForSubmission] = useState<ActivityTask | null>(null);
     const [filters, setFilters] = useState<TaskFilters>({
         page: 0,
         size: 10,
@@ -36,7 +41,25 @@ const TaskManagement: React.FC = () => {
                 eventAPI.getEvents()
             ]);
 
-            setTasks(tasksResponse.content);
+            // For each task, check if it requires submission
+            const tasksWithSubmissionInfo = await Promise.all(tasksResponse.content.map(async (task) => {
+                if (task.activity && task.activity.id) {
+                    try {
+                        const submissionReqResponse = await submissionAPI.checkSubmissionRequirement(task.activity.id);
+                        return {
+                            ...task,
+                            requiresSubmission: submissionReqResponse.status && submissionReqResponse.data?.requiresSubmission,
+                        };
+                    } catch (subError) {
+                        console.warn(`Error checking submission requirement for activity ${task.activity.id}:`, subError);
+                        return { ...task, requiresSubmission: false };
+                    }
+                } else {
+                    return { ...task, requiresSubmission: false };
+                }
+            }));
+
+            setTasks(tasksWithSubmissionInfo as ActivityTask[]);
             setPagination({
                 totalElements: tasksResponse.totalElements,
                 totalPages: tasksResponse.totalPages,
@@ -105,6 +128,11 @@ const TaskManagement: React.FC = () => {
     const handleAssignTask = (task: ActivityTask) => {
         setSelectedTask(task);
         setShowAssignmentModal(true);
+    };
+
+    const handleViewSubmissions = (task: ActivityTask) => {
+        setSelectedTaskForSubmission(task);
+        setShowSubmissionDetailsModal(true);
     };
 
     const handleFilterChange = (newFilters: Partial<TaskFilters>) => {
@@ -279,6 +307,14 @@ const TaskManagement: React.FC = () => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <div className="flex space-x-2">
+                                                {task.requiresSubmission && (
+                                                    <button
+                                                        onClick={() => handleViewSubmissions(task)}
+                                                        className="text-purple-600 hover:text-purple-900"
+                                                    >
+                                                        Xem bài nộp
+                                                    </button>
+                                                )}
                                                 <button
                                                     onClick={() => handleAssignTask(task)}
                                                     className="text-blue-600 hover:text-blue-900"
@@ -385,6 +421,18 @@ const TaskManagement: React.FC = () => {
                         setSelectedTask(null);
                     }}
                     onRefresh={loadData}
+                />
+            )}
+
+            {/* Submission Details Modal */}
+            {showSubmissionDetailsModal && selectedTaskForSubmission && (
+                <SubmissionDetailsModal
+                    task={selectedTaskForSubmission}
+                    onClose={() => {
+                        setShowSubmissionDetailsModal(false);
+                        setSelectedTaskForSubmission(null);
+                    }}
+                    onSubmissionGraded={loadData} // Refresh parent data when submission is graded
                 />
             )}
         </div>

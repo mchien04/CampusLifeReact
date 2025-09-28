@@ -267,7 +267,7 @@ const EventList: React.FC = () => {
                                                 <span className="w-4 h-4 mr-2">👥</span>
                                                 {event.participantCount} người tham gia
                                             </div>
-                                            {event.maxPoints && event.maxPoints > 0 && (
+                                            {event.maxPoints && parseFloat(event.maxPoints) > 0 && (
                                                 <div className="flex items-center">
                                                     <span className="w-4 h-4 mr-2">🏆</span>
                                                     {event.maxPoints} điểm

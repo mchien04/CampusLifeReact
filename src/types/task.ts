@@ -118,14 +118,17 @@ export interface TaskAssignmentRequest {
 
 export interface TaskAssignmentResponse {
     id: number;
-    taskId: number;
     taskName: string;
+    taskId: number;
+    activityId: number; // Add activityId
     studentId: number;
-    studentName: string;
     studentCode: string;
+    studentName: string;
     status: TaskStatus;
+    assignedAt: string;
     updatedAt: string;
-    createdAt: string;
+    requiresSubmission?: boolean; // Add this field
+    submissionDeadline?: string; // LocalDateTime
 }
 
 export const ASSIGNMENT_STATUS = {

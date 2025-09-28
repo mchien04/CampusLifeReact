@@ -1,0 +1,52 @@
+package vn.campuslife.controller;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import vn.campuslife.model.Response;
+import vn.campuslife.service.StudentService; // Import StudentService
+import vn.campuslife.service.TaskSubmissionService;
+import vn.campuslife.repository.UserRepository; // Import UserRepository
+import vn.campuslife.entity.User; // Import User entity
+
+import java.util.List;
+import java.util.Optional;
+
+@RestController
+@RequestMapping("/api/submissions")
+@RequiredArgsConstructor
+public class TaskSubmissionController {
+
+    private final TaskSubmissionService taskSubmissionService;
+    private final StudentService studentService; // Inject StudentService
+    private final UserRepository userRepository; // Inject UserRepository
+
+    // ... existing methods ...
+
+    /**
+     * Helper method to get student ID from authentication
+     */
+    private Long getStudentIdFromAuth(Authentication authentication) {
+        try {
+            String username = authentication.getName();
+            return studentService.getStudentIdByUsername(username);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Helper method to get user ID from authentication
+     */
+    private Long getUserIdFromAuth(Authentication authentication) {
+        try {
+            String username = authentication.getName();
+            Optional<User> userOpt = userRepository.findByUsername(username);
+            return userOpt.map(User::getId).orElse(null);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+}

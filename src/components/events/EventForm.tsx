@@ -19,29 +19,42 @@ const EventForm: React.FC<EventFormProps> = ({
     title = "Tạo sự kiện mới",
     onCancel
 }) => {
-    const [formData, setFormData] = useState<CreateActivityRequest>({
-        name: '',
-        type: ActivityType.SUKIEN,
-        scoreType: ScoreType.REN_LUYEN,
-        description: '',
-        startDate: '',
-        endDate: '',
-        requiresSubmission: false,
-        maxPoints: 0,
-        penaltyPointsIncomplete: 0,
-        registrationStartDate: '',
-        registrationDeadline: '',
-        shareLink: '',
-        isImportant: false,
-        bannerUrl: '',
-        location: '',
-        ticketQuantity: 0,
-        benefits: '',
-        requirements: '',
-        contactInfo: '',
-        mandatoryForFacultyStudents: false,
-        organizerIds: [],
-        ...initialData
+    const [formData, setFormData] = useState<CreateActivityRequest>(() => {
+        // Ensure all values are defined to prevent controlled/uncontrolled input warnings
+        const defaultData: CreateActivityRequest = {
+            name: '',
+            type: ActivityType.SUKIEN,
+            scoreType: ScoreType.REN_LUYEN,
+            description: '',
+            startDate: '',
+            endDate: '',
+            requiresSubmission: false,
+            maxPoints: '0',
+            penaltyPointsIncomplete: '0',
+            registrationStartDate: '',
+            registrationDeadline: '',
+            shareLink: '',
+            isImportant: false,
+            bannerUrl: '',
+            location: '',
+            ticketQuantity: 0,
+            benefits: '',
+            requirements: '',
+            contactInfo: '',
+            mandatoryForFacultyStudents: false,
+            organizerIds: [],
+        };
+
+        // Merge with initialData, ensuring no undefined values
+        return {
+            ...defaultData,
+            ...Object.fromEntries(
+                Object.entries(initialData).map(([key, value]) => [
+                    key,
+                    value !== undefined ? value : defaultData[key as keyof CreateActivityRequest]
+                ])
+            )
+        };
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -88,7 +101,7 @@ const EventForm: React.FC<EventFormProps> = ({
             newErrors.location = 'Địa điểm là bắt buộc';
         }
 
-        if (formData.requiresSubmission && (!formData.maxPoints || formData.maxPoints <= 0)) {
+        if (formData.requiresSubmission && (!formData.maxPoints || parseFloat(formData.maxPoints) <= 0)) {
             newErrors.maxPoints = 'Điểm tối đa phải lớn hơn 0 khi yêu cầu nộp bài';
         }
 
@@ -101,6 +114,21 @@ const EventForm: React.FC<EventFormProps> = ({
     };
 
     const [isUploading, setIsUploading] = useState(false);
+
+    // Update formData when initialData changes
+    useEffect(() => {
+        if (Object.keys(initialData).length > 0) {
+            setFormData(prev => ({
+                ...prev,
+                ...Object.fromEntries(
+                    Object.entries(initialData).map(([key, value]) => [
+                        key,
+                        value !== undefined ? value : prev[key as keyof CreateActivityRequest]
+                    ])
+                )
+            }));
+        }
+    }, [initialData]);
 
     // Load departments on component mount
     useEffect(() => {

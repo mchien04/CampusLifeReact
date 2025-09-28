@@ -11,8 +11,8 @@ export interface CreateActivityRequest {
     startDate: string;
     endDate: string;
     requiresSubmission: boolean;
-    maxPoints?: number;
-    penaltyPointsIncomplete?: number;
+    maxPoints?: string; // Changed to string to match BigDecimal
+    penaltyPointsIncomplete?: string; // Changed to string to match BigDecimal
     registrationStartDate?: string;
     registrationDeadline?: string;
     shareLink?: string;
@@ -61,8 +61,8 @@ export interface ActivityResponse {
     startDate: string;
     endDate: string;
     requiresSubmission: boolean;
-    maxPoints?: number;
-    penaltyPointsIncomplete?: number;
+    maxPoints?: string; // Changed to string to match BigDecimal
+    penaltyPointsIncomplete?: string; // Changed to string to match BigDecimal
     registrationStartDate?: string;
     registrationDeadline?: string;
     shareLink?: string;

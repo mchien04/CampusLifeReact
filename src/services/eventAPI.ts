@@ -268,5 +268,22 @@ export const eventAPI = {
             },
         });
         return response.data;
+    },
+
+    // Debug endpoint to check user info
+    debugUserInfo: async (): Promise<Response<any>> => {
+        try {
+            console.log('🔍 eventAPI: debugUserInfo called');
+            const response = await api.get('/api/activities/debug/user-info');
+            console.log('🔍 eventAPI: debugUserInfo response:', response.data);
+            return response.data;
+        } catch (error: any) {
+            console.error('🔍 eventAPI: debugUserInfo failed:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Failed to get user info',
+                data: null
+            };
+        }
     }
 };
