@@ -6,7 +6,6 @@ import { Login, Register, VerifyAccount } from './components/auth';
 import { Home, Dashboard, CreateEvent, EventList, EditEvent, EventDetail, StudentEvents } from './pages';
 import StudentEventDetail from './pages/StudentEventDetail';
 import StudentParticipationHistory from './pages/StudentParticipationHistory';
-import StudentAddressManagement from './pages/StudentAddressManagement';
 import StudentProfile from './pages/StudentProfile';
 import AcademicYears from './pages/admin/AcademicYears';
 import Departments from './pages/admin/Departments';
@@ -226,14 +225,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/student/address"
-              element={
-                <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
-                  <StudentAddressManagement />
-                </ProtectedRoute>
-              }
-            />
+            {/* Removed /student/address route - address managed inside profile */}
             <Route
               path="/student/profile"
               element={

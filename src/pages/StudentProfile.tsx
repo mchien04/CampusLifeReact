@@ -1,17 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Student, Department, StudentClass, UpdateStudentProfileRequest } from '../types';
-import { studentAPI, departmentAPI, classAPI, uploadAPI } from '../services';
+import { StudentProfileResponse } from '../types/student';
+import { studentAPI, departmentAPI, classAPI, uploadAPI, addressAPI } from '../services';
 import { GENDER_OPTIONS, getGenderLabel } from '../types/student';
+import { Address, Province, Ward, CreateAddressRequest, UpdateAddressRequest } from '../types/address';
 
 const StudentProfile: React.FC = () => {
-    const [student, setStudent] = useState<Student | null>(null);
+    const [student, setStudent] = useState<StudentProfileResponse | null>(null);
     const [departments, setDepartments] = useState<Department[]>([]);
     const [classes, setClasses] = useState<StudentClass[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+
+    // Address management states
+    const [address, setAddress] = useState<Address | null>(null);
+    const [provinces, setProvinces] = useState<Province[]>([]);
+    const [wards, setWards] = useState<Ward[]>([]);
+    const [addressFormData, setAddressFormData] = useState({
+        provinceCode: 0,
+        wardCode: 0,
+        street: '',
+        note: ''
+    });
+    const [addressSaving, setAddressSaving] = useState(false);
+    const [addressError, setAddressError] = useState('');
+    const [addressSuccess, setAddressSuccess] = useState('');
     const [formData, setFormData] = useState({
         fullName: '',
         studentCode: '',
@@ -33,27 +49,45 @@ const StudentProfile: React.FC = () => {
     const loadData = async () => {
         try {
             setLoading(true);
-            const [studentData, departmentsData] = await Promise.all([
+            const [studentData, departmentsData, addressData, provincesData] = await Promise.all([
                 studentAPI.getMyProfile(),
-                departmentAPI.getAll()
+                departmentAPI.getAll(),
+                addressAPI.getMyAddress().catch(() => null), // Ignore error if no address
+                addressAPI.getProvinces()
             ]);
 
             setStudent(studentData);
             setDepartments(departmentsData.data || []);
+            setAddress(addressData);
+            setProvinces(provincesData || []);
 
             setFormData({
                 fullName: studentData.fullName,
                 studentCode: studentData.studentCode,
-                phoneNumber: studentData.phoneNumber || '',
-                dateOfBirth: studentData.dateOfBirth ? studentData.dateOfBirth.split('T')[0] : '',
+                phoneNumber: studentData.phone || '',
+                dateOfBirth: studentData.dob ? studentData.dob.split('T')[0] : '',
                 gender: studentData.gender || '',
-                profileImageUrl: studentData.profileImageUrl || '',
-                departmentId: studentData.studentClass?.department.id || 0,
-                classId: studentData.studentClass?.id || 0,
+                profileImageUrl: studentData.avatarUrl || '',
+                departmentId: studentData.departmentId || 0,
+                classId: studentData.classId || 0,
             });
 
-            if (studentData.studentClass?.department.id) {
-                await loadClasses(studentData.studentClass.department.id);
+            if (studentData.departmentId) {
+                await loadClasses(studentData.departmentId);
+            }
+
+            // Set address form data if address exists
+            if (addressData) {
+                setAddressFormData({
+                    provinceCode: addressData.provinceCode,
+                    wardCode: addressData.wardCode,
+                    street: addressData.street || '',
+                    note: addressData.note || ''
+                });
+                // Load wards for the province
+                if (addressData.provinceCode) {
+                    await loadWards(addressData.provinceCode);
+                }
             }
         } catch (error) {
             console.error('Error loading data:', error);
@@ -70,6 +104,75 @@ const StudentProfile: React.FC = () => {
         } catch (error) {
             console.error('Error loading classes:', error);
             setError('Có lỗi xảy ra khi tải danh sách lớp học');
+        }
+    };
+
+    const loadWards = async (provinceCode: number) => {
+        try {
+            const response = await addressAPI.getWardsByProvince(provinceCode);
+            const uniqueWards = response.filter((ward: Ward, index: number, self: Ward[]) =>
+                index === self.findIndex((w: Ward) => w.code === ward.code)
+            );
+            setWards(uniqueWards);
+        } catch (error) {
+            console.error('Error loading wards:', error);
+            setWards([]);
+        }
+    };
+
+    const handleProvinceChange = async (provinceCode: number) => {
+        setAddressFormData(prev => ({
+            ...prev,
+            provinceCode,
+            wardCode: 0, // Reset ward selection
+        }));
+        setWards([]); // Clear wards
+        if (provinceCode > 0) {
+            await loadWards(provinceCode);
+        }
+    };
+
+    const handleAddressSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!addressFormData.provinceCode || !addressFormData.wardCode) {
+            setAddressError('Vui lòng chọn tỉnh/thành phố và phường/xã');
+            return;
+        }
+
+        setAddressSaving(true);
+        setAddressError('');
+        setAddressSuccess('');
+
+        try {
+            const selectedProvince = provinces.find(p => p.code === addressFormData.provinceCode);
+            const selectedWard = wards.find(w => w.code === addressFormData.wardCode);
+
+            const data: CreateAddressRequest | UpdateAddressRequest = {
+                provinceCode: addressFormData.provinceCode,
+                provinceName: selectedProvince?.name || '',
+                wardCode: addressFormData.wardCode,
+                wardName: selectedWard?.name || '',
+                street: addressFormData.street.trim() || undefined,
+                note: addressFormData.note.trim() || undefined,
+            };
+
+            if (address) {
+                await addressAPI.updateMyAddress(data);
+                setAddressSuccess('Cập nhật địa chỉ thành công!');
+            } else {
+                await addressAPI.createMyAddress(data);
+                setAddressSuccess('Tạo địa chỉ thành công!');
+            }
+
+            // Reload address data
+            const addressData = await addressAPI.getMyAddress();
+            setAddress(addressData);
+        } catch (error) {
+            console.error('Error saving address:', error);
+            setAddressError('Có lỗi xảy ra khi lưu địa chỉ');
+        } finally {
+            setAddressSaving(false);
         }
     };
 
@@ -189,10 +292,10 @@ const StudentProfile: React.FC = () => {
             const data: UpdateStudentProfileRequest = {
                 fullName: formData.fullName.trim(),
                 studentCode: formData.studentCode.trim(),
-                phoneNumber: formData.phoneNumber.trim() || undefined,
-                dateOfBirth: formData.dateOfBirth || undefined,
+                phone: formData.phoneNumber.trim() || undefined,
+                dob: formData.dateOfBirth || undefined,
                 gender: formData.gender as 'MALE' | 'FEMALE' | 'OTHER' | undefined,
-                profileImageUrl,
+                avatarUrl: profileImageUrl,
                 departmentId: formData.departmentId,
                 classId: formData.classId,
             };
@@ -439,7 +542,7 @@ const StudentProfile: React.FC = () => {
                                 </label>
                                 <input
                                     type="email"
-                                    value={student?.user?.email || ''}
+                                    value={student?.email || ''}
                                     disabled
                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-500"
                                 />
@@ -507,20 +610,116 @@ const StudentProfile: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Address Link */}
+                        {/* Address Management */}
                         <div className="border-t border-gray-200 pt-6">
                             <h3 className="text-lg font-medium text-gray-900 mb-4">Địa chỉ</h3>
-                            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-md">
-                                <div>
-                                    <p className="text-sm font-medium text-gray-900">Quản lý địa chỉ</p>
-                                    <p className="text-sm text-gray-500">Cập nhật thông tin địa chỉ của bạn</p>
+
+                            {/* Current Address Display */}
+                            {address && (
+                                <div className="mb-4 p-4 bg-blue-50 rounded-md">
+                                    <p className="text-sm font-medium text-gray-900">Địa chỉ hiện tại:</p>
+                                    <p className="text-sm text-gray-700 mt-1">
+                                        {address.street && `${address.street}, `}
+                                        {address.wardName}, {address.provinceName}
+                                        {address.note && ` (${address.note})`}
+                                    </p>
                                 </div>
-                                <Link
-                                    to="/student/address"
-                                    className="px-4 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-300 rounded-md hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    Quản lý địa chỉ
-                                </Link>
+                            )}
+
+                            {/* Address Form */}
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label htmlFor="addressProvince" className="block text-sm font-medium text-gray-700">
+                                            Tỉnh/Thành phố *
+                                        </label>
+                                        <select
+                                            id="addressProvince"
+                                            value={addressFormData.provinceCode}
+                                            onChange={(e) => handleProvinceChange(Number(e.target.value))}
+                                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                        >
+                                            <option value={0}>Chọn tỉnh/thành phố</option>
+                                            {provinces.map((province) => (
+                                                <option key={`province-${province.code}`} value={province.code}>
+                                                    {province.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label htmlFor="addressWard" className="block text-sm font-medium text-gray-700">
+                                            Phường/Xã *
+                                        </label>
+                                        <select
+                                            id="addressWard"
+                                            value={addressFormData.wardCode}
+                                            onChange={(e) => setAddressFormData(prev => ({ ...prev, wardCode: Number(e.target.value) }))}
+                                            disabled={wards.length === 0}
+                                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                                        >
+                                            <option value={0}>Chọn phường/xã</option>
+                                            {wards.map((ward) => (
+                                                <option key={`ward-${ward.code}`} value={ward.code}>
+                                                    {ward.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label htmlFor="addressStreet" className="block text-sm font-medium text-gray-700">
+                                        Số nhà, tên đường
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="addressStreet"
+                                        value={addressFormData.street}
+                                        onChange={(e) => setAddressFormData(prev => ({ ...prev, street: e.target.value }))}
+                                        placeholder="Nhập số nhà, tên đường..."
+                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label htmlFor="addressNote" className="block text-sm font-medium text-gray-700">
+                                        Ghi chú
+                                    </label>
+                                    <textarea
+                                        id="addressNote"
+                                        value={addressFormData.note}
+                                        onChange={(e) => setAddressFormData(prev => ({ ...prev, note: e.target.value }))}
+                                        placeholder="Ghi chú thêm về địa chỉ..."
+                                        rows={3}
+                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                </div>
+
+                                {/* Address Messages */}
+                                {addressError && (
+                                    <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                                        <p className="text-sm text-red-600">{addressError}</p>
+                                    </div>
+                                )}
+
+                                {addressSuccess && (
+                                    <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                                        <p className="text-sm text-green-600">{addressSuccess}</p>
+                                    </div>
+                                )}
+
+                                <div className="flex justify-end">
+                                    <button
+                                        type="button"
+                                        onClick={handleAddressSubmit}
+                                        disabled={addressSaving}
+                                        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                                    >
+                                        {addressSaving ? 'Đang lưu...' : (address ? 'Cập nhật địa chỉ' : 'Tạo địa chỉ')}
+                                    </button>
+                                </div>
                             </div>
                         </div>
 

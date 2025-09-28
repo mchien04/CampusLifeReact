@@ -1,0 +1,20 @@
+warning: in the working copy of 'src/App.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/task/TaskAssignmentModal.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/pages/EventDetail.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/pages/StudentProfile.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/pages/index.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/services/addressAPI.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/services/studentAPI.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/services/taskAPI.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/types/student.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/types/task.ts', LF will be replaced by CRLF the next time Git touches it
+src/App.tsx
+src/components/task/TaskAssignmentModal.tsx
+src/pages/StudentAddressManagement.tsx
+src/pages/StudentProfile.tsx
+src/pages/index.ts
+src/services/addressAPI.ts
+src/services/studentAPI.ts
+src/services/taskAPI.ts
+src/types/student.ts
+src/types/task.ts

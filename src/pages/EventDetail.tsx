@@ -7,7 +7,8 @@ import { eventAPI } from '../services/eventAPI';
 import { taskAPI } from '../services/taskAPI';
 import { registrationAPI } from '../services/registrationAPI';
 import { getImageUrl } from '../utils/imageUtils';
-import { TaskList, TaskForm, TaskAssignmentModal, TaskAssignmentsList } from '../components/tasks';
+import { TaskList, TaskForm, TaskAssignmentsList } from '../components/tasks';
+import { TaskAssignmentModal } from '../components/task/TaskAssignmentModal';
 import { RegistrationForm, ParticipationForm } from '../components/registration';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -756,15 +757,16 @@ const EventDetail: React.FC = () => {
             )}
 
             {/* Task Assignment Modal */}
-            <TaskAssignmentModal
-                task={selectedTask}
-                isOpen={showAssignmentModal}
-                onClose={() => {
-                    setShowAssignmentModal(false);
-                    setSelectedTask(null);
-                }}
-                onAssign={handleAssignTask}
-            />
+            {showAssignmentModal && selectedTask && (
+                <TaskAssignmentModal
+                    task={selectedTask}
+                    onClose={() => {
+                        setShowAssignmentModal(false);
+                        setSelectedTask(null);
+                    }}
+                    onRefresh={() => loadTasks()}
+                />
+            )}
 
             {/* Task Assignments Modal */}
             {showAssignments && selectedTask && (

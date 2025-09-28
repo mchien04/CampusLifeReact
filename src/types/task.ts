@@ -201,3 +201,16 @@ export const getAssignmentStatusColor = (status: string): string => {
             return 'bg-gray-100 text-gray-800';
     }
 };
+
+// Interface for registered students in activity
+export interface RegisteredStudent {
+    id: number;
+    studentCode: string;
+    fullName: string;
+    email: string;
+    phone?: string;
+    departmentName?: string;
+    className?: string;
+    registrationStatus: string;
+    registeredDate: string;
+}

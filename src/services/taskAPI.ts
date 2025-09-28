@@ -13,7 +13,8 @@ import {
     CreateActivityTaskRequest,
     ActivityTaskResponse,
     TaskAssignmentRequest,
-    TaskAssignmentResponse
+    TaskAssignmentResponse,
+    RegisteredStudent
 } from '../types/task';
 import { Student } from '../types/student';
 import { Response } from '../types/auth';
@@ -81,7 +82,9 @@ export const taskAPI = {
 
     // Phân công nhiệm vụ
     assignTask: async (data: AssignTaskRequest): Promise<TaskAssignment[]> => {
-        const response = await api.post('/api/assignments', data);
+        console.log('🔍 API: assignTask called with data:', data);
+        const response = await api.post('/api/tasks/assign', data);
+        console.log('🔍 API: assignTask response:', response.data);
         return response.data.body;
     },
 
@@ -287,6 +290,47 @@ export const taskAPI = {
             return {
                 status: false,
                 message: error.response?.data?.message || 'Có lỗi xảy ra khi tự động phân công nhiệm vụ bắt buộc',
+                data: undefined
+            };
+        }
+    },
+
+    // Get registered students for activity
+    getRegisteredStudentsForActivity: async (activityId: number): Promise<Response<RegisteredStudent[]>> => {
+        try {
+            console.log('🔍 API: Fetching registered students for activity:', activityId);
+            const response = await api.get(`/api/tasks/activity/${activityId}/registered-students`);
+            console.log('🔍 API: Registered students response:', response.data);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('🔍 API: Error fetching registered students:', error);
+            console.error('🔍 API: Error response:', error.response?.data);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Có lỗi xảy ra khi lấy danh sách sinh viên đăng ký',
+                data: undefined
+            };
+        }
+    },
+
+    // Assign task to registered students
+    assignTaskToRegisteredStudents: async (activityId: number, taskId: number): Promise<Response<TaskAssignmentResponse[]>> => {
+        try {
+            const response = await api.post(`/api/tasks/assign-to-registered/${activityId}?taskId=${taskId}`);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Error assigning task to registered students:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Có lỗi xảy ra khi phân công nhiệm vụ cho sinh viên đăng ký',
                 data: undefined
             };
         }

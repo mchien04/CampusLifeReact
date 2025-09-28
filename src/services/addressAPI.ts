@@ -11,13 +11,43 @@ export const addressAPI = {
     // Lấy danh sách tỉnh/thành phố
     getProvinces: async (): Promise<Province[]> => {
         const response = await api.get('/api/addresses/provinces');
-        return response.data.body;
+        const raw = response.data?.body || [];
+        // Chuẩn hóa code thành number và name thành string
+        const provinces: Province[] = (raw as any[])
+            .map((item: any) => {
+                const rawCode = item?.code ?? item?.matinhTMS ?? item?.ma_tinh_tms;
+                const codeNum = typeof rawCode === 'number' ? rawCode : parseInt(String(rawCode ?? ''), 10);
+                const nameStr = item?.name ?? item?.tentinhmoi ?? item?.ten_tinh_moi;
+                if (!Number.isFinite(codeNum) || !nameStr) return null;
+                return { code: codeNum, name: String(nameStr) } as Province;
+            })
+            .filter(Boolean) as Province[];
+        return provinces;
     },
 
     // Lấy danh sách phường/xã theo tỉnh
     getWardsByProvince: async (provinceCode: number): Promise<Ward[]> => {
+        console.log('🔍 API: Getting wards for province code:', provinceCode);
         const response = await api.get(`/api/addresses/provinces/${provinceCode}/wards`);
-        return response.data.body;
+        const raw = response.data?.body || [];
+
+        // Map dữ liệu phường/xã từ nguồn thô (keys khác nhau) về chuẩn { code, name }
+        const wards: Ward[] = (raw as any[])
+            .map((item: any) => {
+                const rawCode = item?.code ?? item?.maphuongxa ?? item?.maphuongxaTMS ?? item?.maphuongTMS ?? item?.maPhuongXa ?? item?.ma_phuong_xa;
+                const codeNum = typeof rawCode === 'number' ? rawCode : parseInt(String(rawCode ?? ''), 10);
+                const nameStr = item?.name ?? item?.tenphuongxa ?? item?.tenphuongmoi ?? item?.ten_phuong_moi ?? item?.tenphuong ?? item?.tenPhuong ?? item?.ten_phuong ?? item?.ten_phuong_xa;
+
+                if (!Number.isFinite(codeNum) || !nameStr) return null;
+                return { code: codeNum, name: String(nameStr) } as Ward;
+            })
+            .filter(Boolean) as Ward[];
+
+        console.log('🔍 API: Mapped wards count:', wards.length);
+        if (wards.length === 0) {
+            console.log('🔍 API: Sample raw ward item:', (raw as any[])[0]);
+        }
+        return wards;
     },
 
     // Lấy địa chỉ sinh viên hiện tại

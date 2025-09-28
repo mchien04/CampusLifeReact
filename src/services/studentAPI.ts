@@ -5,18 +5,19 @@ import {
     StudentResponse,
     UpdateStudentProfileRequest,
     StudentFilters,
-    StudentListResponse
+    StudentListResponse,
+    StudentProfileResponse
 } from '../types/student';
 
 export const studentAPI = {
     // Lấy thông tin profile sinh viên hiện tại
-    getMyProfile: async (): Promise<Student> => {
+    getMyProfile: async (): Promise<StudentProfileResponse> => {
         const response = await api.get('/api/student/profile');
         return response.data.body;
     },
 
     // Cập nhật profile sinh viên
-    updateMyProfile: async (data: UpdateStudentProfileRequest): Promise<Student> => {
+    updateMyProfile: async (data: UpdateStudentProfileRequest): Promise<StudentProfileResponse> => {
         const response = await api.put('/api/student/profile', data);
         return response.data.body;
     },

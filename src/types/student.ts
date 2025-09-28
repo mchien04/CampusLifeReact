@@ -36,15 +36,36 @@ export interface Student {
     updatedAt: string;
 }
 
+export interface StudentProfileResponse {
+    id: number;
+    userId: number;
+    username: string;
+    email: string;
+    studentCode: string;
+    fullName: string;
+    classId?: number;
+    className?: string;
+    departmentId?: number;
+    departmentName?: string;
+    phone?: string;
+    address?: string; // Full address string for display
+    dob?: string;
+    gender?: 'MALE' | 'FEMALE' | 'OTHER';
+    avatarUrl?: string;
+    createdAt: string;
+    updatedAt: string;
+    isProfileComplete: boolean;
+}
+
 export interface UpdateStudentProfileRequest {
     fullName: string;
     studentCode: string;
-    phoneNumber?: string;
-    dateOfBirth?: string;
+    phone?: string;
+    dob?: string;
     gender?: 'MALE' | 'FEMALE' | 'OTHER';
-    profileImageUrl?: string;
-    departmentId: number;
-    classId: number;
+    avatarUrl?: string;
+    departmentId?: number;
+    classId?: number;
 }
 
 export interface StudentFilters {

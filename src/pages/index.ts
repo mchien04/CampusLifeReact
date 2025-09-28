@@ -7,7 +7,6 @@ export { default as EventDetail } from './EventDetail';
 export { default as StudentEvents } from './StudentEvents';
 export { default as StudentEventDetail } from './StudentEventDetail';
 export { default as StudentParticipationHistory } from './StudentParticipationHistory';
-export { default as StudentAddressManagement } from './StudentAddressManagement';
 export { default as StudentProfile } from './StudentProfile';
 export { default as StudentRegistrations } from './StudentRegistrations';
 export { default as StudentTasks } from './StudentTasks';
