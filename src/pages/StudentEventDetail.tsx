@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { eventAPI } from '../services/eventAPI';
 import { registrationAPI } from '../services/registrationAPI';
+import { taskAPI } from '../services/taskAPI';
+import { submissionAPI } from '../services/submissionAPI';
+import { getSubmissionStatusColor, getSubmissionStatusLabel } from '../utils/submissionUtils';
 import { ActivityResponse, ActivityType, ScoreType } from '../types';
+import { ActivityTaskResponse } from '../types/task';
+import { TaskSubmissionResponse } from '../types/submission';
 import { RegistrationStatus, ParticipationType } from '../types/registration';
 import { LoadingSpinner } from '../components/common';
 
@@ -22,6 +28,17 @@ const StudentEventDetail: React.FC = () => {
     const [pointsEarned, setPointsEarned] = useState<number>(0);
     const [notes, setNotes] = useState('');
 
+    // Tasks and submissions (within this event page)
+    const [tasks, setTasks] = useState<ActivityTaskResponse[]>([]);
+    const [loadingTasks, setLoadingTasks] = useState(false);
+    const [showSubmissionModal, setShowSubmissionModal] = useState(false);
+    const [selectedTask, setSelectedTask] = useState<ActivityTaskResponse | null>(null);
+    const [mySubmission, setMySubmission] = useState<TaskSubmissionResponse | null>(null);
+    const [submitContent, setSubmitContent] = useState('');
+    const [submitFiles, setSubmitFiles] = useState<File[]>([]);
+    const [filePreviews, setFilePreviews] = useState<string[]>([]);
+    const [submitting, setSubmitting] = useState(false);
+
     useEffect(() => {
         if (id) {
             loadEvent();
@@ -35,6 +52,7 @@ const StudentEventDetail: React.FC = () => {
             if (response.status && response.data) {
                 setEvent(response.data);
                 await checkRegistrationStatus(response.data.id);
+                await loadTasksByActivity(response.data.id);
             } else {
                 setError(response.message || 'Không thể tải thông tin sự kiện');
             }
@@ -43,6 +61,23 @@ const StudentEventDetail: React.FC = () => {
             console.error('Error loading event:', err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadTasksByActivity = async (activityId: number) => {
+        try {
+            setLoadingTasks(true);
+            const res = await taskAPI.getTasksByActivity(activityId);
+            if (res.status && res.data) {
+                setTasks(res.data);
+            } else {
+                setTasks([]);
+            }
+        } catch (e) {
+            console.error('Error loading tasks for activity:', e);
+            setTasks([]);
+        } finally {
+            setLoadingTasks(false);
         }
     };
 
@@ -194,6 +229,74 @@ const StudentEventDetail: React.FC = () => {
         if (!event) return false;
         const eventStatus = getEventStatus();
         return eventStatus === 'ONGOING' && registrationStatus === RegistrationStatus.APPROVED;
+    };
+
+    const openSubmissionModal = async (task: ActivityTaskResponse) => {
+        setSelectedTask(task);
+        setShowSubmissionModal(true);
+        setMySubmission(null);
+        setSubmitContent('');
+        setSubmitFiles([]);
+        setFilePreviews([]);
+        try {
+            const res = await submissionAPI.getMySubmissionForTask(task.id);
+            if (res.status && res.data) {
+                setMySubmission(res.data);
+                setSubmitContent(res.data.content || '');
+                // Normalize fileUrls for preview (read-only links)
+                const urls = Array.isArray(res.data.fileUrls)
+                    ? res.data.fileUrls
+                    : (res.data.fileUrls ? (res.data.fileUrls as string).split(',').map(u => u.trim()) : []);
+                setFilePreviews(urls);
+            }
+        } catch (e) {
+            console.warn('No existing submission or failed to fetch:', e);
+        }
+    };
+
+    const closeSubmissionModal = () => {
+        setShowSubmissionModal(false);
+        setSelectedTask(null);
+        setMySubmission(null);
+        setSubmitContent('');
+        setSubmitFiles([]);
+        setFilePreviews([]);
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        setSubmitFiles(files);
+        const previews = files.map(file => URL.createObjectURL(file));
+        setFilePreviews(previews);
+    };
+
+    const handleSubmitTask = async () => {
+        if (!selectedTask) return;
+        setSubmitting(true);
+        try {
+            if (mySubmission) {
+                const res = await submissionAPI.updateSubmission(mySubmission.id, {
+                    content: submitContent || undefined,
+                    files: submitFiles.length > 0 ? submitFiles : undefined,
+                });
+                if (!res.status) throw new Error(res.message || 'Cập nhật bài nộp thất bại');
+                alert('Cập nhật bài nộp thành công');
+            } else {
+                const res = await submissionAPI.submitTask(selectedTask.id, {
+                    content: submitContent || undefined,
+                    files: submitFiles.length > 0 ? submitFiles : undefined,
+                });
+                if (!res.status) throw new Error(res.message || 'Nộp bài thất bại');
+                alert('Nộp bài thành công');
+            }
+            // Refresh my submission
+            const latest = await submissionAPI.getMySubmissionForTask(selectedTask.id);
+            if (latest.status && latest.data) setMySubmission(latest.data);
+        } catch (e: any) {
+            alert(e.message || 'Có lỗi xảy ra khi nộp bài');
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     if (loading) {
@@ -386,6 +489,43 @@ const StudentEventDetail: React.FC = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Event Tasks and Submission (Student) */}
+                        {event.requiresSubmission && (
+                            <div className="bg-white shadow rounded-lg mt-6">
+                                <div className="p-6">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="text-lg font-medium text-gray-900">Nhiệm vụ cần nộp bài</h3>
+                                    </div>
+                                    {loadingTasks ? (
+                                        <p className="text-sm text-gray-500">Đang tải nhiệm vụ...</p>
+                                    ) : tasks.length === 0 ? (
+                                        <p className="text-sm text-gray-500">Chưa có nhiệm vụ.</p>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {tasks.map((t) => (
+                                                <div key={t.id} className="flex items-center justify-between">
+                                                    <div>
+                                                        <p className="text-sm font-medium text-gray-900">{t.name}</p>
+                                                        {t.deadline && (
+                                                            <p className="text-xs text-gray-500">Hạn: {new Date(t.deadline).toLocaleString('vi-VN')}</p>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center space-x-2">
+                                                        <button
+                                                            onClick={() => openSubmissionModal(t)}
+                                                            className="px-3 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700"
+                                                        >
+                                                            Nộp bài
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Sidebar */}
@@ -435,6 +575,139 @@ const StudentEventDetail: React.FC = () => {
                     </div>
                 </div>
             </main>
+
+            {/* Submission Modal */}
+            {showSubmissionModal && selectedTask && (
+                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+                    <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-medium text-gray-900">Nộp bài: {selectedTask.name}</h3>
+                            <button onClick={closeSubmissionModal} className="text-gray-400 hover:text-gray-600">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        {mySubmission && (
+                            <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getSubmissionStatusColor(mySubmission.status)}`}>
+                                {getSubmissionStatusLabel(mySubmission.status)}
+                            </div>
+                        )}
+                        <div className="mt-4 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Nội dung (tùy chọn)</label>
+                                <textarea
+                                    value={submitContent}
+                                    onChange={(e) => setSubmitContent(e.target.value)}
+                                    rows={4}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Nhập nội dung nộp bài..."
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Tệp đính kèm (tùy chọn)</label>
+                                <input
+                                    type="file"
+                                    multiple
+                                    onChange={handleFileChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                {/* Previews */}
+                                {(filePreviews.length > 0 || (mySubmission && mySubmission.fileUrls)) && (
+                                    <div className="mt-2 space-y-1">
+                                        {filePreviews.map((url, idx) => (
+                                            <button
+                                                key={`p-${idx}`}
+                                                type="button"
+                                                onClick={async () => {
+                                                    try {
+                                                        const filename = (url.split('/').pop() || `file-${idx + 1}`).trim();
+                                                        const resp = await api.get(url, { responseType: 'blob' });
+                                                        const blobUrl = window.URL.createObjectURL(new Blob([resp.data]));
+                                                        const link = document.createElement('a');
+                                                        link.href = blobUrl;
+                                                        link.setAttribute('download', filename);
+                                                        document.body.appendChild(link);
+                                                        link.click();
+                                                        link.remove();
+                                                        window.URL.revokeObjectURL(blobUrl);
+                                                    } catch (e) {
+                                                        console.error('Download failed', e);
+                                                        alert('Tải file thất bại. Vui lòng thử lại.');
+                                                    }
+                                                }}
+                                                className="text-blue-600 text-sm hover:underline"
+                                            >
+                                                File mới {idx + 1}
+                                            </button>
+                                        ))}
+                                        {mySubmission && (() => {
+                                            const urls = Array.isArray(mySubmission.fileUrls)
+                                                ? mySubmission.fileUrls
+                                                : (mySubmission.fileUrls ? (mySubmission.fileUrls as string).split(',').map(u => u.trim()) : []);
+                                            return urls.map((u, idx) => (
+                                                <button
+                                                    key={`e-${idx}`}
+                                                    type="button"
+                                                    onClick={async () => {
+                                                        try {
+                                                            const filename = (u.split('/').pop() || `file-${idx + 1}`).trim();
+                                                            const resp = await api.get(u, { responseType: 'blob' });
+                                                            const blobUrl = window.URL.createObjectURL(new Blob([resp.data]));
+                                                            const link = document.createElement('a');
+                                                            link.href = blobUrl;
+                                                            link.setAttribute('download', filename);
+                                                            document.body.appendChild(link);
+                                                            link.click();
+                                                            link.remove();
+                                                            window.URL.revokeObjectURL(blobUrl);
+                                                        } catch (e) {
+                                                            console.error('Download failed', e);
+                                                            alert('Tải file thất bại. Vui lòng thử lại.');
+                                                        }
+                                                    }}
+                                                    className="text-gray-700 text-sm hover:underline"
+                                                >
+                                                    File hiện có {idx + 1}
+                                                </button>
+                                            ));
+                                        })()}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <div className="mt-6 flex justify-end space-x-3">
+                            {mySubmission && (
+                                <button
+                                    onClick={async () => {
+                                        if (!mySubmission) return;
+                                        const confirmed = window.confirm('Bạn có chắc muốn xóa bài nộp này?');
+                                        if (!confirmed) return;
+                                        try {
+                                            const res = await submissionAPI.deleteSubmission(mySubmission.id);
+                                            if (!res.status) throw new Error(res.message || 'Xóa bài nộp thất bại');
+                                            setMySubmission(null);
+                                            setSubmitContent('');
+                                            setSubmitFiles([]);
+                                            setFilePreviews([]);
+                                            alert('Đã xóa bài nộp.');
+                                        } catch (e: any) {
+                                            alert(e.message || 'Có lỗi xảy ra khi xóa bài nộp');
+                                        }
+                                    }}
+                                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                                >
+                                    Xóa bài nộp
+                                </button>
+                            )}
+                            <button onClick={closeSubmissionModal} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">Hủy</button>
+                            <button onClick={handleSubmitTask} disabled={submitting} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50">
+                                {mySubmission ? (submitting ? 'Đang cập nhật...' : 'Cập nhật bài nộp') : (submitting ? 'Đang nộp...' : 'Nộp bài')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Registration Modal */}
             {showRegistrationForm && (

@@ -7,12 +7,26 @@ import {
     UpdateSubmissionRequest,
 } from '../types/submission';
 
+const normalize = <T>(raw: any): Response<T> => {
+    // Handles backend Response{status,message,body} and also raw payloads
+    if (raw && typeof raw === 'object' && 'status' in raw && 'message' in raw) {
+        return {
+            status: Boolean((raw as any).status),
+            message: (raw as any).message,
+            data: (raw as any).body ?? (raw as any).data,
+        } as Response<T>;
+    }
+    // If raw is array or object without status/message, assume success
+    return {
+        status: true,
+        message: 'OK',
+        data: raw as T,
+    } as Response<T>;
+};
+
 export const submissionAPI = {
-    // Check if an activity requires submission
-    checkSubmissionRequirement: async (activityId: number): Promise<Response<SubmissionRequirementResponse>> => {
-        const response = await api.get(`/api/activities/${activityId}/requires-submission`);
-        return response.data;
-    },
+    // Deprecated: backend may require auth; derive from ActivityResponse instead
+    // checkSubmissionRequirement removed to avoid 403s
 
     // Submit a task
     submitTask: async (taskId: number, data: CreateSubmissionRequest): Promise<Response<TaskSubmissionResponse>> => {
@@ -30,7 +44,7 @@ export const submissionAPI = {
                 'Content-Type': 'multipart/form-data',
             },
         });
-        return response.data;
+        return normalize<TaskSubmissionResponse>(response.data);
     },
 
     // Update an existing submission
@@ -49,37 +63,37 @@ export const submissionAPI = {
                 'Content-Type': 'multipart/form-data',
             },
         });
-        return response.data;
+        return normalize<TaskSubmissionResponse>(response.data);
     },
 
     // Get student's submission for a specific task
     getMySubmissionForTask: async (taskId: number): Promise<Response<TaskSubmissionResponse>> => {
         const response = await api.get(`/api/submissions/task/${taskId}/my`);
-        return response.data;
+        return normalize<TaskSubmissionResponse>(response.data);
     },
 
     // Get submission details by ID
     getSubmissionDetails: async (submissionId: number): Promise<Response<TaskSubmissionResponse>> => {
         const response = await api.get(`/api/submissions/${submissionId}`);
-        return response.data;
+        return normalize<TaskSubmissionResponse>(response.data);
     },
 
     // Delete a submission
     deleteSubmission: async (submissionId: number): Promise<Response<any>> => {
         const response = await api.delete(`/api/submissions/${submissionId}`);
-        return response.data;
+        return normalize<any>(response.data);
     },
 
     // Get submission files
     getSubmissionFiles: async (submissionId: number): Promise<Response<string[]>> => {
         const response = await api.get(`/api/submissions/${submissionId}/files`);
-        return response.data;
+        return normalize<string[]>(response.data);
     },
 
     // Get all submissions for a task (Admin/Manager)
     getTaskSubmissions: async (taskId: number): Promise<Response<TaskSubmissionResponse[]>> => {
         const response = await api.get(`/api/submissions/task/${taskId}`);
-        return response.data;
+        return normalize<TaskSubmissionResponse[]>(response.data);
     },
 
     // Grade a submission
@@ -94,6 +108,6 @@ export const submissionAPI = {
                 'Content-Type': 'multipart/form-data',
             },
         });
-        return response.data;
+        return normalize<TaskSubmissionResponse>(response.data);
     },
 };

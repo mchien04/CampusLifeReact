@@ -5,8 +5,6 @@ import { taskAPI, eventAPI } from '../../services';
 import { TaskForm } from '../../components/task/TaskForm';
 import { TaskAssignmentModal } from '../../components/task/TaskAssignmentModal';
 import SubmissionDetailsModal from '../../components/task/SubmissionDetailsModal';
-import { submissionAPI } from '../../services/submissionAPI';
-import { getSubmissionStatusColor, getSubmissionStatusLabel } from '../../utils/submissionUtils';
 
 const TaskManagement: React.FC = () => {
     const [tasks, setTasks] = useState<ActivityTask[]>([]);
@@ -41,22 +39,15 @@ const TaskManagement: React.FC = () => {
                 eventAPI.getEvents()
             ]);
 
-            // For each task, check if it requires submission
-            const tasksWithSubmissionInfo = await Promise.all(tasksResponse.content.map(async (task) => {
-                if (task.activity && task.activity.id) {
-                    try {
-                        const submissionReqResponse = await submissionAPI.checkSubmissionRequirement(task.activity.id);
-                        return {
-                            ...task,
-                            requiresSubmission: submissionReqResponse.status && submissionReqResponse.data?.requiresSubmission,
-                        };
-                    } catch (subError) {
-                        console.warn(`Error checking submission requirement for activity ${task.activity.id}:`, subError);
-                        return { ...task, requiresSubmission: false };
-                    }
-                } else {
-                    return { ...task, requiresSubmission: false };
-                }
+            // Build a quick lookup for requiresSubmission from activities
+            const activityIdToRequires: Record<number, boolean> = {};
+            (activitiesResponse.data || []).forEach((act) => {
+                activityIdToRequires[act.id] = !!act.requiresSubmission;
+            });
+
+            const tasksWithSubmissionInfo = tasksResponse.content.map((task) => ({
+                ...task,
+                requiresSubmission: task.activity?.id ? activityIdToRequires[task.activity.id] : false,
             }));
 
             setTasks(tasksWithSubmissionInfo as ActivityTask[]);
@@ -131,6 +122,7 @@ const TaskManagement: React.FC = () => {
     };
 
     const handleViewSubmissions = (task: ActivityTask) => {
+        console.log('🔍 Manager: Open SubmissionDetailsModal for task:', { taskId: task.id, title: task.title, activityId: task.activity?.id });
         setSelectedTaskForSubmission(task);
         setShowSubmissionDetailsModal(true);
     };

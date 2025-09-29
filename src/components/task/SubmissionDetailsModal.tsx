@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import api from '../../services/api';
 import { TaskAssignmentResponse, TaskStatus, ActivityTask } from '../../types/task';
 import { SubmissionStatus, TaskSubmissionResponse } from '../../types/submission';
 import { submissionAPI } from '../../services/submissionAPI';
@@ -25,12 +26,19 @@ const SubmissionDetailsModal: React.FC<SubmissionDetailsModalProps> = ({
     const [gradingSuccess, setGradingSuccess] = useState('');
 
     const loadSubmissions = useCallback(async () => {
+        console.log('🔍 SubmissionDetailsModal: loading submissions for taskId=', task.id);
         setLoading(true);
         setError('');
         try {
             const response = await submissionAPI.getTaskSubmissions(task.id);
+            console.log('🔍 SubmissionDetailsModal: API response:', response);
             if (response.status && response.data) {
-                setSubmissions(response.data);
+                const list = Array.isArray(response.data)
+                    ? response.data
+                    : typeof response.data === 'object'
+                        ? [response.data]
+                        : [];
+                setSubmissions(list);
             } else {
                 setError(response.message || 'Không thể tải danh sách bài nộp.');
             }
@@ -105,6 +113,24 @@ const SubmissionDetailsModal: React.FC<SubmissionDetailsModalProps> = ({
         });
     };
 
+    const handleDownload = async (fileUrl: string) => {
+        try {
+            const filename = (fileUrl.split('/').pop() || 'file').trim();
+            const response = await api.get(fileUrl, { responseType: 'blob' });
+            const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(blobUrl);
+        } catch (e) {
+            console.error('Download failed', e);
+            alert('Tải file thất bại. Vui lòng thử lại.');
+        }
+    };
+
     return (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -127,7 +153,7 @@ const SubmissionDetailsModal: React.FC<SubmissionDetailsModalProps> = ({
                         <div className="text-center py-8 text-red-600">
                             <p>{error}</p>
                         </div>
-                    ) : submissions.length === 0 ? (
+                    ) : (!Array.isArray(submissions) || submissions.length === 0) ? (
                         <div className="text-center py-8 text-gray-500">
                             <p>Chưa có bài nộp nào cho nhiệm vụ này.</p>
                         </div>
@@ -163,18 +189,17 @@ const SubmissionDetailsModal: React.FC<SubmissionDetailsModalProps> = ({
                                                 <p className="text-sm font-medium text-gray-700">File đính kèm:</p>
                                                 <div className="mt-1 space-y-1">
                                                     {fileUrlsArray.map((fileUrl: string, idx: number) => (
-                                                        <a
+                                                        <button
                                                             key={idx}
-                                                            href={fileUrl}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
+                                                            type="button"
+                                                            onClick={() => handleDownload(fileUrl)}
                                                             className="flex items-center text-blue-600 hover:underline text-sm"
                                                         >
                                                             <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                                                 <path fillRule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clipRule="evenodd" />
                                                             </svg>
                                                             {fileUrl.split('/').pop()}
-                                                        </a>
+                                                        </button>
                                                     ))}
                                                 </div>
                                             </div>

@@ -8,6 +8,8 @@ import { taskAPI } from '../services/taskAPI';
 import { registrationAPI } from '../services/registrationAPI';
 import { getImageUrl } from '../utils/imageUtils';
 import { TaskList, TaskForm, TaskAssignmentsList } from '../components/tasks';
+import SubmissionDetailsModal from '../components/task/SubmissionDetailsModal';
+import { submissionAPI } from '../services/submissionAPI';
 import { TaskAssignmentModal } from '../components/task/TaskAssignmentModal';
 import { RegistrationForm, ParticipationForm } from '../components/registration';
 import { useAuth } from '../contexts/AuthContext';
@@ -27,6 +29,8 @@ const EventDetail: React.FC = () => {
     const [showAssignments, setShowAssignments] = useState(false);
     const [taskAssignments, setTaskAssignments] = useState<TaskAssignmentResponse[]>([]);
     const [loadingAssignments, setLoadingAssignments] = useState(false);
+    const [showSubmissionDetailsModal, setShowSubmissionDetailsModal] = useState(false);
+    const [selectedTaskForSubmission, setSelectedTaskForSubmission] = useState<ActivityTaskResponse | null>(null);
 
     // Registration states
     const [registrationStatus, setRegistrationStatus] = useState<{ status: RegistrationStatus; registrationId?: number } | null>(null);
@@ -91,7 +95,9 @@ const EventDetail: React.FC = () => {
         try {
             const response = await taskAPI.getTasksByActivity(event.id);
             if (response.status && response.data) {
-                setTasks(response.data);
+                // Optionally enrich tasks with requiresSubmission info from activity
+                const enriched = (response.data || []).map(t => ({ ...t, requiresSubmission: event.requiresSubmission }));
+                setTasks(enriched);
             }
         } catch (error) {
             console.error('Error loading tasks:', error);
@@ -188,6 +194,11 @@ const EventDetail: React.FC = () => {
         } finally {
             setLoadingAssignments(false);
         }
+    };
+
+    const handleViewSubmissions = (task: ActivityTaskResponse) => {
+        setSelectedTaskForSubmission(task);
+        setShowSubmissionDetailsModal(true);
     };
 
     const handleUpdateAssignmentStatus = async (assignmentId: number, status: TaskStatus) => {
@@ -727,6 +738,24 @@ const EventDetail: React.FC = () => {
                                 onViewAssignments={handleViewAssignments}
                                 showActions={true}
                             />
+                            {event.requiresSubmission && tasks.length > 0 && (
+                                <div className="mt-4 border-t pt-4">
+                                    <h4 className="text-md font-medium text-gray-900 mb-2">Bài nộp theo nhiệm vụ</h4>
+                                    <div className="space-y-2">
+                                        {tasks.map(t => (
+                                            <div key={t.id} className="flex items-center justify-between text-sm">
+                                                <span className="text-gray-700">{t.name}</span>
+                                                <button
+                                                    onClick={() => handleViewSubmissions(t)}
+                                                    className="px-3 py-1 text-purple-600 hover:text-purple-800"
+                                                >
+                                                    Xem bài nộp
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -799,6 +828,27 @@ const EventDetail: React.FC = () => {
                         />
                     </div>
                 </div>
+            )}
+
+            {/* Submission Details Modal */}
+            {showSubmissionDetailsModal && selectedTaskForSubmission && (
+                <SubmissionDetailsModal
+                    // Map ActivityTaskResponse -> minimal ActivityTask shape needed by modal
+                    task={{
+                        id: selectedTaskForSubmission.id,
+                        title: selectedTaskForSubmission.name,
+                        maxPoints: event && event.maxPoints ? Number(parseFloat(event.maxPoints)) : undefined,
+                        activity: { id: selectedTaskForSubmission.activityId } as any,
+                    } as any}
+                    onClose={() => {
+                        setShowSubmissionDetailsModal(false);
+                        setSelectedTaskForSubmission(null);
+                    }}
+                    onSubmissionGraded={() => {
+                        // Refresh if needed
+                        loadTasks();
+                    }}
+                />
             )}
 
             {/* Registration Form Modal */}
