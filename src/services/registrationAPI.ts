@@ -6,6 +6,8 @@ import {
     ActivityParticipationResponse,
     RegistrationStatus
 } from '../types/registration';
+import { ApiResponse } from '../types/common';
+import axios from "axios";
 
 export const registrationAPI = {
     // Student APIs
@@ -28,10 +30,7 @@ export const registrationAPI = {
         return response.data.body;
     },
 
-    recordParticipation: async (data: ActivityParticipationRequest): Promise<ActivityParticipationResponse> => {
-        const response = await api.post('/api/registrations/participate', data);
-        return response.data.body;
-    },
+
 
     getMyParticipations: async (): Promise<ActivityParticipationResponse[]> => {
         const response = await api.get('/api/registrations/my/participations');
@@ -54,8 +53,19 @@ export const registrationAPI = {
         return response.data.body;
     },
 
-    getActivityParticipations: async (activityId: number): Promise<ActivityParticipationResponse[]> => {
-        const response = await api.get(`/api/registrations/activity/${activityId}/participations`);
-        return response.data.body;
-    }
+    checkIn: async (data: ActivityParticipationRequest): Promise<ApiResponse<ActivityParticipationResponse>> => {
+        const response = await api.post('/api/registrations/checkin', data);
+        return response.data; // { status, message, body }
+    },
+    getParticipationReport: async (activityId: number) => {
+        const token = localStorage.getItem("token");
+        const res = await api.get(`/api/registrations/activities/${activityId}/report`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        });
+        return res.data.body;
+    },
+
+
 };
