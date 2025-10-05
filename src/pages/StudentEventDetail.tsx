@@ -144,22 +144,26 @@ const StudentEventDetail: React.FC = () => {
         if (!event) return;
 
         try {
-            const response = await registrationAPI.recordParticipation({
+            const response = await registrationAPI.checkIn({
                 activityId: event.id,
-                participationType: participationType,
+                participationType,
                 pointsEarned: pointsEarned || undefined,
-                notes: notes
+                notes
             });
 
-            if (response) {
+            if (response.status) {
                 setShowParticipationForm(false);
-                alert('Ghi nhận tham gia thành công!');
+                alert(response.message || 'Ghi nhận tham gia thành công!');
+            } else {
+                alert(response.message || 'Ghi nhận thất bại');
             }
-        } catch (err) {
-            alert('Có lỗi xảy ra khi ghi nhận tham gia');
+
+        } catch (err: any) {
+            alert('Có lỗi xảy ra khi ghi nhận tham gia: ' + (err.response?.data?.message || err.message));
             console.error('Error recording participation:', err);
         }
     };
+
 
     const getTypeLabel = (type: ActivityType) => {
         const labels: Record<ActivityType, string> = {
