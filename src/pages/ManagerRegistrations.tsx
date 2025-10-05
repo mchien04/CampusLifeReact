@@ -156,11 +156,10 @@ const ManagerRegistrations: React.FC = () => {
                                 <button
                                     key={event.id}
                                     onClick={() => setSelectedEventId(event.id)}
-                                    className={`p-4 text-left border rounded-lg transition-all ${
-                                        selectedEventId === event.id
-                                            ? 'border-blue-500 bg-blue-50'
-                                            : 'border-gray-200 hover:border-gray-300'
-                                    }`}
+                                    className={`p-4 text-left border rounded-lg transition-all ${selectedEventId === event.id
+                                        ? 'border-blue-500 bg-blue-50'
+                                        : 'border-gray-200 hover:border-gray-300'
+                                        }`}
                                 >
                                     <h3 className="font-medium text-gray-900">{event.name}</h3>
                                     <p className="text-sm text-gray-500 mt-1">
@@ -231,7 +230,7 @@ const ManagerRegistrations: React.FC = () => {
                         {showScanner && (
                             <div className="mt-4 w-full md:w-1/2">
                                 <QrScanner
-                                    onUpdate={(err, result) => {
+                                    onUpdate={(err: any, result?: any) => {
                                         if (result) handleScan(result);
                                     }}
                                 />

@@ -18,6 +18,8 @@
     "ajv": "^6.12.6",
     "ajv-keywords": "^3.5.2",
     "axios": "^1.11.0",
+    "@tanstack/react-query": "^5.90.2",
+    "react-toastify": "^11.0.5",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-qr-barcode-scanner": "^2.1.14",

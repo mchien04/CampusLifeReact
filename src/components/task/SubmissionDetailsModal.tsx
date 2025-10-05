@@ -24,6 +24,7 @@ const SubmissionDetailsModal: React.FC<SubmissionDetailsModalProps> = ({
     const [currentFeedback, setCurrentFeedback] = useState('');
     const [gradingError, setGradingError] = useState('');
     const [gradingSuccess, setGradingSuccess] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
 
     const loadSubmissions = useCallback(async () => {
         console.log('🔍 SubmissionDetailsModal: loading submissions for taskId=', task.id);
@@ -69,6 +70,7 @@ const SubmissionDetailsModal: React.FC<SubmissionDetailsModalProps> = ({
         setGradingSuccess('');
 
         try {
+            setIsSaving(true);
             const response = await submissionAPI.gradeSubmission(submissionId, Number(currentScore), currentFeedback || undefined);
             if (response.status) {
                 setGradingSuccess('Chấm điểm thành công!');
@@ -83,6 +85,7 @@ const SubmissionDetailsModal: React.FC<SubmissionDetailsModalProps> = ({
             console.error('Error grading submission:', err);
             setGradingError('Có lỗi xảy ra khi chấm điểm.');
         } finally {
+            setIsSaving(false);
             setGradingSubmissionId(null);
         }
     };
@@ -182,7 +185,9 @@ const SubmissionDetailsModal: React.FC<SubmissionDetailsModalProps> = ({
                                         // Normalize fileUrls to always be an array
                                         const fileUrlsArray = Array.isArray(submission.fileUrls)
                                             ? submission.fileUrls
-                                            : submission.fileUrls.split(',').map((url: string) => url.trim());
+                                            : (typeof submission.fileUrls === 'string'
+                                                ? submission.fileUrls.split(',').map((url: string) => url.trim())
+                                                : []);
 
                                         return fileUrlsArray.length > 0 && (
                                             <div className="mb-3">
@@ -249,10 +254,10 @@ const SubmissionDetailsModal: React.FC<SubmissionDetailsModalProps> = ({
                                                 <div className="flex space-x-2">
                                                     <button
                                                         onClick={() => handleGradeSubmission(submission.id)}
-                                                        disabled={gradingSubmissionId === submission.id}
+                                                        disabled={isSaving}
                                                         className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:opacity-50"
                                                     >
-                                                        {gradingSubmissionId === submission.id ? 'Đang lưu...' : 'Lưu điểm'}
+                                                        {isSaving ? 'Đang lưu...' : 'Lưu điểm'}
                                                     </button>
                                                     <button
                                                         onClick={handleCancelGrade}
