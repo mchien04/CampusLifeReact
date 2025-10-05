@@ -23,6 +23,7 @@ const StudentDashboard: React.FC = () => {
         { name: 'Xem sự kiện', href: '/student/events', icon: '📅', description: 'Xem danh sách sự kiện có sẵn' },
         { name: 'Lịch sử tham gia', href: '/student/participation-history', icon: '📝', description: 'Xem lịch sử tham gia sự kiện' },
         { name: 'Nhiệm vụ của tôi', href: '/student/tasks', icon: '✅', description: 'Xem và cập nhật nhiệm vụ' },
+        { name: 'Xem điểm học kỳ', href: '/student/scores', icon: '📊', description: 'Xem điểm tổng hợp và chi tiết' },
         { name: 'Cập nhật profile', href: '/student/profile', icon: '👤', description: 'Cập nhật thông tin cá nhân và địa chỉ' },
     ];
 

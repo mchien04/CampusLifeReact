@@ -18,19 +18,26 @@ export interface SubmissionRequirementResponse {
 
 export interface TaskSubmissionResponse {
     id: number;
+    // Task
     taskId: number;
+    taskTitle?: string;
+    // Student
     studentId: number;
-    studentName?: string; // Add student name for display
-    studentCode?: string; // Add student code for display
-    content?: string;
-    fileUrls?: string[] | string; // Backend can return array of URLs or comma-separated string
-    score?: number;
-    feedback?: string;
-    graderId?: number;
+    studentCode?: string;
+    studentName?: string;
+    // Content & files
+    content?: string | null;
+    fileUrls?: string[] | string;
+    // Grading
+    score?: number | null;
+    feedback?: string | null;
+    graderId?: number | null;
+    graderUsername?: string | null;
+    // Status & timestamps
     status: SubmissionStatus;
     submittedAt: string;
     updatedAt: string;
-    gradedAt?: string;
+    gradedAt?: string | null;
 }
 
 export interface CreateSubmissionRequest {

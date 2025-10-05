@@ -303,17 +303,22 @@ const EventDetail: React.FC = () => {
         if (!event) return;
 
         try {
-            setLoadingRegistration(true);
-            await registrationAPI.recordParticipation(data);
-            setShowParticipationForm(false);
-            alert('Ghi nhận tham gia thành công!');
+            const response = await registrationAPI.checkIn(data);
+
+            if (response.status) {
+                setShowParticipationForm(false);
+                alert(response.message || 'Ghi nhận tham gia thành công!');
+                console.log('Participation:', response.body); // đây mới là dữ liệu chi tiết
+            } else {
+                alert(response.message || 'Ghi nhận tham gia thất bại');
+            }
         } catch (error) {
             console.error('Error recording participation:', error);
             alert('Có lỗi xảy ra khi ghi nhận tham gia');
-        } finally {
-            setLoadingRegistration(false);
         }
     };
+
+
 
     const getTypeLabel = (type: ActivityType): string => {
         const typeLabels: Record<ActivityType, string> = {
