@@ -17,7 +17,8 @@ const ManagerDashboard: React.FC = () => {
         { name: 'Quản lý sự kiện', href: '/manager/events', icon: '📅', description: 'Xem và quản lý sự kiện' },
         { name: 'Quản lý đăng ký', href: '/manager/registrations', icon: '📝', description: 'Duyệt đăng ký sự kiện' },
         { name: 'Quản lý nhiệm vụ', href: '/manager/tasks', icon: '✅', description: 'Tổng quan quản lý nhiệm vụ' },
-        { name: 'Nhập điểm rèn luyện', href: '/manager/scores', icon: '📊', description: 'Nhập điểm cho sinh viên' },
+        { name: 'Chấm rèn luyện (theo tiêu chí)', href: '/tools/training-score', icon: '🧮', description: 'Tính điểm RL theo tiêu chí' },
+        { name: 'Xem điểm tổng hợp sinh viên', href: '/tools/view-scores', icon: '📊', description: 'Xem điểm theo học kỳ' },
         { name: 'Báo cáo hoạt động', href: '/manager/reports', icon: '📈', description: 'Xem báo cáo thống kê' },
     ];
 

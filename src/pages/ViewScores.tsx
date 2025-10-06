@@ -1,49 +1,58 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { scoresAPI } from '../services/scoresAPI';
-import { ScoreTypeSummary } from '../types/score';
+import { ScoreType, ScoreTypeSummary } from '../types/score';
 import { useAuth } from '../contexts/AuthContext';
-import { academicYearAPI, semesterAPI } from '../services/adminAPI';
+import { academicPublicAPI } from '../services/academicPublicAPI';
+import { studentAPI } from '../services/studentAPI';
+import { toast } from 'react-toastify';
 
 const ViewScores: React.FC = () => {
     const { user } = useAuth();
+    const [studentId, setStudentId] = useState<number | null>(null);
     const [semesterId, setSemesterId] = useState<string>('');
     const [semesters, setSemesters] = useState<Array<{ id: number; name: string }>>([]);
     const [yearId, setYearId] = useState<string>('');
     const [years, setYears] = useState<Array<{ id: number; name: string }>>([]);
+    const [scoreType, setScoreType] = useState<'ALL' | ScoreType>('ALL');
 
     useEffect(() => {
-        // Load years first then semesters
-        academicYearAPI.getAcademicYears().then(resp => {
-            if (resp.status && resp.data && resp.data.length > 0) {
-                setYears(resp.data.map((y: any) => ({ id: y.id, name: y.name })));
-                setYearId(String(resp.data[0].id));
-            }
+        // Get student id
+        studentAPI.getMyProfile().then(p => setStudentId(p.id)).catch(() => toast.error('Không lấy được profile SV'));
+        // Load years
+        academicPublicAPI.getYears().then(list => {
+            const ys = list.map((y: any) => ({ id: y.id, name: y.name }));
+            setYears(ys);
+            if (ys.length > 0) setYearId(String(ys[0].id));
         });
     }, []);
 
     useEffect(() => {
         if (!yearId) return;
-        semesterAPI.getSemestersByYear(Number(yearId)).then(resp => {
-            if (resp.status && resp.data) {
-                const list = resp.data.map((s: any) => ({ id: s.id, name: s.name }));
-                setSemesters(list);
-                if (list.length > 0) setSemesterId(String(list[0].id));
-            }
+        academicPublicAPI.getSemestersByYear(Number(yearId)).then(list => {
+            const sems = list.map((s: any) => ({ id: s.id, name: s.name }));
+            setSemesters(sems);
+            if (sems.length > 0) setSemesterId(String(sems[0].id));
         });
     }, [yearId]);
 
     const { data, isFetching, isError } = useQuery({
-        enabled: Boolean(semesterId),
-        queryKey: ['scoresView', user?.username, yearId, semesterId],
-        queryFn: () => scoresAPI.getSemesterScores(Number(user?.username ? 0 : 0), Number(semesterId)),
+        enabled: Boolean(semesterId && studentId),
+        queryKey: ['scoresView', studentId, yearId, semesterId],
+        queryFn: () => scoresAPI.getSemesterScores(Number(studentId), Number(semesterId)),
     });
+
+    const summaries = useMemo(() => {
+        if (!data?.summaries) return [] as ScoreTypeSummary[];
+        if (scoreType === 'ALL') return data.summaries;
+        return data.summaries.filter(s => s.scoreType === scoreType);
+    }, [data, scoreType]);
 
     return (
         <div className="max-w-4xl mx-auto p-4">
             <h1 className="text-xl font-semibold mb-4">Bảng điểm học kỳ</h1>
             <div className="bg-white p-4 rounded shadow space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="flex-1">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Năm học</label>
                         <select
@@ -72,15 +81,29 @@ const ViewScores: React.FC = () => {
                             ))}
                         </select>
                     </div>
+                    <div className="flex-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Loại điểm</label>
+                        <select
+                            className="w-full border rounded px-3 py-2"
+                            value={scoreType}
+                            onChange={(e) => setScoreType(e.target.value as any)}
+                        >
+                            <option value="ALL">Tất cả</option>
+                            <option value="REN_LUYEN">Điểm rèn luyện</option>
+                            <option value="CONG_TAC_XA_HOI">Công tác xã hội</option>
+                            <option value="CHUYEN_DE">Chuyên đề doanh nghiệp</option>
+                            <option value="KHAC">Khác</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
             {isFetching && <div className="mt-4">Đang tải...</div>}
             {isError && <div className="mt-4 text-red-600">Lỗi tải dữ liệu</div>}
 
-            {data && Array.isArray(data.summaries) && (
+            {Array.isArray(summaries) && summaries.length > 0 && (
                 <div className="mt-6 space-y-4">
-                    {(data.summaries ?? []).map((s: ScoreTypeSummary, idx: number) => (
+                    {summaries.map((s: ScoreTypeSummary, idx: number) => (
                         <div key={s.scoreType ?? idx} className="bg-white p-4 rounded shadow">
                             <div className="flex justify-between items-center">
                                 <div className="text-lg font-semibold">
@@ -110,7 +133,7 @@ const ViewScores: React.FC = () => {
                     ))}
                 </div>
             )}
-            {data && (!Array.isArray(data.summaries) || (data.summaries ?? []).length === 0) && (
+            {(!summaries || summaries.length === 0) && (
                 <div className="mt-6 text-gray-600">Không có dữ liệu điểm cho học kỳ này.</div>
             )}
         </div>
