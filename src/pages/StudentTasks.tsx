@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { TaskAssignmentResponse, TaskStatus } from '../types/task';
 import { taskAPI } from '../services/taskAPI';
@@ -43,17 +44,16 @@ const StudentTasks: React.FC = () => {
             const studentId = studentProfile.id;
             const response = await taskAPI.getStudentTasksNew(studentId);
             if (response.status && response.data) {
-                // Assume backend provides requiresSubmission in assignment; if absent, leave undefined (button hidden)
-                setAssignments(response.data);
-                // Load my submissions for tasks requiring submission
-                const tasksNeedingSubmission = response.data.filter((a: TaskAssignmentResponse) => a.requiresSubmission);
-                if (tasksNeedingSubmission.length > 0) {
+                const assignmentsList = response.data as TaskAssignmentResponse[];
+                setAssignments(assignmentsList);
+                // Load my submissions for ALL tasks to allow viewing even if requiresSubmission flag is absent
+                if (assignmentsList.length > 0) {
                     const results = await Promise.allSettled(
-                        tasksNeedingSubmission.map((a: TaskAssignmentResponse) => submissionAPI.getMySubmissionForTask(a.taskId))
+                        assignmentsList.map((a: TaskAssignmentResponse) => submissionAPI.getMySubmissionForTask(a.taskId))
                     );
                     const map: Record<number, TaskSubmissionResponse | null> = {};
                     results.forEach((res, idx) => {
-                        const taskId = tasksNeedingSubmission[idx].taskId;
+                        const taskId = assignmentsList[idx].taskId;
                         if (res.status === 'fulfilled' && res.value.status && res.value.data) {
                             map[taskId] = res.value.data;
                         } else {
@@ -318,8 +318,13 @@ const StudentTasks: React.FC = () => {
                             <h1 className="text-2xl font-bold text-gray-900">Nhiệm vụ của tôi</h1>
                             <p className="text-gray-600 mt-1">Danh sách các nhiệm vụ được phân công</p>
                         </div>
-                        <div className="text-sm text-gray-500">
-                            Tổng: {assignments.length} nhiệm vụ
+                        <div className="flex items-center gap-3">
+                            <Link to="/dashboard" className="text-sm px-3 py-1 border rounded-md text-gray-700 hover:bg-gray-50">
+                                ← Quay lại Dashboard
+                            </Link>
+                            <div className="text-sm text-gray-500">
+                                Tổng: {assignments.length} nhiệm vụ
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -416,14 +421,12 @@ const StudentTasks: React.FC = () => {
                                                                 nextStatus === TaskStatus.COMPLETED ? 'Hoàn thành' : 'Tiếp tục'}
                                                     </button>
                                                 )}
-                                                {assignment.requiresSubmission && (
-                                                    <button
-                                                        onClick={() => openSubmissionModal(assignment)}
-                                                        className="px-4 py-2 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                                    >
-                                                        {mySubmission ? 'Xem/Sửa bài nộp' : 'Nộp bài'}
-                                                    </button>
-                                                )}
+                                                <button
+                                                    onClick={() => openSubmissionModal(assignment)}
+                                                    className="px-4 py-2 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                >
+                                                    {mySubmission ? 'Xem/Sửa bài nộp' : 'Nộp bài'}
+                                                </button>
                                             </div>
                                         </div>
                                         {mySubmission && (
@@ -557,6 +560,37 @@ const StudentTasks: React.FC = () => {
                             {submissionSuccess && (
                                 <div className="p-3 bg-green-50 border border-green-200 rounded-md text-green-700 text-sm">
                                     {submissionSuccess}
+                                </div>
+                            )}
+                            {/* Graded result (if already graded) */}
+                            {currentSubmission && (currentSubmission.score !== undefined || currentSubmission.feedback || currentSubmission.status === 'GRADED') && (
+                                <div className="p-3 bg-gray-50 border border-gray-200 rounded-md text-sm">
+                                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                                        <span className="font-medium text-gray-700">Trạng thái:</span>
+                                        <span className={`px-2 py-1 rounded-full ${getSubmissionStatusColor(currentSubmission.status)}`}>
+                                            {getSubmissionStatusLabel(currentSubmission.status)}
+                                        </span>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                        <div>
+                                            <span className="text-gray-600">Điểm: </span>
+                                            <span className="font-medium">{currentSubmission.score ?? 'Chưa chấm'}</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-600">Chấm lúc: </span>
+                                            <span className="font-medium">{currentSubmission.gradedAt ? new Date(currentSubmission.gradedAt).toLocaleString('vi-VN') : '-'}</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-600">Người chấm: </span>
+                                            <span className="font-medium">{currentSubmission.graderUsername || '-'}</span>
+                                        </div>
+                                    </div>
+                                    {currentSubmission.feedback && (
+                                        <div className="mt-2">
+                                            <span className="text-gray-600">Phản hồi: </span>
+                                            <span className="font-medium">{currentSubmission.feedback}</span>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                             <div className="flex justify-end space-x-3">

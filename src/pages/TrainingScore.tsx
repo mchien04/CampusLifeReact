@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { scoresAPI } from '../services/scoresAPI';
-import { academicYearAPI, semesterAPI } from '../services/adminAPI';
+import { academicPublicAPI } from '../services/academicPublicAPI';
+import { criteriaPublicAPI } from '../services/criteriaPublicAPI';
 import { TrainingCalculateResponse } from '../types/score';
 import { toast } from 'react-toastify';
 
@@ -20,30 +21,41 @@ const TrainingScore: React.FC = () => {
     const [yearId, setYearId] = useState<string>('');
     const [semesters, setSemesters] = useState<Array<{ id: number; name: string }>>([]);
     const [criteria, setCriteria] = useState<Criterion[]>([]);
+    const [groups, setGroups] = useState<Array<{ id: number; name: string }>>([]);
+    const [groupId, setGroupId] = useState<string>('');
     const [excludedIds, setExcludedIds] = useState<number[]>([]);
     const [result, setResult] = useState<TrainingCalculateResponse | null>(null);
 
     useEffect(() => {
-        // Load years first
-        academicYearAPI.getAcademicYears().then((resp: any) => {
-            if (resp.status && resp.data) {
-                const ys = resp.data.map((y: any) => ({ id: y.id, name: y.name }));
-                setYears(ys);
-                if (ys.length > 0) setYearId(String(ys[0].id));
-            }
+        // Load years (public)
+        academicPublicAPI.getYears().then((list: any[]) => {
+            const ys = list.map((y: any) => ({ id: y.id, name: y.name }));
+            setYears(ys);
+            if (ys.length > 0) setYearId(String(ys[0].id));
+        });
+        // Load criterion groups (public)
+        criteriaPublicAPI.getGroups().then((list: any[]) => {
+            const gs = list.map((g: any) => ({ id: g.id, name: g.name }));
+            setGroups(gs);
+            if (gs.length > 0) setGroupId(String(gs[0].id));
         });
     }, []);
 
     useEffect(() => {
         if (!yearId) return;
-        semesterAPI.getSemestersByYear(Number(yearId)).then((resp: any) => {
-            if (resp.status && resp.data) {
-                const list = resp.data.map((s: any) => ({ id: s.id, name: s.name }));
-                setSemesters(list);
-                if (list.length > 0) setSemesterId(String(list[0].id));
-            }
+        academicPublicAPI.getSemestersByYear(Number(yearId)).then((list: any[]) => {
+            const sems = list.map((s: any) => ({ id: s.id, name: s.name }));
+            setSemesters(sems);
+            if (sems.length > 0) setSemesterId(String(sems[0].id));
         });
     }, [yearId]);
+
+    useEffect(() => {
+        if (!groupId) return;
+        criteriaPublicAPI.getCriteriaByGroup(Number(groupId)).then((list: any[]) => {
+            setCriteria(list as Criterion[]);
+        });
+    }, [groupId]);
 
     const mutation = useMutation<TrainingCalculateResponse, unknown, void>({
         mutationFn: async () => {
@@ -76,7 +88,7 @@ const TrainingScore: React.FC = () => {
 
             {/* Input Section */}
             <div className="bg-white p-4 rounded shadow space-y-4 mb-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             MSSV
@@ -88,6 +100,18 @@ const TrainingScore: React.FC = () => {
                             value={studentId}
                             onChange={(e) => setStudentId(e.target.value)}
                         />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Nhóm tiêu chí</label>
+                        <select
+                            className="w-full border rounded px-3 py-2"
+                            value={groupId}
+                            onChange={(e) => setGroupId(e.target.value)}
+                        >
+                            {groups.map((g) => (
+                                <option key={g.id} value={g.id}>{g.name}</option>
+                            ))}
+                        </select>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Năm học</label>

@@ -96,12 +96,18 @@ export const submissionAPI = {
         return normalize<TaskSubmissionResponse[]>(response.data);
     },
 
-    // Grade a submission (backend expects @RequestParam)
+    // Grade a submission
     gradeSubmission: async (submissionId: number, score: number, feedback?: string): Promise<Response<TaskSubmissionResponse>> => {
-        const params = new URLSearchParams();
-        params.append('score', score.toString());
-        if (feedback) params.append('feedback', feedback);
-        const response = await api.put(`/api/submissions/${submissionId}/grade?${params.toString()}`);
+        const formData = new FormData();
+        formData.append('score', score.toString());
+        if (feedback) {
+            formData.append('feedback', feedback);
+        }
+        const response = await api.put(`/api/submissions/${submissionId}/grade`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
         return normalize<TaskSubmissionResponse>(response.data);
     },
 };
