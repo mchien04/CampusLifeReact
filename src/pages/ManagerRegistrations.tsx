@@ -7,6 +7,7 @@ import { ActivityResponse } from '../types/activity';
 import { RegistrationList } from '../components/registration';
 import QrScanner from "react-qr-barcode-scanner";
 import ApproveScoresForm from "../components/registration/ApproveScoresForm";
+import { testGradeAPI } from '../utils/testGradeAPI';
 
 
 const ManagerRegistrations: React.FC = () => {
@@ -103,11 +104,20 @@ const ManagerRegistrations: React.FC = () => {
 
     const handleUpdateStatus = async (registrationId: number, status: string) => {
         try {
-            await registrationAPI.updateRegistrationStatus(registrationId, status as RegistrationStatus);
-            if (selectedEventId) await loadRegistrations(selectedEventId);
-        } catch (error) {
+            const response = await registrationAPI.updateRegistrationStatus(registrationId, status as RegistrationStatus);
+            if (response.status) {
+                alert('Cập nhật trạng thái thành công!');
+                if (selectedEventId) await loadRegistrations(selectedEventId);
+            } else {
+                alert(response.message || 'Cập nhật trạng thái thất bại');
+            }
+        } catch (error: any) {
             console.error('Error updating status:', error);
-            alert('Có lỗi xảy ra khi cập nhật trạng thái');
+            if (error.response?.status === 403) {
+                alert('Không có quyền thực hiện thao tác này. Vui lòng kiểm tra quyền MANAGER.');
+            } else {
+                alert('Có lỗi xảy ra khi cập nhật trạng thái: ' + (error.response?.data?.message || error.message));
+            }
         }
     };
 
@@ -144,6 +154,7 @@ const ManagerRegistrations: React.FC = () => {
                     </div>
                 </div>
             </div>
+
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
@@ -203,6 +214,18 @@ const ManagerRegistrations: React.FC = () => {
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">
                             Check-in sinh viên
                         </h3>
+
+                        {/* Test Grade API */}
+                        <div className="mb-4 p-4 bg-yellow-100 rounded">
+                            <h4 className="font-semibold mb-2">Test Grade API</h4>
+                            <button
+                                onClick={testGradeAPI}
+                                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                            >
+                                Test Grade API (Check Console)
+                            </button>
+                        </div>
+
                         <div className="flex flex-col md:flex-row gap-4 items-center">
                             <input
                                 type="text"

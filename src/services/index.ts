@@ -8,7 +8,8 @@ export { classAPI } from './classAPI';
 export { addressAPI } from './addressAPI';
 export { notificationAPI } from './notificationAPI';
 export { studentAPI } from './studentAPI';
-export { taskSubmissionAPI } from './taskSubmissionAPI';
+export { submissionAPI } from './submissionAPI';
+export { scoresAPI } from './scoresAPI';
 export {
     departmentAPI as adminDepartmentAPI,
     academicYearAPI,

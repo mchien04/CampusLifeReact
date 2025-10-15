@@ -10,12 +10,12 @@ interface RegistrationListProps {
 }
 
 const RegistrationList: React.FC<RegistrationListProps> = ({
-                                                               registrations,
-                                                               onCancelRegistration,
-                                                               onUpdateStatus,
-                                                               showActions = true,
-                                                               isAdmin = false
-                                                           }) => {
+    registrations,
+    onCancelRegistration,
+    onUpdateStatus,
+    showActions = true,
+    isAdmin = false
+}) => {
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
     const toggleSelect = (id: number) => {
@@ -99,6 +99,24 @@ const RegistrationList: React.FC<RegistrationListProps> = ({
                                     {getRegistrationStatusLabel(registration.status)}
                                 </span>
                             </div>
+
+                            {/* Individual Actions */}
+                            {isAdmin && registration.status === 'PENDING' && (
+                                <div className="flex space-x-2">
+                                    <button
+                                        onClick={() => onUpdateStatus && onUpdateStatus(registration.id, 'APPROVED')}
+                                        className="px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700"
+                                    >
+                                        ✅ Duyệt
+                                    </button>
+                                    <button
+                                        onClick={() => onUpdateStatus && onUpdateStatus(registration.id, 'REJECTED')}
+                                        className="px-3 py-1 bg-red-600 text-white text-sm rounded-md hover:bg-red-700"
+                                    >
+                                        ❌ Từ chối
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     ))}
 

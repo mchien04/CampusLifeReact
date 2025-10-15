@@ -20,24 +20,24 @@ export interface TaskSubmissionResponse {
     id: number;
     // Task
     taskId: number;
-    taskTitle?: string;
+    taskTitle: string;
     // Student
     studentId: number;
-    studentCode?: string;
-    studentName?: string;
+    studentCode: string;
+    studentName: string;
     // Content & files
-    content?: string | null;
-    fileUrls?: string[] | string;
+    content: string | null;
+    fileUrls: string[];
     // Grading
-    score?: number | null;
-    feedback?: string | null;
-    graderId?: number | null;
-    graderUsername?: string | null;
+    score: number | null;
+    feedback: string | null;
+    graderId: number | null;
+    graderUsername: string | null;
     // Status & timestamps
     status: SubmissionStatus;
-    submittedAt: string;
-    updatedAt: string;
-    gradedAt?: string | null;
+    submittedAt: string; // ISO string from LocalDateTime
+    updatedAt: string; // ISO string from LocalDateTime
+    gradedAt: string | null; // ISO string from LocalDateTime
 }
 
 export interface CreateSubmissionRequest {

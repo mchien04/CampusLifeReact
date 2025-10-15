@@ -14,15 +14,8 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
     onClose,
     onRefresh,
 }) => {
-    console.log('🔍 Modal: Component rendered with task:', task);
-
     const [students, setStudents] = useState<StudentResponse[]>([]);
     const [registeredStudents, setRegisteredStudents] = useState<RegisteredStudent[]>([]);
-
-    // Debug registered students changes
-    useEffect(() => {
-        console.log('🔍 Registered students state changed:', registeredStudents.length, 'students');
-    }, [registeredStudents]);
     const [selectedStudents, setSelectedStudents] = useState<number[]>([]);
     const [loading, setLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
@@ -33,55 +26,38 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
     const [useRegisteredStudents, setUseRegisteredStudents] = useState(true);
 
     useEffect(() => {
-        console.log('🔍 Modal: useEffect triggered, loading students...');
         loadStudents();
     }, [task]);
 
     const loadStudents = async () => {
-        console.log('🔍 Modal: loadStudents function called');
         try {
             setLoading(true);
-            console.log('🔍 Modal: Starting to load students...');
-            console.log('🔍 Modal: Task object:', task);
 
             // Handle both ActivityTask and ActivityTaskResponse types
             const activityId = 'activity' in task ? task.activity.id : task.activityId;
-            console.log('🔍 Modal: Activity ID:', activityId);
 
             // Load registered students for this activity
-            console.log('🔍 Loading registered students for activity:', activityId);
             const registeredResponse = await taskAPI.getRegisteredStudentsForActivity(activityId);
-            console.log('🔍 Registered students response:', registeredResponse);
 
             if (registeredResponse.status && registeredResponse.data) {
-                console.log('🔍 Setting registered students:', registeredResponse.data);
-                console.log('🔍 Registered students count:', registeredResponse.data.length);
                 setRegisteredStudents(registeredResponse.data);
             } else {
-                console.log('🔍 No registered students found - status:', registeredResponse.status, 'data:', registeredResponse.data);
                 setRegisteredStudents([]);
             }
 
             // Load all students as fallback
-            console.log('🔍 Loading all students as fallback...');
             const allStudentsResponse = await studentAPI.getAllStudents(0, 1000);
             if (allStudentsResponse.status && allStudentsResponse.data) {
-                console.log('🔍 All students loaded:', allStudentsResponse.data.content?.length || 0);
                 setStudents(allStudentsResponse.data.content || []);
             } else {
-                console.log('🔍 Failed to load all students');
                 setStudents([]);
             }
-
-            console.log('🔍 Modal: Load students completed');
         } catch (error) {
-            console.error('🔍 Modal: Error loading students:', error);
-            console.error('🔍 Modal: Error details:', error);
+            console.error('Error loading students:', error);
             setError('Có lỗi xảy ra khi tải danh sách sinh viên');
             setStudents([]);
             setRegisteredStudents([]);
         } finally {
-            console.log('🔍 Modal: loadStudents completed, setting loading to false');
             setLoading(false);
         }
     };
@@ -107,12 +83,8 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
 
     const getFilteredStudents = () => {
         const sourceStudents = useRegisteredStudents ? registeredStudents : students;
-        console.log('🔍 getFilteredStudents - useRegisteredStudents:', useRegisteredStudents);
-        console.log('🔍 getFilteredStudents - sourceStudents length:', sourceStudents.length);
-        console.log('🔍 getFilteredStudents - searchQuery:', searchQuery);
 
         if (!searchQuery.trim()) {
-            console.log('🔍 getFilteredStudents - returning all source students:', sourceStudents.length);
             return sourceStudents;
         }
 
@@ -120,15 +92,12 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
             student.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
             student.studentCode.toLowerCase().includes(searchQuery.toLowerCase())
         );
-        console.log('🔍 getFilteredStudents - filtered result:', filtered.length);
+
         return filtered;
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log('🔍 Modal: handleSubmit called');
-        console.log('🔍 Modal: selectedStudents:', selectedStudents);
-        console.log('🔍 Modal: task:', task);
 
         if (selectedStudents.length === 0) {
             setError('Vui lòng chọn ít nhất một sinh viên');
@@ -146,15 +115,12 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                 note: note.trim() || undefined,
             };
 
-            console.log('🔍 Modal: Sending assign task request:', data);
             const response = await taskAPI.assignTask(data);
-            console.log('🔍 Modal: Assign task response:', response);
 
             onRefresh();
             onClose();
         } catch (error) {
-            console.error('🔍 Modal: Error assigning task:', error);
-            console.error('🔍 Modal: Error details:', error);
+            console.error('Error assigning task:', error);
             setError('Có lỗi xảy ra khi phân công nhiệm vụ');
         } finally {
             setSubmitting(false);
@@ -189,13 +155,6 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
 
     const filteredStudents = getFilteredStudents();
     const allSelected = filteredStudents.length > 0 && filteredStudents.every(student => selectedStudents.includes(student.id));
-
-    // Debug filtered students
-    useEffect(() => {
-        console.log('🔍 Filtered students:', filteredStudents.length, 'students');
-        console.log('🔍 Use registered students:', useRegisteredStudents);
-        console.log('🔍 Search query:', searchQuery);
-    }, [filteredStudents, useRegisteredStudents, searchQuery]);
 
     return (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
@@ -266,19 +225,6 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                             </label>
                         </div>
                         <div className="flex space-x-2">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    console.log('🔍 Test API call...');
-                                    const activityId = 'activity' in task ? task.activity.id : task.activityId;
-                                    taskAPI.getRegisteredStudentsForActivity(activityId).then(response => {
-                                        console.log('🔍 Test API response:', response);
-                                    });
-                                }}
-                                className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
-                            >
-                                Test API
-                            </button>
                             {useRegisteredStudents && registeredStudents.length > 0 && (
                                 <button
                                     type="button"

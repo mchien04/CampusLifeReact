@@ -18,12 +18,22 @@ const ViewScores: React.FC = () => {
 
     useEffect(() => {
         // Get student id
-        studentAPI.getMyProfile().then(p => setStudentId(p.id)).catch(() => toast.error('Không lấy được profile SV'));
+        studentAPI.getMyProfile().then(p => {
+            console.log('Profile response:', p);
+            setStudentId(p.id);
+        }).catch((e) => {
+            console.error('Profile error:', e);
+            toast.error('Không lấy được profile SV');
+        });
         // Load years
         academicPublicAPI.getYears().then(list => {
+            console.log('Years response:', list);
             const ys = list.map((y: any) => ({ id: y.id, name: y.name }));
             setYears(ys);
             if (ys.length > 0) setYearId(String(ys[0].id));
+        }).catch((e) => {
+            console.error('Years error:', e);
+            toast.error('Không lấy được danh sách năm học');
         });
     }, []);
 
@@ -39,7 +49,15 @@ const ViewScores: React.FC = () => {
     const { data, isFetching, isError } = useQuery({
         enabled: Boolean(semesterId && studentId),
         queryKey: ['scoresView', studentId, yearId, semesterId],
-        queryFn: () => scoresAPI.getSemesterScores(Number(studentId), Number(semesterId)),
+        queryFn: async () => {
+            console.log('Calling scoresAPI with:', { studentId, semesterId });
+            const response = await scoresAPI.getSemesterScores(Number(studentId), Number(semesterId));
+            console.log('Scores response:', response);
+            if (!response.status || !response.data) {
+                throw new Error(response.message || 'Không lấy được điểm');
+            }
+            return response.data;
+        },
     });
 
     const summaries = useMemo(() => {

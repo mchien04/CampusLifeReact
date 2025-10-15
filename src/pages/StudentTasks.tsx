@@ -41,10 +41,16 @@ const StudentTasks: React.FC = () => {
         try {
             // Get student ID from profile
             const studentProfile = await studentAPI.getMyProfile();
+            console.log('🔍 StudentTasks: Profile response:', studentProfile);
             const studentId = studentProfile.id;
+            console.log('🔍 StudentTasks: Using studentId:', studentId);
+
             const response = await taskAPI.getStudentTasksNew(studentId);
+            console.log('🔍 StudentTasks: API response:', response);
+
             if (response.status && response.data) {
                 const assignmentsList = response.data as TaskAssignmentResponse[];
+                console.log('🔍 StudentTasks: Assignments list:', assignmentsList);
                 setAssignments(assignmentsList);
                 // Load my submissions for ALL tasks to allow viewing even if requiresSubmission flag is absent
                 if (assignmentsList.length > 0) {
@@ -88,10 +94,8 @@ const StudentTasks: React.FC = () => {
             if (response.status && response.data) {
                 setCurrentSubmission(response.data);
                 setSubmissionContent(response.data.content || '');
-                // If fileUrls is a comma-separated string, split it
-                if (response.data.fileUrls && typeof response.data.fileUrls === 'string') {
-                    setSubmissionFilePreviews(response.data.fileUrls.split(',').map((url: string) => url.trim()));
-                } else if (Array.isArray(response.data.fileUrls)) {
+                // fileUrls is now always an array from backend
+                if (response.data.fileUrls && response.data.fileUrls.length > 0) {
                     setSubmissionFilePreviews(response.data.fileUrls);
                 } else {
                     setSubmissionFilePreviews([]);

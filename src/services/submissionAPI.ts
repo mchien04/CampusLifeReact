@@ -98,16 +98,29 @@ export const submissionAPI = {
 
     // Grade a submission
     gradeSubmission: async (submissionId: number, score: number, feedback?: string): Promise<Response<TaskSubmissionResponse>> => {
-        const formData = new FormData();
-        formData.append('score', score.toString());
+        const params = new URLSearchParams();
+        params.append('score', score.toString());
         if (feedback) {
-            formData.append('feedback', feedback);
+            params.append('feedback', feedback);
         }
-        const response = await api.put(`/api/submissions/${submissionId}/grade`, formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
-        });
-        return normalize<TaskSubmissionResponse>(response.data);
+
+        console.log('=== GRADE SUBMISSION DEBUG ===');
+        console.log('Request URL:', `/api/submissions/${submissionId}/grade?${params.toString()}`);
+        console.log('Request params:', { submissionId, score, feedback });
+
+        try {
+            const response = await api.put(`/api/submissions/${submissionId}/grade?${params.toString()}`);
+            console.log('Response status:', response.status);
+            console.log('Response data:', response.data);
+            console.log('=== SUCCESS ===');
+            return normalize<TaskSubmissionResponse>(response.data);
+        } catch (error: any) {
+            console.log('=== ERROR ===');
+            console.log('Error status:', error.response?.status);
+            console.log('Error data:', error.response?.data);
+            console.log('Error message:', error.message);
+            console.log('=== END ERROR ===');
+            throw error;
+        }
     },
 };
