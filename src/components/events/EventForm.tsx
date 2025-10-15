@@ -60,6 +60,7 @@ const EventForm: React.FC<EventFormProps> = ({
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [departments, setDepartments] = useState<any[]>([]);
     const [organizerInput, setOrganizerInput] = useState<string>('');
+    const [originalBannerUrl, setOriginalBannerUrl] = useState<string>('');
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
@@ -127,6 +128,15 @@ const EventForm: React.FC<EventFormProps> = ({
                     ])
                 )
             }));
+            // Store original banner URL for comparison
+            if (initialData.bannerUrl) {
+                setOriginalBannerUrl(initialData.bannerUrl);
+                // Clear the bannerUrl field to avoid showing the upload path
+                setFormData(prev => ({
+                    ...prev,
+                    bannerUrl: ''
+                }));
+            }
         }
     }, [initialData]);
 
@@ -175,25 +185,13 @@ const EventForm: React.FC<EventFormProps> = ({
         if (validateForm()) {
             try {
                 setIsUploading(true);
-                console.log('🔍 EventForm: Starting form submission...');
-                console.log('🔍 EventForm: Form data before upload:', formData);
 
                 // If there's a file to upload, upload it first
                 if (formData.bannerFile) {
-                    console.log('🔍 EventForm: File detected, starting upload...');
-                    console.log('🔍 EventForm: File info:', {
-                        name: formData.bannerFile.name,
-                        size: formData.bannerFile.size,
-                        type: formData.bannerFile.type
-                    });
 
                     const uploadResponse = await uploadAPI.uploadImage(formData.bannerFile);
-                    console.log('🔍 EventForm: Upload response:', uploadResponse);
-                    console.log('🔍 EventForm: Upload response.data:', uploadResponse.data);
-                    console.log('🔍 EventForm: Upload response.data.bannerUrl:', uploadResponse.data?.bannerUrl);
 
                     if (uploadResponse.status && uploadResponse.data) {
-                        console.log('🔍 EventForm: Upload successful, bannerUrl:', uploadResponse.data.bannerUrl);
 
                         // Update formData with the uploaded image URL
                         const updatedFormData = {
@@ -202,12 +200,9 @@ const EventForm: React.FC<EventFormProps> = ({
                             bannerFile: undefined // Remove file reference
                         };
 
-                        console.log('🔍 EventForm: Updated form data:', updatedFormData);
-                        console.log('🔍 EventForm: Calling onSubmit with updated data...');
 
                         onSubmit(updatedFormData);
                     } else {
-                        console.error('🔍 EventForm: Upload failed:', uploadResponse);
                         // Show upload error
                         setErrors(prev => ({
                             ...prev,
@@ -217,13 +212,15 @@ const EventForm: React.FC<EventFormProps> = ({
                         return;
                     }
                 } else {
-                    console.log('🔍 EventForm: No file to upload, submitting directly...');
-                    console.log('🔍 EventForm: Final form data:', formData);
                     // No file to upload, submit directly
-                    onSubmit(formData);
+                    // Only include bannerUrl if it's different from original or if user entered a new URL
+                    const submitData = {
+                        ...formData,
+                        bannerUrl: formData.bannerUrl || (originalBannerUrl && formData.bannerUrl === '' ? originalBannerUrl : undefined)
+                    };
+                    onSubmit(submitData);
                 }
             } catch (error) {
-                console.error('🔍 EventForm: Error in form submission:', error);
                 setErrors(prev => ({
                     ...prev,
                     banner: 'Có lỗi xảy ra khi xử lý form'
@@ -533,23 +530,30 @@ const EventForm: React.FC<EventFormProps> = ({
                             </div>
 
                             {/* Preview */}
-                            {(formData.bannerUrl || formData.bannerFile) && (
+                            {(formData.bannerUrl || formData.bannerFile || originalBannerUrl) && (
                                 <div className="mt-4">
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Ảnh hiện tại:
                                     </label>
                                     <div className="flex items-center space-x-4">
-                                        {formData.bannerUrl && (
+                                        {formData.bannerFile && (
+                                            <img
+                                                src={URL.createObjectURL(formData.bannerFile)}
+                                                alt="New banner preview"
+                                                className="w-32 h-20 object-cover rounded-lg border"
+                                            />
+                                        )}
+                                        {formData.bannerUrl && !formData.bannerFile && (
                                             <img
                                                 src={getImageUrl(formData.bannerUrl) || ''}
                                                 alt="Banner preview"
                                                 className="w-32 h-20 object-cover rounded-lg border"
                                             />
                                         )}
-                                        {formData.bannerFile && (
+                                        {!formData.bannerUrl && !formData.bannerFile && originalBannerUrl && (
                                             <img
-                                                src={URL.createObjectURL(formData.bannerFile)}
-                                                alt="New banner preview"
+                                                src={getImageUrl(originalBannerUrl) || ''}
+                                                alt="Current banner"
                                                 className="w-32 h-20 object-cover rounded-lg border"
                                             />
                                         )}

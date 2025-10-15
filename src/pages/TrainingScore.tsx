@@ -60,7 +60,11 @@ const TrainingScore: React.FC = () => {
     const mutation = useMutation<TrainingCalculateResponse, unknown, void>({
         mutationFn: async () => {
             if (!studentId || !semesterId) throw new Error('Thiếu studentId/semesterId');
-            return await scoresAPI.calculateTrainingScore(Number(studentId), Number(semesterId), excludedIds);
+            const response = await scoresAPI.calculateTrainingScore(Number(studentId), Number(semesterId), excludedIds);
+            if (!response.status || !response.data) {
+                throw new Error(response.message || 'Tính điểm thất bại');
+            }
+            return response.data;
         },
         onSuccess: (data: TrainingCalculateResponse) => {
             setResult(data);

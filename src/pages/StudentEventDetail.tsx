@@ -6,9 +6,10 @@ import { eventAPI } from '../services/eventAPI';
 import { registrationAPI } from '../services/registrationAPI';
 import { taskAPI } from '../services/taskAPI';
 import { submissionAPI } from '../services/submissionAPI';
+import { studentAPI } from '../services/studentAPI';
 import { getSubmissionStatusColor, getSubmissionStatusLabel } from '../utils/submissionUtils';
 import { ActivityResponse, ActivityType, ScoreType } from '../types';
-import { ActivityTaskResponse } from '../types/task';
+import { ActivityTaskResponse, TaskAssignmentResponse } from '../types/task';
 import { TaskSubmissionResponse } from '../types/submission';
 import { RegistrationStatus, ParticipationType } from '../types/registration';
 import { LoadingSpinner } from '../components/common';
@@ -29,10 +30,10 @@ const StudentEventDetail: React.FC = () => {
     const [notes, setNotes] = useState('');
 
     // Tasks and submissions (within this event page)
-    const [tasks, setTasks] = useState<ActivityTaskResponse[]>([]);
+    const [tasks, setTasks] = useState<TaskAssignmentResponse[]>([]);
     const [loadingTasks, setLoadingTasks] = useState(false);
     const [showSubmissionModal, setShowSubmissionModal] = useState(false);
-    const [selectedTask, setSelectedTask] = useState<ActivityTaskResponse | null>(null);
+    const [selectedTask, setSelectedTask] = useState<TaskAssignmentResponse | null>(null);
     const [mySubmission, setMySubmission] = useState<TaskSubmissionResponse | null>(null);
     const [submitContent, setSubmitContent] = useState('');
     const [submitFiles, setSubmitFiles] = useState<File[]>([]);
@@ -67,14 +68,22 @@ const StudentEventDetail: React.FC = () => {
     const loadTasksByActivity = async (activityId: number) => {
         try {
             setLoadingTasks(true);
-            const res = await taskAPI.getTasksByActivity(activityId);
-            if (res.status && res.data) {
-                setTasks(res.data);
+            // Get student's assigned tasks instead of all tasks in activity
+            const studentProfile = await studentAPI.getMyProfile();
+            const studentId = studentProfile.id;
+
+            const assignmentsRes = await taskAPI.getStudentTasksNew(studentId);
+            if (assignmentsRes.status && assignmentsRes.data) {
+                // Filter assignments that belong to this activity
+                const myTasksInThisActivity = assignmentsRes.data.filter(
+                    (assignment: any) => assignment.activityId === activityId
+                );
+                setTasks(myTasksInThisActivity);
             } else {
                 setTasks([]);
             }
         } catch (e) {
-            console.error('Error loading tasks for activity:', e);
+            console.error('Error loading assigned tasks for activity:', e);
             setTasks([]);
         } finally {
             setLoadingTasks(false);
@@ -235,7 +244,7 @@ const StudentEventDetail: React.FC = () => {
         return eventStatus === 'ONGOING' && registrationStatus === RegistrationStatus.APPROVED;
     };
 
-    const openSubmissionModal = async (task: ActivityTaskResponse) => {
+    const openSubmissionModal = async (task: TaskAssignmentResponse) => {
         setSelectedTask(task);
         setShowSubmissionModal(true);
         setMySubmission(null);
@@ -248,9 +257,8 @@ const StudentEventDetail: React.FC = () => {
                 setMySubmission(res.data);
                 setSubmitContent(res.data.content || '');
                 // Normalize fileUrls for preview (read-only links)
-                const urls = Array.isArray(res.data.fileUrls)
-                    ? res.data.fileUrls
-                    : (res.data.fileUrls ? (res.data.fileUrls as string).split(',').map(u => u.trim()) : []);
+                // fileUrls is now always an array from backend
+                const urls = res.data.fileUrls || [];
                 setFilePreviews(urls);
             }
         } catch (e) {
@@ -389,6 +397,17 @@ const StudentEventDetail: React.FC = () => {
 
                                 <h2 className="text-2xl font-bold text-gray-900 mb-4">{event.name}</h2>
 
+                                {/* Event Banner */}
+                                {event.bannerUrl && (
+                                    <div className="mb-6">
+                                        <img
+                                            src={event.bannerUrl}
+                                            alt={`Banner ${event.name}`}
+                                            className="w-full h-64 object-cover rounded-lg shadow-md"
+                                        />
+                                    </div>
+                                )}
+
                                 {event.description && (
                                     <p className="text-gray-600 mb-6">{event.description}</p>
                                 )}
@@ -510,9 +529,9 @@ const StudentEventDetail: React.FC = () => {
                                             {tasks.map((t) => (
                                                 <div key={t.id} className="flex items-center justify-between">
                                                     <div>
-                                                        <p className="text-sm font-medium text-gray-900">{t.name}</p>
-                                                        {t.deadline && (
-                                                            <p className="text-xs text-gray-500">Hạn: {new Date(t.deadline).toLocaleString('vi-VN')}</p>
+                                                        <p className="text-sm font-medium text-gray-900">{t.taskName}</p>
+                                                        {t.submissionDeadline && (
+                                                            <p className="text-xs text-gray-500">Hạn: {new Date(t.submissionDeadline).toLocaleString('vi-VN')}</p>
                                                         )}
                                                     </div>
                                                     <div className="flex items-center space-x-2">
@@ -585,7 +604,7 @@ const StudentEventDetail: React.FC = () => {
                 <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
                     <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
                         <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-medium text-gray-900">Nộp bài: {selectedTask.name}</h3>
+                            <h3 className="text-lg font-medium text-gray-900">Nộp bài: {selectedTask.taskName}</h3>
                             <button onClick={closeSubmissionModal} className="text-gray-400 hover:text-gray-600">
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -646,9 +665,8 @@ const StudentEventDetail: React.FC = () => {
                                             </button>
                                         ))}
                                         {mySubmission && (() => {
-                                            const urls = Array.isArray(mySubmission.fileUrls)
-                                                ? mySubmission.fileUrls
-                                                : (mySubmission.fileUrls ? (mySubmission.fileUrls as string).split(',').map(u => u.trim()) : []);
+                                            // fileUrls is now always an array from backend
+                                            const urls = mySubmission.fileUrls || [];
                                             return urls.map((u, idx) => (
                                                 <button
                                                     key={`e-${idx}`}

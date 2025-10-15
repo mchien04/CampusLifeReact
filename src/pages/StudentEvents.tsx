@@ -6,6 +6,7 @@ import { registrationAPI } from '../services/registrationAPI';
 import { ActivityResponse, ActivityType, ScoreType } from '../types';
 import { RegistrationStatus } from '../types/registration';
 import { LoadingSpinner } from '../components/common';
+import { getImageUrl } from '../utils/imageUtils';
 
 const StudentEvents: React.FC = () => {
     const { user } = useAuth();
@@ -280,9 +281,9 @@ const StudentEvents: React.FC = () => {
                 </div>
 
                 {/* Events List */}
-                <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredEvents.length === 0 ? (
-                        <div className="text-center py-12">
+                        <div className="col-span-full text-center py-12">
                             <div className="text-gray-400 text-6xl mb-4">📅</div>
                             <h3 className="text-lg font-medium text-gray-900 mb-2">Không có sự kiện nào</h3>
                             <p className="text-gray-500">Không tìm thấy sự kiện phù hợp với bộ lọc của bạn.</p>
@@ -297,110 +298,130 @@ const StudentEvents: React.FC = () => {
                                 registrationStatus !== RegistrationStatus.APPROVED;
 
                             return (
-                                <div key={event.id} className="bg-white shadow rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
-                                    <div className="p-6">
-                                        <div className="flex items-start justify-between">
+                                <div key={event.id} className="bg-white shadow rounded-lg overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full">
+                                    {/* Event Banner */}
+                                    {event.bannerUrl && (
+                                        <div className="h-48 bg-gray-200 bg-cover bg-center"
+                                            style={{ backgroundImage: `url(${getImageUrl(event.bannerUrl)})` }}>
+                                        </div>
+                                    )}
+
+                                    <div className="p-6 flex flex-col flex-grow">
+                                        {/* Header */}
+                                        <div className="flex items-start justify-between mb-3">
                                             <div className="flex-1">
-                                                <div className="flex items-center space-x-3 mb-2">
-                                                    <h3 className="text-xl font-semibold text-gray-900">
-                                                        {event.name}
-                                                    </h3>
-                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${eventStatus === 'UPCOMING' ? 'bg-blue-100 text-blue-800' :
+                                                <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-2">
+                                                    {event.name}
+                                                </h3>
+                                                <div className="flex flex-wrap gap-1">
+                                                    <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${eventStatus === 'UPCOMING' ? 'bg-blue-100 text-blue-800' :
                                                         eventStatus === 'ONGOING' ? 'bg-green-100 text-green-800' :
                                                             'bg-gray-100 text-gray-800'
                                                         }`}>
                                                         {eventStatus === 'UPCOMING' ? 'Sắp diễn ra' :
                                                             eventStatus === 'ONGOING' ? 'Đang diễn ra' : 'Đã kết thúc'}
                                                     </span>
+                                                    <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
+                                                        {getTypeLabel(event.type)}
+                                                    </span>
                                                 </div>
-
-                                                <p className="text-gray-600 mb-4">{event.description}</p>
-
-                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                                                    <div className="flex items-center text-sm text-gray-500">
-                                                        <span className="mr-2">📅</span>
-                                                        <span>{new Date(event.startDate).toLocaleDateString('vi-VN')} - {new Date(event.endDate).toLocaleDateString('vi-VN')}</span>
-                                                    </div>
-                                                    <div className="flex items-center text-sm text-gray-500">
-                                                        <span className="mr-2">📍</span>
-                                                        <span>{event.location}</span>
-                                                    </div>
-                                                    <div className="flex items-center text-sm text-gray-500">
-                                                        <span className="mr-2">🏷️</span>
-                                                        <span>{getTypeLabel(event.type)}</span>
-                                                    </div>
-                                                    <div className="flex items-center text-sm text-gray-500">
-                                                        <span className="mr-2">⭐</span>
-                                                        <span>{getScoreTypeLabel(event.scoreType)}</span>
-                                                    </div>
-                                                </div>
-
-                                                {event.ticketQuantity && (
-                                                    <div className="text-sm text-gray-500 mb-2">
-                                                        <span className="mr-2">🎫</span>
-                                                        <span>Số lượng vé: {event.ticketQuantity}</span>
-                                                    </div>
-                                                )}
-
-                                                {event.mandatoryForFacultyStudents && (
-                                                    <div className="text-sm text-orange-600 mb-2">
-                                                        <span className="mr-2">⚠️</span>
-                                                        <span>Bắt buộc cho sinh viên khoa</span>
-                                                    </div>
-                                                )}
-
-                                                {registrationStatus && (
-                                                    <div className="mb-4">
-                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(registrationStatus)}`}>
-                                                            {getStatusLabel(registrationStatus)}
-                                                        </span>
-                                                    </div>
-                                                )}
                                             </div>
+                                            {event.isImportant && (
+                                                <span className="text-yellow-500 text-lg flex-shrink-0">⭐</span>
+                                            )}
+                                        </div>
 
-                                            <div className="ml-6 flex flex-col space-y-2">
+                                        {/* Description */}
+                                        <p className="text-gray-600 text-sm mb-4 line-clamp-3 flex-grow">
+                                            {event.description}
+                                        </p>
+
+                                        {/* Event Info */}
+                                        <div className="space-y-2 text-sm text-gray-500 mb-4">
+                                            <div className="flex items-center">
+                                                <span className="w-4 h-4 mr-2">📅</span>
+                                                <span className="truncate">{new Date(event.startDate).toLocaleDateString('vi-VN')}</span>
+                                            </div>
+                                            <div className="flex items-center">
+                                                <span className="w-4 h-4 mr-2">📍</span>
+                                                <span className="truncate">{event.location}</span>
+                                            </div>
+                                            <div className="flex items-center">
+                                                <span className="w-4 h-4 mr-2">⭐</span>
+                                                <span className="truncate">{getScoreTypeLabel(event.scoreType)}</span>
+                                            </div>
+                                            {event.participantCount && (
+                                                <div className="flex items-center">
+                                                    <span className="w-4 h-4 mr-2">👥</span>
+                                                    <span className="truncate">{event.participantCount} người tham gia</span>
+                                                </div>
+                                            )}
+                                            {event.maxPoints && parseFloat(event.maxPoints) > 0 && (
+                                                <div className="flex items-center">
+                                                    <span className="w-4 h-4 mr-2">🏆</span>
+                                                    <span className="truncate">{event.maxPoints} điểm</span>
+                                                </div>
+                                            )}
+                                            {event.mandatoryForFacultyStudents && (
+                                                <div className="flex items-center">
+                                                    <span className="w-4 h-4 mr-2">🎯</span>
+                                                    <span className="truncate">Bắt buộc</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Registration Status */}
+                                        {registrationStatus && (
+                                            <div className="mb-4">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(registrationStatus)}`}>
+                                                    {getStatusLabel(registrationStatus)}
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        {/* Action Buttons */}
+                                        <div className="flex flex-col space-y-2 mt-auto">
+                                            <Link
+                                                to={`/student/events/${event.id}`}
+                                                className="w-full bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 text-center"
+                                            >
+                                                Xem chi tiết
+                                            </Link>
+
+                                            {canRegister && (
+                                                <button
+                                                    onClick={() => handleRegister(event.id)}
+                                                    className="w-full bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700"
+                                                >
+                                                    Đăng ký
+                                                </button>
+                                            )}
+
+                                            {canCancel && (
+                                                <button
+                                                    onClick={() => handleCancelRegistration(event.id)}
+                                                    className="w-full bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700"
+                                                >
+                                                    Hủy đăng ký
+                                                </button>
+                                            )}
+
+                                            {isRegistered && registrationStatus === RegistrationStatus.APPROVED && eventStatus === 'UPCOMING' && (
+                                                <div className="text-center">
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                        ✅ Đã được duyệt
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                            {isRegistered && eventStatus === 'ONGOING' && (
                                                 <Link
                                                     to={`/student/events/${event.id}`}
-                                                    className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 text-center"
+                                                    className="w-full bg-yellow-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-yellow-700 text-center"
                                                 >
-                                                    Xem chi tiết
+                                                    Ghi nhận tham gia
                                                 </Link>
-
-                                                {canRegister && (
-                                                    <button
-                                                        onClick={() => handleRegister(event.id)}
-                                                        className="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700"
-                                                    >
-                                                        Đăng ký
-                                                    </button>
-                                                )}
-
-                                                {canCancel && (
-                                                    <button
-                                                        onClick={() => handleCancelRegistration(event.id)}
-                                                        className="bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700"
-                                                    >
-                                                        Hủy đăng ký
-                                                    </button>
-                                                )}
-
-                                                {isRegistered && registrationStatus === RegistrationStatus.APPROVED && eventStatus === 'UPCOMING' && (
-                                                    <div className="text-center">
-                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                            ✅ Đã được duyệt - Không thể hủy
-                                                        </span>
-                                                    </div>
-                                                )}
-
-                                                {isRegistered && eventStatus === 'ONGOING' && (
-                                                    <Link
-                                                        to={`/student/events/${event.id}`}
-                                                        className="bg-yellow-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-yellow-700 text-center"
-                                                    >
-                                                        Ghi nhận tham gia
-                                                    </Link>
-                                                )}
-                                            </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

@@ -13,7 +13,10 @@ export const studentAPI = {
     // Lấy thông tin profile sinh viên hiện tại
     getMyProfile: async (): Promise<StudentProfileResponse> => {
         const response = await api.get('/api/student/profile');
-        return response.data.body;
+        if (response.data.status && response.data.body) {
+            return response.data.body;
+        }
+        throw new Error(response.data.message || 'Failed to get profile');
     },
 
     // Cập nhật profile sinh viên

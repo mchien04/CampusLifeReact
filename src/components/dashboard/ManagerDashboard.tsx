@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { eventAPI } from '../../services/eventAPI';
+import { ActivityResponse } from '../../types/activity';
 
 const ManagerDashboard: React.FC = () => {
     const { username, logout } = useAuth();
+    const [upcomingEvents, setUpcomingEvents] = useState<ActivityResponse[]>([]);
+    const [loadingEvents, setLoadingEvents] = useState(true);
 
     const stats = [
         { name: 'Sự kiện đã tạo', value: '23', icon: '📅' },
@@ -16,32 +20,57 @@ const ManagerDashboard: React.FC = () => {
         { name: 'Tạo sự kiện mới', href: '/manager/events/create', icon: '➕', description: 'Tạo sự kiện hoạt động mới' },
         { name: 'Quản lý sự kiện', href: '/manager/events', icon: '📅', description: 'Xem và quản lý sự kiện' },
         { name: 'Quản lý đăng ký', href: '/manager/registrations', icon: '📝', description: 'Duyệt đăng ký sự kiện' },
-        { name: 'Quản lý nhiệm vụ', href: '/manager/tasks', icon: '✅', description: 'Tổng quan quản lý nhiệm vụ' },
         { name: 'Chấm rèn luyện (theo tiêu chí)', href: '/tools/training-score', icon: '🧮', description: 'Tính điểm RL theo tiêu chí' },
-        { name: 'Xem điểm tổng hợp sinh viên', href: '/tools/view-scores', icon: '📊', description: 'Xem điểm theo học kỳ' },
         { name: 'Báo cáo hoạt động', href: '/manager/reports', icon: '📈', description: 'Xem báo cáo thống kê' },
     ];
 
-    const upcomingEvents = [
-        {
-            name: 'Hội thảo Khởi nghiệp',
-            date: '15/01/2024',
-            participants: 45,
-            status: 'Đang diễn ra'
-        },
-        {
-            name: 'Tình nguyện mùa đông',
-            date: '20/01/2024',
-            participants: 32,
-            status: 'Sắp diễn ra'
-        },
-        {
-            name: 'Workshop công nghệ',
-            date: '25/01/2024',
-            participants: 28,
-            status: 'Đang đăng ký'
-        },
-    ];
+    // Load upcoming events
+    useEffect(() => {
+        const loadUpcomingEvents = async () => {
+            try {
+                setLoadingEvents(true);
+                const response = await eventAPI.getEvents();
+                if (response.status && response.data) {
+                    const now = new Date();
+                    const upcoming = response.data
+                        .filter(event => new Date(event.startDate) >= now)
+                        .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+                        .slice(0, 3); // Show only first 3 upcoming events
+                    setUpcomingEvents(upcoming);
+                }
+            } catch (error) {
+                console.error('Error loading upcoming events:', error);
+            } finally {
+                setLoadingEvents(false);
+            }
+        };
+
+        loadUpcomingEvents();
+    }, []);
+
+    const getEventStatus = (event: ActivityResponse) => {
+        const now = new Date();
+        const startDate = new Date(event.startDate);
+        const endDate = new Date(event.endDate);
+
+        if (now < startDate) {
+            return { status: 'Sắp diễn ra', color: 'bg-yellow-100 text-yellow-800' };
+        } else if (now >= startDate && now <= endDate) {
+            return { status: 'Đang diễn ra', color: 'bg-green-100 text-green-800' };
+        } else {
+            return { status: 'Đã kết thúc', color: 'bg-gray-100 text-gray-800' };
+        }
+    };
+
+    const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -127,25 +156,46 @@ const ManagerDashboard: React.FC = () => {
                                 Sự kiện sắp tới
                             </h3>
                             <div className="space-y-4">
-                                {upcomingEvents.map((event, index) => (
-                                    <div key={index} className="border border-gray-200 rounded-lg p-4">
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <h4 className="text-sm font-medium text-gray-900">{event.name}</h4>
-                                                <p className="text-sm text-gray-500">📅 {event.date}</p>
-                                                <p className="text-sm text-gray-500">👥 {event.participants} người tham gia</p>
-                                            </div>
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${event.status === 'Đang diễn ra'
-                                                ? 'bg-green-100 text-green-800'
-                                                : event.status === 'Sắp diễn ra'
-                                                    ? 'bg-yellow-100 text-yellow-800'
-                                                    : 'bg-blue-100 text-blue-800'
-                                                }`}>
-                                                {event.status}
-                                            </span>
-                                        </div>
+                                {loadingEvents ? (
+                                    <div className="text-center py-4">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                                        <p className="text-sm text-gray-500 mt-2">Đang tải sự kiện...</p>
                                     </div>
-                                ))}
+                                ) : upcomingEvents.length === 0 ? (
+                                    <div className="text-center py-8">
+                                        <div className="text-gray-400 text-4xl mb-2">📅</div>
+                                        <p className="text-sm text-gray-500">Không có sự kiện sắp tới</p>
+                                    </div>
+                                ) : (
+                                    upcomingEvents.map((event) => {
+                                        const eventStatus = getEventStatus(event);
+                                        return (
+                                            <div key={event.id} className="border border-gray-200 rounded-lg p-4">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex-1">
+                                                        <h4 className="text-sm font-medium text-gray-900 mb-1">{event.name}</h4>
+                                                        <p className="text-sm text-gray-500">📅 {formatDate(event.startDate)}</p>
+                                                        <p className="text-sm text-gray-500">📍 {event.location}</p>
+                                                        {event.participantCount && (
+                                                            <p className="text-sm text-gray-500">👥 {event.participantCount} người tham gia</p>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex flex-col items-end space-y-2">
+                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${eventStatus.color}`}>
+                                                            {eventStatus.status}
+                                                        </span>
+                                                        <Link
+                                                            to={`/manager/events/${event.id}`}
+                                                            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                                                        >
+                                                            Xem chi tiết →
+                                                        </Link>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
                             </div>
                         </div>
                     </div>

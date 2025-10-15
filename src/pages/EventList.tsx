@@ -223,17 +223,17 @@ const EventList: React.FC = () => {
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {filteredEvents.map(event => (
-                                <div key={event.id} className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow">
+                                <div key={event.id} className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow flex flex-col h-full">
                                     {event.bannerUrl && (
-                                        <div className="h-48 bg-gray-200 rounded-t-lg bg-cover bg-center"
+                                        <div className="h-48 bg-gray-200 rounded-t-lg bg-cover bg-center flex-shrink-0"
                                             style={{ backgroundImage: `url(${getImageUrl(event.bannerUrl)})` }}>
                                         </div>
                                     )}
 
-                                    <div className="p-6">
+                                    <div className="p-6 flex flex-col flex-grow">
                                         <div className="flex items-start justify-between mb-3">
                                             <div className="flex-1">
-                                                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                                                <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-2">
                                                     {event.name}
                                                 </h3>
                                                 <div className="flex flex-wrap gap-1">
@@ -246,48 +246,48 @@ const EventList: React.FC = () => {
                                                 </div>
                                             </div>
                                             {event.isImportant && (
-                                                <span className="text-yellow-500 text-lg">⭐</span>
+                                                <span className="text-yellow-500 text-lg flex-shrink-0">⭐</span>
                                             )}
                                         </div>
 
-                                        <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                                        <p className="text-gray-600 text-sm mb-4 line-clamp-3 flex-grow">
                                             {event.description}
                                         </p>
 
                                         <div className="space-y-2 text-sm text-gray-500 mb-4">
                                             <div className="flex items-center">
                                                 <span className="w-4 h-4 mr-2">📅</span>
-                                                {formatDate(event.startDate)}
+                                                <span className="truncate">{formatDate(event.startDate)}</span>
                                             </div>
                                             <div className="flex items-center">
                                                 <span className="w-4 h-4 mr-2">📍</span>
-                                                {event.location}
+                                                <span className="truncate">{event.location}</span>
                                             </div>
                                             <div className="flex items-center">
                                                 <span className="w-4 h-4 mr-2">👥</span>
-                                                {event.participantCount} người tham gia
+                                                <span className="truncate">{event.participantCount} người tham gia</span>
                                             </div>
                                             {event.maxPoints && parseFloat(event.maxPoints) > 0 && (
                                                 <div className="flex items-center">
                                                     <span className="w-4 h-4 mr-2">🏆</span>
-                                                    {event.maxPoints} điểm
+                                                    <span className="truncate">{event.maxPoints} điểm</span>
                                                 </div>
                                             )}
                                             {event.ticketQuantity && event.ticketQuantity > 0 && (
                                                 <div className="flex items-center">
                                                     <span className="w-4 h-4 mr-2">🎫</span>
-                                                    {event.ticketQuantity} vé
+                                                    <span className="truncate">{event.ticketQuantity} vé</span>
                                                 </div>
                                             )}
                                             {event.mandatoryForFacultyStudents && (
                                                 <div className="flex items-center">
                                                     <span className="w-4 h-4 mr-2">🎯</span>
-                                                    Bắt buộc
+                                                    <span className="truncate">Bắt buộc</span>
                                                 </div>
                                             )}
                                         </div>
 
-                                        <div className="flex space-x-2">
+                                        <div className="flex space-x-2 mt-auto">
                                             <Link
                                                 to={`/manager/events/${event.id}`}
                                                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-center py-2 px-3 rounded-md text-sm font-medium"

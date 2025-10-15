@@ -43,9 +43,13 @@ export const registrationAPI = {
         return response.data.body;
     },
 
-    updateRegistrationStatus: async (registrationId: number, status: RegistrationStatus): Promise<ActivityRegistrationResponse> => {
+    updateRegistrationStatus: async (registrationId: number, status: RegistrationStatus): Promise<{ status: boolean; message: string; data?: ActivityRegistrationResponse }> => {
         const response = await api.put(`/api/registrations/${registrationId}/status?status=${status}`);
-        return response.data.body;
+        return {
+            status: response.data.status,
+            message: response.data.message,
+            data: response.data.body
+        };
     },
 
     getRegistrationById: async (registrationId: number): Promise<ActivityRegistrationResponse> => {

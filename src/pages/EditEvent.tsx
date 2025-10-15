@@ -40,17 +40,6 @@ const EditEvent: React.FC = () => {
         fetchEvent();
     }, [id]);
 
-    const testUserInfo = async () => {
-        try {
-            console.log('🔍 EditEvent: Testing user info...');
-            const response = await eventAPI.debugUserInfo();
-            console.log('🔍 EditEvent: User info response:', response);
-            alert(`User Info: ${JSON.stringify(response, null, 2)}`);
-        } catch (error) {
-            console.error('🔍 EditEvent: Test user info failed:', error);
-            alert('Failed to get user info');
-        }
-    };
 
     const handleSubmit = async (data: CreateActivityRequest) => {
         if (!id) {
@@ -58,10 +47,6 @@ const EditEvent: React.FC = () => {
             return;
         }
 
-        console.log('🔍 EditEvent: handleSubmit called');
-        console.log('🔍 EditEvent: Auth status:', { isAuthenticated, userRole, username });
-        console.log('🔍 EditEvent: Token in localStorage:', localStorage.getItem('token'));
-        console.log('🔍 EditEvent: Data to send:', data);
 
         setLoading(true);
         setError('');
@@ -144,7 +129,7 @@ const EditEvent: React.FC = () => {
         registrationDeadline: event.registrationDeadline,
         shareLink: event.shareLink,
         isImportant: event.isImportant,
-        bannerUrl: event.bannerUrl,
+        bannerUrl: event.bannerUrl || '', // Keep existing banner URL when editing
         location: event.location,
         ticketQuantity: event.ticketQuantity,
         benefits: event.benefits,
@@ -156,34 +141,6 @@ const EditEvent: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Debug Banner */}
-            <div className="bg-yellow-50 border-b border-yellow-200 p-4">
-                <div className="max-w-7xl mx-auto">
-                    <h3 className="text-sm font-medium text-yellow-800 mb-2">🔍 Debug Info:</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                        <div>
-                            <strong>Auth Status:</strong> {isAuthenticated ? '✅ Authenticated' : '❌ Not Authenticated'}
-                        </div>
-                        <div>
-                            <strong>Username:</strong> {username || 'N/A'}
-                        </div>
-                        <div>
-                            <strong>Role:</strong> {userRole || 'N/A'}
-                        </div>
-                    </div>
-                    <div className="mt-2">
-                        <strong>Token:</strong> {localStorage.getItem('token') ? '✅ Present' : '❌ Missing'}
-                    </div>
-                    <div className="mt-2">
-                        <button
-                            onClick={testUserInfo}
-                            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs"
-                        >
-                            Test User Info
-                        </button>
-                    </div>
-                </div>
-            </div>
 
             {/* Header */}
             <div className="bg-white shadow">

@@ -181,35 +181,26 @@ const SubmissionDetailsModal: React.FC<SubmissionDetailsModalProps> = ({
                                         </div>
                                     )}
 
-                                    {submission.fileUrls && (() => {
-                                        // Normalize fileUrls to always be an array
-                                        const fileUrlsArray = Array.isArray(submission.fileUrls)
-                                            ? submission.fileUrls
-                                            : (typeof submission.fileUrls === 'string'
-                                                ? submission.fileUrls.split(',').map((url: string) => url.trim())
-                                                : []);
-
-                                        return fileUrlsArray.length > 0 && (
-                                            <div className="mb-3">
-                                                <p className="text-sm font-medium text-gray-700">File đính kèm:</p>
-                                                <div className="mt-1 space-y-1">
-                                                    {fileUrlsArray.map((fileUrl: string, idx: number) => (
-                                                        <button
-                                                            key={idx}
-                                                            type="button"
-                                                            onClick={() => handleDownload(fileUrl)}
-                                                            className="flex items-center text-blue-600 hover:underline text-sm"
-                                                        >
-                                                            <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                                                <path fillRule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clipRule="evenodd" />
-                                                            </svg>
-                                                            {fileUrl.split('/').pop()}
-                                                        </button>
-                                                    ))}
-                                                </div>
+                                    {submission.fileUrls && submission.fileUrls.length > 0 && (
+                                        <div className="mb-3">
+                                            <p className="text-sm font-medium text-gray-700">File đính kèm:</p>
+                                            <div className="mt-1 space-y-1">
+                                                {submission.fileUrls.map((fileUrl: string, idx: number) => (
+                                                    <button
+                                                        key={idx}
+                                                        type="button"
+                                                        onClick={() => handleDownload(fileUrl)}
+                                                        className="flex items-center text-blue-600 hover:underline text-sm"
+                                                    >
+                                                        <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fillRule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clipRule="evenodd" />
+                                                        </svg>
+                                                        {fileUrl.split('/').pop()}
+                                                    </button>
+                                                ))}
                                             </div>
-                                        );
-                                    })()}
+                                        </div>
+                                    )}
 
                                     {/* Grading Section */}
                                     <div className="mt-4 border-t border-gray-100 pt-4">
