@@ -104,23 +104,7 @@ export const submissionAPI = {
             params.append('feedback', feedback);
         }
 
-        console.log('=== GRADE SUBMISSION DEBUG ===');
-        console.log('Request URL:', `/api/submissions/${submissionId}/grade?${params.toString()}`);
-        console.log('Request params:', { submissionId, score, feedback });
-
-        try {
-            const response = await api.put(`/api/submissions/${submissionId}/grade?${params.toString()}`);
-            console.log('Response status:', response.status);
-            console.log('Response data:', response.data);
-            console.log('=== SUCCESS ===');
-            return normalize<TaskSubmissionResponse>(response.data);
-        } catch (error: any) {
-            console.log('=== ERROR ===');
-            console.log('Error status:', error.response?.status);
-            console.log('Error data:', error.response?.data);
-            console.log('Error message:', error.message);
-            console.log('=== END ERROR ===');
-            throw error;
-        }
+        const response = await api.put(`/api/submissions/${submissionId}/grade?${params.toString()}`);
+        return normalize<TaskSubmissionResponse>(response.data);
     },
 };

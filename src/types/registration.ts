@@ -6,7 +6,8 @@ export enum RegistrationStatus {
     PENDING = 'PENDING',
     APPROVED = 'APPROVED',
     REJECTED = 'REJECTED',
-    CANCELLED = 'CANCELLED'
+    CANCELLED = 'CANCELLED',
+    ATTENDED = 'ATTENDED'
 }
 
 // New ActivityRegistration interface matching backend
@@ -28,8 +29,10 @@ export interface ActivityRegistration {
 
 export enum ParticipationType {
     REGISTERED = 'REGISTERED',
+    CHECKED_IN = 'CHECKED_IN',
+    CHECKED_OUT = 'CHECKED_OUT',
     ATTENDED = 'ATTENDED',
-    CHECKED_IN = 'CHECKED_IN'
+    COMPLETED = 'COMPLETED'
 }
 
 export interface ActivityRegistrationRequest {
@@ -52,10 +55,12 @@ export interface ActivityRegistrationResponse {
     feedback?: string;
     registeredDate: string; // LocalDateTime in backend, so string
     createdAt: string; // LocalDateTime in backend, so string
+    ticketCode?: string;
 }
 
 export interface ActivityParticipationRequest {
-    activityId: number;
+    ticketCode?: string;
+    studentId?: number;
     participationType: ParticipationType;
     pointsEarned?: number;
     notes?: string;
@@ -85,6 +90,8 @@ export const getRegistrationStatusLabel = (status: RegistrationStatus): string =
             return 'Từ chối';
         case RegistrationStatus.CANCELLED:
             return 'Đã hủy';
+        case RegistrationStatus.ATTENDED:
+            return 'Đã tham dự';
         default:
             return status;
     }
@@ -92,12 +99,16 @@ export const getRegistrationStatusLabel = (status: RegistrationStatus): string =
 
 export const getParticipationTypeLabel = (type: ParticipationType): string => {
     switch (type) {
-        case ParticipationType.ATTENDED:
-            return 'Tham gia';
         case ParticipationType.REGISTERED:
             return 'Đã đăng ký';
         case ParticipationType.CHECKED_IN:
             return 'Đã check-in';
+        case ParticipationType.CHECKED_OUT:
+            return 'Đã check-out';
+        case ParticipationType.ATTENDED:
+            return 'Đã tham gia';
+        case ParticipationType.COMPLETED:
+            return 'Đã hoàn thành';
         default:
             return type;
     }
