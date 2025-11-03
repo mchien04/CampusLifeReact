@@ -23,11 +23,7 @@ const StudentEventDetail: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [registrationStatus, setRegistrationStatus] = useState<RegistrationStatus | null>(null);
     const [showRegistrationForm, setShowRegistrationForm] = useState(false);
-    const [showParticipationForm, setShowParticipationForm] = useState(false);
     const [feedback, setFeedback] = useState('');
-    const [participationType, setParticipationType] = useState<ParticipationType>(ParticipationType.ATTENDED);
-    const [pointsEarned, setPointsEarned] = useState<number>(0);
-    const [notes, setNotes] = useState('');
 
     // Tasks and submissions (within this event page)
     const [tasks, setTasks] = useState<TaskAssignmentResponse[]>([]);
@@ -149,29 +145,7 @@ const StudentEventDetail: React.FC = () => {
         }
     };
 
-    const handleRecordParticipation = async () => {
-        if (!event) return;
-
-        try {
-            const response = await registrationAPI.checkIn({
-                activityId: event.id,
-                participationType,
-                pointsEarned: pointsEarned || undefined,
-                notes
-            });
-
-            if (response.status) {
-                setShowParticipationForm(false);
-                alert(response.message || 'Ghi nhận tham gia thành công!');
-            } else {
-                alert(response.message || 'Ghi nhận thất bại');
-            }
-
-        } catch (err: any) {
-            alert('Có lỗi xảy ra khi ghi nhận tham gia: ' + (err.response?.data?.message || err.message));
-            console.error('Error recording participation:', err);
-        }
-    };
+    // Removed manual participation recording - now handled by manager check-in
 
 
     const getTypeLabel = (type: ActivityType) => {
@@ -199,7 +173,8 @@ const StudentEventDetail: React.FC = () => {
             [RegistrationStatus.PENDING]: 'Chờ duyệt',
             [RegistrationStatus.APPROVED]: 'Đã duyệt',
             [RegistrationStatus.REJECTED]: 'Từ chối',
-            [RegistrationStatus.CANCELLED]: 'Đã hủy'
+            [RegistrationStatus.CANCELLED]: 'Đã hủy',
+            [RegistrationStatus.ATTENDED]: 'Đã tham dự'
         };
         return labels[status] || status;
     };
@@ -209,7 +184,8 @@ const StudentEventDetail: React.FC = () => {
             [RegistrationStatus.PENDING]: 'bg-yellow-100 text-yellow-800',
             [RegistrationStatus.APPROVED]: 'bg-green-100 text-green-800',
             [RegistrationStatus.REJECTED]: 'bg-red-100 text-red-800',
-            [RegistrationStatus.CANCELLED]: 'bg-gray-100 text-gray-800'
+            [RegistrationStatus.CANCELLED]: 'bg-gray-100 text-gray-800',
+            [RegistrationStatus.ATTENDED]: 'bg-blue-100 text-blue-800'
         };
         return colors[status] || 'bg-gray-100 text-gray-800';
     };
@@ -501,14 +477,6 @@ const StudentEventDetail: React.FC = () => {
                                         </div>
                                     )}
 
-                                    {canRecordParticipation() && (
-                                        <button
-                                            onClick={() => setShowParticipationForm(true)}
-                                            className="bg-yellow-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-yellow-700"
-                                        >
-                                            Ghi nhận tham gia
-                                        </button>
-                                    )}
                                 </div>
                             </div>
                         </div>
@@ -761,71 +729,6 @@ const StudentEventDetail: React.FC = () => {
                                     className="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700"
                                 >
                                     Đăng ký
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Participation Modal */}
-            {showParticipationForm && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-                    <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                        <div className="mt-3">
-                            <h3 className="text-lg font-medium text-gray-900 mb-4">Ghi nhận tham gia</h3>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Loại tham gia
-                                    </label>
-                                    <select
-                                        value={participationType}
-                                        onChange={(e) => setParticipationType(e.target.value as ParticipationType)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    >
-                                        <option value={ParticipationType.REGISTERED}>Đã đăng ký</option>
-                                        <option value={ParticipationType.ATTENDED}>Đã tham gia</option>
-                                        <option value={ParticipationType.CHECKED_IN}>Đã check-in</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Điểm đạt được (tùy chọn)
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={pointsEarned}
-                                        onChange={(e) => setPointsEarned(Number(e.target.value))}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        placeholder="Nhập điểm đạt được..."
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Ghi chú (tùy chọn)
-                                    </label>
-                                    <textarea
-                                        value={notes}
-                                        onChange={(e) => setNotes(e.target.value)}
-                                        rows={3}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        placeholder="Nhập ghi chú..."
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex justify-end space-x-3 mt-6">
-                                <button
-                                    onClick={() => setShowParticipationForm(false)}
-                                    className="bg-gray-300 text-gray-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-400"
-                                >
-                                    Hủy
-                                </button>
-                                <button
-                                    onClick={handleRecordParticipation}
-                                    className="bg-yellow-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-yellow-700"
-                                >
-                                    Ghi nhận
                                 </button>
                             </div>
                         </div>

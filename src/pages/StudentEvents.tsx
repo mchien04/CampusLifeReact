@@ -119,7 +119,8 @@ const StudentEvents: React.FC = () => {
             [RegistrationStatus.PENDING]: 'Chờ duyệt',
             [RegistrationStatus.APPROVED]: 'Đã duyệt',
             [RegistrationStatus.REJECTED]: 'Từ chối',
-            [RegistrationStatus.CANCELLED]: 'Đã hủy'
+            [RegistrationStatus.CANCELLED]: 'Đã hủy',
+            [RegistrationStatus.ATTENDED]: 'Đã tham dự'
         };
         return labels[status] || status;
     };
@@ -129,7 +130,8 @@ const StudentEvents: React.FC = () => {
             [RegistrationStatus.PENDING]: 'bg-yellow-100 text-yellow-800',
             [RegistrationStatus.APPROVED]: 'bg-green-100 text-green-800',
             [RegistrationStatus.REJECTED]: 'bg-red-100 text-red-800',
-            [RegistrationStatus.CANCELLED]: 'bg-gray-100 text-gray-800'
+            [RegistrationStatus.CANCELLED]: 'bg-gray-100 text-gray-800',
+            [RegistrationStatus.ATTENDED]: 'bg-blue-100 text-blue-800'
         };
         return colors[status] || 'bg-gray-100 text-gray-800';
     };

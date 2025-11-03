@@ -17,7 +17,6 @@ const ParticipationForm: React.FC<ParticipationFormProps> = ({
     isLoading = false
 }) => {
     const [formData, setFormData] = useState<ActivityParticipationRequest>({
-        activityId,
         participationType: ParticipationType.ATTENDED,
         pointsEarned: 0,
         notes: ''

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ActivityRegistrationResponse, RegistrationStatus } from '../types/registration';
 import { registrationAPI } from '../services/registrationAPI';
@@ -7,7 +7,6 @@ import { ActivityResponse } from '../types/activity';
 import { RegistrationList } from '../components/registration';
 import QrScanner from "react-qr-barcode-scanner";
 import ApproveScoresForm from "../components/registration/ApproveScoresForm";
-import { testGradeAPI } from '../utils/testGradeAPI';
 
 
 const ManagerRegistrations: React.FC = () => {
@@ -20,6 +19,7 @@ const ManagerRegistrations: React.FC = () => {
     const [studentId, setStudentId] = useState("");
     const [showScanner, setShowScanner] = useState(false);
     const [showApproveForm, setShowApproveForm] = useState(false);
+
     useEffect(() => {
         loadEvents();
     }, []);
@@ -36,22 +36,33 @@ const ManagerRegistrations: React.FC = () => {
                 alert("Vui lòng nhập ticketCode hoặc studentId");
                 return;
             }
-            const payload: any = { participationType: "CHECKED_IN" };
+            // Backend determines next state, but we still need to send participationType
+            const payload: any = {
+                participationType: "CHECKED_IN"  // Keep this, backend uses it
+            };
             if (ticketCode) payload.ticketCode = ticketCode;
             if (studentId) payload.studentId = Number(studentId);
 
             const response = await registrationAPI.checkIn(payload);
             if (response.status) {
-                alert("Check-in thành công!");
+                // Check response participationType to show appropriate message
+                const data = response.body;
+                if (data?.participationType === 'CHECKED_IN') {
+                    alert("✅ Check-in thành công. Vui lòng check-out khi sinh viên rời khỏi sự kiện.");
+                } else if (data?.participationType === 'ATTENDED') {
+                    alert("✅ Check-out thành công. Đã hoàn thành tham gia sự kiện.");
+                } else {
+                    alert("✅ " + (response.message || "Thành công"));
+                }
                 if (selectedEventId) await loadRegistrations(selectedEventId);
                 setTicketCode("");
                 setStudentId("");
             } else {
-                alert(response.message || "Check-in thất bại");
+                alert(response.message || "Thao tác thất bại");
             }
         } catch (error) {
             console.error("Error check-in:", error);
-            alert("Có lỗi xảy ra khi check-in");
+            alert("Có lỗi xảy ra");
         }
     };
 
@@ -65,11 +76,19 @@ const ManagerRegistrations: React.FC = () => {
                 const payload: any = { participationType: "CHECKED_IN", ticketCode: scannedCode };
                 const response = await registrationAPI.checkIn(payload);
                 if (response.status) {
-                    alert(`✅ Check-in thành công cho ticketCode: ${scannedCode}`);
+                    // Check response participationType to show appropriate message
+                    const data = response.body;
+                    if (data?.participationType === 'CHECKED_IN') {
+                        alert(`✅ Check-in thành công cho ticketCode: ${scannedCode}.\nVui lòng check-out khi sinh viên rời khỏi sự kiện.`);
+                    } else if (data?.participationType === 'ATTENDED') {
+                        alert(`✅ Check-out thành công cho ticketCode: ${scannedCode}.\nĐã hoàn thành tham gia sự kiện.`);
+                    } else {
+                        alert(`✅ ${response.message || "Thành công"}`);
+                    }
                     if (selectedEventId) await loadRegistrations(selectedEventId);
                     setTicketCode("");
                 } else {
-                    alert(response.message || "❌ Check-in thất bại");
+                    alert(response.message || "❌ Thao tác thất bại");
                 }
             } catch (error) {
                 console.error("Error check-in:", error);
@@ -215,17 +234,6 @@ const ManagerRegistrations: React.FC = () => {
                             Check-in sinh viên
                         </h3>
 
-                        {/* Test Grade API */}
-                        <div className="mb-4 p-4 bg-yellow-100 rounded">
-                            <h4 className="font-semibold mb-2">Test Grade API</h4>
-                            <button
-                                onClick={testGradeAPI}
-                                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-                            >
-                                Test Grade API (Check Console)
-                            </button>
-                        </div>
-
                         <div className="flex flex-col md:flex-row gap-4 items-center">
                             <input
                                 type="text"
@@ -246,8 +254,6 @@ const ManagerRegistrations: React.FC = () => {
                             >
                                 {showScanner ? "Đóng QR" : "Quét QR"}
                             </button>
-
-
                         </div>
 
                         {showScanner && (
