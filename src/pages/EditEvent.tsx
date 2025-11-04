@@ -16,22 +16,21 @@ const EditEvent: React.FC = () => {
 
     useEffect(() => {
         const fetchEvent = async () => {
-            if (!id) {
-                setError('ID sự kiện không hợp lệ');
-                setLoadingEvent(false);
-                return;
-            }
-
             try {
-                const response = await eventAPI.getEvent(parseInt(id));
-                if (response.status && response.data) {
-                    setEvent(response.data);
+                const response = await eventAPI.getEvent(parseInt(id!));
+                console.log(" Raw event response:", response);
+
+                const eventData = response.data || (response as any).body || (response as any).data;
+
+                if (response.status && eventData) {
+                    console.log(" Dữ liệu sự kiện:", eventData);
+                    setEvent(eventData);
                 } else {
-                    setError('Không tìm thấy sự kiện');
+                    setError("Không tìm thấy sự kiện");
                 }
-            } catch (err: any) {
-                console.error('Error fetching event:', err);
-                setError('Có lỗi xảy ra khi tải thông tin sự kiện');
+            } catch (err) {
+                console.error("Error fetching event:", err);
+                setError("Có lỗi xảy ra khi tải thông tin sự kiện");
             } finally {
                 setLoadingEvent(false);
             }
@@ -131,6 +130,7 @@ const EditEvent: React.FC = () => {
 
     // Convert ActivityResponse to CreateActivityRequest format
     const initialData: Partial<CreateActivityRequest> = {
+        id: event.id,
         name: event.name,
         type: event.type,
         scoreType: event.scoreType,
@@ -239,7 +239,9 @@ const EditEvent: React.FC = () => {
                 initialData={initialData}
                 title="Chỉnh sửa sự kiện"
                 onCancel={() => navigate('/manager/events')}
+                seriesId={event.id}
             />
+
 
         </div>
     );

@@ -1,8 +1,9 @@
 import api from './api';
-import { CreateActivityRequest, ActivityResponse } from '../types/activity';
+import {CreateActivityRequest, ActivityResponse, ActivitySeries} from '../types/activity';
 import { Response } from '../types/auth';
 
 export const eventAPI = {
+    ////Events
     // Get all events
     getEvents: async (): Promise<Response<ActivityResponse[]>> => {
         try {
@@ -10,12 +11,11 @@ export const eventAPI = {
             const response = await api.get('/api/activities');
             console.log('🔍 eventAPI: getEvents successful, response:', response.data);
 
-            // Backend trả về: {status: true, message: "...", body: [...]}
-            // Nhưng interface Response mong đợi: {status: true, message: "...", data: [...]}
+
             const processedResponse: Response<ActivityResponse[]> = {
                 status: response.data.status,
                 message: response.data.message,
-                data: response.data.body // Lấy data từ "body" thay vì "data"
+                data: response.data.body
             };
 
             console.log('🔍 eventAPI: Processed response:', processedResponse);
@@ -40,44 +40,29 @@ export const eventAPI = {
     // Get event by ID
     getEvent: async (id: number): Promise<Response<ActivityResponse>> => {
         try {
-            const response = await api.get(`/api/activities/${id}`);
-            // Process response format
+            const res = await api.get(`/api/activities/${id}`);
+            const raw = res.data || res;
+
+            const data = raw.body || raw.data || raw;
+
+            console.log(" [eventAPI.getEvent] Response raw:", raw);
+            console.log(" [eventAPI.getEvent] Parsed data:", data);
+
             return {
-                status: response.data.status,
-                message: response.data.message,
-                data: response.data.body || response.data.data
+                status: raw.status ?? true,
+                message: raw.message ?? "Fetched successfully",
+                data
             };
         } catch (error: any) {
-            console.error('Error fetching event:', error);
+            console.error("❌ eventAPI.getEvent failed:", error);
             throw error;
         }
     },
 
-    // Create new event
-    createEvent: async (data: CreateActivityRequest): Promise<Response<ActivityResponse>> => {
-        try {
-            console.log('🔍 eventAPI: createEvent called with data:', data);
-            console.log('🔍 eventAPI: bannerUrl in request:', data.bannerUrl);
 
-            const response = await api.post('/api/activities', data);
-            console.log('🔍 eventAPI: Backend response:', response.data);
-
-            // Process response format
-            return {
-                status: response.data.status,
-                message: response.data.message,
-                data: response.data.body || response.data.data
-            };
-        } catch (error: any) {
-            console.error('🔍 eventAPI: Error creating event:', error);
-            console.error('🔍 eventAPI: Error response:', error.response?.data);
-            // Return error response in expected format
-            return {
-                status: false,
-                message: error.response?.data?.message || 'Có lỗi xảy ra khi tạo sự kiện',
-                data: undefined
-            };
-        }
+    createEvent: async (data: CreateActivityRequest) => {
+        const res = await api.post("/api/activities", data);
+        return res.data;
     },
 
     // Update event
@@ -269,6 +254,120 @@ export const eventAPI = {
         });
         return response.data;
     },
+    ///// Series
+    /**
+     *  Tạo chuỗi
+     */
+    createSeriesEvent: async (data: Pick<any, string | number | symbol>) => {
+        try {
+            console.log("📦 POST /api/activity-series", data);
+            const res = await api.post("/api/activity-series", data);
+            console.log("✅ createSeriesEvent success:", res.data);
+            return res.data;
+        } catch (error: any) {
+            console.error("❌ createSeriesEvent failed:", {
+                message: error.message,
+                response: error.response?.data,
+                status: error.response?.status,
+            });
+            throw error;
+        }
+    },
+    /**
+     *  Xem sự kiện trong chuỗi
+     */
+    getEventsBySeries: async (seriesId: number): Promise<Response<ActivityResponse[]>> => {
+        try {
+            console.log(`📥 GET /api/activity-series/${seriesId}/events`);
+            const res = await api.get(`/api/activity-series/${seriesId}/events`);
+            const raw = res.data;
+
+            return {
+                status: raw?.status ?? true,
+                message: raw?.message ?? "Fetched successfully",
+                data: Array.isArray(raw?.body)
+                    ? raw.body
+                    : Array.isArray(raw?.data)
+                        ? raw.data
+                        : [],
+            };
+        } catch (err: any) {
+            console.error("❌ eventAPI.getEventsBySeries failed:", {
+                message: err.message,
+                response: err.response?.data,
+                status: err.response?.status,
+            });
+            return { status: false, message: "Failed to fetch events by series", data: [] };
+        }
+    },
+
+    getSeriesEvents: async (seriesId: number): Promise<Response<ActivityResponse[]>> => {
+        const res = await api.get(`/api/activity-series/${seriesId}/events`);
+        return res.data;
+    },
+
+    /**
+     *  Xóa một sự kiện khỏi chuỗi
+     */
+    deleteEventFromSeries: async (
+        seriesId: number,
+        eventId: number
+    ): Promise<Response<void>> => {
+        try {
+            console.log(`🗑️ DELETE /api/activity-series/${seriesId}/event/${eventId}`);
+            const res = await api.delete(`/api/activity-series/${seriesId}/event/${eventId}`);
+            return {
+                status: res.data.status,
+                message: res.data.message,
+                data: res.data.body || res.data.data,
+            };
+        } catch (error: any) {
+            console.error("❌ eventAPI.deleteEventFromSeries failed:", {
+                message: error.message,
+                response: error.response?.data,
+                status: error.response?.status,
+            });
+            return {
+                status: false,
+                message:
+                    error.response?.data?.message || "Không thể xóa sự kiện khỏi chuỗi",
+                data: undefined,
+            };
+        }
+    },
+
+    /**
+     *  Thêm sự kiện mới vào chuỗi
+     */
+    addEventToSeries: async (
+        seriesId: number,
+        data: CreateActivityRequest
+    ): Promise<Response<ActivityResponse>> => {
+        try {
+            console.log(`➕ POST /api/activity-series/${seriesId}/events`, data);
+            const payload = { ...data }; // seriesId truyền qua URL, không cần trong body
+            const res = await api.post(`/api/activity-series/${seriesId}/events`, payload);
+
+            return {
+                status: res.data.status,
+                message: res.data.message,
+                data: res.data.body || res.data.data,
+            };
+        } catch (error: any) {
+            console.error("❌ eventAPI.addEventToSeries failed:", {
+                message: error.message,
+                response: error.response?.data,
+                status: error.response?.status,
+            });
+            return {
+                status: false,
+                message:
+                    error.response?.data?.message || "Không thể thêm sự kiện vào chuỗi",
+                data: undefined,
+            };
+        }
+    },
+
 
     // Debug endpoint to check user info
     debugUserInfo: async (): Promise<Response<any>> => {

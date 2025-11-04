@@ -19,6 +19,12 @@ import StudentRegistrations from './pages/StudentRegistrations';
 import ManagerRegistrations from './pages/ManagerRegistrations';
 import StudentTasks from './pages/StudentTasks';
 import { Role } from './types';
+import CreateEventSeries from './pages/CreateEventSeries';
+import SelectEventTypePage from './pages/SelectEventTypePage';
+import CreateSeriesEventPage from "./pages/CreateSeriesEventPage";
+import EventSeriesView from './pages/EventSeriesView';
+import SeriesList from './pages/SeriesList';
+import SeriesDetailPage from "./pages/SeriesDetailPage";
 
 function App() {
   return (
@@ -252,8 +258,54 @@ function App() {
                 </ProtectedRoute>
               }
             />
+              <Route
+                  path="/manager/events/create-series"
+                  element={
+                      <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                          <CreateEventSeries />
+                      </ProtectedRoute>
+                  }
+              />
+              <Route
+                  path="/manager/events/select-type"
+                  element={
+                      <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                          <SelectEventTypePage />
+                      </ProtectedRoute>
+                  }
+              />
+              <Route
+                  path="/manager/events/create-series/event"
+                  element={<CreateSeriesEventPage />}
+              />
+              <Route
+                  path="/manager/event-series/:seriesId/events"
+                  element={
+                      <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                          <EventSeriesView />
+                      </ProtectedRoute>
+                  }
+              />
+              <Route
+                  path="/manager/event-series"
+                  element={
+                      <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                          <SeriesList />
+                      </ProtectedRoute>
+                  }
+              />
+              <Route
+                  path="/manager/event-series/:id"
+                  element={
+                      <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                          <SeriesDetailPage />
+                      </ProtectedRoute>
+                  }
+              />
 
-            {/* Redirect any unknown routes to home */}
+
+
+              {/* Redirect any unknown routes to home */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>

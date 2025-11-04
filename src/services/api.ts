@@ -17,6 +17,17 @@ api.interceptors.request.use(
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
+
+        // Debug for grade submission requests
+        if (config.url?.includes('/grade')) {
+            console.log('=== API REQUEST DEBUG (GRADE) ===');
+            console.log('URL:', config.url);
+            console.log('Method:', config.method);
+            console.log('Token exists:', !!token);
+            console.log('Authorization header:', config.headers.Authorization);
+            console.log('=== END REQUEST DEBUG ===');
+        }
+
         return config;
     },
     (error) => {
@@ -28,6 +39,18 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => response,
     (error) => {
+        // Debug for grade submission errors
+        if (error.config?.url?.includes('/grade')) {
+            console.log('=== API RESPONSE ERROR DEBUG (GRADE) ===');
+            console.log('Error status:', error.response?.status);
+            console.log('Error statusText:', error.response?.statusText);
+            console.log('Error data:', error.response?.data);
+            console.log('Request URL:', error.config?.url);
+            console.log('Request method:', error.config?.method);
+            console.log('Request headers:', error.config?.headers);
+            console.log('=== END ERROR DEBUG ===');
+        }
+
         if (error.response?.status === 401) {
             localStorage.removeItem('token');
             window.location.href = '/login';
@@ -39,6 +62,13 @@ api.interceptors.response.use(
 export const authAPI = {
     login: async (data: LoginRequest): Promise<Response<AuthResponse>> => {
         const response = await api.post('/api/auth/login', data);
+        const token = response.data?.body?.token || response.data?.token;
+
+        if (token) {
+            localStorage.setItem('accessToken', token);
+            console.log(" Token saved:", token);
+        }
+
         return response.data;
     },
 
@@ -52,6 +82,7 @@ export const authAPI = {
         return response.data;
     },
 };
+
 
 export const departmentAPI = {
     getAll: async (): Promise<Response<any[]>> => {

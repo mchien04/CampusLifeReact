@@ -94,13 +94,15 @@ const StudentEvents: React.FC = () => {
     };
 
     const getTypeLabel = (type: ActivityType) => {
-        const labels: Record<ActivityType, string> = {
+        const typeLabels: Record<ActivityType, string> = {
             [ActivityType.SUKIEN]: 'Sự kiện',
             [ActivityType.MINIGAME]: 'Mini Game',
+            [ActivityType.SERIES_BONUS]: 'Chuỗi sự kiện',
             [ActivityType.CONG_TAC_XA_HOI]: 'Công tác xã hội',
-            [ActivityType.CHUYEN_DE_DOANH_NGHIEP]: 'Chuyên đề doanh nghiệp'
+            [ActivityType.CHUYEN_DE_DOANH_NGHIEP]: 'Chuyên đề doanh nghiệp',
         };
-        return labels[type] || type;
+
+        return typeLabels[type] || type;
     };
 
     const getScoreTypeLabel = (scoreType: ScoreType) => {

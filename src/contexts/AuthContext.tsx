@@ -5,11 +5,12 @@ interface AuthContextType {
     isAuthenticated: boolean;
     userRole: Role | null;
     username: string | null;
-    user: { role: Role; username: string } | null;
+    user: { id: number; role: Role; username: string } | null;
     login: (token: string) => void;
     logout: () => void;
     loading: boolean;
 }
+
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -129,11 +130,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isAuthenticated,
         userRole,
         username,
-        user: userRole && username ? { role: userRole, username } : null,
+        user:
+            userRole && username
+                ? {
+                    id: 0,
+                    role: userRole,
+                    username,
+                }
+                : null,
         login,
         logout,
         loading,
     };
+
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

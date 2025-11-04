@@ -12,7 +12,7 @@ const EventList: React.FC = () => {
     const [deletingId, setDeletingId] = useState<number | null>(null);
 
     useEffect(() => {
-        // TODO: Replace with actual API call
+
         const fetchEvents = async () => {
             setLoading(true);
             console.log('🔍 EventList: fetchEvents called...');
@@ -49,20 +49,24 @@ const EventList: React.FC = () => {
         const typeLabels: Record<ActivityType, string> = {
             [ActivityType.SUKIEN]: 'Sự kiện',
             [ActivityType.MINIGAME]: 'Mini Game',
+            [ActivityType.SERIES_BONUS]: 'Chuỗi sự kiện',
             [ActivityType.CONG_TAC_XA_HOI]: 'Công tác xã hội',
-            [ActivityType.CHUYEN_DE_DOANH_NGHIEP]: 'Chuyên đề doanh nghiệp'
+            [ActivityType.CHUYEN_DE_DOANH_NGHIEP]: 'Chuyên đề doanh nghiệp',
         };
+
         return typeLabels[type] || type;
     };
 
     const getScoreTypeLabel = (scoreType: ScoreType): string => {
-        const scoreTypeLabels: Record<ScoreType, string> = {
-            [ScoreType.REN_LUYEN]: 'Điểm rèn luyện',
-            [ScoreType.CONG_TAC_XA_HOI]: 'Điểm công tác xã hội',
-            [ScoreType.CHUYEN_DE]: 'Điểm chuyên đề doanh nghiệp',
-            [ScoreType.KHAC]: 'Các loại khác'
+        const scoreLabels: Record<ScoreType, string> = {
+            [ScoreType.REN_LUYEN]: "Rèn luyện",
+            [ScoreType.CONG_TAC_XA_HOI]: "Công tác xã hội",
+            [ScoreType.CHUYEN_DE]: "Chuyên đề doanh nghiệp",
+            [ScoreType.KHAC]: "Khác",
         };
-        return scoreTypeLabels[scoreType] || scoreType;
+
+        return scoreLabels[scoreType] || scoreType;
+
     };
 
     const handleDeleteEvent = async (id: number) => {
@@ -145,6 +149,15 @@ const EventList: React.FC = () => {
                             >
                                 + Tạo sự kiện mới
                             </Link>
+                            <Link
+                                to="/manager/event-series"
+                                className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-md"
+                            >
+                                Xem chuỗi sự kiện
+                            </Link>
+
+
+
                         </div>
                     </div>
                 </div>

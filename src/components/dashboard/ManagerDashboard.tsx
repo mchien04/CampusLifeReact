@@ -13,7 +13,7 @@ const ManagerDashboard: React.FC = () => {
     ];
 
     const quickActions = [
-        { name: 'Tạo sự kiện mới', href: '/manager/events/create', icon: '➕', description: 'Tạo sự kiện hoạt động mới' },
+        { name: 'Tạo sự kiện mới', href: '/manager/events/select-type', icon: '➕', description: 'Tạo sự kiện hoạt động mới' },
         { name: 'Quản lý sự kiện', href: '/manager/events', icon: '📅', description: 'Xem và quản lý sự kiện' },
         { name: 'Quản lý đăng ký', href: '/manager/registrations', icon: '📝', description: 'Duyệt đăng ký sự kiện' },
         { name: 'Quản lý nhiệm vụ', href: '/manager/tasks', icon: '✅', description: 'Tổng quan quản lý nhiệm vụ' },

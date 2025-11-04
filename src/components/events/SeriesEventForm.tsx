@@ -1,36 +1,24 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { CreateActivityRequest, ActivityType, ScoreType } from "../../types/activity";
 import { departmentAPI } from "../../services/departmentAPI";
 import { Department } from "../../types/department";
-import MiniGameForm from "./MiniGameForm";
+import { eventAPI } from "../../services/eventAPI";
 import { minigameAPI } from "../../services/minigameAPI";
 import MiniGameConfigForm from "./MiniGameConfigForm";
 import { MiniGameConfig, MiniGameType } from "../../types/minigame";
 
-
-
-
 interface Props {
-    onSubmit: (data: CreateActivityRequest) => void;
-    onCancel?: () => void;
-    loading?: boolean;
-    title?: string;
-    initialData?: Partial<CreateActivityRequest>;
-    isSeries?: boolean;
-    seriesId?: number;
-    mandatorySeries?: boolean;
+    seriesId: number;
 }
 
-const EventForm: React.FC<Props> = ({
-                                        onSubmit,
-                                        onCancel,
-                                        loading,
-                                        title = "Tạo sự kiện mới",
-                                        initialData,
-                                        isSeries = false,
-                                        seriesId,
-                                        mandatorySeries = false,
-                                    }) => {
+const SeriesEventForm: React.FC<Props> = ({ seriesId }) => {
+    const navigate = useNavigate();
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    const [departments, setDepartments] = useState<Department[]>([]);
+    const [loadingMiniGame, setLoadingMiniGame] = useState(false);
+
     const [formData, setFormData] = useState<CreateActivityRequest>({
         name: "",
         type: ActivityType.SUKIEN,
@@ -44,7 +32,7 @@ const EventForm: React.FC<Props> = ({
         registrationStartDate: "",
         registrationDeadline: "",
         shareLink: "",
-        isImportant: mandatorySeries,
+        isImportant: false,
         bannerUrl: "",
         location: "",
         ticketQuantity: undefined,
@@ -54,23 +42,39 @@ const EventForm: React.FC<Props> = ({
         mandatoryForFacultyStudents: false,
         organizerIds: [],
     });
+
     const [miniGameConfig, setMiniGameConfig] = useState<MiniGameConfig>({
         title: "",
         description: "",
         type: MiniGameType.QUIZ,
         questionCount: 0,
+        requiredCorrectAnswers: 0,
         timeLimit: 0,
         rewardPoints: 0,
         questions: [],
     });
 
-    const [loadingMiniGame, setLoadingMiniGame] = useState(false);
+    // 🧭 Fetch danh sách đơn vị tổ chức
+    useEffect(() => {
+        const fetchDepartments = async () => {
+            try {
+                const res = await departmentAPI.getAllDepartments();
+                setDepartments(res || []);
+            } catch (error) {
+                console.error("❌ Không thể tải danh sách đơn vị tổ chức:", error);
+                setDepartments([]);
+            }
+        };
+        fetchDepartments();
+    }, []);
 
 
     const handleChange = (
-        eOrName: React.ChangeEvent<
+        eOrName:
+            | React.ChangeEvent<
             HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-            > | string,
+            >
+            | string,
         value?: any
     ) => {
         if (typeof eOrName !== "string") {
@@ -79,14 +83,11 @@ const EventForm: React.FC<Props> = ({
                 | HTMLInputElement
                 | HTMLSelectElement
                 | HTMLTextAreaElement;
-            const { name, value, type } = target;
-            const checked = (target as HTMLInputElement).checked;
-
-            if (mandatorySeries && name === "isImportant") return;
-
+            const { name, type } = target;
+            const val = type === "checkbox" ? (target as HTMLInputElement).checked : target.value;
             setFormData((prev) => ({
                 ...prev,
-                [name]: type === "checkbox" ? checked : value,
+                [name]: val,
             }));
         } else {
             setFormData((prev) => ({
@@ -95,117 +96,80 @@ const EventForm: React.FC<Props> = ({
             }));
         }
     };
-    const handleSubmitMiniGame = async (data: any) => {
-        try {
-            const res = await minigameAPI.createMiniGame(data);
-            alert("Tạo minigame thành công!");
-            console.log("MiniGame:", res);
-        } catch (err) {
-            console.error(err);
-            alert("Lỗi khi tạo MiniGame!");
-        }
-    };
+
+    // 🧭 Submit handler
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setLoading(true);
+        setError("");
 
         const payload = {
             ...formData,
-            seriesId: isSeries ? seriesId : undefined,
+            seriesId,
             ...(formData.type === ActivityType.MINIGAME ? { miniGameConfig } : {}),
         };
 
-        await onSubmit(payload);
-
-
-        if (formData.type === ActivityType.MINIGAME && (initialData as any)?.id) {
-            try {
-                const activityId = (initialData as any)?.id || formData.id || seriesId;
-                if (!activityId) {
-                    console.warn("️ Không có activityId để cập nhật MiniGame");
-                    return;
-                }
-
-                console.log(" PUT cập nhật MiniGame:", activityId, miniGameConfig);
-                const res = await minigameAPI.updateByActivity(activityId, miniGameConfig);
-                console.log(" PUT MiniGame thành công:", res);
-
-                const latest = await minigameAPI.getByActivity(activityId);
-                setMiniGameConfig(latest?.body || latest);
-
-            } catch (err) {
-                console.error(" Lỗi khi cập nhật MiniGame:", err);
-            }
-        }
-
-    };
+        try {
+            console.log("📦 Payload gửi BE:", payload);
+            const response = await eventAPI.addEventToSeries(seriesId, payload);
 
 
 
-    const [departments, setDepartments] = useState<Department[]>([]);
 
-    useEffect(() => {
-        const fetchDepartments = async () => {
-            try {
-                const res = await departmentAPI.getAllDepartments();
-                setDepartments(res || []);
-            } catch (error) {
-                console.error("Không thể tải danh sách đơn vị tổ chức:", error);
-                setDepartments([]);
-            }
-        };
-        fetchDepartments();
-    }, []);
-    useEffect(() => {
-        if (initialData) {
-            console.log("🧩 EventForm nhận initialData:", initialData);
-            setFormData((prev) => ({
-                ...prev,
-                ...initialData,
-                startDate: formatDateForInput(initialData.startDate),
-                endDate: formatDateForInput(initialData.endDate),
-                registrationStartDate: formatDateForInput(initialData.registrationStartDate),
-                registrationDeadline: formatDateForInput(initialData.registrationDeadline),
-            }));
+            if (response.status) {
+                alert(`✅ Sự kiện trong chuỗi #${seriesId} đã được tạo thành công!`);
 
-        }
-    }, [initialData]);
-    useEffect(() => {
-        const fetchMiniGame = async () => {
-            const activityId = (initialData as any)?.id;
-            if (formData.type !== ActivityType.MINIGAME || !activityId) return;
-
-            setLoadingMiniGame(true);
-            try {
-                const res = await minigameAPI.getByActivity(activityId);
-                console.log(" Response:", res);
-
-                const data = res?.body || res?.data?.body || res;
-
-                if (data) {
-                    console.log(" MiniGame data:", data);
-                    setMiniGameConfig({
-                        title: data.title || "",
-                        description: data.description || "",
-                        questionCount: data.questionCount ?? 0,
-                        requiredCorrectAnswers: data.requiredCorrectAnswers ?? 0,
-                        rewardPoints: data.rewardPoints ?? 0,
-                        timeLimit: data.timeLimit ?? 0,
-                        questions: data.questions || [],
-                    } as MiniGameConfig);
-
+                if (formData.type === ActivityType.MINIGAME) {
+                    alert("🎮 Tạo MiniGame thành công! Bạn có thể thêm câu hỏi Quiz.");
                 } else {
-                    console.warn("️ MiniGame không có dữ liệu hợp lệ:", res);
+                    navigate("/manager/events");
                 }
-            } catch (err) {
-                console.error(" Lỗi tải MiniGame:", err);
-            } finally {
-                setLoadingMiniGame(false);
+
+                // Reset form
+                setFormData({
+                    name: "",
+                    type: ActivityType.SUKIEN,
+                    scoreType: ScoreType.REN_LUYEN,
+                    description: "",
+                    startDate: "",
+                    endDate: "",
+                    requiresSubmission: false,
+                    maxPoints: "",
+                    penaltyPointsIncomplete: "",
+                    registrationStartDate: "",
+                    registrationDeadline: "",
+                    shareLink: "",
+                    isImportant: false,
+                    bannerUrl: "",
+                    location: "",
+                    ticketQuantity: undefined,
+                    benefits: "",
+                    requirements: "",
+                    contactInfo: "",
+                    mandatoryForFacultyStudents: false,
+                    organizerIds: [],
+                });
+
+                setMiniGameConfig({
+                    title: "",
+                    description: "",
+                    type: MiniGameType.QUIZ,
+                    questionCount: 0,
+                    requiredCorrectAnswers: 0,
+                    timeLimit: 0,
+                    rewardPoints: 0,
+                    questions: [],
+                });
+            } else {
+                setError(response.message || "Có lỗi xảy ra khi tạo sự kiện.");
             }
-        };
-
-        fetchMiniGame();
-    }, [formData.type, (initialData as any)?.id]);
-
+        } catch (err: any) {
+            console.error("❌ Lỗi khi tạo sự kiện thuộc chuỗi:", err);
+            setError(err.message || "Không thể tạo sự kiện, vui lòng thử lại!");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const formatDateForInput = (dateStr?: string) => {
         if (!dateStr) return "";
@@ -219,15 +183,21 @@ const EventForm: React.FC<Props> = ({
 
     return (
         <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-6">{title || "Tạo sự kiện"}</h2>
+            <h2 className="text-xl font-semibold mb-6">
+                Tạo sự kiện thuộc chuỗi #{seriesId}
+            </h2>
+
+            {error && (
+                <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
+                    <p className="text-red-700 text-sm">{error}</p>
+                </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-                {/* ===== Thông tin chung ===== */}
+                {/* Thông tin chung */}
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium mb-1">
-                            Tên sự kiện *
-                        </label>
+                        <label className="block text-sm font-medium mb-1">Tên sự kiện *</label>
                         <input
                             name="name"
                             type="text"
@@ -237,7 +207,6 @@ const EventForm: React.FC<Props> = ({
                             required
                         />
                     </div>
-
                     <div>
                         <label className="block text-sm font-medium mb-1">Địa điểm</label>
                         <input
@@ -250,12 +219,10 @@ const EventForm: React.FC<Props> = ({
                     </div>
                 </div>
 
-                {/* Loại hoạt động */}
+                {/* Loại hoạt động & điểm */}
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium mb-1">
-                            Loại hoạt động *
-                        </label>
+                        <label className="block text-sm font-medium mb-1">Loại hoạt động *</label>
                         <select
                             name="type"
                             className="w-full border rounded p-2"
@@ -264,19 +231,14 @@ const EventForm: React.FC<Props> = ({
                         >
                             <option value={ActivityType.SUKIEN}>Sự kiện</option>
                             <option value={ActivityType.MINIGAME}>Mini Game</option>
-                            <option value={ActivityType.CONG_TAC_XA_HOI}>
-                                Công tác xã hội (CTXH)
-                            </option>
+                            <option value={ActivityType.CONG_TAC_XA_HOI}>Công tác xã hội</option>
                             <option value={ActivityType.CHUYEN_DE_DOANH_NGHIEP}>
                                 Chuyên đề doanh nghiệp
                             </option>
                         </select>
                     </div>
-
                     <div>
-                        <label className="block text-sm font-medium mb-1">
-                            Loại điểm *
-                        </label>
+                        <label className="block text-sm font-medium mb-1">Loại điểm *</label>
                         <select
                             name="scoreType"
                             className="w-full border rounded p-2"
@@ -284,14 +246,36 @@ const EventForm: React.FC<Props> = ({
                             onChange={handleChange}
                         >
                             <option value={ScoreType.REN_LUYEN}>Điểm rèn luyện</option>
-                            <option value={ScoreType.CONG_TAC_XA_HOI}>
-                                Công tác xã hội (CTXH)
-                            </option>
+                            <option value={ScoreType.CONG_TAC_XA_HOI}>Công tác xã hội</option>
                             <option value={ScoreType.CHUYEN_DE}>Chuyên đề doanh nghiệp</option>
                         </select>
                     </div>
                 </div>
 
+                {/* MiniGame Config */}
+                {formData.type === ActivityType.MINIGAME && (
+                    <div className="mt-8 border-t pt-6">
+                        {loadingMiniGame ? (
+                            <p className="text-gray-500">Đang tải MiniGame...</p>
+                        ) : (
+                            <>
+                                {miniGameConfig ? (
+                                    <>
+                                        <MiniGameConfigForm
+                                            value={miniGameConfig}
+                                            onChange={setMiniGameConfig}
+                                        />
+                                    </>
+                                ) : (
+                                    <p className="text-red-500 text-sm">Không tìm thấy cấu hình MiniGame.</p>
+                                )}
+                            </>
+                        )}
+                    </div>
+                )}
+
+
+                {/* Ban tổ chức */}
                 <div>
                     <label className="block text-sm font-medium mb-1">Ban tổ chức</label>
                     <select
@@ -314,6 +298,7 @@ const EventForm: React.FC<Props> = ({
                     </select>
                 </div>
 
+                {/* Mô tả */}
                 <div>
                     <label className="block text-sm font-medium mb-1">Mô tả</label>
                     <textarea
@@ -328,9 +313,7 @@ const EventForm: React.FC<Props> = ({
                 {/* Ngày bắt đầu & kết thúc */}
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium mb-1">
-                            Ngày bắt đầu *
-                        </label>
+                        <label className="block text-sm font-medium mb-1">Ngày bắt đầu *</label>
                         <input
                             name="startDate"
                             type="datetime-local"
@@ -341,9 +324,7 @@ const EventForm: React.FC<Props> = ({
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">
-                            Ngày kết thúc *
-                        </label>
+                        <label className="block text-sm font-medium mb-1">Ngày kết thúc *</label>
                         <input
                             name="endDate"
                             type="datetime-local"
@@ -524,38 +505,16 @@ const EventForm: React.FC<Props> = ({
                         <span>Bắt buộc cho sinh viên khoa</span>
                     </label>
                 </div>
-                {formData.type === ActivityType.MINIGAME && (
-                    <div className="mt-8 border-t pt-6">
-                        {loadingMiniGame ? (
-                            <p className="text-gray-500">Đang tải MiniGame...</p>
-                        ) : (
-                            <>
-                                {miniGameConfig ? (
-                                    <>
-                                        <MiniGameConfigForm
-                                            value={miniGameConfig}
-                                            onChange={setMiniGameConfig}
-                                        />
-                                    </>
-                                ) : (
-                                    <p className="text-red-500 text-sm">Không tìm thấy cấu hình MiniGame.</p>
-                                )}
-                            </>
-                        )}
-                    </div>
-                )}
 
-                {/* Buttons */}
+                {/* Submit */}
                 <div className="flex justify-end space-x-3 pt-6 border-t mt-6">
-                    {onCancel && (
-                        <button
-                            type="button"
-                            className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md"
-                            onClick={onCancel}
-                        >
-                            Hủy
-                        </button>
-                    )}
+                    <button
+                        type="button"
+                        onClick={() => navigate("/manager/events")}
+                        className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md"
+                    >
+                        Hủy
+                    </button>
                     <button
                         type="submit"
                         disabled={loading}
@@ -563,15 +522,10 @@ const EventForm: React.FC<Props> = ({
                     >
                         {loading ? "Đang lưu..." : "Lưu"}
                     </button>
-
-
                 </div>
             </form>
-
-
-
         </div>
     );
 };
 
-export default EventForm;
+export default SeriesEventForm;

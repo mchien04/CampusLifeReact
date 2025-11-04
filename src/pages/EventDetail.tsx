@@ -13,12 +13,16 @@ import { submissionAPI } from '../services/submissionAPI';
 import { TaskAssignmentModal } from '../components/task/TaskAssignmentModal';
 import { RegistrationForm, ParticipationForm } from '../components/registration';
 import { useAuth } from '../contexts/AuthContext';
+import { EventRatingSection } from '../components/rating/EventRatingSection';
+import { minigameAPI } from "../services/minigameAPI";
+import { MiniGameConfig } from "../types/minigame";
 
 const EventDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
-    const { user } = useAuth();
+
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const { user } = useAuth();
     const [event, setEvent] = useState<ActivityResponse | null>(null);
     const [tasks, setTasks] = useState<ActivityTaskResponse[]>([]);
     const [loadingTasks, setLoadingTasks] = useState(false);
@@ -31,6 +35,7 @@ const EventDetail: React.FC = () => {
     const [loadingAssignments, setLoadingAssignments] = useState(false);
     const [showSubmissionDetailsModal, setShowSubmissionDetailsModal] = useState(false);
     const [selectedTaskForSubmission, setSelectedTaskForSubmission] = useState<ActivityTaskResponse | null>(null);
+
 
     // Registration states
     const [registrationStatus, setRegistrationStatus] = useState<{ status: RegistrationStatus; registrationId?: number } | null>(null);
@@ -87,6 +92,23 @@ const EventDetail: React.FC = () => {
             loadTasks();
         }
     }, [event]);
+    //minigame
+    const [miniGame, setMiniGame] = useState<MiniGameConfig | null>(null);
+
+    useEffect(() => {
+        const fetchMiniGame = async () => {
+            if (!event || event.type !== ActivityType.MINIGAME) return;
+            try {
+                const res = await minigameAPI.getByActivity(event.id);
+                const data = res?.body || res;
+                if (data) setMiniGame(data);
+            } catch (err) {
+                console.error("❌ Lỗi tải MiniGame:", err);
+            }
+        };
+        fetchMiniGame();
+    }, [event]);
+
 
     const loadTasks = async () => {
         if (!event) return;
@@ -324,9 +346,11 @@ const EventDetail: React.FC = () => {
         const typeLabels: Record<ActivityType, string> = {
             [ActivityType.SUKIEN]: 'Sự kiện',
             [ActivityType.MINIGAME]: 'Mini Game',
+            [ActivityType.SERIES_BONUS]: 'Chuỗi sự kiện',
             [ActivityType.CONG_TAC_XA_HOI]: 'Công tác xã hội',
-            [ActivityType.CHUYEN_DE_DOANH_NGHIEP]: 'Chuyên đề doanh nghiệp'
+            [ActivityType.CHUYEN_DE_DOANH_NGHIEP]: 'Chuyên đề doanh nghiệp',
         };
+
         return typeLabels[type] || type;
     };
 
@@ -629,8 +653,52 @@ const EventDetail: React.FC = () => {
                                 </div>
                             </div>
                         </div>
+                        {/* MiniGame Section */}
+                        {event.type === ActivityType.MINIGAME && miniGame && (
+                            <div className="mt-8 border-t border-gray-200 pt-6">
+                                <h3 className="text-xl font-semibold text-indigo-700 mb-4">
+                                    🎮 MiniGame: {miniGame.title}
+                                </h3>
+
+                                <p className="text-gray-700 mb-3">{miniGame.description}</p>
+
+                                <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
+                                    <p><span className="font-medium">Số câu hỏi:</span> {miniGame.questionCount}</p>
+                                    <p><span className="font-medium">Số câu cần đúng:</span> {miniGame.requiredCorrectAnswers}</p>
+                                    <p><span className="font-medium">Điểm thưởng:</span> {miniGame.rewardPoints}</p>
+                                    <p><span className="font-medium">Thời gian giới hạn:</span> {miniGame.timeLimit} giây</p>
+                                </div>
+
+                                {miniGame.questions && miniGame.questions.length > 0 && (
+                                    <div>
+                                        <h4 className="text-lg font-semibold text-gray-800 mb-3">Danh sách câu hỏi</h4>
+                                        {miniGame.questions.map((q, i) => (
+                                            <div key={i} className="border rounded p-3 mb-4 bg-gray-50">
+                                                <p className="font-medium mb-2">
+                                                    Câu {i + 1}: {q.questionText}
+                                                </p>
+                                                <ul className="list-disc list-inside">
+                                                    {q.options?.map((opt, j) => (
+                                                        <li
+                                                            key={j}
+                                                            className={`${
+                                                                opt.correct ? "text-green-600 font-semibold" : "text-gray-700"
+                                                            }`}
+                                                        >
+                                                            {opt.text}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                     </div>
                 </div>
+
 
                 {/* Student Registration Section */}
                 {user && user.role === 'STUDENT' && (
@@ -855,6 +923,9 @@ const EventDetail: React.FC = () => {
                     }}
                 />
             )}
+            {event && <EventRatingSection activityId={event.id} />}
+
+
 
             {/* Registration Form Modal */}
             {showRegistrationForm && event && (

@@ -1,9 +1,32 @@
-
-
 import { Department } from './admin';
 import { User } from './auth';
+import { MiniGameConfig } from "./minigame";
+
+export enum ActivityType {
+    SUKIEN = "SUKIEN",
+    MINIGAME = "MINIGAME",
+    SERIES_BONUS = "SERIES_BONUS",
+    CONG_TAC_XA_HOI = "CONG_TAC_XA_HOI",
+    CHUYEN_DE_DOANH_NGHIEP = "CHUYEN_DE_DOANH_NGHIEP",
+}
+
+export enum ScoreType {
+    REN_LUYEN = "REN_LUYEN",
+    CONG_TAC_XA_HOI = "CONG_TAC_XA_HOI",
+    CHUYEN_DE = "CHUYEN_DE",
+    KHAC = "KHAC",
+}
+
+export interface SeriesConfig {
+    requiredParticipationCount: number;
+    bonusPoints: number;
+}
+
+
 
 export interface CreateActivityRequest {
+
+    id?: number;
     name: string;
     type: ActivityType;
     scoreType: ScoreType;
@@ -11,14 +34,44 @@ export interface CreateActivityRequest {
     startDate: string;
     endDate: string;
     requiresSubmission: boolean;
-    maxPoints?: string; // Changed to string to match BigDecimal
-    penaltyPointsIncomplete?: string; // Changed to string to match BigDecimal
+    maxPoints?: string;
+    penaltyPointsIncomplete?: string;
+    registrationStartDate?: string;
+    registrationDeadline?: string;
+    shareLink?: string;
+    isImportant?: boolean;
+    bannerUrl?: string;
+    location?: string;
+    ticketQuantity?: number;
+    benefits?: string;
+    requirements?: string;
+    contactInfo?: string;
+    mandatoryForFacultyStudents?: boolean;
+    organizerIds?: number[];
+    requiredCorrectAnswers?:number;
+    miniGameConfig?: any;
+    miniGameTitle?: string;
+    miniGameDescription?: string;
+    miniGameQuestionCount?: number;
+    miniGameTimeLimit?: number;
+    miniGameRewardPoints?: number;
+}
+export interface ActivityResponse {
+    id: number;
+    name: string;
+    type: ActivityType;
+    scoreType: ScoreType;
+    description?: string;
+    startDate: string;
+    endDate: string;
+    requiresSubmission: boolean;
+    maxPoints?: string;
+    penaltyPointsIncomplete?: string;
     registrationStartDate?: string;
     registrationDeadline?: string;
     shareLink?: string;
     isImportant: boolean;
     bannerUrl?: string;
-    bannerFile?: File; // Add support for file upload
     location: string;
     ticketQuantity?: number;
     benefits?: string;
@@ -26,9 +79,14 @@ export interface CreateActivityRequest {
     contactInfo?: string;
     mandatoryForFacultyStudents: boolean;
     organizerIds: number[];
+    status?: string;
+    participantCount?: number;
+    createdAt: string;
+    updatedAt: string;
+    createdBy?: string;
+    lastModifiedBy?: string;
 }
 
-// New Activity interface matching backend
 export interface Activity {
     id: number;
     name: string;
@@ -51,49 +109,17 @@ export interface Activity {
     createdAt: string;
     updatedAt: string;
 }
-
-export interface ActivityResponse {
+export interface ActivitySeries {
     id: number;
     name: string;
-    type: ActivityType;
-    scoreType: ScoreType;
     description?: string;
-    startDate: string;
-    endDate: string;
-    requiresSubmission: boolean;
-    maxPoints?: string; // Changed to string to match BigDecimal
-    penaltyPointsIncomplete?: string; // Changed to string to match BigDecimal
-    registrationStartDate?: string;
-    registrationDeadline?: string;
-    shareLink?: string;
-    isImportant: boolean;
-    bannerUrl?: string;
-    location: string;
-    ticketQuantity?: number;
-    benefits?: string;
-    requirements?: string;
-    contactInfo?: string;
-    mandatoryForFacultyStudents: boolean;
-    organizerIds: number[];
-    status?: string;
-    participantCount?: number;
-    createdAt: string;
-    updatedAt: string;
-    createdBy?: string;
-    lastModifiedBy?: string;
-}
-
-export enum ActivityType {
-    SUKIEN = 'SUKIEN',
-    MINIGAME = 'MINIGAME',
-    CONG_TAC_XA_HOI = 'CONG_TAC_XA_HOI',
-    CHUYEN_DE_DOANH_NGHIEP = 'CHUYEN_DE_DOANH_NGHIEP'
-}
-
-export enum ScoreType {
-    REN_LUYEN = 'REN_LUYEN',
-    CONG_TAC_XA_HOI = 'CONG_TAC_XA_HOI',
-    CHUYEN_DE = 'CHUYEN_DE',
-    KHAC = 'KHAC'
+    totalActivities?: number;
+    requiredParticipationCount?: number;
+    bonusPoints?: number;
+    startDate?: string;
+    endDate?: string;
+    mandatory?: boolean;
+    createdAt?: string;
+    updatedAt?: string;
 }
 
