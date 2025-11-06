@@ -30,6 +30,7 @@ export interface TaskSubmissionResponse {
     fileUrls: string[];
     // Grading
     score: number | null;
+    isCompleted: boolean | null;
     feedback: string | null;
     graderId: number | null;
     graderUsername: string | null;

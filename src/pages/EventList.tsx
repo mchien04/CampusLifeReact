@@ -233,9 +233,16 @@ const EventList: React.FC = () => {
                                     <div className="p-6 flex flex-col flex-grow">
                                         <div className="flex items-start justify-between mb-3">
                                             <div className="flex-1">
-                                                <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-2">
-                                                    {event.name}
-                                                </h3>
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
+                                                        {event.name}
+                                                    </h3>
+                                                    {event.isDraft && (
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-300">
+                                                            📝 Nháp
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <div className="flex flex-wrap gap-1">
                                                     <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(event.status)}`}>
                                                         {getTypeLabel(event.type)}
@@ -299,6 +306,24 @@ const EventList: React.FC = () => {
                                                 className="flex-1 bg-gray-600 hover:bg-gray-700 text-white text-center py-2 px-3 rounded-md text-sm font-medium"
                                             >
                                                 Chỉnh sửa
+                                            </Link>
+                                            <Link
+                                                to={`/manager/events/${event.id}`}
+                                                onClick={async (e) => {
+                                                    e.preventDefault();
+                                                    const val = window.prompt('Nhập số ngày dịch (có thể bỏ trống):', '0');
+                                                    const offset = val === null || val.trim() === '' ? undefined : Number(val);
+                                                    const res = await eventAPI.copyActivity(event.id, isNaN(offset as any) ? undefined : offset);
+                                                    if (res.status && res.data) {
+                                                        alert('Đã tạo bản sao');
+                                                        window.location.href = `/manager/events/${res.data.id}`;
+                                                    } else {
+                                                        alert(res.message || 'Không thể sao chép');
+                                                    }
+                                                }}
+                                                className="flex-1 bg-white border text-gray-700 hover:bg-gray-50 text-center py-2 px-3 rounded-md text-sm font-medium"
+                                            >
+                                                Sao chép
                                             </Link>
                                             <button
                                                 onClick={() => handleDeleteEvent(event.id)}

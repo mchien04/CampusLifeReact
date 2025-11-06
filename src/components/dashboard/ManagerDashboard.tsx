@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { eventAPI } from '../../services/eventAPI';
 import { ActivityResponse } from '../../types/activity';
+import { NotificationDropdown } from '../notification/NotificationDropdown';
 
 const ManagerDashboard: React.FC = () => {
     const { username, logout } = useAuth();
@@ -20,7 +21,7 @@ const ManagerDashboard: React.FC = () => {
         { name: 'Tạo sự kiện mới', href: '/manager/events/create', icon: '➕', description: 'Tạo sự kiện hoạt động mới' },
         { name: 'Quản lý sự kiện', href: '/manager/events', icon: '📅', description: 'Xem và quản lý sự kiện' },
         { name: 'Quản lý đăng ký', href: '/manager/registrations', icon: '📝', description: 'Duyệt đăng ký sự kiện' },
-        { name: 'Chấm rèn luyện (theo tiêu chí)', href: '/tools/training-score', icon: '🧮', description: 'Tính điểm RL theo tiêu chí' },
+        { name: 'Điểm sinh viên', href: '/manager/scores', icon: '📊', description: 'Xem và sắp xếp theo điểm' },
         { name: 'Báo cáo hoạt động', href: '/manager/reports', icon: '📈', description: 'Xem báo cáo thống kê' },
     ];
 
@@ -82,12 +83,15 @@ const ManagerDashboard: React.FC = () => {
                             <h1 className="text-3xl font-bold text-gray-900">Manager Dashboard</h1>
                             <p className="text-gray-600">Chào mừng, {username}</p>
                         </div>
-                        <button
-                            onClick={logout}
-                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                        >
-                            Đăng xuất
-                        </button>
+                        <div className="flex items-center space-x-4">
+                            <NotificationDropdown />
+                            <button
+                                onClick={logout}
+                                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                            >
+                                Đăng xuất
+                            </button>
+                        </div>
                     </div>
                 </div>
             </header>

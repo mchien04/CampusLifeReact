@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { NotificationDropdown } from '../notification/NotificationDropdown';
 
 const AdminDashboard: React.FC = () => {
     const { username, logout } = useAuth();
@@ -17,7 +18,6 @@ const AdminDashboard: React.FC = () => {
         { name: 'Quản lý lớp học', href: '/admin/classes', icon: '🏫', description: 'Quản lý lớp học và sinh viên' },
         { name: 'Quản lý năm học', href: '/admin/academic-years', icon: '📚', description: 'Quản lý năm học và học kỳ' },
         { name: 'Quản lý phòng ban', href: '/admin/departments', icon: '🏢', description: 'Quản lý khoa và phòng ban' },
-        { name: 'Quản lý tiêu chí', href: '/admin/criteria', icon: '📊', description: 'Quản lý tiêu chí đánh giá' },
         { name: 'Quản lý sinh viên', href: '/admin/students', icon: '🎓', description: 'Quản lý thông tin sinh viên' },
         { name: 'Báo cáo thống kê', href: '/admin/reports', icon: '📈', description: 'Xem báo cáo và thống kê hệ thống' },
     ];
@@ -34,12 +34,15 @@ const AdminDashboard: React.FC = () => {
                                 Chào mừng, {username}! Quản lý hệ thống Campus Life
                             </p>
                         </div>
-                        <button
-                            onClick={logout}
-                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                        >
-                            Đăng xuất
-                        </button>
+                        <div className="flex items-center space-x-4">
+                            <NotificationDropdown />
+                            <button
+                                onClick={logout}
+                                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                            >
+                                Đăng xuất
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

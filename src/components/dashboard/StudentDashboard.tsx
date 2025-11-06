@@ -5,6 +5,7 @@ import { eventAPI } from '../../services/eventAPI';
 import { registrationAPI } from '../../services/registrationAPI';
 import { ActivityResponse } from '../../types';
 import { RegistrationStatus } from '../../types/registration';
+import { NotificationDropdown } from '../notification/NotificationDropdown';
 
 const StudentDashboard: React.FC = () => {
     const { username, logout } = useAuth();
@@ -60,8 +61,10 @@ const StudentDashboard: React.FC = () => {
 
         for (const event of events) {
             try {
-                const status = await registrationAPI.checkRegistrationStatus(event.id);
-                statusMap.set(event.id, status.status);
+                const registration = await registrationAPI.checkRegistrationStatus(event.id);
+                if (registration) {
+                    statusMap.set(event.id, registration.status);
+                }
             } catch (err) {
                 console.error(`Error checking registration status for event ${event.id}:`, err);
             }
@@ -102,12 +105,15 @@ const StudentDashboard: React.FC = () => {
                             <h1 className="text-3xl font-bold text-gray-900">Student Dashboard</h1>
                             <p className="text-gray-600">Chào mừng, {username}</p>
                         </div>
-                        <button
-                            onClick={logout}
-                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                        >
-                            Đăng xuất
-                        </button>
+                        <div className="flex items-center space-x-4">
+                            <NotificationDropdown />
+                            <button
+                                onClick={logout}
+                                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                            >
+                                Đăng xuất
+                            </button>
+                        </div>
                     </div>
                 </div>
             </header>

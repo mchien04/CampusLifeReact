@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { eventAPI } from '../services/eventAPI';
@@ -11,7 +12,7 @@ import { getSubmissionStatusColor, getSubmissionStatusLabel } from '../utils/sub
 import { ActivityResponse, ActivityType, ScoreType } from '../types';
 import { ActivityTaskResponse, TaskAssignmentResponse } from '../types/task';
 import { TaskSubmissionResponse } from '../types/submission';
-import { RegistrationStatus, ParticipationType } from '../types/registration';
+import { RegistrationStatus, ParticipationType, ActivityRegistrationResponse } from '../types/registration';
 import { LoadingSpinner } from '../components/common';
 
 const StudentEventDetail: React.FC = () => {
@@ -21,7 +22,7 @@ const StudentEventDetail: React.FC = () => {
     const [event, setEvent] = useState<ActivityResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [registrationStatus, setRegistrationStatus] = useState<RegistrationStatus | null>(null);
+    const [registration, setRegistration] = useState<ActivityRegistrationResponse | null>(null);
     const [showRegistrationForm, setShowRegistrationForm] = useState(false);
     const [feedback, setFeedback] = useState('');
 
@@ -88,10 +89,11 @@ const StudentEventDetail: React.FC = () => {
 
     const checkRegistrationStatus = async (eventId: number) => {
         try {
-            const status = await registrationAPI.checkRegistrationStatus(eventId);
-            setRegistrationStatus(status.status);
+            const registrationData = await registrationAPI.checkRegistrationStatus(eventId);
+            setRegistration(registrationData);
         } catch (err) {
             console.error('Error checking registration status:', err);
+            setRegistration(null);
         }
     };
 
@@ -111,9 +113,15 @@ const StudentEventDetail: React.FC = () => {
             console.log('Registration response:', response);
 
             if (response) {
-                setRegistrationStatus(RegistrationStatus.PENDING);
+                // Store full registration response which includes ticketCode
+                setRegistration(response);
                 setShowRegistrationForm(false);
-                alert('Đăng ký thành công! Vui lòng chờ phê duyệt.');
+
+                if (response.status === RegistrationStatus.APPROVED) {
+                    alert('Đăng ký thành công! Bạn đã được duyệt tự động.');
+                } else {
+                    alert('Đăng ký thành công! Vui lòng chờ phê duyệt.');
+                }
             }
         } catch (err: any) {
             console.error('Registration error details:', err);
@@ -137,7 +145,7 @@ const StudentEventDetail: React.FC = () => {
 
         try {
             await registrationAPI.cancelRegistration(event.id);
-            setRegistrationStatus(RegistrationStatus.CANCELLED);
+            setRegistration(null);
             alert('Hủy đăng ký thành công!');
         } catch (err: any) {
             alert('Có lỗi xảy ra khi hủy đăng ký: ' + (err.response?.data?.message || err.message));
@@ -204,20 +212,20 @@ const StudentEventDetail: React.FC = () => {
     const canRegister = () => {
         if (!event) return false;
         const eventStatus = getEventStatus();
-        return eventStatus === 'UPCOMING' && !registrationStatus;
+        return eventStatus === 'UPCOMING' && !registration;
     };
 
     const canCancel = () => {
         if (!event) return false;
         const eventStatus = getEventStatus();
         return eventStatus === 'UPCOMING' &&
-            registrationStatus === RegistrationStatus.PENDING;
+            registration?.status === RegistrationStatus.PENDING;
     };
 
     const canRecordParticipation = () => {
         if (!event) return false;
         const eventStatus = getEventStatus();
-        return eventStatus === 'ONGOING' && registrationStatus === RegistrationStatus.APPROVED;
+        return eventStatus === 'ONGOING' && registration?.status === RegistrationStatus.APPROVED;
     };
 
     const openSubmissionModal = async (task: TaskAssignmentResponse) => {
@@ -363,9 +371,9 @@ const StudentEventDetail: React.FC = () => {
                                             {eventStatus === 'UPCOMING' ? 'Sắp diễn ra' :
                                                 eventStatus === 'ONGOING' ? 'Đang diễn ra' : 'Đã kết thúc'}
                                         </span>
-                                        {registrationStatus && (
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(registrationStatus)}`}>
-                                                {getStatusLabel(registrationStatus)}
+                                        {registration && (
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(registration.status)}`}>
+                                                {getStatusLabel(registration.status)}
                                             </span>
                                         )}
                                     </div>
@@ -392,13 +400,27 @@ const StudentEventDetail: React.FC = () => {
                                     <div className="flex items-center text-sm text-gray-500">
                                         <span className="mr-2">📅</span>
                                         <span>
-                                            {new Date(event.startDate).toLocaleDateString('vi-VN')} - {new Date(event.endDate).toLocaleDateString('vi-VN')}
+                                            {new Date(event.startDate).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                            {' '}–{' '}
+                                            {new Date(event.endDate).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                                         </span>
                                     </div>
                                     <div className="flex items-center text-sm text-gray-500">
                                         <span className="mr-2">📍</span>
                                         <span>{event.location}</span>
                                     </div>
+                                    {event.registrationStartDate && (
+                                        <div className="flex items-center text-sm text-gray-500">
+                                            <span className="mr-2">🚀</span>
+                                            <span>Mở đăng ký: {new Date(event.registrationStartDate).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                                        </div>
+                                    )}
+                                    {event.registrationDeadline && (
+                                        <div className="flex items-center text-sm text-gray-500">
+                                            <span className="mr-2">⏰</span>
+                                            <span>Hạn đăng ký: {new Date(event.registrationDeadline).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                                        </div>
+                                    )}
                                     <div className="flex items-center text-sm text-gray-500">
                                         <span className="mr-2">🏷️</span>
                                         <span>{getTypeLabel(event.type)}</span>
@@ -409,19 +431,47 @@ const StudentEventDetail: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {event.ticketQuantity && (
-                                    <div className="text-sm text-gray-500 mb-2">
-                                        <span className="mr-2">🎫</span>
-                                        <span>Số lượng vé: {event.ticketQuantity}</span>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                    {event.maxPoints && parseFloat(event.maxPoints) > 0 && (
+                                        <div className="flex items-center text-sm text-gray-500">
+                                            <span className="mr-2">🏆</span>
+                                            <span>Điểm tối đa: {event.maxPoints}</span>
+                                        </div>
+                                    )}
+                                    {event.penaltyPointsIncomplete && parseFloat(event.penaltyPointsIncomplete) > 0 && (
+                                        <div className="flex items-center text-sm text-red-600">
+                                            <span className="mr-2">⚠️</span>
+                                            <span>Điểm trừ khi không hoàn thành: {event.penaltyPointsIncomplete}</span>
+                                        </div>
+                                    )}
+                                    {event.ticketQuantity && event.ticketQuantity > 0 ? (
+                                        <div className="flex items-center text-sm text-gray-500">
+                                            <span className="mr-2">🎫</span>
+                                            <span>Số lượng vé: {event.ticketQuantity}</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center text-sm text-gray-500">
+                                            <span className="mr-2">🎫</span>
+                                            <span>Số lượng vé: Không giới hạn</span>
+                                        </div>
+                                    )}
+                                    {event.isImportant && (
+                                        <div className="flex items-center text-sm text-yellow-600">
+                                            <span className="mr-2">⭐</span>
+                                            <span>Sự kiện quan trọng</span>
+                                        </div>
+                                    )}
+                                    {event.mandatoryForFacultyStudents && (
+                                        <div className="flex items-center text-sm text-orange-600">
+                                            <span className="mr-2">⚠️</span>
+                                            <span>Bắt buộc cho sinh viên khoa</span>
+                                        </div>
+                                    )}
+                                    <div className="flex items-center text-sm text-gray-500">
+                                        <span className="mr-2">📝</span>
+                                        <span>Đăng ký {event.requiresApproval ? 'cần duyệt' : 'tự duyệt (auto-approve)'}</span>
                                     </div>
-                                )}
-
-                                {event.mandatoryForFacultyStudents && (
-                                    <div className="text-sm text-orange-600 mb-2">
-                                        <span className="mr-2">⚠️</span>
-                                        <span>Bắt buộc cho sinh viên khoa</span>
-                                    </div>
-                                )}
+                                </div>
 
                                 {event.benefits && (
                                     <div className="mb-4">
@@ -469,7 +519,7 @@ const StudentEventDetail: React.FC = () => {
                                         </button>
                                     )}
 
-                                    {registrationStatus === RegistrationStatus.APPROVED && getEventStatus() === 'UPCOMING' && (
+                                    {registration?.status === RegistrationStatus.APPROVED && getEventStatus() === 'UPCOMING' && (
                                         <div className="text-center">
                                             <span className="inline-flex items-center px-3 py-2 rounded-md text-sm font-medium bg-green-100 text-green-800">
                                                 ✅ Đã được duyệt - Không thể hủy
@@ -551,14 +601,47 @@ const StudentEventDetail: React.FC = () => {
                         </div>
 
                         {/* Registration Info */}
-                        {registrationStatus && (
+                        {registration && (
                             <div className="bg-white shadow rounded-lg">
                                 <div className="p-6">
                                     <h3 className="text-lg font-medium text-gray-900 mb-4">Trạng thái đăng ký</h3>
                                     <div className="text-center">
-                                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(registrationStatus)}`}>
-                                            {getStatusLabel(registrationStatus)}
+                                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(registration.status)}`}>
+                                            {getStatusLabel(registration.status)}
                                         </span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* QR Code for Check-in */}
+                        {registration && registration.status === RegistrationStatus.APPROVED && registration.ticketCode && (
+                            <div className="bg-white shadow rounded-lg">
+                                <div className="p-6">
+                                    <h3 className="text-lg font-medium text-gray-900 mb-4">Mã vé tham gia</h3>
+                                    <div className="flex flex-col items-center space-y-4">
+                                        <div className="bg-white p-4 rounded-lg border-2 border-gray-200">
+                                            <QRCodeSVG
+                                                value={registration.ticketCode}
+                                                size={200}
+                                                level="H"
+                                                includeMargin={true}
+                                            />
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-sm font-medium text-gray-700 mb-2">Mã vé:</p>
+                                            <p className="text-lg font-bold text-gray-900 font-mono">{registration.ticketCode}</p>
+                                        </div>
+                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 w-full">
+                                            <h4 className="text-sm font-semibold text-blue-900 mb-2">Hướng dẫn check-in:</h4>
+                                            <ul className="text-xs text-blue-800 space-y-1 text-left">
+                                                <li>• <strong>Lần quét 1:</strong> Check-in (CHECKED_IN) - Khi đến sự kiện</li>
+                                                <li>• <strong>Lần quét 2:</strong> Check-out (CHECKED_OUT → ATTENDED) - Khi rời khỏi sự kiện</li>
+                                            </ul>
+                                            <p className="text-xs text-blue-700 mt-2 italic">
+                                                Vui lòng trình mã QR này cho ban tổ chức để được quét mã khi đến và khi rời khỏi sự kiện.
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

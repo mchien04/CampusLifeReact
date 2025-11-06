@@ -97,9 +97,9 @@ export const submissionAPI = {
     },
 
     // Grade a submission
-    gradeSubmission: async (submissionId: number, score: number, feedback?: string): Promise<Response<TaskSubmissionResponse>> => {
+    gradeSubmission: async (submissionId: number, isCompleted: boolean, feedback?: string): Promise<Response<TaskSubmissionResponse>> => {
         const params = new URLSearchParams();
-        params.append('score', score.toString());
+        params.append('isCompleted', isCompleted.toString());
         if (feedback) {
             params.append('feedback', feedback);
         }

@@ -20,7 +20,7 @@ const SubmissionDetailsModal: React.FC<SubmissionDetailsModalProps> = ({
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [gradingSubmissionId, setGradingSubmissionId] = useState<number | null>(null);
-    const [currentScore, setCurrentScore] = useState<number | ''>('');
+    const [currentIsCompleted, setCurrentIsCompleted] = useState<boolean | null>(null);
     const [currentFeedback, setCurrentFeedback] = useState('');
     const [gradingError, setGradingError] = useState('');
     const [gradingSuccess, setGradingSuccess] = useState('');
@@ -56,12 +56,8 @@ const SubmissionDetailsModal: React.FC<SubmissionDetailsModalProps> = ({
     }, [loadSubmissions]);
 
     const handleGradeSubmission = async (submissionId: number) => {
-        if (currentScore === '' || isNaN(Number(currentScore))) {
-            setGradingError('Vui lòng nhập điểm hợp lệ.');
-            return;
-        }
-        if (currentScore < 0 || currentScore > (task.maxPoints || 10)) {
-            setGradingError(`Điểm phải nằm trong khoảng từ 0 đến ${task.maxPoints || 10}.`);
+        if (currentIsCompleted === null) {
+            setGradingError('Vui lòng chọn Đạt hoặc Không đạt.');
             return;
         }
 
@@ -71,12 +67,12 @@ const SubmissionDetailsModal: React.FC<SubmissionDetailsModalProps> = ({
 
         try {
             setIsSaving(true);
-            const response = await submissionAPI.gradeSubmission(submissionId, Number(currentScore), currentFeedback || undefined);
+            const response = await submissionAPI.gradeSubmission(submissionId, currentIsCompleted, currentFeedback || undefined);
             if (response.status) {
                 setGradingSuccess('Chấm điểm thành công!');
                 onSubmissionGraded(); // Notify parent to refresh
                 await loadSubmissions(); // Reload submissions in modal
-                setCurrentScore(''); // Clear form
+                setCurrentIsCompleted(null); // Clear form
                 setCurrentFeedback('');
             } else {
                 setGradingError(response.message || 'Có lỗi xảy ra khi chấm điểm.');
@@ -91,7 +87,7 @@ const SubmissionDetailsModal: React.FC<SubmissionDetailsModalProps> = ({
     };
 
     const handleEditGrade = (submission: TaskSubmissionResponse) => {
-        setCurrentScore(submission.score ?? '');
+        setCurrentIsCompleted(submission.isCompleted ?? null);
         setCurrentFeedback(submission.feedback ?? '');
         setGradingSubmissionId(submission.id);
         setGradingError('');
@@ -100,7 +96,7 @@ const SubmissionDetailsModal: React.FC<SubmissionDetailsModalProps> = ({
 
     const handleCancelGrade = () => {
         setGradingSubmissionId(null);
-        setCurrentScore('');
+        setCurrentIsCompleted(null);
         setCurrentFeedback('');
         setGradingError('');
         setGradingSuccess('');
@@ -207,26 +203,40 @@ const SubmissionDetailsModal: React.FC<SubmissionDetailsModalProps> = ({
                                         <h4 className="text-md font-semibold text-gray-800 mb-2">Chấm điểm:</h4>
                                         {(submission.status === SubmissionStatus.GRADED || gradingSubmissionId === submission.id) && (
                                             <div className="mb-3">
-                                                <p className="text-sm font-medium text-gray-700">Điểm: <span className="font-normal">{submission.score ?? 'Chưa chấm'}</span></p>
+                                                <p className="text-sm font-medium text-gray-700">Kết quả: <span className="font-normal">
+                                                    {submission.isCompleted === true ? 'Đạt' : submission.isCompleted === false ? 'Không đạt' : 'Chưa chấm'}
+                                                </span></p>
                                                 {submission.feedback && <p className="text-sm font-medium text-gray-700">Phản hồi: <span className="font-normal">{submission.feedback}</span></p>}
                                             </div>
                                         )}
 
                                         {gradingSubmissionId === submission.id ? (
                                             <div>
-                                                <div className="grid grid-cols-2 gap-3 mb-3">
+                                                <div className="space-y-3 mb-3">
                                                     <div>
-                                                        <label htmlFor={`score-${submission.id}`} className="block text-sm font-medium text-gray-700">Điểm ({0}-{task.maxPoints || 10})</label>
-                                                        <input
-                                                            type="number"
-                                                            id={`score-${submission.id}`}
-                                                            value={currentScore}
-                                                            onChange={(e) => setCurrentScore(Number(e.target.value))}
-                                                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                                            min="0"
-                                                            max={task.maxPoints || 10}
-                                                            step="0.5"
-                                                        />
+                                                        <label className="block text-sm font-medium text-gray-700 mb-2">Kết quả:</label>
+                                                        <div className="flex space-x-4">
+                                                            <label className="flex items-center">
+                                                                <input
+                                                                    type="radio"
+                                                                    name={`isCompleted-${submission.id}`}
+                                                                    checked={currentIsCompleted === true}
+                                                                    onChange={() => setCurrentIsCompleted(true)}
+                                                                    className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                                                                />
+                                                                <span className="text-sm text-gray-700">Đạt</span>
+                                                            </label>
+                                                            <label className="flex items-center">
+                                                                <input
+                                                                    type="radio"
+                                                                    name={`isCompleted-${submission.id}`}
+                                                                    checked={currentIsCompleted === false}
+                                                                    onChange={() => setCurrentIsCompleted(false)}
+                                                                    className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                                                                />
+                                                                <span className="text-sm text-gray-700">Không đạt</span>
+                                                            </label>
+                                                        </div>
                                                     </div>
                                                     <div>
                                                         <label htmlFor={`feedback-${submission.id}`} className="block text-sm font-medium text-gray-700">Phản hồi (tùy chọn)</label>
@@ -248,7 +258,7 @@ const SubmissionDetailsModal: React.FC<SubmissionDetailsModalProps> = ({
                                                         disabled={isSaving}
                                                         className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:opacity-50"
                                                     >
-                                                        {isSaving ? 'Đang lưu...' : 'Lưu điểm'}
+                                                        {isSaving ? 'Đang lưu...' : 'Lưu'}
                                                     </button>
                                                     <button
                                                         onClick={handleCancelGrade}

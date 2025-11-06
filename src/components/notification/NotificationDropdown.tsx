@@ -43,6 +43,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
             setUnreadCount(data.count);
         } catch (error) {
             console.error('Error loading unread count:', error);
+            setUnreadCount(0);
         }
     };
 
@@ -50,9 +51,10 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
         try {
             setLoading(true);
             const data = await notificationAPI.getNotifications({ size: 10 });
-            setNotifications(data.content);
+            setNotifications(data.content || []);
         } catch (error) {
             console.error('Error loading notifications:', error);
+            setNotifications([]);
         } finally {
             setLoading(false);
         }

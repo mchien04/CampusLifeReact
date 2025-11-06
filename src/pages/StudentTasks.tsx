@@ -414,17 +414,6 @@ const StudentTasks: React.FC = () => {
                                                     {getStatusLabel(assignment.status)}
                                                 </span>
 
-                                                {nextStatus && (
-                                                    <button
-                                                        onClick={() => handleStatusUpdate(assignment.id, nextStatus)}
-                                                        disabled={updatingId === assignment.id}
-                                                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    >
-                                                        {updatingId === assignment.id ? 'Đang cập nhật...' :
-                                                            nextStatus === TaskStatus.IN_PROGRESS ? 'Bắt đầu' :
-                                                                nextStatus === TaskStatus.COMPLETED ? 'Hoàn thành' : 'Tiếp tục'}
-                                                    </button>
-                                                )}
                                                 <button
                                                     onClick={() => openSubmissionModal(assignment)}
                                                     className="px-4 py-2 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -467,10 +456,10 @@ const StudentTasks: React.FC = () => {
                                                         </div>
                                                     </div>
                                                 )}
-                                                {(mySubmission.score !== undefined || mySubmission.feedback) && (
+                                                {(mySubmission.isCompleted !== null || mySubmission.feedback) && (
                                                     <div className="mt-2">
-                                                        {mySubmission.score !== undefined && (
-                                                            <p className="text-gray-700">Điểm: {mySubmission.score}</p>
+                                                        {mySubmission.isCompleted !== null && (
+                                                            <p className="text-gray-700">Kết quả: {mySubmission.isCompleted === true ? 'Đạt' : mySubmission.isCompleted === false ? 'Không đạt' : 'Chưa chấm'}</p>
                                                         )}
                                                         {mySubmission.feedback && (
                                                             <p className="text-gray-700">Phản hồi: {mySubmission.feedback}</p>
@@ -567,7 +556,7 @@ const StudentTasks: React.FC = () => {
                                 </div>
                             )}
                             {/* Graded result (if already graded) */}
-                            {currentSubmission && (currentSubmission.score !== undefined || currentSubmission.feedback || currentSubmission.status === 'GRADED') && (
+                            {currentSubmission && (currentSubmission.isCompleted !== null || currentSubmission.feedback || currentSubmission.status === 'GRADED') && (
                                 <div className="p-3 bg-gray-50 border border-gray-200 rounded-md text-sm">
                                     <div className="flex flex-wrap items-center gap-2 mb-2">
                                         <span className="font-medium text-gray-700">Trạng thái:</span>
@@ -577,8 +566,10 @@ const StudentTasks: React.FC = () => {
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                                         <div>
-                                            <span className="text-gray-600">Điểm: </span>
-                                            <span className="font-medium">{currentSubmission.score ?? 'Chưa chấm'}</span>
+                                            <span className="text-gray-600">Kết quả: </span>
+                                            <span className="font-medium">
+                                                {currentSubmission.isCompleted === true ? 'Đạt' : currentSubmission.isCompleted === false ? 'Không đạt' : 'Chưa chấm'}
+                                            </span>
                                         </div>
                                         <div>
                                             <span className="text-gray-600">Chấm lúc: </span>

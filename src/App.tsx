@@ -9,7 +9,6 @@ import StudentParticipationHistory from './pages/StudentParticipationHistory';
 import StudentProfile from './pages/StudentProfile';
 import AcademicYears from './pages/admin/AcademicYears';
 import Departments from './pages/admin/Departments';
-import Criteria from './pages/admin/Criteria';
 import Students from './pages/admin/Students';
 import Reports from './pages/admin/Reports';
 import EventRegistrations from './pages/admin/EventRegistrations';
@@ -20,8 +19,9 @@ import ManagerRegistrations from './pages/ManagerRegistrations';
 import StudentTasks from './pages/StudentTasks';
 import { Role } from './types';
 import TaskSubmissionsRoute from './pages/TaskSubmissionsRoute';
-import TrainingScore from './pages/TrainingScore';
+// Removed criteria-based TrainingScore page
 import ViewScores from './pages/ViewScores';
+import ManagerScores from './pages/ManagerScores';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -84,14 +84,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/admin/criteria/*"
-                element={
-                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
-                    <Criteria />
-                  </ProtectedRoute>
-                }
-              />
+              {/* Removed /admin/criteria routes */}
 
               {/* Event Management Routes */}
               <Route
@@ -144,14 +137,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/admin/criteria"
-                element={
-                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
-                    <Criteria />
-                  </ProtectedRoute>
-                }
-              />
+              {/* Removed /admin/criteria route */}
               <Route
                 path="/admin/students"
                 element={
@@ -262,6 +248,14 @@ function App() {
                 }
               />
               <Route
+                path="/manager/scores"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <ManagerScores />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/manager/tasks"
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
@@ -272,7 +266,7 @@ function App() {
 
               {/* New utility pages */}
               <Route path="/manager/tasks/:taskId/submissions" element={<TaskSubmissionsRoute />} />
-              <Route path="/tools/training-score" element={<TrainingScore />} />
+              {/* Removed criteria-based training score tool route */}
               <Route path="/tools/view-scores" element={<ViewScores />} />
 
               {/* Redirect any unknown routes to home */}

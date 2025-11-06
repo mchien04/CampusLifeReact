@@ -35,12 +35,14 @@ const EventForm: React.FC<EventFormProps> = ({
             registrationDeadline: '',
             shareLink: '',
             isImportant: false,
+            isDraft: true,
             bannerUrl: '',
             location: '',
             ticketQuantity: 0,
             benefits: '',
             requirements: '',
             contactInfo: '',
+            requiresApproval: true,
             mandatoryForFacultyStudents: false,
             organizerIds: [],
         };
@@ -61,6 +63,7 @@ const EventForm: React.FC<EventFormProps> = ({
     const [departments, setDepartments] = useState<any[]>([]);
     const [organizerInput, setOrganizerInput] = useState<string>('');
     const [originalBannerUrl, setOriginalBannerUrl] = useState<string>('');
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
@@ -137,6 +140,10 @@ const EventForm: React.FC<EventFormProps> = ({
                     bannerUrl: ''
                 }));
             }
+            // Mark initial load as complete after initialData is set
+            setIsInitialLoad(false);
+        } else {
+            setIsInitialLoad(false);
         }
     }, [initialData]);
 
@@ -154,6 +161,30 @@ const EventForm: React.FC<EventFormProps> = ({
         };
         loadDepartments();
     }, []);
+
+    // Auto-set ticketQuantity to 0 (unlimited) when isImportant or mandatoryForFacultyStudents is true
+    // Only run after initial load to preserve values when editing
+    useEffect(() => {
+        if (isInitialLoad) return; // Don't run on initial load
+        if (formData.isImportant || formData.mandatoryForFacultyStudents) {
+            setFormData(prev => ({
+                ...prev,
+                ticketQuantity: 0
+            }));
+        }
+    }, [formData.isImportant, formData.mandatoryForFacultyStudents, isInitialLoad]);
+
+    // Auto-set requiresApproval to false (auto-approve) when isImportant or mandatoryForFacultyStudents is true
+    // Only run after initial load to preserve values when editing
+    useEffect(() => {
+        if (isInitialLoad) return; // Don't run on initial load
+        if (formData.isImportant || formData.mandatoryForFacultyStudents) {
+            setFormData(prev => ({
+                ...prev,
+                requiresApproval: false
+            }));
+        }
+    }, [formData.isImportant, formData.mandatoryForFacultyStudents, isInitialLoad]);
 
     // Handle organizer input change
     const handleOrganizerInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -336,7 +367,7 @@ const EventForm: React.FC<EventFormProps> = ({
                                 Ngày bắt đầu *
                             </label>
                             <input
-                                type="date"
+                                type="datetime-local"
                                 id="startDate"
                                 name="startDate"
                                 value={formData.startDate}
@@ -352,7 +383,7 @@ const EventForm: React.FC<EventFormProps> = ({
                                 Ngày kết thúc *
                             </label>
                             <input
-                                type="date"
+                                type="datetime-local"
                                 id="endDate"
                                 name="endDate"
                                 value={formData.endDate}
@@ -368,7 +399,7 @@ const EventForm: React.FC<EventFormProps> = ({
                                 Ngày mở đăng ký
                             </label>
                             <input
-                                type="date"
+                                type="datetime-local"
                                 id="registrationStartDate"
                                 name="registrationStartDate"
                                 value={formData.registrationStartDate}
@@ -382,13 +413,44 @@ const EventForm: React.FC<EventFormProps> = ({
                                 Hạn đăng ký
                             </label>
                             <input
-                                type="date"
+                                type="datetime-local"
                                 id="registrationDeadline"
                                 name="registrationDeadline"
                                 value={formData.registrationDeadline}
                                 onChange={handleChange}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
+                        </div>
+                    </div>
+
+                    {/* Important/Mandatory Checkboxes - Must be before ticketQuantity */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div className="flex items-center">
+                            <input
+                                type="checkbox"
+                                id="isImportant"
+                                name="isImportant"
+                                checked={formData.isImportant}
+                                onChange={handleChange}
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                            />
+                            <label htmlFor="isImportant" className="ml-2 block text-sm text-gray-900">
+                                Sự kiện quan trọng
+                            </label>
+                        </div>
+
+                        <div className="flex items-center">
+                            <input
+                                type="checkbox"
+                                id="mandatoryForFacultyStudents"
+                                name="mandatoryForFacultyStudents"
+                                checked={formData.mandatoryForFacultyStudents}
+                                onChange={handleChange}
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                            />
+                            <label htmlFor="mandatoryForFacultyStudents" className="ml-2 block text-sm text-gray-900">
+                                Bắt buộc cho sinh viên thuộc khoa
+                            </label>
                         </div>
                     </div>
 
@@ -441,9 +503,13 @@ const EventForm: React.FC<EventFormProps> = ({
                                 value={formData.ticketQuantity}
                                 onChange={handleChange}
                                 min="0"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                disabled={formData.isImportant || formData.mandatoryForFacultyStudents}
+                                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${(formData.isImportant || formData.mandatoryForFacultyStudents) ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                                 placeholder="0 (không giới hạn)"
                             />
+                            {(formData.isImportant || formData.mandatoryForFacultyStudents) && (
+                                <p className="text-xs text-gray-500 mt-1">Không giới hạn (sự kiện quan trọng/bắt buộc)</p>
+                            )}
                         </div>
                     </div>
 
@@ -686,6 +752,38 @@ const EventForm: React.FC<EventFormProps> = ({
                         <div className="flex items-center">
                             <input
                                 type="checkbox"
+                                id="isDraft"
+                                name="isDraft"
+                                checked={!!formData.isDraft}
+                                onChange={handleChange}
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                            />
+                            <label htmlFor="isDraft" className="ml-2 block text-sm text-gray-900">
+                                Lưu dưới dạng bản nháp (chưa công bố)
+                            </label>
+                        </div>
+
+                        <div className="flex items-center">
+                            <input
+                                type="checkbox"
+                                id="requiresApproval"
+                                name="requiresApproval"
+                                checked={!!formData.requiresApproval}
+                                onChange={handleChange}
+                                disabled={formData.isImportant || formData.mandatoryForFacultyStudents}
+                                className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${(formData.isImportant || formData.mandatoryForFacultyStudents) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            />
+                            <label htmlFor="requiresApproval" className={`ml-2 block text-sm ${(formData.isImportant || formData.mandatoryForFacultyStudents) ? 'text-gray-500' : 'text-gray-900'}`}>
+                                Đăng ký cần duyệt (tắt để auto-approve)
+                            </label>
+                        </div>
+                        {(formData.isImportant || formData.mandatoryForFacultyStudents) && (
+                            <p className="text-xs text-gray-500 ml-6 -mt-2">Tự động duyệt cho sự kiện quan trọng/bắt buộc</p>
+                        )}
+
+                        <div className="flex items-center">
+                            <input
+                                type="checkbox"
                                 id="requiresSubmission"
                                 name="requiresSubmission"
                                 checked={formData.requiresSubmission}
@@ -694,34 +792,6 @@ const EventForm: React.FC<EventFormProps> = ({
                             />
                             <label htmlFor="requiresSubmission" className="ml-2 block text-sm text-gray-900">
                                 Yêu cầu nộp bài thu hoạch
-                            </label>
-                        </div>
-
-                        <div className="flex items-center">
-                            <input
-                                type="checkbox"
-                                id="isImportant"
-                                name="isImportant"
-                                checked={formData.isImportant}
-                                onChange={handleChange}
-                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                            />
-                            <label htmlFor="isImportant" className="ml-2 block text-sm text-gray-900">
-                                Sự kiện quan trọng
-                            </label>
-                        </div>
-
-                        <div className="flex items-center">
-                            <input
-                                type="checkbox"
-                                id="mandatoryForFacultyStudents"
-                                name="mandatoryForFacultyStudents"
-                                checked={formData.mandatoryForFacultyStudents}
-                                onChange={handleChange}
-                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                            />
-                            <label htmlFor="mandatoryForFacultyStudents" className="ml-2 block text-sm text-gray-900">
-                                Bắt buộc cho sinh viên thuộc khoa
                             </label>
                         </div>
                     </div>

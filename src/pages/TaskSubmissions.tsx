@@ -18,15 +18,18 @@ const TaskSubmissions: React.FC<Props> = ({ taskId }) => {
         },
     });
 
-    const [grading, setGrading] = useState<{ id: number; score: string; feedback: string } | null>(null);
+    const [grading, setGrading] = useState<{ id: number; isCompleted: boolean | null; feedback: string } | null>(null);
 
     const mutation = useMutation({
         mutationFn: async () => {
             if (!grading) return null as never;
+            if (grading.isCompleted === null) {
+                toast.error('Vui lòng chọn Đạt hoặc Không đạt');
+                return null as never;
+            }
             const confirmed = window.confirm('Xác nhận chấm điểm?');
             if (!confirmed) return null as never;
-            const scoreNum = Number(grading.score);
-            const res = await submissionAPI.gradeSubmission(grading.id, scoreNum, grading.feedback || undefined);
+            const res = await submissionAPI.gradeSubmission(grading.id, grading.isCompleted, grading.feedback || undefined);
             return res.data!;
         },
         onSuccess: () => {
@@ -56,7 +59,7 @@ const TaskSubmissions: React.FC<Props> = ({ taskId }) => {
                                 <th className="px-3 py-2 text-left">Sinh viên</th>
                                 <th className="px-3 py-2 text-left">MSSV</th>
                                 <th className="px-3 py-2 text-left">Tiêu đề</th>
-                                <th className="px-3 py-2 text-left">Điểm/Trạng thái</th>
+                                <th className="px-3 py-2 text-left">Kết quả/Trạng thái</th>
                                 <th className="px-3 py-2 text-left">Hành động</th>
                             </tr>
                         </thead>
@@ -67,12 +70,12 @@ const TaskSubmissions: React.FC<Props> = ({ taskId }) => {
                                     <td className="px-3 py-2">{s.studentCode}</td>
                                     <td className="px-3 py-2">{s.taskTitle}</td>
                                     <td className="px-3 py-2">
-                                        {s.score != null ? s.score : '-'} / {s.status}
+                                        {s.isCompleted === true ? 'Đạt' : s.isCompleted === false ? 'Không đạt' : '-'} / {s.status}
                                     </td>
                                     <td className="px-3 py-2">
                                         <button
                                             className="px-3 py-1 bg-blue-600 text-white rounded"
-                                            onClick={() => setGrading({ id: s.id, score: String(s.score ?? ''), feedback: s.feedback ?? '' })}
+                                            onClick={() => setGrading({ id: s.id, isCompleted: s.isCompleted ?? null, feedback: s.feedback ?? '' })}
                                         >
                                             Chấm điểm
                                         </button>
@@ -90,14 +93,29 @@ const TaskSubmissions: React.FC<Props> = ({ taskId }) => {
                         <h2 className="text-lg font-semibold mb-3">Chấm điểm Submission #{grading.id}</h2>
                         <div className="space-y-3">
                             <div>
-                                <label className="block text-sm mb-1">Điểm</label>
-                                <input
-                                    type="number"
-                                    inputMode="decimal"
-                                    className="w-full border rounded px-3 py-2"
-                                    value={grading.score}
-                                    onChange={(e) => setGrading({ ...grading, score: e.target.value })}
-                                />
+                                <label className="block text-sm mb-2">Kết quả</label>
+                                <div className="flex space-x-4">
+                                    <label className="flex items-center">
+                                        <input
+                                            type="radio"
+                                            name={`isCompleted-${grading.id}`}
+                                            checked={grading.isCompleted === true}
+                                            onChange={() => setGrading({ ...grading, isCompleted: true })}
+                                            className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                                        />
+                                        <span className="text-sm text-gray-700">Đạt</span>
+                                    </label>
+                                    <label className="flex items-center">
+                                        <input
+                                            type="radio"
+                                            name={`isCompleted-${grading.id}`}
+                                            checked={grading.isCompleted === false}
+                                            onChange={() => setGrading({ ...grading, isCompleted: false })}
+                                            className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                                        />
+                                        <span className="text-sm text-gray-700">Không đạt</span>
+                                    </label>
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-sm mb-1">Nhận xét</label>
@@ -119,7 +137,7 @@ const TaskSubmissions: React.FC<Props> = ({ taskId }) => {
                                     mutation.mutate();
                                 }}
                             >
-                                {(mutation as any).isPending || (mutation as any).status === 'pending' ? 'Đang lưu...' : 'Lưu điểm'}
+                                {(mutation as any).isPending || (mutation as any).status === 'pending' ? 'Đang lưu...' : 'Lưu'}
                             </button>
                         </div>
                     </div>
