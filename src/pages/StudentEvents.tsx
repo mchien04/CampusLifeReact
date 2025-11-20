@@ -7,6 +7,7 @@ import { ActivityResponse, ActivityType, ScoreType } from '../types';
 import { RegistrationStatus } from '../types/registration';
 import { LoadingSpinner } from '../components/common';
 import { getImageUrl } from '../utils/imageUtils';
+import StudentLayout from '../components/layout/StudentLayout';
 
 const StudentEvents: React.FC = () => {
     const { user } = useAuth();
@@ -65,11 +66,11 @@ const StudentEvents: React.FC = () => {
             console.log('Registration response:', response);
             if (response) {
                 // If event doesn't require approval (auto-approve), set status to APPROVED immediately
-                const newStatus = event && event.requiresApproval === false 
-                    ? RegistrationStatus.APPROVED 
+                const newStatus = event && event.requiresApproval === false
+                    ? RegistrationStatus.APPROVED
                     : RegistrationStatus.PENDING;
                 setRegistrationStatuses(prev => new Map(prev.set(eventId, newStatus)));
-                
+
                 if (newStatus === RegistrationStatus.APPROVED) {
                     alert('Đăng ký thành công! Bạn đã được duyệt tự động.');
                 } else {
@@ -170,126 +171,114 @@ const StudentEvents: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <LoadingSpinner />
-            </div>
+            <StudentLayout>
+                <div className="flex items-center justify-center min-h-[60vh]">
+                    <LoadingSpinner />
+                </div>
+            </StudentLayout>
         );
     }
 
     if (error) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="text-red-600 text-xl mb-4">⚠️</div>
-                    <h2 className="text-xl font-semibold text-gray-900 mb-2">Có lỗi xảy ra</h2>
-                    <p className="text-gray-600 mb-4">{error}</p>
-                    <button
-                        onClick={loadEvents}
-                        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-                    >
-                        Thử lại
-                    </button>
+            <StudentLayout>
+                <div className="flex items-center justify-center min-h-[60vh]">
+                    <div className="text-center">
+                        <div className="text-red-600 text-6xl mb-4">⚠️</div>
+                        <h2 className="text-2xl font-bold text-[#001C44] mb-2">Có lỗi xảy ra</h2>
+                        <p className="text-gray-600 mb-6">{error}</p>
+                        <button
+                            onClick={loadEvents}
+                            className="btn-primary px-6 py-3 rounded-lg font-medium"
+                        >
+                            Thử lại
+                        </button>
+                    </div>
                 </div>
-            </div>
+            </StudentLayout>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <div className="bg-white shadow">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="py-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h1 className="text-3xl font-bold text-gray-900">Danh sách sự kiện</h1>
-                                <p className="mt-1 text-sm text-gray-500">
-                                    Khám phá và đăng ký tham gia các sự kiện hoạt động
-                                </p>
-                            </div>
-                            <Link
-                                to="/dashboard"
-                                className="bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-700"
-                            >
-                                ← Quay lại Dashboard
-                            </Link>
-                        </div>
-                    </div>
+        <StudentLayout>
+            <div className="space-y-6">
+                {/* Page Header */}
+                <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl p-6 text-white mb-6">
+                    <h1 className="text-3xl font-bold mb-2">Danh sách sự kiện</h1>
+                    <p className="text-gray-200">
+                        Khám phá và đăng ký tham gia các sự kiện hoạt động
+                    </p>
                 </div>
-            </div>
 
-            <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
                 {/* Filters */}
-                <div className="bg-white shadow rounded-lg mb-6">
-                    <div className="px-4 py-5 sm:p-6">
-                        <h3 className="text-lg font-medium text-gray-900 mb-4">Bộ lọc</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            {/* Search */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Tìm kiếm
-                                </label>
-                                <input
-                                    type="text"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    placeholder="Tìm kiếm sự kiện..."
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
+                <div className="card p-6">
+                    <h3 className="text-lg font-semibold text-[#001C44] mb-4">Bộ lọc</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {/* Search */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Tìm kiếm
+                            </label>
+                            <input
+                                type="text"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                placeholder="Tìm kiếm sự kiện..."
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
+                            />
+                        </div>
 
-                            {/* Type Filter */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Loại sự kiện
-                                </label>
-                                <select
-                                    value={typeFilter}
-                                    onChange={(e) => setTypeFilter(e.target.value as ActivityType | 'ALL')}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="ALL">Tất cả</option>
-                                    <option value={ActivityType.SUKIEN}>Sự kiện</option>
-                                    <option value={ActivityType.MINIGAME}>Mini Game</option>
-                                    <option value={ActivityType.CONG_TAC_XA_HOI}>Công tác xã hội</option>
-                                    <option value={ActivityType.CHUYEN_DE_DOANH_NGHIEP}>Chuyên đề doanh nghiệp</option>
-                                </select>
-                            </div>
+                        {/* Type Filter */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Loại sự kiện
+                            </label>
+                            <select
+                                value={typeFilter}
+                                onChange={(e) => setTypeFilter(e.target.value as ActivityType | 'ALL')}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
+                            >
+                                <option value="ALL">Tất cả</option>
+                                <option value={ActivityType.SUKIEN}>Sự kiện</option>
+                                <option value={ActivityType.MINIGAME}>Mini Game</option>
+                                <option value={ActivityType.CONG_TAC_XA_HOI}>Công tác xã hội</option>
+                                <option value={ActivityType.CHUYEN_DE_DOANH_NGHIEP}>Chuyên đề doanh nghiệp</option>
+                            </select>
+                        </div>
 
-                            {/* Score Type Filter */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Loại điểm
-                                </label>
-                                <select
-                                    value={scoreTypeFilter}
-                                    onChange={(e) => setScoreTypeFilter(e.target.value as ScoreType | 'ALL')}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="ALL">Tất cả</option>
-                                    <option value={ScoreType.REN_LUYEN}>Rèn luyện</option>
-                                    <option value={ScoreType.CONG_TAC_XA_HOI}>Công tác xã hội</option>
-                                    <option value={ScoreType.CHUYEN_DE}>Chuyên đề</option>
-                                    <option value={ScoreType.KHAC}>Khác</option>
-                                </select>
-                            </div>
+                        {/* Score Type Filter */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Loại điểm
+                            </label>
+                            <select
+                                value={scoreTypeFilter}
+                                onChange={(e) => setScoreTypeFilter(e.target.value as ScoreType | 'ALL')}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
+                            >
+                                <option value="ALL">Tất cả</option>
+                                <option value={ScoreType.REN_LUYEN}>Rèn luyện</option>
+                                <option value={ScoreType.CONG_TAC_XA_HOI}>Công tác xã hội</option>
+                                <option value={ScoreType.CHUYEN_DE}>Chuyên đề</option>
+                                <option value={ScoreType.KHAC}>Khác</option>
+                            </select>
+                        </div>
 
-                            {/* Status Filter */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Trạng thái
-                                </label>
-                                <select
-                                    value={statusFilter}
-                                    onChange={(e) => setStatusFilter(e.target.value as 'ALL' | 'UPCOMING' | 'ONGOING' | 'ENDED')}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="ALL">Tất cả</option>
-                                    <option value="UPCOMING">Sắp diễn ra</option>
-                                    <option value="ONGOING">Đang diễn ra</option>
-                                    <option value="ENDED">Đã kết thúc</option>
-                                </select>
-                            </div>
+                        {/* Status Filter */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Trạng thái
+                            </label>
+                            <select
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value as 'ALL' | 'UPCOMING' | 'ONGOING' | 'ENDED')}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
+                            >
+                                <option value="ALL">Tất cả</option>
+                                <option value="UPCOMING">Sắp diễn ra</option>
+                                <option value="ONGOING">Đang diễn ra</option>
+                                <option value="ENDED">Đã kết thúc</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -312,7 +301,7 @@ const StudentEvents: React.FC = () => {
                                 registrationStatus !== RegistrationStatus.APPROVED;
 
                             return (
-                                <div key={event.id} className="bg-white shadow rounded-lg overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full">
+                                <div key={event.id} className="card overflow-hidden hover:shadow-lg transition-all duration-200 flex flex-col h-full border-2 border-transparent hover:border-[#FFD66D]">
                                     {/* Event Banner */}
                                     {event.bannerUrl && (
                                         <div className="h-48 bg-gray-200 bg-cover bg-center"
@@ -413,7 +402,7 @@ const StudentEvents: React.FC = () => {
                                         <div className="flex flex-col space-y-2 mt-auto">
                                             <Link
                                                 to={`/student/events/${event.id}`}
-                                                className="w-full bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 text-center"
+                                                className="w-full btn-primary px-4 py-2 rounded-lg text-sm font-medium text-center"
                                             >
                                                 Xem chi tiết
                                             </Link>
@@ -421,7 +410,7 @@ const StudentEvents: React.FC = () => {
                                             {canRegister && (
                                                 <button
                                                     onClick={() => handleRegister(event.id)}
-                                                    className="w-full bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700"
+                                                    className="w-full btn-yellow px-4 py-2 rounded-lg text-sm font-medium"
                                                 >
                                                     Đăng ký
                                                 </button>
@@ -430,7 +419,7 @@ const StudentEvents: React.FC = () => {
                                             {canCancel && (
                                                 <button
                                                     onClick={() => handleCancelRegistration(event.id)}
-                                                    className="w-full bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700"
+                                                    className="w-full bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
                                                 >
                                                     Hủy đăng ký
                                                 </button>
@@ -438,7 +427,7 @@ const StudentEvents: React.FC = () => {
 
                                             {isRegistered && registrationStatus === RegistrationStatus.APPROVED && eventStatus === 'UPCOMING' && (
                                                 <div className="text-center">
-                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                    <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
                                                         ✅ Đã được duyệt
                                                     </span>
                                                 </div>
@@ -447,7 +436,7 @@ const StudentEvents: React.FC = () => {
                                             {isRegistered && eventStatus === 'ONGOING' && (
                                                 <Link
                                                     to={`/student/events/${event.id}`}
-                                                    className="w-full bg-yellow-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-yellow-700 text-center"
+                                                    className="w-full btn-yellow px-4 py-2 rounded-lg text-sm font-medium text-center"
                                                 >
                                                     Ghi nhận tham gia
                                                 </Link>
@@ -459,8 +448,8 @@ const StudentEvents: React.FC = () => {
                         })
                     )}
                 </div>
-            </main>
-        </div>
+            </div>
+        </StudentLayout>
     );
 };
 

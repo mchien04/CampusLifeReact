@@ -79,6 +79,18 @@ export interface ActivityParticipationResponse {
     notes?: string;
 }
 
+export interface TicketCodeValidateResponse {
+    ticketCode: string;
+    studentId: number;
+    studentName: string;
+    studentCode: string;
+    activityId: number;
+    activityName: string;
+    currentStatus: RegistrationStatus;
+    canCheckIn: boolean;
+    canCheckOut: boolean;
+}
+
 // Helper function to get Vietnamese labels
 export const getRegistrationStatusLabel = (status: RegistrationStatus): string => {
     switch (status) {

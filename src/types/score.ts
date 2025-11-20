@@ -34,4 +34,31 @@ export interface ScoreViewResponse {
     summaries: ScoreTypeSummary[];
 }
 
+export interface StudentRankingResponse {
+    rank: number;
+    studentId: number;
+    studentCode: string;
+    studentName: string;
+    departmentId: number | null;
+    departmentName: string | null;
+    classId: number | null;
+    className: string | null;
+    semesterId: number;
+    semesterName: string;
+    scoreType: ScoreType | null;
+    score: number; // BigDecimal as number
+    scoreTypeLabel: string;
+}
+
+export interface StudentRankingResponseData {
+    semesterId: number;
+    semesterName: string;
+    scoreType: string | null; // "REN_LUYEN" | "CONG_TAC_XA_HOI" | "CHUYEN_DE" | "KHAC" | "TOTAL"
+    departmentId: number | null;
+    classId: number | null;
+    sortOrder: "ASC" | "DESC";
+    totalStudents: number;
+    rankings: StudentRankingResponse[];
+}
+
 

@@ -1,13 +1,12 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ActivityRegistrationResponse, RegistrationStatus } from '../types/registration';
+import { ActivityRegistrationResponse, RegistrationStatus, TicketCodeValidateResponse, getRegistrationStatusLabel } from '../types/registration';
 import { registrationAPI } from '../services/registrationAPI';
 import { eventAPI } from '../services/eventAPI';
 import { ActivityResponse } from '../types/activity';
 import { RegistrationList } from '../components/registration';
 import QrScanner from "react-qr-barcode-scanner";
 import ApproveScoresForm from "../components/registration/ApproveScoresForm";
-import jsQR from 'jsqr';
 
 
 const ManagerRegistrations: React.FC = () => {
@@ -17,13 +16,11 @@ const ManagerRegistrations: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState<RegistrationStatus | 'ALL'>('ALL');
     const [ticketCode, setTicketCode] = useState("");
-    const [studentId, setStudentId] = useState("");
     const [showScanner, setShowScanner] = useState(false);
     const [showApproveForm, setShowApproveForm] = useState(false);
-    const [uploadedImage, setUploadedImage] = useState<string | null>(null);
-    const [isScanningImage, setIsScanningImage] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [validatedInfo, setValidatedInfo] = useState<TicketCodeValidateResponse | null>(null);
+    const [isValidating, setIsValidating] = useState(false);
+    const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
     useEffect(() => {
         loadEvents();
@@ -35,40 +32,98 @@ const ManagerRegistrations: React.FC = () => {
         }
     }, [selectedEventId]);
 
-    const handleCheckIn = async () => {
+    const handleValidateTicketCode = async (code: string) => {
+        if (!code || code.trim() === '') {
+            alert("Vui lòng nhập ticketCode");
+            return;
+        }
+
         try {
-            if (!ticketCode && !studentId) {
-                alert("Vui lòng nhập ticketCode hoặc studentId");
+            // Check if token exists
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('❌ Lỗi: Không tìm thấy token. Vui lòng đăng nhập lại.');
                 return;
             }
-            // Backend determines next state, but we still need to send participationType
-            const payload: any = {
-                participationType: "CHECKED_IN"  // Keep this, backend uses it
-            };
-            if (ticketCode) payload.ticketCode = ticketCode;
-            if (studentId) payload.studentId = Number(studentId);
 
-            const response = await registrationAPI.checkIn(payload);
+            setIsValidating(true);
+            const response = await registrationAPI.validateTicketCode(code.trim());
+            if (response.status && response.body) {
+                setValidatedInfo(response.body);
+                setShowConfirmDialog(false); // Don't show dialog immediately, show info first
+            } else {
+                alert(response.message || "Mã vé không hợp lệ");
+                setValidatedInfo(null);
+            }
+        } catch (error: any) {
+            console.error("Error validating ticket code:", error);
+            console.error("Error response:", error.response);
+            
+            if (error.response?.status === 403) {
+                alert('❌ Lỗi 403: Không có quyền thực hiện thao tác này.\nVui lòng kiểm tra:\n- Bạn đã đăng nhập với tài khoản MANAGER chưa?\n- Token có hợp lệ không?');
+            } else if (error.response?.status === 401) {
+                alert('❌ Lỗi 401: Token không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại.');
+            } else {
+                const errorMessage = error.response?.data?.message || error.message || "Có lỗi xảy ra khi kiểm tra mã vé";
+                alert(`❌ Lỗi: ${errorMessage}`);
+            }
+            setValidatedInfo(null);
+        } finally {
+            setIsValidating(false);
+        }
+    };
+
+    const handleConfirmCheckIn = async () => {
+        if (!validatedInfo) return;
+
+        try {
+            // Check if token exists
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('❌ Lỗi: Không tìm thấy token. Vui lòng đăng nhập lại.');
+                return;
+            }
+
+            const response = await registrationAPI.checkIn({
+                ticketCode: validatedInfo.ticketCode
+            });
+
             if (response.status) {
-                // Check response participationType to show appropriate message
                 const data = response.body;
+                let message = "";
                 if (data?.participationType === 'CHECKED_IN') {
-                    alert("✅ Check-in thành công. Vui lòng check-out khi sinh viên rời khỏi sự kiện.");
+                    message = `✅ Check-in thành công cho sinh viên ${validatedInfo.studentName} (${validatedInfo.studentCode}).\nVui lòng check-out khi sinh viên rời khỏi sự kiện.`;
                 } else if (data?.participationType === 'ATTENDED') {
-                    alert("✅ Check-out thành công. Đã hoàn thành tham gia sự kiện.");
+                    message = `✅ Check-out thành công cho sinh viên ${validatedInfo.studentName} (${validatedInfo.studentCode}).\nĐã hoàn thành tham gia sự kiện.`;
                 } else {
-                    alert("✅ " + (response.message || "Thành công"));
+                    message = `✅ ${response.message || "Thành công"}`;
                 }
+                alert(message);
+                
                 if (selectedEventId) await loadRegistrations(selectedEventId);
                 setTicketCode("");
-                setStudentId("");
+                setValidatedInfo(null);
+                setShowConfirmDialog(false);
             } else {
                 alert(response.message || "Thao tác thất bại");
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error check-in:", error);
-            alert("Có lỗi xảy ra");
+            console.error("Error response:", error.response);
+            
+            if (error.response?.status === 403) {
+                alert('❌ Lỗi 403: Không có quyền thực hiện thao tác này.\nVui lòng kiểm tra:\n- Bạn đã đăng nhập với tài khoản MANAGER chưa?\n- Token có hợp lệ không?\n- Bạn có quyền check-in cho sự kiện này không?');
+            } else if (error.response?.status === 401) {
+                alert('❌ Lỗi 401: Token không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại.');
+            } else {
+                const errorMessage = error.response?.data?.message || error.message || "Có lỗi xảy ra khi check-in";
+                alert(`❌ Lỗi: ${errorMessage}`);
+            }
         }
+    };
+
+    const handleCheckIn = async () => {
+        await handleValidateTicketCode(ticketCode);
     };
 
     const handleScan = async (result: any) => {
@@ -76,139 +131,10 @@ const ManagerRegistrations: React.FC = () => {
             const scannedCode = result.text;
             setTicketCode(scannedCode);
             setShowScanner(false);
-
-            try {
-                const payload: any = { participationType: "CHECKED_IN", ticketCode: scannedCode };
-                const response = await registrationAPI.checkIn(payload);
-                if (response.status) {
-                    // Check response participationType to show appropriate message
-                    const data = response.body;
-                    if (data?.participationType === 'CHECKED_IN') {
-                        alert(`✅ Check-in thành công cho ticketCode: ${scannedCode}.\nVui lòng check-out khi sinh viên rời khỏi sự kiện.`);
-                    } else if (data?.participationType === 'ATTENDED') {
-                        alert(`✅ Check-out thành công cho ticketCode: ${scannedCode}.\nĐã hoàn thành tham gia sự kiện.`);
-                    } else {
-                        alert(`✅ ${response.message || "Thành công"}`);
-                    }
-                    if (selectedEventId) await loadRegistrations(selectedEventId);
-                    setTicketCode("");
-                } else {
-                    alert(response.message || "❌ Thao tác thất bại");
-                }
-            } catch (error) {
-                console.error("Error check-in:", error);
-                alert("Có lỗi xảy ra khi check-in bằng QR");
-            }
+            await handleValidateTicketCode(scannedCode);
         }
     };
 
-    const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        // Validate file type
-        if (!file.type.startsWith('image/')) {
-            alert('Vui lòng chọn file ảnh hợp lệ');
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const imageUrl = e.target?.result as string;
-            setUploadedImage(imageUrl);
-            setIsScanningImage(true);
-            scanQRFromImage(imageUrl);
-        };
-        reader.onerror = () => {
-            alert('Lỗi khi đọc file ảnh');
-            setIsScanningImage(false);
-        };
-        reader.readAsDataURL(file);
-    };
-
-    const scanQRFromImage = async (imageUrl: string) => {
-        try {
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            
-            img.onload = () => {
-                const canvas = canvasRef.current;
-                if (!canvas) {
-                    setIsScanningImage(false);
-                    return;
-                }
-
-                const ctx = canvas.getContext('2d');
-                if (!ctx) {
-                    setIsScanningImage(false);
-                    return;
-                }
-
-                // Set canvas size to match image
-                canvas.width = img.width;
-                canvas.height = img.height;
-
-                // Draw image on canvas
-                ctx.drawImage(img, 0, 0);
-
-                // Get image data
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-                // Scan for QR code
-                const qrCode = jsQR(imageData.data, imageData.width, imageData.height);
-
-                if (qrCode) {
-                    const scannedCode = qrCode.data;
-                    setTicketCode(scannedCode);
-                    setIsScanningImage(false);
-                    // Automatically perform check-in
-                    performCheckInFromQR(scannedCode);
-                } else {
-                    setIsScanningImage(false);
-                    alert('Không tìm thấy mã QR trong ảnh. Vui lòng thử lại với ảnh khác.');
-                }
-            };
-
-            img.onerror = () => {
-                setIsScanningImage(false);
-                alert('Lỗi khi tải ảnh');
-            };
-
-            img.src = imageUrl;
-        } catch (error) {
-            console.error('Error scanning QR from image:', error);
-            setIsScanningImage(false);
-            alert('Có lỗi xảy ra khi quét mã QR từ ảnh');
-        }
-    };
-
-    const performCheckInFromQR = async (scannedCode: string) => {
-        try {
-            const payload: any = { participationType: "CHECKED_IN", ticketCode: scannedCode };
-            const response = await registrationAPI.checkIn(payload);
-            if (response.status) {
-                const data = response.body;
-                if (data?.participationType === 'CHECKED_IN') {
-                    alert(`✅ Check-in thành công cho ticketCode: ${scannedCode}.\nVui lòng check-out khi sinh viên rời khỏi sự kiện.`);
-                } else if (data?.participationType === 'ATTENDED') {
-                    alert(`✅ Check-out thành công cho ticketCode: ${scannedCode}.\nĐã hoàn thành tham gia sự kiện.`);
-                } else {
-                    alert(`✅ ${response.message || "Thành công"}`);
-                }
-                if (selectedEventId) await loadRegistrations(selectedEventId);
-                setTicketCode("");
-                setUploadedImage(null);
-                if (fileInputRef.current) {
-                    fileInputRef.current.value = '';
-                }
-            } else {
-                alert(response.message || "❌ Thao tác thất bại");
-            }
-        } catch (error) {
-            console.error("Error check-in:", error);
-            alert("Có lỗi xảy ra khi check-in bằng QR");
-        }
-    };
 
     const loadEvents = async () => {
         try {
@@ -350,33 +276,38 @@ const ManagerRegistrations: React.FC = () => {
                         <div className="flex flex-col md:flex-row gap-4 items-center">
                             <input
                                 type="text"
-                                placeholder="Nhập ticketCode"
+                                placeholder="Nhập ticketCode hoặc quét QR"
                                 value={ticketCode}
-                                onChange={(e) => setTicketCode(e.target.value)}
+                                onChange={(e) => {
+                                    setTicketCode(e.target.value);
+                                    setValidatedInfo(null);
+                                }}
+                                onKeyPress={(e) => {
+                                    if (e.key === 'Enter' && ticketCode.trim()) {
+                                        handleValidateTicketCode(ticketCode);
+                                    }
+                                }}
                                 className="px-3 py-2 border rounded-md w-full md:w-1/3"
                             />
                             <button
                                 onClick={handleCheckIn}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                                disabled={isValidating || !ticketCode.trim()}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                             >
-                                Check-in
+                                {isValidating ? "Đang kiểm tra..." : "Kiểm tra mã vé"}
                             </button>
                             <button
-                                onClick={() => setShowScanner(!showScanner)}
+                                onClick={() => {
+                                    setShowScanner(!showScanner);
+                                    if (showScanner) {
+                                        setTicketCode("");
+                                        setValidatedInfo(null);
+                                    }
+                                }}
                                 className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
                             >
-                                {showScanner ? "Đóng QR" : "Quét QR Camera"}
+                                {showScanner ? "Đóng Camera" : "Quét QR Camera"}
                             </button>
-                            <label className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 cursor-pointer">
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleImageUpload}
-                                    className="hidden"
-                                />
-                                {isScanningImage ? "Đang quét..." : "Quét QR từ ảnh"}
-                            </label>
                         </div>
 
                         {showScanner && (
@@ -389,41 +320,98 @@ const ManagerRegistrations: React.FC = () => {
                             </div>
                         )}
 
-                        {uploadedImage && (
-                            <div className="mt-4">
-                                <div className="flex items-center gap-4">
-                                    <div className="relative">
-                                        <img
-                                            src={uploadedImage}
-                                            alt="Uploaded QR code"
-                                            className="max-w-xs max-h-64 border-2 border-gray-300 rounded-lg"
-                                        />
-                                        {isScanningImage && (
-                                            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg">
-                                                <div className="text-white text-center">
-                                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
-                                                    <p>Đang quét mã QR...</p>
-                                                </div>
-                                            </div>
-                                        )}
+                        {validatedInfo && !showConfirmDialog && (
+                            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                <h4 className="font-semibold text-blue-900 mb-3">Thông tin mã vé</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                        <span className="font-medium text-gray-600">Mã vé:</span>
+                                        <p className="text-gray-900 font-mono">{validatedInfo.ticketCode}</p>
                                     </div>
+                                    <div>
+                                        <span className="font-medium text-gray-600">Mã sinh viên:</span>
+                                        <p className="text-gray-900">{validatedInfo.studentCode}</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-medium text-gray-600">Tên sinh viên:</span>
+                                        <p className="text-gray-900">{validatedInfo.studentName}</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-medium text-gray-600">Sự kiện:</span>
+                                        <p className="text-gray-900">{validatedInfo.activityName}</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-medium text-gray-600">Trạng thái hiện tại:</span>
+                                        <p className="text-gray-900">{getRegistrationStatusLabel(validatedInfo.currentStatus)}</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-medium text-gray-600">Có thể thao tác:</span>
+                                        <div className="flex gap-2 mt-1">
+                                            {validatedInfo.canCheckIn && (
+                                                <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">Check-in</span>
+                                            )}
+                                            {validatedInfo.canCheckOut && (
+                                                <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs">Check-out</span>
+                                            )}
+                                            {!validatedInfo.canCheckIn && !validatedInfo.canCheckOut && (
+                                                <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs">Không thể thao tác</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="mt-4 flex gap-2">
+                                    <button
+                                        onClick={() => setShowConfirmDialog(true)}
+                                        disabled={!validatedInfo.canCheckIn && !validatedInfo.canCheckOut}
+                                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                    >
+                                        Xác nhận Check-in/Check-out
+                                    </button>
                                     <button
                                         onClick={() => {
-                                            setUploadedImage(null);
-                                            if (fileInputRef.current) {
-                                                fileInputRef.current.value = '';
-                                            }
+                                            setValidatedInfo(null);
+                                            setTicketCode("");
+                                            setShowConfirmDialog(false);
                                         }}
-                                        className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm"
+                                        className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
                                     >
-                                        Xóa ảnh
+                                        Hủy
                                     </button>
                                 </div>
                             </div>
                         )}
 
-                        {/* Hidden canvas for QR code scanning */}
-                        <canvas ref={canvasRef} className="hidden" />
+                        {showConfirmDialog && validatedInfo && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                                <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Xác nhận Check-in/Check-out</h3>
+                                    <div className="mb-4">
+                                        <p className="text-sm text-gray-600 mb-2">Bạn có chắc chắn muốn thực hiện thao tác này?</p>
+                                        <div className="bg-gray-50 p-3 rounded">
+                                            <p className="text-sm"><span className="font-medium">Sinh viên:</span> {validatedInfo.studentName} ({validatedInfo.studentCode})</p>
+                                            <p className="text-sm"><span className="font-medium">Sự kiện:</span> {validatedInfo.activityName}</p>
+                                            <p className="text-sm"><span className="font-medium">Mã vé:</span> <span className="font-mono">{validatedInfo.ticketCode}</span></p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2 justify-end">
+                                        <button
+                                            onClick={() => {
+                                                setShowConfirmDialog(false);
+                                            }}
+                                            className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+                                        >
+                                            Hủy
+                                        </button>
+                                        <button
+                                            onClick={handleConfirmCheckIn}
+                                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                                        >
+                                            Xác nhận
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 

@@ -1,0 +1,118 @@
+/* CampusLife Theme Colors */
+:root {
+    --primary-dark: #001C44;
+    --primary-yellow: #FFD66D;
+    --primary-yellow-hover: #FFC947;
+    --primary-dark-hover: #002A66;
+    --text-primary: #1F2937;
+    --text-secondary: #6B7280;
+    --bg-light: #F9FAFB;
+    --bg-white: #FFFFFF;
+    --border-color: #E5E7EB;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-light);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--primary-dark);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark-hover);
+}
+
+/* Sidebar styles */
+.sidebar-link {
+    transition: all 0.2s ease;
+}
+
+.sidebar-link:hover {
+    background-color: rgba(255, 214, 109, 0.1);
+    border-left-color: var(--primary-yellow);
+}
+
+.sidebar-link.active {
+    background-color: rgba(255, 214, 109, 0.15);
+    border-left-color: var(--primary-yellow);
+    color: var(--primary-dark);
+    font-weight: 600;
+}
+
+/* Button styles */
+.btn-primary {
+    background-color: var(--primary-dark);
+    color: white;
+    transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-yellow {
+    background-color: var(--primary-yellow);
+    color: var(--primary-dark);
+    transition: all 0.2s ease;
+}
+
+.btn-yellow:hover {
+    background-color: var(--primary-yellow-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Card styles */
+.card {
+    background: var(--bg-white);
+    border-radius: 8px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+/* Stat card */
+.stat-card {
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-dark-hover) 100%);
+    color: white;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}

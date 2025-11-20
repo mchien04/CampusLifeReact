@@ -5,6 +5,7 @@ import { StudentProfileResponse } from '../types/student';
 import { studentAPI, departmentAPI, classAPI, uploadAPI, addressAPI } from '../services';
 import { GENDER_OPTIONS, getGenderLabel } from '../types/student';
 import { Address, Province, Ward, CreateAddressRequest, UpdateAddressRequest } from '../types/address';
+import StudentLayout from '../components/layout/StudentLayout';
 
 const StudentProfile: React.FC = () => {
     const [student, setStudent] = useState<StudentProfileResponse | null>(null);
@@ -333,36 +334,20 @@ const StudentProfile: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Đang tải thông tin profile...</p>
+            <StudentLayout>
+                <div className="flex items-center justify-center min-h-[400px]">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#001C44] mx-auto"></div>
+                        <p className="mt-4 text-gray-600">Đang tải thông tin profile...</p>
+                    </div>
                 </div>
-            </div>
+            </StudentLayout>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <div className="bg-white shadow">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center py-6">
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900">Chỉnh sửa profile</h1>
-                            <p className="text-gray-600 mt-1">Cập nhật thông tin cá nhân của bạn</p>
-                        </div>
-                        <Link
-                            to="/dashboard"
-                            className="px-4 py-2 text-gray-600 hover:text-gray-900"
-                        >
-                            ← Quay lại Dashboard
-                        </Link>
-                    </div>
-                </div>
-            </div>
-
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <StudentLayout>
+            <div className="max-w-4xl mx-auto space-y-6">
                 {/* Success/Error Messages */}
                 {success && (
                     <div className="mb-6 bg-green-50 border border-green-200 rounded-md p-4">
@@ -395,7 +380,7 @@ const StudentProfile: React.FC = () => {
                 )}
 
                 {/* Profile Form */}
-                <div className="bg-white rounded-lg shadow p-6">
+                <div className="card p-6">
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {/* Profile Image */}
                         <div className="flex items-center space-x-6">
@@ -431,7 +416,7 @@ const StudentProfile: React.FC = () => {
                                     id="profileImage"
                                     accept="image/*"
                                     onChange={handleImageChange}
-                                    className="mt-1 block text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                    className="mt-1 block text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#001C44] file:text-[#FFD66D] hover:file:bg-[#002A66] transition-colors"
                                 />
                                 <p className="mt-1 text-xs text-gray-500">
                                     JPG, PNG hoặc GIF. Tối đa 5MB.
@@ -451,7 +436,7 @@ const StudentProfile: React.FC = () => {
                                     name="fullName"
                                     value={formData.fullName}
                                     onChange={handleChange}
-                                    className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${errors.fullName ? 'border-red-300' : 'border-gray-300'
+                                    className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors ${errors.fullName ? 'border-red-300' : 'border-gray-300'
                                         }`}
                                     placeholder="Nhập họ và tên"
                                 />
@@ -470,7 +455,7 @@ const StudentProfile: React.FC = () => {
                                     name="studentCode"
                                     value={formData.studentCode}
                                     onChange={handleChange}
-                                    className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${errors.studentCode ? 'border-red-300' : 'border-gray-300'
+                                    className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors ${errors.studentCode ? 'border-red-300' : 'border-gray-300'
                                         }`}
                                     placeholder="Nhập mã sinh viên"
                                 />
@@ -489,7 +474,7 @@ const StudentProfile: React.FC = () => {
                                     name="phoneNumber"
                                     value={formData.phoneNumber}
                                     onChange={handleChange}
-                                    className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${errors.phoneNumber ? 'border-red-300' : 'border-gray-300'
+                                    className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors ${errors.phoneNumber ? 'border-red-300' : 'border-gray-300'
                                         }`}
                                     placeholder="Nhập số điện thoại"
                                 />
@@ -508,7 +493,7 @@ const StudentProfile: React.FC = () => {
                                     name="dateOfBirth"
                                     value={formData.dateOfBirth}
                                     onChange={handleChange}
-                                    className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${errors.dateOfBirth ? 'border-red-300' : 'border-gray-300'
+                                    className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors ${errors.dateOfBirth ? 'border-red-300' : 'border-gray-300'
                                         }`}
                                 />
                                 {errors.dateOfBirth && (
@@ -525,7 +510,7 @@ const StudentProfile: React.FC = () => {
                                     name="gender"
                                     value={formData.gender}
                                     onChange={handleChange}
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
                                 >
                                     <option value="">Chọn giới tính</option>
                                     {GENDER_OPTIONS.map(option => (
@@ -565,7 +550,7 @@ const StudentProfile: React.FC = () => {
                                         name="departmentId"
                                         value={formData.departmentId}
                                         onChange={(e) => handleDepartmentChange(parseInt(e.target.value))}
-                                        className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${errors.departmentId ? 'border-red-300' : 'border-gray-300'
+                                        className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors ${errors.departmentId ? 'border-red-300' : 'border-gray-300'
                                             }`}
                                     >
                                         <option value={0}>Chọn khoa</option>
@@ -590,7 +575,7 @@ const StudentProfile: React.FC = () => {
                                         value={formData.classId}
                                         onChange={handleChange}
                                         disabled={!formData.departmentId || classes.length === 0}
-                                        className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${errors.classId ? 'border-red-300' : 'border-gray-300'
+                                        className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors ${errors.classId ? 'border-red-300' : 'border-gray-300'
                                             } ${!formData.departmentId || classes.length === 0 ? 'bg-gray-100' : ''}`}
                                     >
                                         <option value={0}>
@@ -616,9 +601,9 @@ const StudentProfile: React.FC = () => {
 
                             {/* Current Address Display */}
                             {address && (
-                                <div className="mb-4 p-4 bg-blue-50 rounded-md">
-                                    <p className="text-sm font-medium text-gray-900">Địa chỉ hiện tại:</p>
-                                    <p className="text-sm text-gray-700 mt-1">
+                                <div className="mb-4 p-4 bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-md text-white">
+                                    <p className="text-sm font-medium text-[#FFD66D]">Địa chỉ hiện tại:</p>
+                                    <p className="text-sm mt-1">
                                         {address.street && `${address.street}, `}
                                         {address.wardName}, {address.provinceName}
                                         {address.note && ` (${address.note})`}
@@ -637,7 +622,7 @@ const StudentProfile: React.FC = () => {
                                             id="addressProvince"
                                             value={addressFormData.provinceCode}
                                             onChange={(e) => handleProvinceChange(Number(e.target.value))}
-                                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
                                         >
                                             <option value={0}>Chọn tỉnh/thành phố</option>
                                             {provinces.map((province) => (
@@ -657,7 +642,7 @@ const StudentProfile: React.FC = () => {
                                             value={addressFormData.wardCode}
                                             onChange={(e) => setAddressFormData(prev => ({ ...prev, wardCode: Number(e.target.value) }))}
                                             disabled={wards.length === 0}
-                                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors disabled:bg-gray-100"
                                         >
                                             <option value={0}>Chọn phường/xã</option>
                                             {wards.map((ward) => (
@@ -679,7 +664,7 @@ const StudentProfile: React.FC = () => {
                                         value={addressFormData.street}
                                         onChange={(e) => setAddressFormData(prev => ({ ...prev, street: e.target.value }))}
                                         placeholder="Nhập số nhà, tên đường..."
-                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
                                     />
                                 </div>
 
@@ -693,7 +678,7 @@ const StudentProfile: React.FC = () => {
                                         onChange={(e) => setAddressFormData(prev => ({ ...prev, note: e.target.value }))}
                                         placeholder="Ghi chú thêm về địa chỉ..."
                                         rows={3}
-                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
                                     />
                                 </div>
 
@@ -715,7 +700,7 @@ const StudentProfile: React.FC = () => {
                                         type="button"
                                         onClick={handleAddressSubmit}
                                         disabled={addressSaving}
-                                        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                                        className="btn-primary px-4 py-2 text-sm font-medium disabled:opacity-50"
                                     >
                                         {addressSaving ? 'Đang lưu...' : (address ? 'Cập nhật địa chỉ' : 'Tạo địa chỉ')}
                                     </button>
@@ -727,14 +712,14 @@ const StudentProfile: React.FC = () => {
                         <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
                             <Link
                                 to="/dashboard"
-                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#001C44] transition-colors"
                             >
                                 Hủy
                             </Link>
                             <button
                                 type="submit"
                                 disabled={saving}
-                                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                                className="btn-primary px-4 py-2 text-sm font-medium disabled:opacity-50"
                             >
                                 {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
                             </button>
@@ -742,7 +727,7 @@ const StudentProfile: React.FC = () => {
                     </form>
                 </div>
             </div>
-        </div>
+        </StudentLayout>
     );
 };
 

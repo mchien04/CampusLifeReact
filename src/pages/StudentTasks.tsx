@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { TaskSubmissionResponse, CreateSubmissionRequest, UpdateSubmissionRequest } from '../types/submission';
 import { submissionAPI } from '../services/submissionAPI';
 import { getSubmissionStatusColor, getSubmissionStatusLabel } from '../utils/submissionUtils';
+import StudentLayout from '../components/layout/StudentLayout';
 
 const StudentTasks: React.FC = () => {
     const { username } = useAuth(); // Get username from auth context
@@ -285,63 +286,54 @@ const StudentTasks: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Đang tải nhiệm vụ...</p>
+            <StudentLayout>
+                <div className="flex items-center justify-center min-h-[400px]">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#001C44] mx-auto"></div>
+                        <p className="mt-4 text-gray-600">Đang tải nhiệm vụ...</p>
+                    </div>
                 </div>
-            </div>
+            </StudentLayout>
         );
     }
 
     if (error) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="text-red-500 text-6xl mb-4">❌</div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Lỗi</h3>
-                    <p className="text-gray-600 mb-4">{error}</p>
-                    <button
-                        onClick={loadStudentTasks}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                    >
-                        Thử lại
-                    </button>
+            <StudentLayout>
+                <div className="flex items-center justify-center min-h-[400px]">
+                    <div className="text-center">
+                        <div className="text-red-500 text-6xl mb-4">❌</div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">Lỗi</h3>
+                        <p className="text-gray-600 mb-4">{error}</p>
+                        <button
+                            onClick={loadStudentTasks}
+                            className="btn-primary px-4 py-2 text-sm font-medium"
+                        >
+                            Thử lại
+                        </button>
+                    </div>
                 </div>
-            </div>
+            </StudentLayout>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <div className="bg-white shadow">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center py-6">
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900">Nhiệm vụ của tôi</h1>
-                            <p className="text-gray-600 mt-1">Danh sách các nhiệm vụ được phân công</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <Link to="/dashboard" className="text-sm px-3 py-1 border rounded-md text-gray-700 hover:bg-gray-50">
-                                ← Quay lại Dashboard
-                            </Link>
-                            <div className="text-sm text-gray-500">
-                                Tổng: {assignments.length} nhiệm vụ
-                            </div>
-                        </div>
+        <StudentLayout>
+            <div className="space-y-6">
+                {/* Summary */}
+                <div className="flex justify-end items-center gap-3">
+                    <div className="text-sm text-gray-600 font-medium">
+                        Tổng: <span className="text-[#001C44]">{assignments.length}</span> nhiệm vụ
                     </div>
                 </div>
-            </div>
 
-            {/* Filters */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                <div className="bg-white rounded-lg shadow p-6">
+                {/* Filters */}
+                <div className="card p-6">
                     <div className="flex flex-wrap gap-4">
                         <button
                             onClick={() => setFilter('ALL')}
-                            className={`px-4 py-2 rounded-md text-sm font-medium ${filter === 'ALL'
-                                ? 'bg-blue-600 text-white'
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filter === 'ALL'
+                                ? 'btn-primary text-white'
                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                         >
@@ -353,8 +345,8 @@ const StudentTasks: React.FC = () => {
                                 <button
                                     key={status}
                                     onClick={() => setFilter(status)}
-                                    className={`px-4 py-2 rounded-md text-sm font-medium ${filter === status
-                                        ? 'bg-blue-600 text-white'
+                                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filter === status
+                                        ? 'btn-primary text-white'
                                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                         }`}
                                 >
@@ -364,12 +356,10 @@ const StudentTasks: React.FC = () => {
                         })}
                     </div>
                 </div>
-            </div>
 
-            {/* Tasks List */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+                {/* Tasks List */}
                 {filteredAssignments.length === 0 ? (
-                    <div className="bg-white rounded-lg shadow p-8 text-center">
+                    <div className="card p-8 text-center">
                         <div className="text-gray-400 text-6xl mb-4">📋</div>
                         <h3 className="text-lg font-medium text-gray-900 mb-2">
                             {filter === 'ALL' ? 'Chưa có nhiệm vụ nào' : `Không có nhiệm vụ ${getStatusLabel(filter as TaskStatus).toLowerCase()}`}
@@ -389,7 +379,7 @@ const StudentTasks: React.FC = () => {
                             const isLate = assignment.submissionDeadline ? new Date() > new Date(assignment.submissionDeadline) : false;
 
                             return (
-                                <div key={assignment.id} className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow">
+                                <div key={assignment.id} className="card hover:shadow-lg transition-shadow">
                                     <div className="p-6">
                                         <div className="flex items-start justify-between">
                                             <div className="flex-1">
@@ -416,7 +406,7 @@ const StudentTasks: React.FC = () => {
 
                                                 <button
                                                     onClick={() => openSubmissionModal(assignment)}
-                                                    className="px-4 py-2 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                    className="btn-primary px-4 py-2 text-sm font-medium"
                                                 >
                                                     {mySubmission ? 'Xem/Sửa bài nộp' : 'Nộp bài'}
                                                 </button>
@@ -445,7 +435,7 @@ const StudentTasks: React.FC = () => {
                                                                     key={idx}
                                                                     type="button"
                                                                     onClick={() => handleDownload(url)}
-                                                                    className="text-blue-600 hover:underline flex items-center text-sm"
+                                                                    className="text-[#001C44] hover:text-[#002A66] hover:underline flex items-center text-sm font-medium transition-colors"
                                                                 >
                                                                     <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                                                         <path fillRule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clipRule="evenodd" />
@@ -496,7 +486,7 @@ const StudentTasks: React.FC = () => {
                                     rows={5}
                                     value={submissionContent}
                                     onChange={(e) => setSubmissionContent(e.target.value)}
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
                                     placeholder="Nhập nội dung bài nộp của bạn..."
                                 ></textarea>
                             </div>
@@ -507,7 +497,7 @@ const StudentTasks: React.FC = () => {
                                     id="submissionFiles"
                                     multiple
                                     onChange={handleFileChange}
-                                    className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                    className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#001C44] file:text-[#FFD66D] hover:file:bg-[#002A66] transition-colors"
                                 />
                                 <p className="mt-1 text-xs text-gray-500">Cho phép nhiều file.</p>
                                 {submissionFilePreviews.length > 0 && (
@@ -536,7 +526,7 @@ const StudentTasks: React.FC = () => {
                                                             alert('Tải file thất bại. Vui lòng thử lại.');
                                                         }
                                                     }}
-                                                    className="text-blue-600 hover:underline text-sm truncate"
+                                                    className="text-[#001C44] hover:text-[#002A66] hover:underline text-sm truncate font-medium transition-colors"
                                                 >
                                                     {fileUrl.split('/').pop()}
                                                 </button>
@@ -615,7 +605,7 @@ const StudentTasks: React.FC = () => {
                                                 setSubmissionLoading(false);
                                             }
                                         }}
-                                        className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                        className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
                                     >
                                         Xóa bài nộp
                                     </button>
@@ -623,14 +613,14 @@ const StudentTasks: React.FC = () => {
                                 <button
                                     type="button"
                                     onClick={closeSubmissionModal}
-                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
                                 >
                                     Hủy
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={submissionLoading}
-                                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                                    className="btn-primary px-4 py-2 text-sm font-medium disabled:opacity-50"
                                 >
                                     {submissionLoading ? 'Đang lưu...' : (currentSubmission ? 'Cập nhật bài nộp' : 'Nộp bài')}
                                 </button>
@@ -639,7 +629,7 @@ const StudentTasks: React.FC = () => {
                     </div>
                 </div>
             )}
-        </div>
+        </StudentLayout>
     );
 };
 

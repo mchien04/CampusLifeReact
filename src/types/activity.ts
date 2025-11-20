@@ -101,3 +101,13 @@ export enum ScoreType {
     KHAC = 'KHAC'
 }
 
+export interface ActivityPhotoResponse {
+    id: number;
+    activityId: number;
+    imageUrl: string;
+    caption?: string;
+    displayOrder: number;
+    uploadedBy: string;
+    createdAt: string;
+}
+

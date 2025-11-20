@@ -64,6 +64,7 @@ const EventForm: React.FC<EventFormProps> = ({
     const [organizerInput, setOrganizerInput] = useState<string>('');
     const [originalBannerUrl, setOriginalBannerUrl] = useState<string>('');
     const [isInitialLoad, setIsInitialLoad] = useState(true);
+    const [unlimitedTickets, setUnlimitedTickets] = useState(false);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
@@ -79,6 +80,16 @@ const EventForm: React.FC<EventFormProps> = ({
                 ...prev,
                 [name]: ''
             }));
+        }
+    };
+
+    const handleUnlimitedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const checked = e.target.checked;
+        setUnlimitedTickets(checked);
+        if (checked) {
+            setFormData(prev => ({ ...prev, ticketQuantity: undefined }));
+        } else {
+            setFormData(prev => ({ ...prev, ticketQuantity: 0 }));
         }
     };
 
@@ -140,6 +151,12 @@ const EventForm: React.FC<EventFormProps> = ({
                     bannerUrl: ''
                 }));
             }
+            // Set unlimitedTickets based on ticketQuantity value
+            if (initialData.ticketQuantity === undefined || initialData.ticketQuantity === null) {
+                setUnlimitedTickets(true);
+            } else {
+                setUnlimitedTickets(false);
+            }
             // Mark initial load as complete after initialData is set
             setIsInitialLoad(false);
         } else {
@@ -162,14 +179,15 @@ const EventForm: React.FC<EventFormProps> = ({
         loadDepartments();
     }, []);
 
-    // Auto-set ticketQuantity to 0 (unlimited) when isImportant or mandatoryForFacultyStudents is true
+    // Auto-set ticketQuantity to undefined (unlimited) when isImportant or mandatoryForFacultyStudents is true
     // Only run after initial load to preserve values when editing
     useEffect(() => {
         if (isInitialLoad) return; // Don't run on initial load
         if (formData.isImportant || formData.mandatoryForFacultyStudents) {
+            setUnlimitedTickets(true);
             setFormData(prev => ({
                 ...prev,
-                ticketQuantity: 0
+                ticketQuantity: undefined
             }));
         }
     }, [formData.isImportant, formData.mandatoryForFacultyStudents, isInitialLoad]);
@@ -496,17 +514,33 @@ const EventForm: React.FC<EventFormProps> = ({
                             <label htmlFor="ticketQuantity" className="block text-sm font-medium text-gray-700 mb-2">
                                 Số lượng vé/slot
                             </label>
-                            <input
-                                type="number"
-                                id="ticketQuantity"
-                                name="ticketQuantity"
-                                value={formData.ticketQuantity}
-                                onChange={handleChange}
-                                min="0"
-                                disabled={formData.isImportant || formData.mandatoryForFacultyStudents}
-                                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${(formData.isImportant || formData.mandatoryForFacultyStudents) ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                                placeholder="0 (không giới hạn)"
-                            />
+                            <div className="space-y-2">
+                                <div className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        id="unlimitedTickets"
+                                        name="unlimitedTickets"
+                                        checked={unlimitedTickets}
+                                        onChange={handleUnlimitedChange}
+                                        disabled={formData.isImportant || formData.mandatoryForFacultyStudents}
+                                        className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${(formData.isImportant || formData.mandatoryForFacultyStudents) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    />
+                                    <label htmlFor="unlimitedTickets" className={`ml-2 block text-sm ${(formData.isImportant || formData.mandatoryForFacultyStudents) ? 'text-gray-500' : 'text-gray-900'}`}>
+                                        Không giới hạn số lượng
+                                    </label>
+                                </div>
+                                <input
+                                    type="number"
+                                    id="ticketQuantity"
+                                    name="ticketQuantity"
+                                    value={formData.ticketQuantity ?? ''}
+                                    onChange={handleChange}
+                                    min="0"
+                                    disabled={unlimitedTickets || formData.isImportant || formData.mandatoryForFacultyStudents}
+                                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${(unlimitedTickets || formData.isImportant || formData.mandatoryForFacultyStudents) ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                                    placeholder="Nhập số lượng vé"
+                                />
+                            </div>
                             {(formData.isImportant || formData.mandatoryForFacultyStudents) && (
                                 <p className="text-xs text-gray-500 mt-1">Không giới hạn (sự kiện quan trọng/bắt buộc)</p>
                             )}

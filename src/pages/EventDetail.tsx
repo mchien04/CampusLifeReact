@@ -13,6 +13,9 @@ import { submissionAPI } from '../services/submissionAPI';
 import { TaskAssignmentModal } from '../components/task/TaskAssignmentModal';
 import { RegistrationForm, ParticipationForm } from '../components/registration';
 import { useAuth } from '../contexts/AuthContext';
+import { PhotoUploadForm, PhotoGrid } from '../components/events';
+import { activityPhotoAPI } from '../services/activityPhotoAPI';
+import { ActivityPhotoResponse } from '../types/activity';
 
 const EventDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -37,6 +40,12 @@ const EventDetail: React.FC = () => {
     const [showRegistrationForm, setShowRegistrationForm] = useState(false);
     const [showParticipationForm, setShowParticipationForm] = useState(false);
     const [loadingRegistration, setLoadingRegistration] = useState(false);
+    
+    // Photo gallery states
+    const [photos, setPhotos] = useState<ActivityPhotoResponse[]>([]);
+    const [loadingPhotos, setLoadingPhotos] = useState(false);
+    const [showUploadForm, setShowUploadForm] = useState(false);
+    
     const navigate = useNavigate();
     const refetch = async () => {
         if (!id) return;
@@ -109,6 +118,31 @@ const EventDetail: React.FC = () => {
         fetchEvent();
     }, [id]);
 
+    // Load photos when event is loaded and ended
+    useEffect(() => {
+        const loadPhotos = async () => {
+            if (!event || !id) return;
+            
+            // Only load photos if event has ended
+            const isEventEnded = new Date(event.endDate) < new Date();
+            if (!isEventEnded) return;
+
+            try {
+                setLoadingPhotos(true);
+                const response = await activityPhotoAPI.getActivityPhotos(parseInt(id));
+                if (response.status && response.data) {
+                    setPhotos(response.data);
+                }
+            } catch (err) {
+                console.error('Error loading photos:', err);
+            } finally {
+                setLoadingPhotos(false);
+            }
+        };
+
+        loadPhotos();
+    }, [event, id]);
+
     // Check registration status for students
     useEffect(() => {
         const checkRegistrationStatus = async () => {
@@ -147,6 +181,60 @@ const EventDetail: React.FC = () => {
             console.error('Error loading tasks:', error);
         } finally {
             setLoadingTasks(false);
+        }
+    };
+
+    // Photo gallery handlers
+    const handleDeletePhoto = async (photoId: number) => {
+        if (!event || !id) return;
+        try {
+            const response = await activityPhotoAPI.deletePhoto(parseInt(id), photoId);
+            if (response.status) {
+                // Reload photos
+                const photosResponse = await activityPhotoAPI.getActivityPhotos(parseInt(id));
+                if (photosResponse.status && photosResponse.data) {
+                    setPhotos(photosResponse.data);
+                }
+                alert('Đã xóa ảnh');
+            } else {
+                alert(response.message || 'Không thể xóa ảnh');
+            }
+        } catch (error) {
+            console.error('Error deleting photo:', error);
+            alert('Có lỗi xảy ra khi xóa ảnh');
+        }
+    };
+
+    const handleReorderPhoto = async (photoId: number, newOrder: number) => {
+        if (!event || !id) return;
+        try {
+            const response = await activityPhotoAPI.updatePhotoOrder(parseInt(id), photoId, newOrder);
+            if (response.status) {
+                // Reload photos
+                const photosResponse = await activityPhotoAPI.getActivityPhotos(parseInt(id));
+                if (photosResponse.status && photosResponse.data) {
+                    setPhotos(photosResponse.data);
+                }
+            } else {
+                alert(response.message || 'Không thể cập nhật thứ tự');
+            }
+        } catch (error) {
+            console.error('Error reordering photo:', error);
+            alert('Có lỗi xảy ra khi cập nhật thứ tự');
+        }
+    };
+
+    const handleUploadSuccess = async () => {
+        if (!id) return;
+        setShowUploadForm(false);
+        // Reload photos
+        try {
+            const response = await activityPhotoAPI.getActivityPhotos(parseInt(id));
+            if (response.status && response.data) {
+                setPhotos(response.data);
+            }
+        } catch (error) {
+            console.error('Error reloading photos:', error);
         }
     };
 
@@ -707,6 +795,62 @@ const EventDetail: React.FC = () => {
                     </div>
                 </div>
 
+                {/* Photo Gallery Section - Only show if event has ended */}
+                {event && new Date(event.endDate) < new Date() && (
+                    <div className="mt-8">
+                        <div className="bg-white shadow-lg rounded-lg overflow-hidden">
+                            <div className="px-6 py-4 border-b border-gray-200">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-gray-900">Hình ảnh sự kiện</h3>
+                                        <p className="text-sm text-gray-600 mt-1">
+                                            {photos.length > 0 ? `${photos.length} ảnh` : 'Chưa có ảnh nào'}
+                                        </p>
+                                    </div>
+                                    <div className="flex space-x-3">
+                                        {(user?.role === 'MANAGER' || user?.role === 'ADMIN') && (
+                                            <button
+                                                onClick={() => setShowUploadForm(!showUploadForm)}
+                                                className="px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                                            >
+                                                {showUploadForm ? 'Ẩn form' : 'Thêm ảnh'}
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="p-6">
+                                {showUploadForm && (user?.role === 'MANAGER' || user?.role === 'ADMIN') && (
+                                    <div className="mb-6">
+                                        <PhotoUploadForm
+                                            activityId={event.id}
+                                            currentPhotoCount={photos.length}
+                                            onUploadSuccess={handleUploadSuccess}
+                                            onCancel={() => setShowUploadForm(false)}
+                                        />
+                                    </div>
+                                )}
+                                {loadingPhotos ? (
+                                    <div className="text-center py-8 text-gray-500">
+                                        <p>Đang tải ảnh...</p>
+                                    </div>
+                                ) : photos.length === 0 ? (
+                                    <div className="text-center py-8 text-gray-500">
+                                        <p>Chưa có ảnh nào được tải lên</p>
+                                    </div>
+                                ) : (
+                                    <PhotoGrid
+                                        photos={photos}
+                                        onDelete={(user?.role === 'MANAGER' || user?.role === 'ADMIN') ? handleDeletePhoto : undefined}
+                                        onReorder={(user?.role === 'MANAGER' || user?.role === 'ADMIN') ? handleReorderPhoto : undefined}
+                                        canManage={user?.role === 'MANAGER' || user?.role === 'ADMIN' || false}
+                                    />
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Student Registration Section */}
                 {user && user.role === 'STUDENT' && (
                     <div className="mt-8">
@@ -952,6 +1096,7 @@ const EventDetail: React.FC = () => {
                     isLoading={loadingRegistration}
                 />
             )}
+
         </div>
     );
 };

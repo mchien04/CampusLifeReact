@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { academicPublicAPI } from '../services/academicPublicAPI';
 import { studentAPI } from '../services/studentAPI';
 import { toast } from 'react-toastify';
+import StudentLayout from '../components/layout/StudentLayout';
 
 const ViewScores: React.FC = () => {
     const { user } = useAuth();
@@ -67,94 +68,125 @@ const ViewScores: React.FC = () => {
     }, [data, scoreType]);
 
     return (
-        <div className="max-w-4xl mx-auto p-4">
-            <h1 className="text-xl font-semibold mb-4">Bảng điểm học kỳ</h1>
-            <div className="bg-white p-4 rounded shadow space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Năm học</label>
-                        <select
-                            className="w-full border rounded px-3 py-2"
-                            value={yearId}
-                            onChange={(e) => setYearId(e.target.value)}
-                        >
-                            {years.map(y => (
-                                <option key={y.id} value={y.id}>{y.name}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Học kỳ
-                        </label>
-                        <select
-                            className="w-full border rounded px-3 py-2"
-                            value={semesterId}
-                            onChange={(e) => setSemesterId(e.target.value)}
-                        >
-                            {semesters.map(sem => (
-                                <option key={sem.id} value={sem.id}>
-                                    {sem.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Loại điểm</label>
-                        <select
-                            className="w-full border rounded px-3 py-2"
-                            value={scoreType}
-                            onChange={(e) => setScoreType(e.target.value as any)}
-                        >
-                            <option value="ALL">Tất cả</option>
-                            <option value="REN_LUYEN">Điểm rèn luyện</option>
-                            <option value="CONG_TAC_XA_HOI">Công tác xã hội</option>
-                            <option value="CHUYEN_DE">Chuyên đề doanh nghiệp</option>
-                            <option value="KHAC">Khác</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            {isFetching && <div className="mt-4">Đang tải...</div>}
-            {isError && <div className="mt-4 text-red-600">Lỗi tải dữ liệu</div>}
-
-            {Array.isArray(summaries) && summaries.length > 0 && (
-                <div className="mt-6 space-y-4">
-                    {summaries.map((s: ScoreTypeSummary, idx: number) => (
-                        <div key={s.scoreType ?? idx} className="bg-white p-4 rounded shadow">
-                            <div className="flex justify-between items-center">
-                                <div className="text-lg font-semibold">
-                                    {s.scoreType === 'REN_LUYEN' && 'Điểm rèn luyện'}
-                                    {s.scoreType === 'CONG_TAC_XA_HOI' && 'Điểm công tác xã hội'}
-                                    {s.scoreType === 'CHUYEN_DE' && 'Điểm chuyên đề doanh nghiệp'}
-                                    {s.scoreType === 'KHAC' && 'Điểm khác'}
-                                </div>
-                                <div className="text-lg font-semibold">Tổng: {s.total}</div>
-                            </div>
-                            <div className="mt-3 divide-y">
-                                {(s.items ?? []).map((it, itemIdx) => (
-                                    <div key={itemIdx} className="py-2 text-sm flex justify-between">
-                                        <div>
-                                            <div className="font-medium">
-                                                {it.sourceType === 'MANUAL' && 'Nhập tay'}
-                                                {it.sourceType === 'ACTIVITY_CHECKIN' && 'Điểm danh hoạt động'}
-                                                {it.sourceType === 'ACTIVITY_SUBMISSION' && 'Nộp bài hoạt động'}
-                                            </div>
-                                            {it.sourceNote && <div className="text-gray-600">{it.sourceNote}</div>}
-                                        </div>
-                                        <div className="font-semibold">{it.score}</div>
-                                    </div>
+        <StudentLayout>
+            <div className="max-w-4xl mx-auto space-y-6">
+                <h1 className="text-2xl font-bold text-[#001C44]">Bảng điểm học kỳ</h1>
+                
+                {/* Filters */}
+                <div className="card p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Năm học</label>
+                            <select
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
+                                value={yearId}
+                                onChange={(e) => setYearId(e.target.value)}
+                            >
+                                {years.map(y => (
+                                    <option key={y.id} value={y.id}>{y.name}</option>
                                 ))}
-                            </div>
+                            </select>
                         </div>
-                    ))}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Học kỳ
+                            </label>
+                            <select
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
+                                value={semesterId}
+                                onChange={(e) => setSemesterId(e.target.value)}
+                            >
+                                {semesters.map(sem => (
+                                    <option key={sem.id} value={sem.id}>
+                                        {sem.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Loại điểm</label>
+                            <select
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
+                                value={scoreType}
+                                onChange={(e) => setScoreType(e.target.value as any)}
+                            >
+                                <option value="ALL">Tất cả</option>
+                                <option value="REN_LUYEN">Điểm rèn luyện</option>
+                                <option value="CONG_TAC_XA_HOI">Công tác xã hội</option>
+                                <option value="CHUYEN_DE">Chuyên đề doanh nghiệp</option>
+                                <option value="KHAC">Khác</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
-            )}
-            {(!summaries || summaries.length === 0) && (
-                <div className="mt-6 text-gray-600">Không có dữ liệu điểm cho học kỳ này.</div>
-            )}
-        </div>
+
+                {/* Loading State */}
+                {isFetching && (
+                    <div className="flex items-center justify-center py-8">
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#001C44] mx-auto"></div>
+                            <p className="mt-4 text-gray-600">Đang tải...</p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Error State */}
+                {isError && (
+                    <div className="card p-6">
+                        <div className="text-center">
+                            <div className="text-red-500 text-4xl mb-2">⚠️</div>
+                            <p className="text-red-600 font-medium">Lỗi tải dữ liệu</p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Scores List */}
+                {Array.isArray(summaries) && summaries.length > 0 && (
+                    <div className="space-y-4">
+                        {summaries.map((s: ScoreTypeSummary, idx: number) => (
+                            <div key={s.scoreType ?? idx} className="card p-6">
+                                <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
+                                    <div className="text-lg font-semibold text-[#001C44]">
+                                        {s.scoreType === 'REN_LUYEN' && 'Điểm rèn luyện'}
+                                        {s.scoreType === 'CONG_TAC_XA_HOI' && 'Điểm công tác xã hội'}
+                                        {s.scoreType === 'CHUYEN_DE' && 'Điểm chuyên đề doanh nghiệp'}
+                                        {s.scoreType === 'KHAC' && 'Điểm khác'}
+                                    </div>
+                                    <div className="text-xl font-bold text-[#001C44] bg-[#FFD66D] px-4 py-2 rounded-lg">
+                                        Tổng: {s.total}
+                                    </div>
+                                </div>
+                                <div className="divide-y divide-gray-200">
+                                    {(s.items ?? []).map((it, itemIdx) => (
+                                        <div key={itemIdx} className="py-3 flex justify-between items-start hover:bg-gray-50 transition-colors">
+                                            <div className="flex-1">
+                                                <div className="font-medium text-gray-900">
+                                                    {it.sourceType === 'MANUAL' && 'Nhập tay'}
+                                                    {it.sourceType === 'ACTIVITY_CHECKIN' && 'Điểm danh hoạt động'}
+                                                    {it.sourceType === 'ACTIVITY_SUBMISSION' && 'Nộp bài hoạt động'}
+                                                </div>
+                                                {it.sourceNote && (
+                                                    <div className="text-sm text-gray-600 mt-1">{it.sourceNote}</div>
+                                                )}
+                                            </div>
+                                            <div className="text-lg font-bold text-[#001C44] ml-4">{it.score}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Empty State */}
+                {(!summaries || summaries.length === 0) && !isFetching && !isError && (
+                    <div className="card p-8 text-center">
+                        <div className="text-gray-400 text-6xl mb-4">📊</div>
+                        <p className="text-gray-600 text-lg">Không có dữ liệu điểm cho học kỳ này.</p>
+                    </div>
+                )}
+            </div>
+        </StudentLayout>
     );
 };
 
