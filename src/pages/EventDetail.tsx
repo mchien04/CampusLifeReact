@@ -38,6 +38,50 @@ const EventDetail: React.FC = () => {
     const [showParticipationForm, setShowParticipationForm] = useState(false);
     const [loadingRegistration, setLoadingRegistration] = useState(false);
     const navigate = useNavigate();
+    const refetch = async () => {
+        if (!id) return;
+        try {
+            const response = await eventAPI.getEvent(parseInt(id));
+            if (response.status && response.data) setEvent(response.data);
+        } catch {}
+    };
+
+    const handlePublish = async () => {
+        if (!event) return;
+        if (!window.confirm('Công bố sự kiện này?')) return;
+        const res = await eventAPI.publishActivity(event.id);
+        if (res.status) {
+            await refetch();
+            alert('Đã công bố sự kiện');
+        } else {
+            alert(res.message || 'Không thể công bố');
+        }
+    };
+
+    const handleUnpublish = async () => {
+        if (!event) return;
+        if (!window.confirm('Thu hồi công bố sự kiện này?')) return;
+        const res = await eventAPI.unpublishActivity(event.id);
+        if (res.status) {
+            await refetch();
+            alert('Đã thu hồi công bố');
+        } else {
+            alert(res.message || 'Không thể thu hồi');
+        }
+    };
+
+    const handleCopy = async () => {
+        if (!event) return;
+        const val = window.prompt('Sao chép sự kiện. Nhập số ngày dịch (có thể bỏ trống):', '0');
+        const offset = val === null || val.trim() === '' ? undefined : Number(val);
+        const res = await eventAPI.copyActivity(event.id, isNaN(offset as any) ? undefined : offset);
+        if (res.status && res.data) {
+            alert('Đã tạo bản sao sự kiện');
+            navigate(`/manager/events/${res.data.id}`);
+        } else {
+            alert(res.message || 'Không thể sao chép sự kiện');
+        }
+    };
 
     useEffect(() => {
         const fetchEvent = async () => {
@@ -429,6 +473,11 @@ const EventDetail: React.FC = () => {
                             <div className="flex-1">
                                 <div className="flex items-center space-x-3 mb-2">
                                     <h2 className="text-3xl font-bold text-gray-900">{event.name}</h2>
+                                    {event.isDraft && (
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-800">
+                                            Bản nháp
+                                        </span>
+                                    )}
                                     {event.isImportant && (
                                         <span className="text-yellow-500 text-2xl">⭐</span>
                                     )}
@@ -444,6 +493,14 @@ const EventDetail: React.FC = () => {
                                         ID: {event.id}
                                     </span>
                                 </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                {event.isDraft ? (
+                                    <button onClick={handlePublish} className="px-3 py-2 bg-green-600 text-white rounded-md text-sm">Công bố</button>
+                                ) : (
+                                    <button onClick={handleUnpublish} className="px-3 py-2 bg-yellow-600 text-white rounded-md text-sm">Thu hồi</button>
+                                )}
+                                <button onClick={handleCopy} className="px-3 py-2 bg-gray-100 text-gray-800 rounded-md text-sm border">Sao chép</button>
                             </div>
                         </div>
 
@@ -537,15 +594,15 @@ const EventDetail: React.FC = () => {
                                             </div>
                                         </div>
                                     )}
-                                    {event.ticketQuantity && event.ticketQuantity > 0 && (
-                                        <div className="flex items-center">
-                                            <span className="w-5 h-5 mr-3 text-indigo-600">🎫</span>
-                                            <div>
-                                                <p className="text-sm text-gray-500">Số lượng vé/slot</p>
-                                                <p className="font-medium">{event.ticketQuantity}</p>
-                                            </div>
+                                    <div className="flex items-center">
+                                        <span className="w-5 h-5 mr-3 text-indigo-600">🎫</span>
+                                        <div>
+                                            <p className="text-sm text-gray-500">Số lượng vé/slot</p>
+                                            <p className="font-medium">
+                                                {event.ticketQuantity && event.ticketQuantity > 0 ? event.ticketQuantity : 'Không giới hạn'}
+                                            </p>
                                         </div>
-                                    )}
+                                    </div>
                                     <div className="flex items-center">
                                         <span className="w-5 h-5 mr-3 text-indigo-600">📝</span>
                                         <div>
@@ -555,12 +612,30 @@ const EventDetail: React.FC = () => {
                                             </p>
                                         </div>
                                     </div>
+                                    {event.isImportant && (
+                                        <div className="flex items-center">
+                                            <span className="w-5 h-5 mr-3 text-yellow-600">⭐</span>
+                                            <div>
+                                                <p className="text-sm text-gray-500">Sự kiện quan trọng</p>
+                                                <p className="font-medium">Có</p>
+                                            </div>
+                                        </div>
+                                    )}
                                     <div className="flex items-center">
                                         <span className="w-5 h-5 mr-3 text-orange-600">🎯</span>
                                         <div>
                                             <p className="text-sm text-gray-500">Bắt buộc cho sinh viên khoa</p>
                                             <p className="font-medium">
                                                 {event.mandatoryForFacultyStudents ? 'Có' : 'Không'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center">
+                                        <span className="w-5 h-5 mr-3 text-blue-600">✅</span>
+                                        <div>
+                                            <p className="text-sm text-gray-500">Đăng ký cần duyệt</p>
+                                            <p className="font-medium">
+                                                {event.requiresApproval ? 'Có' : 'Không (Tự động duyệt)'}
                                             </p>
                                         </div>
                                     </div>

@@ -46,8 +46,10 @@ const StudentEvents: React.FC = () => {
 
         for (const event of events) {
             try {
-                const status = await registrationAPI.checkRegistrationStatus(event.id);
-                statusMap.set(event.id, status.status);
+                const registration = await registrationAPI.checkRegistrationStatus(event.id);
+                if (registration) {
+                    statusMap.set(event.id, registration.status);
+                }
             } catch (err) {
                 console.error(`Error checking registration status for event ${event.id}:`, err);
             }
@@ -58,11 +60,21 @@ const StudentEvents: React.FC = () => {
 
     const handleRegister = async (eventId: number) => {
         try {
+            const event = events.find(e => e.id === eventId);
             const response = await registrationAPI.registerForActivity({ activityId: eventId });
             console.log('Registration response:', response);
             if (response) {
-                setRegistrationStatuses(prev => new Map(prev.set(eventId, RegistrationStatus.PENDING)));
-                alert('Đăng ký thành công! Vui lòng chờ phê duyệt.');
+                // If event doesn't require approval (auto-approve), set status to APPROVED immediately
+                const newStatus = event && event.requiresApproval === false 
+                    ? RegistrationStatus.APPROVED 
+                    : RegistrationStatus.PENDING;
+                setRegistrationStatuses(prev => new Map(prev.set(eventId, newStatus)));
+                
+                if (newStatus === RegistrationStatus.APPROVED) {
+                    alert('Đăng ký thành công! Bạn đã được duyệt tự động.');
+                } else {
+                    alert('Đăng ký thành công! Vui lòng chờ phê duyệt.');
+                }
             } else {
                 alert('Đăng ký thất bại');
             }
@@ -342,8 +354,20 @@ const StudentEvents: React.FC = () => {
                                         <div className="space-y-2 text-sm text-gray-500 mb-4">
                                             <div className="flex items-center">
                                                 <span className="w-4 h-4 mr-2">📅</span>
-                                                <span className="truncate">{new Date(event.startDate).toLocaleDateString('vi-VN')}</span>
+                                                <span className="truncate">{new Date(event.startDate).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
                                             </div>
+                                            {event.registrationStartDate && (
+                                                <div className="flex items-center">
+                                                    <span className="w-4 h-4 mr-2">🚀</span>
+                                                    <span className="truncate">Mở đăng ký: {new Date(event.registrationStartDate).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                                                </div>
+                                            )}
+                                            {event.registrationDeadline && (
+                                                <div className="flex items-center">
+                                                    <span className="w-4 h-4 mr-2">⏰</span>
+                                                    <span className="truncate">Hạn đăng ký: {new Date(event.registrationDeadline).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                                                </div>
+                                            )}
                                             <div className="flex items-center">
                                                 <span className="w-4 h-4 mr-2">📍</span>
                                                 <span className="truncate">{event.location}</span>
@@ -358,6 +382,10 @@ const StudentEvents: React.FC = () => {
                                                     <span className="truncate">{event.participantCount} người tham gia</span>
                                                 </div>
                                             )}
+                                            <div className="flex items-center">
+                                                <span className="w-4 h-4 mr-2">📝</span>
+                                                <span className="truncate">{event.requiresApproval ? 'Đăng ký cần duyệt' : 'Đăng ký tự duyệt'}</span>
+                                            </div>
                                             {event.maxPoints && parseFloat(event.maxPoints) > 0 && (
                                                 <div className="flex items-center">
                                                     <span className="w-4 h-4 mr-2">🏆</span>

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ActivityRegistrationResponse, RegistrationStatus } from '../types/registration';
 import { registrationAPI } from '../services/registrationAPI';
@@ -7,6 +7,7 @@ import { ActivityResponse } from '../types/activity';
 import { RegistrationList } from '../components/registration';
 import QrScanner from "react-qr-barcode-scanner";
 import ApproveScoresForm from "../components/registration/ApproveScoresForm";
+import jsQR from 'jsqr';
 
 
 const ManagerRegistrations: React.FC = () => {
@@ -19,6 +20,10 @@ const ManagerRegistrations: React.FC = () => {
     const [studentId, setStudentId] = useState("");
     const [showScanner, setShowScanner] = useState(false);
     const [showApproveForm, setShowApproveForm] = useState(false);
+    const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+    const [isScanningImage, setIsScanningImage] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
         loadEvents();
@@ -94,6 +99,114 @@ const ManagerRegistrations: React.FC = () => {
                 console.error("Error check-in:", error);
                 alert("Có lỗi xảy ra khi check-in bằng QR");
             }
+        }
+    };
+
+    const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            alert('Vui lòng chọn file ảnh hợp lệ');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const imageUrl = e.target?.result as string;
+            setUploadedImage(imageUrl);
+            setIsScanningImage(true);
+            scanQRFromImage(imageUrl);
+        };
+        reader.onerror = () => {
+            alert('Lỗi khi đọc file ảnh');
+            setIsScanningImage(false);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const scanQRFromImage = async (imageUrl: string) => {
+        try {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            
+            img.onload = () => {
+                const canvas = canvasRef.current;
+                if (!canvas) {
+                    setIsScanningImage(false);
+                    return;
+                }
+
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    setIsScanningImage(false);
+                    return;
+                }
+
+                // Set canvas size to match image
+                canvas.width = img.width;
+                canvas.height = img.height;
+
+                // Draw image on canvas
+                ctx.drawImage(img, 0, 0);
+
+                // Get image data
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+                // Scan for QR code
+                const qrCode = jsQR(imageData.data, imageData.width, imageData.height);
+
+                if (qrCode) {
+                    const scannedCode = qrCode.data;
+                    setTicketCode(scannedCode);
+                    setIsScanningImage(false);
+                    // Automatically perform check-in
+                    performCheckInFromQR(scannedCode);
+                } else {
+                    setIsScanningImage(false);
+                    alert('Không tìm thấy mã QR trong ảnh. Vui lòng thử lại với ảnh khác.');
+                }
+            };
+
+            img.onerror = () => {
+                setIsScanningImage(false);
+                alert('Lỗi khi tải ảnh');
+            };
+
+            img.src = imageUrl;
+        } catch (error) {
+            console.error('Error scanning QR from image:', error);
+            setIsScanningImage(false);
+            alert('Có lỗi xảy ra khi quét mã QR từ ảnh');
+        }
+    };
+
+    const performCheckInFromQR = async (scannedCode: string) => {
+        try {
+            const payload: any = { participationType: "CHECKED_IN", ticketCode: scannedCode };
+            const response = await registrationAPI.checkIn(payload);
+            if (response.status) {
+                const data = response.body;
+                if (data?.participationType === 'CHECKED_IN') {
+                    alert(`✅ Check-in thành công cho ticketCode: ${scannedCode}.\nVui lòng check-out khi sinh viên rời khỏi sự kiện.`);
+                } else if (data?.participationType === 'ATTENDED') {
+                    alert(`✅ Check-out thành công cho ticketCode: ${scannedCode}.\nĐã hoàn thành tham gia sự kiện.`);
+                } else {
+                    alert(`✅ ${response.message || "Thành công"}`);
+                }
+                if (selectedEventId) await loadRegistrations(selectedEventId);
+                setTicketCode("");
+                setUploadedImage(null);
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
+            } else {
+                alert(response.message || "❌ Thao tác thất bại");
+            }
+        } catch (error) {
+            console.error("Error check-in:", error);
+            alert("Có lỗi xảy ra khi check-in bằng QR");
         }
     };
 
@@ -252,8 +365,18 @@ const ManagerRegistrations: React.FC = () => {
                                 onClick={() => setShowScanner(!showScanner)}
                                 className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
                             >
-                                {showScanner ? "Đóng QR" : "Quét QR"}
+                                {showScanner ? "Đóng QR" : "Quét QR Camera"}
                             </button>
+                            <label className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 cursor-pointer">
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleImageUpload}
+                                    className="hidden"
+                                />
+                                {isScanningImage ? "Đang quét..." : "Quét QR từ ảnh"}
+                            </label>
                         </div>
 
                         {showScanner && (
@@ -265,6 +388,42 @@ const ManagerRegistrations: React.FC = () => {
                                 />
                             </div>
                         )}
+
+                        {uploadedImage && (
+                            <div className="mt-4">
+                                <div className="flex items-center gap-4">
+                                    <div className="relative">
+                                        <img
+                                            src={uploadedImage}
+                                            alt="Uploaded QR code"
+                                            className="max-w-xs max-h-64 border-2 border-gray-300 rounded-lg"
+                                        />
+                                        {isScanningImage && (
+                                            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg">
+                                                <div className="text-white text-center">
+                                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
+                                                    <p>Đang quét mã QR...</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setUploadedImage(null);
+                                            if (fileInputRef.current) {
+                                                fileInputRef.current.value = '';
+                                            }
+                                        }}
+                                        className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm"
+                                    >
+                                        Xóa ảnh
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Hidden canvas for QR code scanning */}
+                        <canvas ref={canvasRef} className="hidden" />
                     </div>
                 </div>
 

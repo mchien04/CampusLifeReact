@@ -100,6 +100,63 @@ export const eventAPI = {
         }
     },
 
+    // Publish activity
+    publishActivity: async (id: number): Promise<Response<ActivityResponse>> => {
+        try {
+            const response = await api.put(`/api/activities/${id}/publish`);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Có lỗi khi public sự kiện',
+                data: undefined
+            };
+        }
+    },
+
+    // Unpublish activity
+    unpublishActivity: async (id: number): Promise<Response<ActivityResponse>> => {
+        try {
+            const response = await api.put(`/api/activities/${id}/unpublish`);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Có lỗi khi unpublish sự kiện',
+                data: undefined
+            };
+        }
+    },
+
+    // Copy activity with optional offsetDays
+    copyActivity: async (id: number, offsetDays?: number): Promise<Response<ActivityResponse>> => {
+        try {
+            const qs = new URLSearchParams();
+            if (typeof offsetDays === 'number') qs.append('offsetDays', String(offsetDays));
+            const url = qs.toString() ? `/api/activities/${id}/copy?${qs.toString()}` : `/api/activities/${id}/copy`;
+            const response = await api.post(url);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Có lỗi khi copy sự kiện',
+                data: undefined
+            };
+        }
+    },
+
     // Delete event
     deleteEvent: async (id: number): Promise<Response<void>> => {
         try {

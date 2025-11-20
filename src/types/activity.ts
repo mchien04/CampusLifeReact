@@ -17,6 +17,7 @@ export interface CreateActivityRequest {
     registrationDeadline?: string;
     shareLink?: string;
     isImportant: boolean;
+    isDraft?: boolean; // default true on backend
     bannerUrl?: string;
     bannerFile?: File; // Add support for file upload
     location: string;
@@ -24,6 +25,7 @@ export interface CreateActivityRequest {
     benefits?: string;
     requirements?: string;
     contactInfo?: string;
+    requiresApproval?: boolean; // default true on backend
     mandatoryForFacultyStudents: boolean;
     organizerIds: number[];
 }
@@ -67,12 +69,14 @@ export interface ActivityResponse {
     registrationDeadline?: string;
     shareLink?: string;
     isImportant: boolean;
+    isDraft: boolean;
     bannerUrl?: string;
     location: string;
     ticketQuantity?: number;
     benefits?: string;
     requirements?: string;
     contactInfo?: string;
+    requiresApproval: boolean;
     mandatoryForFacultyStudents: boolean;
     organizerIds: number[];
     status?: string;

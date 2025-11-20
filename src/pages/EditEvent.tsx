@@ -122,20 +122,22 @@ const EditEvent: React.FC = () => {
         description: event.description,
         startDate: event.startDate,
         endDate: event.endDate,
-        requiresSubmission: event.requiresSubmission,
+        requiresSubmission: Boolean(event.requiresSubmission),
         maxPoints: event.maxPoints?.toString() || '0',
         penaltyPointsIncomplete: event.penaltyPointsIncomplete?.toString() || '0',
         registrationStartDate: event.registrationStartDate,
         registrationDeadline: event.registrationDeadline,
         shareLink: event.shareLink,
-        isImportant: event.isImportant,
+        isImportant: Boolean(event.isImportant),
+        isDraft: Boolean(event.isDraft),
         bannerUrl: event.bannerUrl || '', // Keep existing banner URL when editing
         location: event.location,
-        ticketQuantity: event.ticketQuantity,
+        ticketQuantity: event.ticketQuantity || 0,
         benefits: event.benefits,
         requirements: event.requirements,
         contactInfo: event.contactInfo,
-        mandatoryForFacultyStudents: event.mandatoryForFacultyStudents,
+        requiresApproval: Boolean(event.requiresApproval),
+        mandatoryForFacultyStudents: Boolean(event.mandatoryForFacultyStudents),
         organizerIds: event.organizerIds || []
     };
 

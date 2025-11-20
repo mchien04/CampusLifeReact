@@ -25,9 +25,10 @@ export const registrationAPI = {
         return response.data.body;
     },
 
-    checkRegistrationStatus: async (activityId: number): Promise<{ status: RegistrationStatus; registrationId?: number }> => {
+    checkRegistrationStatus: async (activityId: number): Promise<ActivityRegistrationResponse | null> => {
         const response = await api.get(`/api/registrations/check/${activityId}`);
-        return response.data.body;
+        // Backend returns null if not registered, or ActivityRegistrationResponse if registered
+        return response.data.body || null;
     },
 
 

@@ -14,7 +14,7 @@ export const studentAPI = {
     getMyProfile: async (): Promise<StudentProfileResponse> => {
         const response = await api.get('/api/student/profile');
         if (response.data.status && response.data.body) {
-            return response.data.body;
+        return response.data.body;
         }
         throw new Error(response.data.message || 'Failed to get profile');
     },
