@@ -5,10 +5,10 @@ import { eventAPI } from '../../services/eventAPI';
 import { registrationAPI } from '../../services/registrationAPI';
 import { ActivityResponse } from '../../types';
 import { RegistrationStatus } from '../../types/registration';
-import { NotificationDropdown } from '../notification/NotificationDropdown';
+import StudentLayout from '../layout/StudentLayout';
 
 const StudentDashboard: React.FC = () => {
-    const { username, logout } = useAuth();
+    const { username } = useAuth();
     const [upcomingEvents, setUpcomingEvents] = useState<ActivityResponse[]>([]);
     const [registrationStatuses, setRegistrationStatuses] = useState<Map<number, RegistrationStatus>>(new Map());
     const [loading, setLoading] = useState(true);
@@ -96,48 +96,31 @@ const StudentDashboard: React.FC = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <header className="bg-white shadow">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center py-6">
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900">Student Dashboard</h1>
-                            <p className="text-gray-600">Chào mừng, {username}</p>
-                        </div>
-                        <div className="flex items-center space-x-4">
-                            <NotificationDropdown />
-                            <button
-                                onClick={logout}
-                                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                            >
-                                Đăng xuất
-                            </button>
-                        </div>
-                    </div>
+        <StudentLayout>
+            <div className="space-y-6">
+                {/* Welcome Section */}
+                <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl p-6 text-white mb-6">
+                    <h2 className="text-2xl font-bold mb-2">Chào mừng trở lại, {username}!</h2>
+                    <p className="text-gray-200">Hôm nay bạn có gì cần làm không?</p>
                 </div>
-            </header>
 
-            <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
                 {/* Stats */}
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
                     {stats.map((stat) => (
-                        <div key={stat.name} className="bg-white overflow-hidden shadow rounded-lg">
-                            <div className="p-5">
-                                <div className="flex items-center">
-                                    <div className="flex-shrink-0">
-                                        <span className="text-2xl">{stat.icon}</span>
-                                    </div>
-                                    <div className="ml-5 w-0 flex-1">
-                                        <dl>
-                                            <dt className="text-sm font-medium text-gray-500 truncate">
-                                                {stat.name}
-                                            </dt>
-                                            <dd className="text-lg font-medium text-gray-900">
-                                                {stat.value}
-                                            </dd>
-                                        </dl>
-                                    </div>
+                        <div key={stat.name} className="stat-card p-5 fade-in">
+                            <div className="flex items-center">
+                                <div className="flex-shrink-0">
+                                    <span className="text-3xl">{stat.icon}</span>
+                                </div>
+                                <div className="ml-5 w-0 flex-1">
+                                    <dl>
+                                        <dt className="text-sm font-medium text-gray-200 truncate">
+                                            {stat.name}
+                                        </dt>
+                                        <dd className="text-2xl font-bold text-[#FFD66D] mt-1">
+                                            {stat.value}
+                                        </dd>
+                                    </dl>
                                 </div>
                             </div>
                         </div>
@@ -157,18 +140,22 @@ const StudentDashboard: React.FC = () => {
                                         <Link
                                             key={action.name}
                                             to={action.href}
-                                            className="relative group bg-white p-4 focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-500 rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all"
+                                            className="card p-5 group hover:border-[#FFD66D] border-2 border-gray-200 transition-all duration-200"
                                         >
-                                            <div>
-                                                <span className="text-xl mb-2 block">{action.icon}</span>
-                                                <div className="text-sm font-medium text-gray-900 group-hover:text-blue-600">
-                                                    {action.name}
+                                            <div className="flex items-start">
+                                                <div className="flex-shrink-0 w-12 h-12 bg-[#FFD66D] bg-opacity-20 rounded-lg flex items-center justify-center group-hover:bg-opacity-30 transition-all">
+                                                    <span className="text-2xl">{action.icon}</span>
                                                 </div>
-                                                {action.description && (
-                                                    <div className="text-xs text-gray-500 mt-1">
-                                                        {action.description}
-                                                    </div>
-                                                )}
+                                                <div className="ml-4 flex-1">
+                                                    <h4 className="text-base font-semibold text-[#001C44] group-hover:text-[#002A66] transition-colors">
+                                                        {action.name}
+                                                    </h4>
+                                                    {action.description && (
+                                                        <p className="text-sm text-gray-600 mt-1">
+                                                            {action.description}
+                                                        </p>
+                                                    )}
+                                                </div>
                                             </div>
                                         </Link>
                                     ))}
@@ -190,9 +177,9 @@ const StudentDashboard: React.FC = () => {
                                                     <span className="text-sm font-medium text-gray-900">{score.criterion}</span>
                                                     <span className="text-sm text-gray-500">{score.score}/{score.maxScore}</span>
                                                 </div>
-                                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                                <div className="w-full bg-gray-200 rounded-full h-2.5">
                                                     <div
-                                                        className="bg-primary-600 h-2 rounded-full"
+                                                        className="bg-gradient-to-r from-[#001C44] to-[#002A66] h-2.5 rounded-full transition-all duration-500"
                                                         style={{ width: `${(score.score / score.maxScore) * 100}%` }}
                                                     ></div>
                                                 </div>
@@ -203,7 +190,7 @@ const StudentDashboard: React.FC = () => {
                                 <div className="mt-4 pt-4 border-t border-gray-200">
                                     <div className="flex items-center justify-between">
                                         <span className="text-lg font-semibold text-gray-900">Tổng điểm:</span>
-                                        <span className="text-xl font-bold text-primary-600">
+                                        <span className="text-xl font-bold text-[#001C44]">
                                             {recentScores.reduce((sum, score) => sum + score.score, 0)}/
                                             {recentScores.reduce((sum, score) => sum + score.maxScore, 0)}
                                         </span>
@@ -253,7 +240,7 @@ const StudentDashboard: React.FC = () => {
                                                     {canRegister && (
                                                         <button
                                                             onClick={() => handleQuickRegister(event.id)}
-                                                            className="mt-2 w-full bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700"
+                                                            className="mt-2 w-full btn-primary px-3 py-2 rounded-lg text-xs font-medium"
                                                         >
                                                             Đăng ký ngay
                                                         </button>
@@ -287,15 +274,15 @@ const StudentDashboard: React.FC = () => {
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span className="text-sm text-gray-600">Thành tích:</span>
-                                        <span className="text-sm font-medium text-primary-600">Sinh viên tích cực</span>
+                                        <span className="text-sm font-medium text-[#001C44]">Sinh viên tích cực</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </main>
-        </div>
+            </div>
+        </StudentLayout>
     );
 };
 

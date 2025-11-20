@@ -16,6 +16,7 @@ import { RegistrationStatus, ParticipationType, ActivityRegistrationResponse } f
 import { LoadingSpinner } from '../components/common';
 import { PhotoGrid } from '../components/events';
 import { activityPhotoAPI } from '../services/activityPhotoAPI';
+import StudentLayout from '../components/layout/StudentLayout';
 
 const StudentEventDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -334,70 +335,44 @@ const StudentEventDetail: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <LoadingSpinner />
-            </div>
+            <StudentLayout>
+                <div className="flex items-center justify-center min-h-[60vh]">
+                    <LoadingSpinner />
+                </div>
+            </StudentLayout>
         );
     }
 
     if (error || !event) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="text-red-600 text-xl mb-4">⚠️</div>
-                    <h2 className="text-xl font-semibold text-gray-900 mb-2">Có lỗi xảy ra</h2>
-                    <p className="text-gray-600 mb-4">{error || 'Không tìm thấy sự kiện'}</p>
-                    <button
-                        onClick={() => navigate('/student/events')}
-                        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-                    >
-                        Quay lại danh sách
-                    </button>
+            <StudentLayout>
+                <div className="flex items-center justify-center min-h-[60vh]">
+                    <div className="text-center">
+                        <div className="text-red-600 text-6xl mb-4">⚠️</div>
+                        <h2 className="text-2xl font-bold text-[#001C44] mb-2">Có lỗi xảy ra</h2>
+                        <p className="text-gray-600 mb-6">{error || 'Không tìm thấy sự kiện'}</p>
+                        <button
+                            onClick={() => navigate('/student/events')}
+                            className="btn-primary px-6 py-3 rounded-lg font-medium"
+                        >
+                            Quay lại danh sách
+                        </button>
+                    </div>
                 </div>
-            </div>
+            </StudentLayout>
         );
     }
 
     const eventStatus = getEventStatus();
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <div className="bg-white shadow">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="py-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h1 className="text-3xl font-bold text-gray-900">{event.name}</h1>
-                                <p className="mt-1 text-sm text-gray-500">
-                                    Chi tiết sự kiện hoạt động
-                                </p>
-                            </div>
-                            <div className="flex space-x-3">
-                                <Link
-                                    to="/student/events"
-                                    className="bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-700"
-                                >
-                                    ← Quay lại danh sách
-                                </Link>
-                                <Link
-                                    to="/dashboard"
-                                    className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
-                                >
-                                    Dashboard
-                                </Link>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <StudentLayout>
+            <div className="space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Main Content */}
                     <div className="lg:col-span-2">
                         {/* Event Info */}
-                        <div className="bg-white shadow rounded-lg mb-6">
+                        <div className="card mb-6">
                             <div className="p-6">
                                 <div className="flex items-start justify-between mb-4">
                                     <div className="flex items-center space-x-3">
@@ -416,7 +391,6 @@ const StudentEventDetail: React.FC = () => {
                                     </div>
                                 </div>
 
-                                <h2 className="text-2xl font-bold text-gray-900 mb-4">{event.name}</h2>
 
                                 {/* Event Banner */}
                                 {event.bannerUrl && (
@@ -534,14 +508,14 @@ const StudentEventDetail: React.FC = () => {
                         </div>
 
                         {/* Actions */}
-                        <div className="bg-white shadow rounded-lg">
+                        <div className="card">
                             <div className="p-6">
-                                <h3 className="text-lg font-medium text-gray-900 mb-4">Thao tác</h3>
+                                <h3 className="text-lg font-semibold text-[#001C44] mb-4">Thao tác</h3>
                                 <div className="flex flex-wrap gap-3">
                                     {canRegister() && (
                                         <button
                                             onClick={() => setShowRegistrationForm(true)}
-                                            className="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700"
+                                            className="btn-yellow px-6 py-2 rounded-lg text-sm font-medium"
                                         >
                                             Đăng ký tham gia
                                         </button>
@@ -550,7 +524,7 @@ const StudentEventDetail: React.FC = () => {
                                     {canCancel() && (
                                         <button
                                             onClick={handleCancelRegistration}
-                                            className="bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700"
+                                            className="bg-red-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
                                         >
                                             Hủy đăng ký
                                         </button>
@@ -570,10 +544,10 @@ const StudentEventDetail: React.FC = () => {
 
                         {/* Photo Gallery Section - Only show if event has ended */}
                         {event && new Date(event.endDate) < new Date() && (
-                            <div className="bg-white shadow rounded-lg mt-6">
+                            <div className="card">
                                 <div className="p-6">
                                     <div className="mb-4">
-                                        <h3 className="text-lg font-medium text-gray-900">Hình ảnh sự kiện</h3>
+                                        <h3 className="text-lg font-semibold text-[#001C44]">Hình ảnh sự kiện</h3>
                                         <p className="text-sm text-gray-600 mt-1">
                                             {loadingPhotos ? 'Đang tải...' : photos.length > 0 ? `${photos.length} ảnh` : 'Chưa có ảnh nào'}
                                         </p>
@@ -598,10 +572,10 @@ const StudentEventDetail: React.FC = () => {
 
                         {/* Event Tasks and Submission (Student) */}
                         {event.requiresSubmission && (
-                            <div className="bg-white shadow rounded-lg mt-6">
+                            <div className="card">
                                 <div className="p-6">
                                     <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-lg font-medium text-gray-900">Nhiệm vụ cần nộp bài</h3>
+                                        <h3 className="text-lg font-semibold text-[#001C44]">Nhiệm vụ cần nộp bài</h3>
                                     </div>
                                     {loadingTasks ? (
                                         <p className="text-sm text-gray-500">Đang tải nhiệm vụ...</p>
@@ -620,7 +594,7 @@ const StudentEventDetail: React.FC = () => {
                                                     <div className="flex items-center space-x-2">
                                                         <button
                                                             onClick={() => openSubmissionModal(t)}
-                                                            className="px-3 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700"
+                                                            className="px-4 py-2 btn-primary text-xs rounded-lg font-medium"
                                                         >
                                                             Nộp bài
                                                         </button>
@@ -637,9 +611,9 @@ const StudentEventDetail: React.FC = () => {
                     {/* Sidebar */}
                     <div className="space-y-6">
                         {/* Event Stats */}
-                        <div className="bg-white shadow rounded-lg">
+                        <div className="card">
                             <div className="p-6">
-                                <h3 className="text-lg font-medium text-gray-900 mb-4">Thông tin sự kiện</h3>
+                                <h3 className="text-lg font-semibold text-[#001C44] mb-4">Thông tin sự kiện</h3>
                                 <div className="space-y-3">
                                     <div className="flex justify-between">
                                         <span className="text-sm text-gray-500">Loại sự kiện:</span>
@@ -667,9 +641,9 @@ const StudentEventDetail: React.FC = () => {
 
                         {/* Registration Info */}
                         {registration && (
-                            <div className="bg-white shadow rounded-lg">
+                            <div className="card">
                                 <div className="p-6">
-                                    <h3 className="text-lg font-medium text-gray-900 mb-4">Trạng thái đăng ký</h3>
+                                    <h3 className="text-lg font-semibold text-[#001C44] mb-4">Trạng thái đăng ký</h3>
                                     <div className="text-center">
                                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(registration.status)}`}>
                                             {getStatusLabel(registration.status)}
@@ -681,7 +655,7 @@ const StudentEventDetail: React.FC = () => {
 
                         {/* QR Code for Check-in */}
                         {registration && registration.status === RegistrationStatus.APPROVED && registration.ticketCode && (
-                            <div className="bg-white shadow rounded-lg">
+                            <div className="card">
                                 <div className="p-6">
                                     <h3 className="text-lg font-medium text-gray-900 mb-4">Mã vé tham gia</h3>
                                     <div className="flex flex-col items-center space-y-4">
@@ -713,84 +687,54 @@ const StudentEventDetail: React.FC = () => {
                         )}
                     </div>
                 </div>
-            </main>
 
-            {/* Submission Modal */}
-            {showSubmissionModal && selectedTask && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-                    <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-medium text-gray-900">Nộp bài: {selectedTask.taskName}</h3>
-                            <button onClick={closeSubmissionModal} className="text-gray-400 hover:text-gray-600">
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-                        {mySubmission && (
-                            <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getSubmissionStatusColor(mySubmission.status)}`}>
-                                {getSubmissionStatusLabel(mySubmission.status)}
+                {/* Submission Modal */}
+                {showSubmissionModal && selectedTask && (
+                    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+                        <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-medium text-gray-900">Nộp bài: {selectedTask.taskName}</h3>
+                                <button onClick={closeSubmissionModal} className="text-gray-400 hover:text-gray-600">
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
                             </div>
-                        )}
-                        <div className="mt-4 space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Nội dung (tùy chọn)</label>
-                                <textarea
-                                    value={submitContent}
-                                    onChange={(e) => setSubmitContent(e.target.value)}
-                                    rows={4}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="Nhập nội dung nộp bài..."
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Tệp đính kèm (tùy chọn)</label>
-                                <input
-                                    type="file"
-                                    multiple
-                                    onChange={handleFileChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                                {/* Previews */}
-                                {(filePreviews.length > 0 || (mySubmission && mySubmission.fileUrls)) && (
-                                    <div className="mt-2 space-y-1">
-                                        {filePreviews.map((url, idx) => (
-                                            <button
-                                                key={`p-${idx}`}
-                                                type="button"
-                                                onClick={async () => {
-                                                    try {
-                                                        const filename = (url.split('/').pop() || `file-${idx + 1}`).trim();
-                                                        const resp = await api.get(url, { responseType: 'blob' });
-                                                        const blobUrl = window.URL.createObjectURL(new Blob([resp.data]));
-                                                        const link = document.createElement('a');
-                                                        link.href = blobUrl;
-                                                        link.setAttribute('download', filename);
-                                                        document.body.appendChild(link);
-                                                        link.click();
-                                                        link.remove();
-                                                        window.URL.revokeObjectURL(blobUrl);
-                                                    } catch (e) {
-                                                        console.error('Download failed', e);
-                                                        alert('Tải file thất bại. Vui lòng thử lại.');
-                                                    }
-                                                }}
-                                                className="text-blue-600 text-sm hover:underline"
-                                            >
-                                                File mới {idx + 1}
-                                            </button>
-                                        ))}
-                                        {mySubmission && (() => {
-                                            // fileUrls is now always an array from backend
-                                            const urls = mySubmission.fileUrls || [];
-                                            return urls.map((u, idx) => (
+                            {mySubmission && (
+                                <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getSubmissionStatusColor(mySubmission.status)}`}>
+                                    {getSubmissionStatusLabel(mySubmission.status)}
+                                </div>
+                            )}
+                            <div className="mt-4 space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nội dung (tùy chọn)</label>
+                                    <textarea
+                                        value={submitContent}
+                                        onChange={(e) => setSubmitContent(e.target.value)}
+                                        rows={4}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
+                                        placeholder="Nhập nội dung nộp bài..."
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Tệp đính kèm (tùy chọn)</label>
+                                    <input
+                                        type="file"
+                                        multiple
+                                        onChange={handleFileChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
+                                    />
+                                    {/* Previews */}
+                                    {(filePreviews.length > 0 || (mySubmission && mySubmission.fileUrls)) && (
+                                        <div className="mt-2 space-y-1">
+                                            {filePreviews.map((url, idx) => (
                                                 <button
-                                                    key={`e-${idx}`}
+                                                    key={`p-${idx}`}
                                                     type="button"
                                                     onClick={async () => {
                                                         try {
-                                                            const filename = (u.split('/').pop() || `file-${idx + 1}`).trim();
-                                                            const resp = await api.get(u, { responseType: 'blob' });
+                                                            const filename = (url.split('/').pop() || `file-${idx + 1}`).trim();
+                                                            const resp = await api.get(url, { responseType: 'blob' });
                                                             const blobUrl = window.URL.createObjectURL(new Blob([resp.data]));
                                                             const link = document.createElement('a');
                                                             link.href = blobUrl;
@@ -804,87 +748,116 @@ const StudentEventDetail: React.FC = () => {
                                                             alert('Tải file thất bại. Vui lòng thử lại.');
                                                         }
                                                     }}
-                                                    className="text-gray-700 text-sm hover:underline"
+                                                    className="text-blue-600 text-sm hover:underline"
                                                 >
-                                                    File hiện có {idx + 1}
+                                                    File mới {idx + 1}
                                                 </button>
-                                            ));
-                                        })()}
-                                    </div>
+                                            ))}
+                                            {mySubmission && (() => {
+                                                // fileUrls is now always an array from backend
+                                                const urls = mySubmission.fileUrls || [];
+                                                return urls.map((u, idx) => (
+                                                    <button
+                                                        key={`e-${idx}`}
+                                                        type="button"
+                                                        onClick={async () => {
+                                                            try {
+                                                                const filename = (u.split('/').pop() || `file-${idx + 1}`).trim();
+                                                                const resp = await api.get(u, { responseType: 'blob' });
+                                                                const blobUrl = window.URL.createObjectURL(new Blob([resp.data]));
+                                                                const link = document.createElement('a');
+                                                                link.href = blobUrl;
+                                                                link.setAttribute('download', filename);
+                                                                document.body.appendChild(link);
+                                                                link.click();
+                                                                link.remove();
+                                                                window.URL.revokeObjectURL(blobUrl);
+                                                            } catch (e) {
+                                                                console.error('Download failed', e);
+                                                                alert('Tải file thất bại. Vui lòng thử lại.');
+                                                            }
+                                                        }}
+                                                        className="text-gray-700 text-sm hover:underline"
+                                                    >
+                                                        File hiện có {idx + 1}
+                                                    </button>
+                                                ));
+                                            })()}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="mt-6 flex justify-end space-x-3">
+                                {mySubmission && (
+                                    <button
+                                        onClick={async () => {
+                                            if (!mySubmission) return;
+                                            const confirmed = window.confirm('Bạn có chắc muốn xóa bài nộp này?');
+                                            if (!confirmed) return;
+                                            try {
+                                                const res = await submissionAPI.deleteSubmission(mySubmission.id);
+                                                if (!res.status) throw new Error(res.message || 'Xóa bài nộp thất bại');
+                                                setMySubmission(null);
+                                                setSubmitContent('');
+                                                setSubmitFiles([]);
+                                                setFilePreviews([]);
+                                                alert('Đã xóa bài nộp.');
+                                            } catch (e: any) {
+                                                alert(e.message || 'Có lỗi xảy ra khi xóa bài nộp');
+                                            }
+                                        }}
+                                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                                    >
+                                        Xóa bài nộp
+                                    </button>
                                 )}
-                            </div>
-                        </div>
-                        <div className="mt-6 flex justify-end space-x-3">
-                            {mySubmission && (
-                                <button
-                                    onClick={async () => {
-                                        if (!mySubmission) return;
-                                        const confirmed = window.confirm('Bạn có chắc muốn xóa bài nộp này?');
-                                        if (!confirmed) return;
-                                        try {
-                                            const res = await submissionAPI.deleteSubmission(mySubmission.id);
-                                            if (!res.status) throw new Error(res.message || 'Xóa bài nộp thất bại');
-                                            setMySubmission(null);
-                                            setSubmitContent('');
-                                            setSubmitFiles([]);
-                                            setFilePreviews([]);
-                                            alert('Đã xóa bài nộp.');
-                                        } catch (e: any) {
-                                            alert(e.message || 'Có lỗi xảy ra khi xóa bài nộp');
-                                        }
-                                    }}
-                                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                                >
-                                    Xóa bài nộp
-                                </button>
-                            )}
-                            <button onClick={closeSubmissionModal} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">Hủy</button>
-                            <button onClick={handleSubmitTask} disabled={submitting} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50">
-                                {mySubmission ? (submitting ? 'Đang cập nhật...' : 'Cập nhật bài nộp') : (submitting ? 'Đang nộp...' : 'Nộp bài')}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Registration Modal */}
-            {showRegistrationForm && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-                    <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                        <div className="mt-3">
-                            <h3 className="text-lg font-medium text-gray-900 mb-4">Đăng ký tham gia sự kiện</h3>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Lời nhắn (tùy chọn)
-                                </label>
-                                <textarea
-                                    value={feedback}
-                                    onChange={(e) => setFeedback(e.target.value)}
-                                    rows={3}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="Nhập lời nhắn cho ban tổ chức..."
-                                />
-                            </div>
-                            <div className="flex justify-end space-x-3">
-                                <button
-                                    onClick={() => setShowRegistrationForm(false)}
-                                    className="bg-gray-300 text-gray-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-400"
-                                >
-                                    Hủy
-                                </button>
-                                <button
-                                    onClick={handleRegister}
-                                    className="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700"
-                                >
-                                    Đăng ký
+                                <button onClick={closeSubmissionModal} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">Hủy</button>
+                                <button onClick={handleSubmitTask} disabled={submitting} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50">
+                                    {mySubmission ? (submitting ? 'Đang cập nhật...' : 'Cập nhật bài nộp') : (submitting ? 'Đang nộp...' : 'Nộp bài')}
                                 </button>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
 
-        </div>
+                {/* Registration Modal */}
+                {showRegistrationForm && (
+                    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+                        <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                            <div className="mt-3">
+                                <h3 className="text-lg font-medium text-gray-900 mb-4">Đăng ký tham gia sự kiện</h3>
+                                <div className="mb-4">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Lời nhắn (tùy chọn)
+                                    </label>
+                                    <textarea
+                                        value={feedback}
+                                        onChange={(e) => setFeedback(e.target.value)}
+                                        rows={3}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
+                                        placeholder="Nhập lời nhắn cho ban tổ chức..."
+                                    />
+                                </div>
+                                <div className="flex justify-end space-x-3">
+                                    <button
+                                        onClick={() => setShowRegistrationForm(false)}
+                                        className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-400 transition-colors"
+                                    >
+                                        Hủy
+                                    </button>
+                                    <button
+                                        onClick={handleRegister}
+                                        className="btn-yellow px-4 py-2 rounded-lg text-sm font-medium"
+                                    >
+                                        Đăng ký
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </StudentLayout>
     );
 };
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ActivityRegistrationResponse, RegistrationStatus } from '../types';
 import { registrationAPI } from '../services';
+import StudentLayout from '../components/layout/StudentLayout';
 
 const StudentParticipationHistory: React.FC = () => {
     const [registrations, setRegistrations] = useState<ActivityRegistrationResponse[]>([]);
@@ -124,46 +125,32 @@ const StudentParticipationHistory: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Đang tải lịch sử tham gia...</p>
+            <StudentLayout>
+                <div className="flex items-center justify-center min-h-[400px]">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#001C44] mx-auto"></div>
+                        <p className="mt-4 text-gray-600">Đang tải lịch sử tham gia...</p>
+                    </div>
                 </div>
-            </div>
+            </StudentLayout>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <div className="bg-white shadow">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center py-6">
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900">Lịch sử tham gia sự kiện</h1>
-                            <p className="text-gray-600 mt-1">Xem lịch sử đăng ký và tham gia các sự kiện</p>
-                        </div>
-                        <div className="flex space-x-3">
-                            <Link
-                                to="/dashboard"
-                                className="px-4 py-2 text-gray-600 hover:text-gray-900"
-                            >
-                                ← Quay lại Dashboard
-                            </Link>
-                            <Link
-                                to="/student/events"
-                                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                Xem sự kiện
-                            </Link>
-                        </div>
-                    </div>
+        <StudentLayout>
+            <div className="space-y-6">
+                {/* Header Actions */}
+                <div className="flex justify-end mb-4">
+                    <Link
+                        to="/student/events"
+                        className="btn-primary px-4 py-2 text-sm font-medium"
+                    >
+                        Xem sự kiện
+                    </Link>
                 </div>
-            </div>
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                 {/* Filters */}
-                <div className="bg-white rounded-lg shadow p-6 mb-6">
+                <div className="card p-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -172,7 +159,7 @@ const StudentParticipationHistory: React.FC = () => {
                             <select
                                 value={filters.status}
                                 onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value as RegistrationStatus | 'ALL' }))}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
                             >
                                 <option value="ALL">Tất cả trạng thái</option>
                                 <option value="PENDING">Chờ duyệt</option>
@@ -188,7 +175,7 @@ const StudentParticipationHistory: React.FC = () => {
                             <select
                                 value={filters.timeRange}
                                 onChange={(e) => setFilters(prev => ({ ...prev, timeRange: e.target.value as any }))}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
                             >
                                 <option value="ALL">Tất cả thời gian</option>
                                 <option value="THIS_MONTH">Tháng này</option>
@@ -200,7 +187,7 @@ const StudentParticipationHistory: React.FC = () => {
                 </div>
 
                 {/* Registrations List */}
-                <div className="bg-white rounded-lg shadow overflow-hidden">
+                <div className="card overflow-hidden">
                     {registrations.length === 0 ? (
                         <div className="text-center py-12">
                             <div className="text-gray-400 text-6xl mb-4">📅</div>
@@ -208,7 +195,7 @@ const StudentParticipationHistory: React.FC = () => {
                             <p className="text-gray-600 mb-4">Bạn chưa đăng ký tham gia sự kiện nào.</p>
                             <Link
                                 to="/student/events"
-                                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                                className="btn-primary inline-flex items-center px-4 py-2"
                             >
                                 Xem sự kiện
                             </Link>
@@ -268,14 +255,14 @@ const StudentParticipationHistory: React.FC = () => {
                                                 <div className="flex space-x-2">
                                                     <Link
                                                         to={`/student/events/${registration.activityId}`}
-                                                        className="text-blue-600 hover:text-blue-900"
+                                                        className="text-[#001C44] hover:text-[#002A66] font-medium transition-colors"
                                                     >
                                                         Xem chi tiết
                                                     </Link>
                                                     {canCancel(registration.status) && (
                                                         <button
                                                             onClick={() => handleCancelRegistration(registration.activityId)}
-                                                            className="text-red-600 hover:text-red-900"
+                                                            className="text-red-600 hover:text-red-800 font-medium transition-colors"
                                                         >
                                                             Hủy đăng ký
                                                         </button>
@@ -292,63 +279,63 @@ const StudentParticipationHistory: React.FC = () => {
 
                 {/* Summary Stats */}
                 {registrations.length > 0 && (
-                    <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div className="bg-white rounded-lg shadow p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="card p-6">
                             <div className="flex items-center">
                                 <div className="flex-shrink-0">
-                                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                        <span className="text-blue-600 text-sm font-medium">📅</span>
+                                    <div className="w-10 h-10 bg-gradient-to-br from-[#001C44] to-[#002A66] rounded-full flex items-center justify-center">
+                                        <span className="text-[#FFD66D] text-lg">📅</span>
                                     </div>
                                 </div>
                                 <div className="ml-4">
                                     <p className="text-sm font-medium text-gray-500">Tổng đăng ký</p>
-                                    <p className="text-2xl font-semibold text-gray-900">{registrations.length}</p>
+                                    <p className="text-2xl font-semibold text-[#001C44]">{registrations.length}</p>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="bg-white rounded-lg shadow p-6">
+                        <div className="card p-6">
                             <div className="flex items-center">
                                 <div className="flex-shrink-0">
-                                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                                        <span className="text-green-600 text-sm font-medium">✅</span>
+                                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                        <span className="text-green-600 text-lg">✅</span>
                                     </div>
                                 </div>
                                 <div className="ml-4">
                                     <p className="text-sm font-medium text-gray-500">Đã duyệt</p>
-                                    <p className="text-2xl font-semibold text-gray-900">
+                                    <p className="text-2xl font-semibold text-[#001C44]">
                                         {registrations.filter(r => r.status === 'APPROVED').length}
                                     </p>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="bg-white rounded-lg shadow p-6">
+                        <div className="card p-6">
                             <div className="flex items-center">
                                 <div className="flex-shrink-0">
-                                    <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                                        <span className="text-yellow-600 text-sm font-medium">⏳</span>
+                                    <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+                                        <span className="text-yellow-600 text-lg">⏳</span>
                                     </div>
                                 </div>
                                 <div className="ml-4">
                                     <p className="text-sm font-medium text-gray-500">Chờ duyệt</p>
-                                    <p className="text-2xl font-semibold text-gray-900">
+                                    <p className="text-2xl font-semibold text-[#001C44]">
                                         {registrations.filter(r => r.status === 'PENDING').length}
                                     </p>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="bg-white rounded-lg shadow p-6">
+                        <div className="card p-6">
                             <div className="flex items-center">
                                 <div className="flex-shrink-0">
-                                    <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                                        <span className="text-red-600 text-sm font-medium">❌</span>
+                                    <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                                        <span className="text-red-600 text-lg">❌</span>
                                     </div>
                                 </div>
                                 <div className="ml-4">
                                     <p className="text-sm font-medium text-gray-500">Từ chối</p>
-                                    <p className="text-2xl font-semibold text-gray-900">
+                                    <p className="text-2xl font-semibold text-[#001C44]">
                                         {registrations.filter(r => r.status === 'REJECTED').length}
                                     </p>
                                 </div>
@@ -357,7 +344,7 @@ const StudentParticipationHistory: React.FC = () => {
                     </div>
                 )}
             </div>
-        </div>
+        </StudentLayout>
     );
 };
 
