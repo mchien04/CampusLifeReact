@@ -111,6 +111,98 @@ const EventList: React.FC = () => {
         });
     };
 
+    // Xác định trạng thái sự kiện dựa trên thời gian
+    const getEventStatus = (event: ActivityResponse): {
+        status: 'DRAFT' | 'UPCOMING' | 'ONGOING' | 'ENDED' | 'REGISTRATION_OPEN' | 'REGISTRATION_CLOSED';
+        label: string;
+        color: string;
+        description?: string;
+    } => {
+        const now = new Date();
+        const startDate = new Date(event.startDate);
+        const endDate = new Date(event.endDate);
+        const registrationStartDate = event.registrationStartDate ? new Date(event.registrationStartDate) : null;
+        const registrationDeadline = event.registrationDeadline ? new Date(event.registrationDeadline) : null;
+
+        // Nháp - handle both boolean and string values
+        const isDraft = typeof event.isDraft === 'boolean'
+            ? event.isDraft
+            : event.isDraft === 'true' || event.isDraft === true;
+        if (isDraft) {
+            return {
+                status: 'DRAFT',
+                label: 'Nháp',
+                color: 'bg-orange-100 text-orange-800 border-orange-300',
+                description: 'Sự kiện chưa được công bố'
+            };
+        }
+
+        // Đã kết thúc
+        if (now > endDate) {
+            return {
+                status: 'ENDED',
+                label: 'Đã kết thúc',
+                color: 'bg-gray-100 text-gray-800 border-gray-300',
+                description: `Kết thúc: ${formatDate(event.endDate)}`
+            };
+        }
+
+        // Đang diễn ra
+        if (now >= startDate && now <= endDate) {
+            return {
+                status: 'ONGOING',
+                label: 'Đang diễn ra',
+                color: 'bg-green-100 text-green-800 border-green-300',
+                description: `Kết thúc: ${formatDate(event.endDate)}`
+            };
+        }
+
+        // Sắp diễn ra - kiểm tra đăng ký
+        if (now < startDate) {
+            // Kiểm tra thời gian đăng ký
+            if (registrationStartDate && registrationDeadline) {
+                if (now < registrationStartDate) {
+                    return {
+                        status: 'UPCOMING',
+                        label: 'Sắp diễn ra',
+                        color: 'bg-blue-100 text-blue-800 border-blue-300',
+                        description: `Bắt đầu đăng ký: ${formatDate(event.registrationStartDate!)}`
+                    };
+                } else if (now >= registrationStartDate && now <= registrationDeadline) {
+                    return {
+                        status: 'REGISTRATION_OPEN',
+                        label: 'Đang mở đăng ký',
+                        color: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                        description: `Hết hạn đăng ký: ${formatDate(event.registrationDeadline!)}`
+                    };
+                } else if (now > registrationDeadline) {
+                    return {
+                        status: 'REGISTRATION_CLOSED',
+                        label: 'Đã đóng đăng ký',
+                        color: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+                        description: `Bắt đầu: ${formatDate(event.startDate)}`
+                    };
+                }
+            }
+
+            // Không có thông tin đăng ký hoặc đã qua thời gian đăng ký
+            return {
+                status: 'UPCOMING',
+                label: 'Sắp diễn ra',
+                color: 'bg-blue-100 text-blue-800 border-blue-300',
+                description: `Bắt đầu: ${formatDate(event.startDate)}`
+            };
+        }
+
+        // Mặc định
+        return {
+            status: 'UPCOMING',
+            label: 'Sắp diễn ra',
+            color: 'bg-blue-100 text-blue-800 border-blue-300',
+            description: `Bắt đầu: ${formatDate(event.startDate)}`
+        };
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -233,16 +325,50 @@ const EventList: React.FC = () => {
                                     <div className="p-6 flex flex-col flex-grow">
                                         <div className="flex items-start justify-between mb-3">
                                             <div className="flex-1">
-                                                <div className="flex items-center gap-2 mb-1">
+                                                <div className="flex items-center gap-2 mb-2">
                                                     <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
                                                         {event.name}
                                                     </h3>
-                                                    {event.isDraft && (
-                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-300">
-                                                            📝 Nháp
-                                                        </span>
+                                                    {event.isImportant && (
+                                                        <span className="text-yellow-500 text-lg flex-shrink-0" title="Sự kiện quan trọng">⭐</span>
                                                     )}
                                                 </div>
+
+                                                {/* Trạng thái sự kiện */}
+                                                <div className="mb-2 flex flex-wrap items-center gap-2">
+                                                    {(() => {
+                                                        // Handle both boolean and string values from API
+                                                        const isDraft = typeof event.isDraft === 'boolean'
+                                                            ? event.isDraft
+                                                            : event.isDraft === 'true' || event.isDraft === true;
+
+                                                        if (isDraft) {
+                                                            return (
+                                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-300">
+                                                                    📝 Nháp
+                                                                </span>
+                                                            );
+                                                        } else {
+                                                            const eventStatus = getEventStatus(event);
+                                                            return (
+                                                                <>
+                                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${eventStatus.color}`}>
+                                                                        {eventStatus.status === 'UPCOMING' && '⏰ '}
+                                                                        {eventStatus.status === 'ONGOING' && '🟢 '}
+                                                                        {eventStatus.status === 'ENDED' && '✅ '}
+                                                                        {eventStatus.status === 'REGISTRATION_OPEN' && '📝 '}
+                                                                        {eventStatus.status === 'REGISTRATION_CLOSED' && '🔒 '}
+                                                                        {eventStatus.label}
+                                                                    </span>
+                                                                    {eventStatus.description && (
+                                                                        <p className="text-xs text-gray-500 w-full">{eventStatus.description}</p>
+                                                                    )}
+                                                                </>
+                                                            );
+                                                        }
+                                                    })()}
+                                                </div>
+
                                                 <div className="flex flex-wrap gap-1">
                                                     <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(event.status)}`}>
                                                         {getTypeLabel(event.type)}
@@ -252,9 +378,6 @@ const EventList: React.FC = () => {
                                                     </span>
                                                 </div>
                                             </div>
-                                            {event.isImportant && (
-                                                <span className="text-yellow-500 text-lg flex-shrink-0">⭐</span>
-                                            )}
                                         </div>
 
                                         <p className="text-gray-600 text-sm mb-4 line-clamp-3 flex-grow">
@@ -264,15 +387,31 @@ const EventList: React.FC = () => {
                                         <div className="space-y-2 text-sm text-gray-500 mb-4">
                                             <div className="flex items-center">
                                                 <span className="w-4 h-4 mr-2">📅</span>
-                                                <span className="truncate">{formatDate(event.startDate)}</span>
+                                                <span className="truncate">Bắt đầu: {formatDate(event.startDate)}</span>
                                             </div>
+                                            <div className="flex items-center">
+                                                <span className="w-4 h-4 mr-2">📅</span>
+                                                <span className="truncate">Kết thúc: {formatDate(event.endDate)}</span>
+                                            </div>
+                                            {event.registrationStartDate && (
+                                                <div className="flex items-center">
+                                                    <span className="w-4 h-4 mr-2">📝</span>
+                                                    <span className="truncate">Mở đăng ký: {formatDate(event.registrationStartDate)}</span>
+                                                </div>
+                                            )}
+                                            {event.registrationDeadline && (
+                                                <div className="flex items-center">
+                                                    <span className="w-4 h-4 mr-2">⏰</span>
+                                                    <span className="truncate">Hết hạn đăng ký: {formatDate(event.registrationDeadline)}</span>
+                                                </div>
+                                            )}
                                             <div className="flex items-center">
                                                 <span className="w-4 h-4 mr-2">📍</span>
                                                 <span className="truncate">{event.location}</span>
                                             </div>
                                             <div className="flex items-center">
                                                 <span className="w-4 h-4 mr-2">👥</span>
-                                                <span className="truncate">{event.participantCount} người tham gia</span>
+                                                <span className="truncate">{event.participantCount || 0} người tham gia</span>
                                             </div>
                                             {event.maxPoints && parseFloat(event.maxPoints) > 0 && (
                                                 <div className="flex items-center">
@@ -289,7 +428,13 @@ const EventList: React.FC = () => {
                                             {event.mandatoryForFacultyStudents && (
                                                 <div className="flex items-center">
                                                     <span className="w-4 h-4 mr-2">🎯</span>
-                                                    <span className="truncate">Bắt buộc</span>
+                                                    <span className="truncate">Bắt buộc cho sinh viên khoa</span>
+                                                </div>
+                                            )}
+                                            {event.requiresApproval && (
+                                                <div className="flex items-center">
+                                                    <span className="w-4 h-4 mr-2">✓</span>
+                                                    <span className="truncate">Cần duyệt đăng ký</span>
                                                 </div>
                                             )}
                                         </div>

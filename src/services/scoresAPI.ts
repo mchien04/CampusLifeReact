@@ -1,5 +1,5 @@
 import api from './api';
-import { TrainingCalculateResponse, ScoreViewResponse } from '../types/score';
+import { TrainingCalculateResponse, ScoreViewResponse, StudentRankingResponseData } from '../types/score';
 import { mockSemesterScores } from './mocks/scores.mock';
 
 // Normalize response format
@@ -43,7 +43,33 @@ export const scoresAPI = {
         return normalize<ScoreViewResponse>(res.data);
     },
 
-    // Mocked list for manager view (to be replaced with backend endpoint)
+    getStudentRanking: async (params: {
+        semesterId: number;
+        scoreType?: string | null; // "REN_LUYEN" | "CONG_TAC_XA_HOI" | "CHUYEN_DE" | "KHAC" | null
+        departmentId?: number | null;
+        classId?: number | null;
+        sortOrder?: "ASC" | "DESC";
+    }): Promise<{ status: boolean; message: string; data?: StudentRankingResponseData }> => {
+        const { semesterId, scoreType, departmentId, classId, sortOrder = "DESC" } = params;
+        
+        const queryParams = new URLSearchParams();
+        queryParams.append('semesterId', String(semesterId));
+        if (scoreType) {
+            queryParams.append('scoreType', scoreType);
+        }
+        if (departmentId) {
+            queryParams.append('departmentId', String(departmentId));
+        }
+        if (classId) {
+            queryParams.append('classId', String(classId));
+        }
+        queryParams.append('sortOrder', sortOrder);
+
+        const res = await api.get(`/api/scores/ranking?${queryParams.toString()}`);
+        return normalize<StudentRankingResponseData>(res.data);
+    },
+
+    // Mocked list for manager view (deprecated - use getStudentRanking instead)
     listSemesterScores: async (params: {
         semesterId: number;
         facultyName?: string;

@@ -9,11 +9,13 @@ import { taskAPI } from '../services/taskAPI';
 import { submissionAPI } from '../services/submissionAPI';
 import { studentAPI } from '../services/studentAPI';
 import { getSubmissionStatusColor, getSubmissionStatusLabel } from '../utils/submissionUtils';
-import { ActivityResponse, ActivityType, ScoreType } from '../types';
+import { ActivityResponse, ActivityType, ScoreType, ActivityPhotoResponse } from '../types';
 import { ActivityTaskResponse, TaskAssignmentResponse } from '../types/task';
 import { TaskSubmissionResponse } from '../types/submission';
 import { RegistrationStatus, ParticipationType, ActivityRegistrationResponse } from '../types/registration';
 import { LoadingSpinner } from '../components/common';
+import { PhotoGrid } from '../components/events';
+import { activityPhotoAPI } from '../services/activityPhotoAPI';
 
 const StudentEventDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -37,11 +39,46 @@ const StudentEventDetail: React.FC = () => {
     const [filePreviews, setFilePreviews] = useState<string[]>([]);
     const [submitting, setSubmitting] = useState(false);
 
+    // Photo gallery states
+    const [photos, setPhotos] = useState<ActivityPhotoResponse[]>([]);
+    const [loadingPhotos, setLoadingPhotos] = useState(false);
+
     useEffect(() => {
         if (id) {
             loadEvent();
         }
     }, [id]);
+
+    // Load photos when event is loaded and ended
+    useEffect(() => {
+        const loadPhotos = async () => {
+            if (!event || !id) return;
+
+            // Only load photos if event has ended
+            const isEventEnded = new Date(event.endDate) < new Date();
+            if (!isEventEnded) return;
+
+            try {
+                setLoadingPhotos(true);
+                const response = await activityPhotoAPI.getActivityPhotos(parseInt(id));
+                if (response.status) {
+                    // Handle both array and object with data property
+                    const photosData = Array.isArray(response.data) ? response.data : (response.data || []);
+                    setPhotos(photosData);
+                } else {
+                    console.error('Failed to load photos:', response.message);
+                    setPhotos([]);
+                }
+            } catch (err) {
+                console.error('Error loading photos:', err);
+                setPhotos([]);
+            } finally {
+                setLoadingPhotos(false);
+            }
+        };
+
+        loadPhotos();
+    }, [event, id]);
 
     const loadEvent = async () => {
         try {
@@ -531,6 +568,34 @@ const StudentEventDetail: React.FC = () => {
                             </div>
                         </div>
 
+                        {/* Photo Gallery Section - Only show if event has ended */}
+                        {event && new Date(event.endDate) < new Date() && (
+                            <div className="bg-white shadow rounded-lg mt-6">
+                                <div className="p-6">
+                                    <div className="mb-4">
+                                        <h3 className="text-lg font-medium text-gray-900">Hình ảnh sự kiện</h3>
+                                        <p className="text-sm text-gray-600 mt-1">
+                                            {loadingPhotos ? 'Đang tải...' : photos.length > 0 ? `${photos.length} ảnh` : 'Chưa có ảnh nào'}
+                                        </p>
+                                    </div>
+                                    {loadingPhotos ? (
+                                        <div className="text-center py-8 text-gray-500">
+                                            <p>Đang tải ảnh...</p>
+                                        </div>
+                                    ) : photos.length === 0 ? (
+                                        <div className="text-center py-8 text-gray-500">
+                                            <p>Chưa có ảnh nào được tải lên</p>
+                                        </div>
+                                    ) : (
+                                        <PhotoGrid
+                                            photos={photos}
+                                            canManage={false}
+                                        />
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Event Tasks and Submission (Student) */}
                         {event.requiresSubmission && (
                             <div className="bg-white shadow rounded-lg mt-6">
@@ -818,6 +883,7 @@ const StudentEventDetail: React.FC = () => {
                     </div>
                 </div>
             )}
+
         </div>
     );
 };

@@ -4,7 +4,8 @@ import {
     ActivityRegistrationResponse,
     ActivityParticipationRequest,
     ActivityParticipationResponse,
-    RegistrationStatus
+    RegistrationStatus,
+    TicketCodeValidateResponse
 } from '../types/registration';
 import { ApiResponse } from '../types/common';
 import axios from "axios";
@@ -58,7 +59,12 @@ export const registrationAPI = {
         return response.data.body;
     },
 
-    checkIn: async (data: ActivityParticipationRequest): Promise<ApiResponse<ActivityParticipationResponse>> => {
+    validateTicketCode: async (ticketCode: string): Promise<ApiResponse<TicketCodeValidateResponse>> => {
+        const response = await api.get(`/api/registrations/checkin/validate?ticketCode=${encodeURIComponent(ticketCode)}`);
+        return response.data; // { status, message, body }
+    },
+
+    checkIn: async (data: { ticketCode?: string; notes?: string }): Promise<ApiResponse<ActivityParticipationResponse>> => {
         const response = await api.post('/api/registrations/checkin', data);
         return response.data; // { status, message, body }
     },

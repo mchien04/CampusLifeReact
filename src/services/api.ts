@@ -16,6 +16,15 @@ api.interceptors.request.use(
         const token = localStorage.getItem('token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
+            // Debug log (remove in production)
+            if (process.env.NODE_ENV === 'development') {
+                console.log('[API Request]', config.method?.toUpperCase(), config.url, 'Token:', token.substring(0, 20) + '...');
+            }
+        } else {
+            // Debug log when no token
+            if (process.env.NODE_ENV === 'development') {
+                console.warn('[API Request]', config.method?.toUpperCase(), config.url, 'No token found in localStorage');
+            }
         }
         return config;
     },
