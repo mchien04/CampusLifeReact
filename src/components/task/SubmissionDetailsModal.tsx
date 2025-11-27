@@ -131,11 +131,11 @@ const SubmissionDetailsModal: React.FC<SubmissionDetailsModalProps> = ({
     };
 
     return (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-                <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-                    <h3 className="text-xl font-semibold text-gray-900">Bài nộp cho: {task.title}</h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-gray-200">
+                <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] px-6 py-4 rounded-t-xl flex justify-between items-center">
+                    <h3 className="text-xl font-bold text-white">📝 Bài nộp cho: {task.title}</h3>
+                    <button onClick={onClose} className="text-white hover:text-[#FFD66D] transition-colors">
                         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -256,7 +256,7 @@ const SubmissionDetailsModal: React.FC<SubmissionDetailsModalProps> = ({
                                                     <button
                                                         onClick={() => handleGradeSubmission(submission.id)}
                                                         disabled={isSaving}
-                                                        className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:opacity-50"
+                                                        className="px-4 py-2 bg-[#001C44] text-white text-sm font-medium rounded-lg hover:bg-[#002A66] disabled:opacity-50 transition-all shadow-sm hover:shadow-md"
                                                     >
                                                         {isSaving ? 'Đang lưu...' : 'Lưu'}
                                                     </button>
@@ -271,7 +271,7 @@ const SubmissionDetailsModal: React.FC<SubmissionDetailsModalProps> = ({
                                         ) : (
                                             <button
                                                 onClick={() => handleEditGrade(submission)}
-                                                className="px-3 py-1 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700"
+                                                className="px-4 py-2 bg-[#001C44] text-white text-sm font-medium rounded-lg hover:bg-[#002A66] transition-all shadow-sm hover:shadow-md"
                                             >
                                                 {submission.status === SubmissionStatus.GRADED ? 'Sửa điểm' : 'Chấm điểm'}
                                             </button>

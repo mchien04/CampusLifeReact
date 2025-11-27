@@ -96,16 +96,16 @@ const TaskList: React.FC<TaskListProps> = ({
     return (
         <div className="space-y-4">
             {tasks.map((task) => (
-                <div key={task.id} className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow">
+                <div key={task.id} className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden">
                     <div className="p-6">
                         {/* Header */}
                         <div className="flex items-start justify-between mb-4">
                             <div className="flex-1">
-                                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                                <h3 className="text-xl font-bold text-[#001C44] mb-2">
                                     {task.name}
                                 </h3>
                                 {task.description && (
-                                    <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                                    <p className="text-gray-700 text-sm mb-4 line-clamp-2 leading-relaxed">
                                         {task.description}
                                     </p>
                                 )}
@@ -115,10 +115,10 @@ const TaskList: React.FC<TaskListProps> = ({
                                     {onEdit && (
                                         <button
                                             onClick={() => onEdit(task)}
-                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-md"
+                                            className="p-2.5 text-[#001C44] hover:bg-[#001C44] hover:text-white rounded-lg transition-all"
                                             title="Chỉnh sửa nhiệm vụ"
                                         >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                             </svg>
                                         </button>
@@ -127,10 +127,10 @@ const TaskList: React.FC<TaskListProps> = ({
                                         <button
                                             onClick={() => onDelete(task.id)}
                                             disabled={deletingId === task.id}
-                                            className="p-2 text-red-600 hover:bg-red-50 rounded-md disabled:opacity-50"
+                                            className="p-2.5 text-red-600 hover:bg-red-600 hover:text-white rounded-lg transition-all disabled:opacity-50"
                                             title="Xóa nhiệm vụ"
                                         >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                             </svg>
                                         </button>
@@ -140,31 +140,31 @@ const TaskList: React.FC<TaskListProps> = ({
                         </div>
 
                         {/* Task Info */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 bg-gray-50 p-4 rounded-lg">
                             <div className="flex items-center">
-                                <span className="w-5 h-5 mr-2 text-gray-400">📅</span>
+                                <span className="w-6 h-6 mr-3 text-[#001C44] text-lg">📅</span>
                                 <div>
-                                    <p className="text-sm text-gray-500">Hạn chót</p>
-                                    <p className={`font-medium ${isOverdue(task.deadline) ? 'text-red-600' : 'text-gray-900'}`}>
+                                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Hạn chót</p>
+                                    <p className={`font-bold text-sm mt-1 ${isOverdue(task.deadline) ? 'text-red-600' : 'text-[#001C44]'}`}>
                                         {formatDate(task.deadline)}
                                     </p>
                                 </div>
                             </div>
 
                             <div className="flex items-center">
-                                <span className="w-5 h-5 mr-2 text-gray-400">👥</span>
+                                <span className="w-6 h-6 mr-3 text-blue-600 text-lg">👥</span>
                                 <div>
-                                    <p className="text-sm text-gray-500">Tổng phân công</p>
-                                    <p className="font-medium text-gray-900">{task.totalAssignments}</p>
+                                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Tổng phân công</p>
+                                    <p className="font-bold text-sm mt-1 text-[#001C44]">{task.totalAssignments || 0}</p>
                                 </div>
                             </div>
 
                             <div className="flex items-center">
-                                <span className="w-5 h-5 mr-2 text-gray-400">✅</span>
+                                <span className="w-6 h-6 mr-3 text-green-600 text-lg">✅</span>
                                 <div>
-                                    <p className="text-sm text-gray-500">Hoàn thành</p>
-                                    <p className="font-medium text-gray-900">
-                                        {task.completedAssignments}/{task.totalAssignments}
+                                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Hoàn thành</p>
+                                    <p className="font-bold text-sm mt-1 text-[#001C44]">
+                                        {task.completedAssignments || 0}/{task.totalAssignments || 0}
                                     </p>
                                 </div>
                             </div>
@@ -173,13 +173,13 @@ const TaskList: React.FC<TaskListProps> = ({
                         {/* Progress Bar */}
                         {task.totalAssignments > 0 && (
                             <div className="mb-4">
-                                <div className="flex justify-between text-sm text-gray-600 mb-1">
+                                <div className="flex justify-between text-sm font-semibold text-[#001C44] mb-2">
                                     <span>Tiến độ hoàn thành</span>
-                                    <span>{Math.round((task.completedAssignments / task.totalAssignments) * 100)}%</span>
+                                    <span className="text-[#FFD66D]">{Math.round((task.completedAssignments / task.totalAssignments) * 100)}%</span>
                                 </div>
-                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div className="w-full bg-gray-200 rounded-full h-3 shadow-inner">
                                     <div
-                                        className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                                        className="bg-gradient-to-r from-[#001C44] to-[#002A66] h-3 rounded-full transition-all duration-500 shadow-sm"
                                         style={{ width: `${(task.completedAssignments / task.totalAssignments) * 100}%` }}
                                     ></div>
                                 </div>
@@ -188,21 +188,21 @@ const TaskList: React.FC<TaskListProps> = ({
 
                         {/* Action Buttons */}
                         {showActions && (
-                            <div className="flex space-x-3 pt-4 border-t border-gray-200">
+                            <div className="flex flex-wrap gap-3 pt-4 border-t-2 border-gray-200">
                                 {onAssign && (
                                     <button
                                         onClick={() => onAssign(task)}
-                                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="px-5 py-2.5 bg-[#001C44] text-white text-sm font-medium rounded-lg hover:bg-[#002A66] focus:outline-none focus:ring-2 focus:ring-[#001C44] transition-all shadow-sm hover:shadow-md"
                                     >
-                                        Phân công
+                                        ➕ Phân công
                                     </button>
                                 )}
                                 {onViewAssignments && (
                                     <button
                                         onClick={() => onViewAssignments(task)}
-                                        className="px-4 py-2 bg-gray-600 text-white text-sm rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                                        className="px-5 py-2.5 bg-[#FFD66D] text-[#001C44] text-sm font-medium rounded-lg hover:bg-[#FFC947] focus:outline-none focus:ring-2 focus:ring-[#FFD66D] transition-all shadow-sm hover:shadow-md"
                                     >
-                                        Xem phân công ({task.totalAssignments})
+                                        👁️ Xem phân công ({task.totalAssignments || 0})
                                     </button>
                                 )}
                             </div>

@@ -22,15 +22,15 @@ const TaskAssignmentsList: React.FC<TaskAssignmentsListProps> = ({
     const getStatusColor = (status: TaskStatus): string => {
         switch (status) {
             case TaskStatus.PENDING:
-                return 'bg-yellow-100 text-yellow-800';
+                return 'bg-yellow-100 text-yellow-800 border-2 border-yellow-300';
             case TaskStatus.IN_PROGRESS:
-                return 'bg-blue-100 text-blue-800';
+                return 'bg-blue-100 text-blue-800 border-2 border-blue-300';
             case TaskStatus.COMPLETED:
-                return 'bg-green-100 text-green-800';
+                return 'bg-green-100 text-green-800 border-2 border-green-300';
             case TaskStatus.CANCELLED:
-                return 'bg-red-100 text-red-800';
+                return 'bg-red-100 text-red-800 border-2 border-red-300';
             default:
-                return 'bg-gray-100 text-gray-800';
+                return 'bg-gray-100 text-gray-800 border-2 border-gray-300';
         }
     };
 
@@ -124,49 +124,37 @@ const TaskAssignmentsList: React.FC<TaskAssignmentsListProps> = ({
                 const nextStatus = getNextStatus(assignment.status);
 
                 return (
-                    <div key={assignment.id} className="bg-white rounded-lg shadow hover:shadow-md transition-shadow">
-                        <div className="p-4">
+                    <div key={assignment.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100">
+                        <div className="p-5">
                             <div className="flex items-center justify-between">
                                 <div className="flex-1">
-                                    <div className="flex items-center space-x-3">
-                                        <h4 className="text-sm font-medium text-gray-900">
+                                    <div className="flex items-center space-x-3 mb-2">
+                                        <h4 className="text-base font-bold text-[#001C44]">
                                             {assignment.studentName}
                                         </h4>
-                                        <span className="text-sm text-gray-500">
+                                        <span className="text-sm text-gray-600 font-mono bg-gray-100 px-2 py-1 rounded">
                                             {assignment.studentCode}
                                         </span>
                                     </div>
                                     <p className="text-xs text-gray-500 mt-1">
-                                        Cập nhật: {new Date(assignment.updatedAt).toLocaleString('vi-VN')}
+                                        📅 Cập nhật: {new Date(assignment.updatedAt).toLocaleString('vi-VN')}
                                     </p>
                                 </div>
 
                                 <div className="flex items-center space-x-3">
-                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(assignment.status)}`}>
+                                    <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border-2 shadow-sm ${getStatusColor(assignment.status)}`}>
                                         {getStatusLabel(assignment.status)}
                                     </span>
 
                                     {showActions && (
                                         <div className="flex space-x-2">
-                                            {nextStatus && onUpdateStatus && (
-                                                <button
-                                                    onClick={() => handleStatusUpdate(assignment.id, nextStatus)}
-                                                    disabled={updatingId === assignment.id}
-                                                    className="px-3 py-1 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                >
-                                                    {updatingId === assignment.id ? 'Đang cập nhật...' :
-                                                        nextStatus === TaskStatus.IN_PROGRESS ? 'Bắt đầu' :
-                                                            nextStatus === TaskStatus.COMPLETED ? 'Hoàn thành' : 'Tiếp tục'}
-                                                </button>
-                                            )}
-
                                             {onRemove && (
                                                 <button
                                                     onClick={() => handleRemove(assignment.id)}
                                                     disabled={removingId === assignment.id}
-                                                    className="px-3 py-1 text-xs bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    className="px-4 py-2 text-xs font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
                                                 >
-                                                    {removingId === assignment.id ? 'Đang xóa...' : 'Hủy'}
+                                                    {removingId === assignment.id ? 'Đang xóa...' : '🗑️ Hủy'}
                                                 </button>
                                             )}
                                         </div>

@@ -57,22 +57,23 @@ export interface Activity {
 export interface ActivityResponse {
     id: number;
     name: string;
-    type: ActivityType;
-    scoreType: ScoreType;
+    type: ActivityType | null; // null if belongs to series
+    scoreType: ScoreType | null; // null if belongs to series
     description?: string;
     startDate: string;
     endDate: string;
     requiresSubmission: boolean;
-    maxPoints?: string; // Changed to string to match BigDecimal
+    maxPoints?: string | null; // null if belongs to series
     penaltyPointsIncomplete?: string; // Changed to string to match BigDecimal
-    registrationStartDate?: string;
-    registrationDeadline?: string;
+    registrationStartDate?: string | null; // null if belongs to series
+    registrationDeadline?: string | null; // null if belongs to series
     shareLink?: string;
     isImportant: boolean;
-    isDraft: boolean;
+    isDraft?: boolean; // Type definition
+    draft?: boolean; // API returns this field name
     bannerUrl?: string;
     location: string;
-    ticketQuantity?: number;
+    ticketQuantity?: number | null; // null if belongs to series
     benefits?: string;
     requirements?: string;
     contactInfo?: string;
@@ -85,6 +86,8 @@ export interface ActivityResponse {
     updatedAt: string;
     createdBy?: string;
     lastModifiedBy?: string;
+    seriesId?: number | null; // ID of series if belongs to one
+    seriesOrder?: number | null; // Order in series
 }
 
 export enum ActivityType {
@@ -97,8 +100,7 @@ export enum ActivityType {
 export enum ScoreType {
     REN_LUYEN = 'REN_LUYEN',
     CONG_TAC_XA_HOI = 'CONG_TAC_XA_HOI',
-    CHUYEN_DE = 'CHUYEN_DE',
-    KHAC = 'KHAC'
+    CHUYEN_DE = 'CHUYEN_DE'
 }
 
 export interface ActivityPhotoResponse {

@@ -194,7 +194,8 @@ const StudentEventDetail: React.FC = () => {
     // Removed manual participation recording - now handled by manager check-in
 
 
-    const getTypeLabel = (type: ActivityType) => {
+    const getTypeLabel = (type: ActivityType | null) => {
+        if (!type) return 'N/A';
         const labels: Record<ActivityType, string> = {
             [ActivityType.SUKIEN]: 'Sự kiện',
             [ActivityType.MINIGAME]: 'Mini Game',
@@ -204,12 +205,12 @@ const StudentEventDetail: React.FC = () => {
         return labels[type] || type;
     };
 
-    const getScoreTypeLabel = (scoreType: ScoreType) => {
+    const getScoreTypeLabel = (scoreType: ScoreType | null) => {
+        if (!scoreType) return 'N/A';
         const labels: Record<ScoreType, string> = {
             [ScoreType.REN_LUYEN]: 'Rèn luyện',
             [ScoreType.CONG_TAC_XA_HOI]: 'Công tác xã hội',
-            [ScoreType.CHUYEN_DE]: 'Chuyên đề',
-            [ScoreType.KHAC]: 'Khác'
+            [ScoreType.CHUYEN_DE]: 'Chuyên đề'
         };
         return labels[scoreType] || scoreType;
     };
@@ -440,15 +441,33 @@ const StudentEventDetail: React.FC = () => {
                                         <span className="mr-2">⭐</span>
                                         <span>{getScoreTypeLabel(event.scoreType)}</span>
                                     </div>
+                                    {event.seriesId && (
+                                        <div className="flex items-center text-sm text-yellow-600">
+                                            <span className="mr-2">📋</span>
+                                            <Link
+                                                to={`/student/series/${event.seriesId}`}
+                                                className="hover:underline font-medium"
+                                            >
+                                                Thuộc chuỗi sự kiện
+                                            </Link>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                    {event.maxPoints && parseFloat(event.maxPoints) > 0 && (
+                                    {event.seriesId ? (
+                                        <div className="flex items-center text-sm text-yellow-600">
+                                            <span className="mr-2">🏆</span>
+                                            <span>
+                                                Điểm milestone (từ chuỗi) - Không tính điểm từ maxPoints
+                                            </span>
+                                        </div>
+                                    ) : event.maxPoints && parseFloat(event.maxPoints) > 0 ? (
                                         <div className="flex items-center text-sm text-gray-500">
                                             <span className="mr-2">🏆</span>
                                             <span>Điểm tối đa: {event.maxPoints}</span>
                                         </div>
-                                    )}
+                                    ) : null}
                                     {event.penaltyPointsIncomplete && parseFloat(event.penaltyPointsIncomplete) > 0 && (
                                         <div className="flex items-center text-sm text-red-600">
                                             <span className="mr-2">⚠️</span>

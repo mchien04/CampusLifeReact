@@ -107,7 +107,8 @@ const StudentEvents: React.FC = () => {
         }
     };
 
-    const getTypeLabel = (type: ActivityType) => {
+    const getTypeLabel = (type: ActivityType | null) => {
+        if (!type) return 'N/A';
         const labels: Record<ActivityType, string> = {
             [ActivityType.SUKIEN]: 'Sự kiện',
             [ActivityType.MINIGAME]: 'Mini Game',
@@ -117,12 +118,12 @@ const StudentEvents: React.FC = () => {
         return labels[type] || type;
     };
 
-    const getScoreTypeLabel = (scoreType: ScoreType) => {
+    const getScoreTypeLabel = (scoreType: ScoreType | null) => {
+        if (!scoreType) return 'N/A';
         const labels: Record<ScoreType, string> = {
             [ScoreType.REN_LUYEN]: 'Rèn luyện',
             [ScoreType.CONG_TAC_XA_HOI]: 'Công tác xã hội',
-            [ScoreType.CHUYEN_DE]: 'Chuyên đề',
-            [ScoreType.KHAC]: 'Khác'
+            [ScoreType.CHUYEN_DE]: 'Chuyên đề'
         };
         return labels[scoreType] || scoreType;
     };
@@ -260,7 +261,6 @@ const StudentEvents: React.FC = () => {
                                 <option value={ScoreType.REN_LUYEN}>Rèn luyện</option>
                                 <option value={ScoreType.CONG_TAC_XA_HOI}>Công tác xã hội</option>
                                 <option value={ScoreType.CHUYEN_DE}>Chuyên đề</option>
-                                <option value={ScoreType.KHAC}>Khác</option>
                             </select>
                         </div>
 
@@ -327,6 +327,14 @@ const StudentEvents: React.FC = () => {
                                                     <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
                                                         {getTypeLabel(event.type)}
                                                     </span>
+                                                    {event.seriesId && (
+                                                        <Link
+                                                            to={`/student/series/${event.seriesId}`}
+                                                            className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800 hover:bg-yellow-200 transition-colors"
+                                                        >
+                                                            📋 Thuộc chuỗi
+                                                        </Link>
+                                                    )}
                                                 </div>
                                             </div>
                                             {event.isImportant && (
@@ -375,12 +383,19 @@ const StudentEvents: React.FC = () => {
                                                 <span className="w-4 h-4 mr-2">📝</span>
                                                 <span className="truncate">{event.requiresApproval ? 'Đăng ký cần duyệt' : 'Đăng ký tự duyệt'}</span>
                                             </div>
-                                            {event.maxPoints && parseFloat(event.maxPoints) > 0 && (
+                                            {event.seriesId ? (
+                                                <div className="flex items-center">
+                                                    <span className="w-4 h-4 mr-2">🏆</span>
+                                                    <span className="truncate text-yellow-600 font-medium">
+                                                        Điểm milestone (từ chuỗi)
+                                                    </span>
+                                                </div>
+                                            ) : event.maxPoints && parseFloat(event.maxPoints) > 0 ? (
                                                 <div className="flex items-center">
                                                     <span className="w-4 h-4 mr-2">🏆</span>
                                                     <span className="truncate">{event.maxPoints} điểm</span>
                                                 </div>
-                                            )}
+                                            ) : null}
                                             {event.mandatoryForFacultyStudents && (
                                                 <div className="flex items-center">
                                                     <span className="w-4 h-4 mr-2">🎯</span>
