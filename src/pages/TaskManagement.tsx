@@ -61,7 +61,8 @@ const TaskManagement: React.FC = () => {
         }
     }, [selectedEvent]);
 
-    const getTypeLabel = (type: ActivityType): string => {
+    const getTypeLabel = (type: ActivityType | null): string => {
+        if (!type) return 'N/A';
         const typeLabels: Record<ActivityType, string> = {
             [ActivityType.SUKIEN]: 'Sự kiện',
             [ActivityType.MINIGAME]: 'Mini Game',

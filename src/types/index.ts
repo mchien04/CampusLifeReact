@@ -11,4 +11,6 @@ export * from './class';
 export * from './taskSubmission';
 export * from './constants';
 export * from './validation';
+export * from './series';
+export * from './minigame';
 export * from '../services/uploadAPI';

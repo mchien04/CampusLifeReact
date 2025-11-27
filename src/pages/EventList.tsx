@@ -45,7 +45,8 @@ const EventList: React.FC = () => {
         return typeMatch && scoreTypeMatch;
     });
 
-    const getTypeLabel = (type: ActivityType): string => {
+    const getTypeLabel = (type: ActivityType | null): string => {
+        if (!type) return 'N/A';
         const typeLabels: Record<ActivityType, string> = {
             [ActivityType.SUKIEN]: 'Sự kiện',
             [ActivityType.MINIGAME]: 'Mini Game',
@@ -55,12 +56,12 @@ const EventList: React.FC = () => {
         return typeLabels[type] || type;
     };
 
-    const getScoreTypeLabel = (scoreType: ScoreType): string => {
+    const getScoreTypeLabel = (scoreType: ScoreType | null): string => {
+        if (!scoreType) return 'N/A';
         const scoreTypeLabels: Record<ScoreType, string> = {
             [ScoreType.REN_LUYEN]: 'Điểm rèn luyện',
             [ScoreType.CONG_TAC_XA_HOI]: 'Điểm công tác xã hội',
-            [ScoreType.CHUYEN_DE]: 'Điểm chuyên đề doanh nghiệp',
-            [ScoreType.KHAC]: 'Các loại khác'
+            [ScoreType.CHUYEN_DE]: 'Điểm chuyên đề doanh nghiệp'
         };
         return scoreTypeLabels[scoreType] || scoreType;
     };
@@ -91,13 +92,29 @@ const EventList: React.FC = () => {
     const getStatusColor = (status?: string): string => {
         switch (status) {
             case 'ACTIVE':
-                return 'bg-green-100 text-green-800';
+                return 'bg-green-100 text-green-800 border border-green-300';
             case 'INACTIVE':
-                return 'bg-gray-100 text-gray-800';
+                return 'bg-gray-100 text-gray-800 border border-gray-300';
             case 'CANCELLED':
-                return 'bg-red-100 text-red-800';
+                return 'bg-red-100 text-red-800 border border-red-300';
             default:
-                return 'bg-gray-100 text-gray-800';
+                return 'bg-[#001C44] text-white border border-[#001C44]';
+        }
+    };
+
+    const getTypeBadgeColor = (type: ActivityType | null): string => {
+        if (!type) return 'bg-gray-100 text-gray-800 border-2 border-gray-300';
+        switch (type) {
+            case ActivityType.SUKIEN:
+                return 'bg-blue-100 text-blue-800 border-2 border-blue-300';
+            case ActivityType.MINIGAME:
+                return 'bg-purple-100 text-purple-800 border-2 border-purple-300';
+            case ActivityType.CONG_TAC_XA_HOI:
+                return 'bg-green-100 text-green-800 border-2 border-green-300';
+            case ActivityType.CHUYEN_DE_DOANH_NGHIEP:
+                return 'bg-orange-100 text-orange-800 border-2 border-orange-300';
+            default:
+                return 'bg-gray-100 text-gray-800 border-2 border-gray-300';
         }
     };
 
@@ -124,10 +141,9 @@ const EventList: React.FC = () => {
         const registrationStartDate = event.registrationStartDate ? new Date(event.registrationStartDate) : null;
         const registrationDeadline = event.registrationDeadline ? new Date(event.registrationDeadline) : null;
 
-        // Nháp - handle both boolean and string values
-        const isDraft = typeof event.isDraft === 'boolean'
-            ? event.isDraft
-            : event.isDraft === 'true' || event.isDraft === true;
+        // Nháp - handle both 'draft' (from API) and 'isDraft' (from type)
+        const draftValue = event.draft !== undefined ? event.draft : event.isDraft;
+        const isDraft = draftValue === true || (draftValue !== undefined && draftValue !== null && Boolean(draftValue));
         if (isDraft) {
             return {
                 status: 'DRAFT',
@@ -142,7 +158,7 @@ const EventList: React.FC = () => {
             return {
                 status: 'ENDED',
                 label: 'Đã kết thúc',
-                color: 'bg-gray-100 text-gray-800 border-gray-300',
+                color: 'bg-gray-100 text-gray-800 border-2 border-gray-300',
                 description: `Kết thúc: ${formatDate(event.endDate)}`
             };
         }
@@ -152,7 +168,7 @@ const EventList: React.FC = () => {
             return {
                 status: 'ONGOING',
                 label: 'Đang diễn ra',
-                color: 'bg-green-100 text-green-800 border-green-300',
+                color: 'bg-green-100 text-green-800 border-2 border-green-300',
                 description: `Kết thúc: ${formatDate(event.endDate)}`
             };
         }
@@ -165,21 +181,21 @@ const EventList: React.FC = () => {
                     return {
                         status: 'UPCOMING',
                         label: 'Sắp diễn ra',
-                        color: 'bg-blue-100 text-blue-800 border-blue-300',
+                        color: 'bg-blue-100 text-blue-800 border-2 border-blue-300',
                         description: `Bắt đầu đăng ký: ${formatDate(event.registrationStartDate!)}`
                     };
                 } else if (now >= registrationStartDate && now <= registrationDeadline) {
                     return {
                         status: 'REGISTRATION_OPEN',
                         label: 'Đang mở đăng ký',
-                        color: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                        color: 'bg-emerald-100 text-emerald-800 border-2 border-emerald-300',
                         description: `Hết hạn đăng ký: ${formatDate(event.registrationDeadline!)}`
                     };
                 } else if (now > registrationDeadline) {
                     return {
                         status: 'REGISTRATION_CLOSED',
                         label: 'Đã đóng đăng ký',
-                        color: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+                        color: 'bg-yellow-100 text-yellow-800 border-2 border-yellow-300',
                         description: `Bắt đầu: ${formatDate(event.startDate)}`
                     };
                 }
@@ -215,41 +231,41 @@ const EventList: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <div className="bg-white shadow">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center py-6">
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900">Quản lý sự kiện</h1>
-                            <p className="text-gray-600 mt-1">Danh sách tất cả sự kiện</p>
-                        </div>
-                        <div className="flex space-x-3">
-                            <Link
-                                to="/dashboard"
-                                className="px-4 py-2 text-gray-600 hover:text-gray-900"
-                            >
-                                ← Quay lại Dashboard
-                            </Link>
-                            <Link
-                                to="/manager/events/create"
-                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                            >
-                                + Tạo sự kiện mới
-                            </Link>
-                        </div>
-                    </div>
-                </div>
+        <div>
+            {/* Quick Actions */}
+            <div className="mb-6 flex flex-wrap gap-3">
+                <Link
+                    to="/manager/series"
+                    className="px-4 py-2 bg-[#001C44] hover:bg-[#002A66] text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                    📋 Chuỗi sự kiện
+                </Link>
+                <Link
+                    to="/manager/minigames"
+                    className="px-4 py-2 bg-[#001C44] hover:bg-[#002A66] text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                    🎮 Mini Game
+                </Link>
+                <Link
+                    to="/manager/events/create"
+                    className="px-4 py-2 bg-[#FFD66D] hover:bg-[#FFC947] text-[#001C44] rounded-lg text-sm font-medium transition-colors"
+                >
+                    + Tạo sự kiện mới
+                </Link>
             </div>
 
             {/* Filters */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                <div className="bg-white rounded-lg shadow p-6">
-                    <div className="flex flex-wrap gap-4">
+            <div className="bg-white rounded-lg shadow-lg p-6 mb-6 border border-gray-100">
+                <h3 className="text-lg font-semibold text-[#001C44] mb-4">Bộ lọc</h3>
+                
+                {/* Activity Type Filter */}
+                <div className="mb-4">
+                    <h4 className="text-sm font-medium text-gray-700 mb-3">Loại sự kiện:</h4>
+                    <div className="flex flex-wrap gap-2">
                         <button
                             onClick={() => setFilter('ALL')}
-                            className={`px-4 py-2 rounded-md text-sm font-medium ${filter === 'ALL'
-                                ? 'bg-blue-600 text-white'
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === 'ALL'
+                                ? 'bg-[#001C44] text-white shadow-md'
                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                         >
@@ -259,8 +275,8 @@ const EventList: React.FC = () => {
                             <button
                                 key={type}
                                 onClick={() => setFilter(type)}
-                                className={`px-4 py-2 rounded-md text-sm font-medium ${filter === type
-                                    ? 'bg-blue-600 text-white'
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === type
+                                    ? 'bg-[#001C44] text-white shadow-md'
                                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                     }`}
                             >
@@ -268,91 +284,113 @@ const EventList: React.FC = () => {
                             </button>
                         ))}
                     </div>
+                </div>
 
-                    {/* Score Type Filter */}
-                    <div className="mt-4">
-                        <h4 className="text-sm font-medium text-gray-700 mb-2">Lọc theo kiểu tính điểm:</h4>
-                        <div className="flex flex-wrap gap-2">
+                {/* Score Type Filter */}
+                <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-3">Kiểu tính điểm:</h4>
+                    <div className="flex flex-wrap gap-2">
+                        <button
+                            onClick={() => setScoreTypeFilter('ALL')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${scoreTypeFilter === 'ALL'
+                                ? 'bg-[#FFD66D] text-[#001C44] shadow-md'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
+                        >
+                            Tất cả
+                        </button>
+                        {[ScoreType.REN_LUYEN, ScoreType.CONG_TAC_XA_HOI, ScoreType.CHUYEN_DE].map(scoreType => (
                             <button
-                                onClick={() => setScoreTypeFilter('ALL')}
-                                className={`px-3 py-1 rounded-md text-xs font-medium ${scoreTypeFilter === 'ALL'
-                                    ? 'bg-green-600 text-white'
+                                key={scoreType}
+                                onClick={() => setScoreTypeFilter(scoreType)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${scoreTypeFilter === scoreType
+                                    ? 'bg-[#FFD66D] text-[#001C44] shadow-md'
                                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                     }`}
                             >
-                                Tất cả
+                                {getScoreTypeLabel(scoreType)}
                             </button>
-                            {[ScoreType.REN_LUYEN, ScoreType.CONG_TAC_XA_HOI, ScoreType.CHUYEN_DE, ScoreType.KHAC].map(scoreType => (
-                                <button
-                                    key={scoreType}
-                                    onClick={() => setScoreTypeFilter(scoreType)}
-                                    className={`px-3 py-1 rounded-md text-xs font-medium ${scoreTypeFilter === scoreType
-                                        ? 'bg-green-600 text-white'
-                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                        }`}
-                                >
-                                    {getScoreTypeLabel(scoreType)}
-                                </button>
-                            ))}
-                        </div>
+                        ))}
                     </div>
                 </div>
+            </div>
 
-                {/* Events List */}
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+            {/* Events List */}
+            <div>
                     {filteredEvents.length === 0 ? (
-                        <div className="bg-white rounded-lg shadow p-8 text-center">
-                            <div className="text-gray-400 text-6xl mb-4">📅</div>
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">Không có sự kiện nào</h3>
-                            <p className="text-gray-600 mb-4">Chưa có sự kiện nào được tạo hoặc không có sự kiện phù hợp với bộ lọc.</p>
+                        <div className="bg-white rounded-lg shadow-lg p-12 text-center border border-gray-100">
+                            <div className="text-gray-400 text-7xl mb-6">📅</div>
+                            <h3 className="text-xl font-semibold text-[#001C44] mb-3">Không có sự kiện nào</h3>
+                            <p className="text-gray-600 mb-6 max-w-md mx-auto">Chưa có sự kiện nào được tạo hoặc không có sự kiện phù hợp với bộ lọc.</p>
                             <Link
                                 to="/manager/events/create"
-                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                                className="inline-block bg-[#001C44] hover:bg-[#002A66] text-white px-6 py-3 rounded-lg text-sm font-medium transition-all shadow-md hover:shadow-lg"
                             >
-                                Tạo sự kiện đầu tiên
+                                + Tạo sự kiện đầu tiên
                             </Link>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {filteredEvents.map(event => (
-                                <div key={event.id} className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow flex flex-col h-full">
+                            {filteredEvents.map(event => {
+                                // Handle both 'draft' (from API) and 'isDraft' (from type)
+                                // API returns 'draft' but type definition uses 'isDraft'
+                                const draftValue = event.draft !== undefined ? event.draft : event.isDraft;
+                                const isDraft = draftValue === true || (draftValue !== undefined && draftValue !== null && Boolean(draftValue));
+
+                                return (
+                                <div key={event.id} className={`bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col h-full border-2 overflow-hidden group relative ${isDraft ? 'border-orange-400 border-dashed' : 'border-gray-100 hover:border-[#001C44]'}`}>
+                                    {/* Draft Overlay Badge */}
+                                    {isDraft && (
+                                        <div className="absolute top-3 right-3 z-20">
+                                            <div className="bg-orange-500 text-white px-4 py-2 rounded-lg shadow-xl flex items-center gap-2 text-xs font-bold uppercase tracking-wide animate-pulse">
+                                                <span>📝</span>
+                                                <span>Bản nháp</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Draft Banner */}
+                                    {isDraft && (
+                                        <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-orange-500 via-orange-500 to-orange-600 text-white text-center py-2 text-xs font-bold z-20 shadow-md">
+                                            ⚠️ Sự kiện chưa được công bố
+                                        </div>
+                                    )}
+
                                     {event.bannerUrl && (
-                                        <div className="h-48 bg-gray-200 rounded-t-lg bg-cover bg-center flex-shrink-0"
+                                        <div className={`h-56 bg-gray-200 rounded-t-xl bg-cover bg-center flex-shrink-0 group-hover:scale-105 transition-transform duration-300 ${isDraft ? 'opacity-60' : ''}`}
                                             style={{ backgroundImage: `url(${getImageUrl(event.bannerUrl)})` }}>
                                         </div>
                                     )}
 
-                                    <div className="p-6 flex flex-col flex-grow">
-                                        <div className="flex items-start justify-between mb-3">
+                                    <div className={`p-6 flex flex-col flex-grow ${isDraft ? 'pt-8' : ''}`}>
+                                        <div className="flex items-start justify-between mb-4">
                                             <div className="flex-1">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
+                                                <div className="flex items-start gap-2 mb-3">
+                                                    <h3 className={`text-xl font-bold line-clamp-2 leading-tight group-hover:text-[#002A66] transition-colors ${isDraft ? 'text-orange-700' : 'text-[#001C44]'}`}>
                                                         {event.name}
                                                     </h3>
                                                     {event.isImportant && (
-                                                        <span className="text-yellow-500 text-lg flex-shrink-0" title="Sự kiện quan trọng">⭐</span>
+                                                        <span className="text-[#FFD66D] text-xl flex-shrink-0 mt-1" title="Sự kiện quan trọng">⭐</span>
                                                     )}
                                                 </div>
 
-                                                {/* Trạng thái sự kiện */}
-                                                <div className="mb-2 flex flex-wrap items-center gap-2">
-                                                    {(() => {
-                                                        // Handle both boolean and string values from API
-                                                        const isDraft = typeof event.isDraft === 'boolean'
-                                                            ? event.isDraft
-                                                            : event.isDraft === 'true' || event.isDraft === true;
+                                                {/* Draft Tag - Always show if draft */}
+                                                {isDraft && (
+                                                    <div className="mb-3">
+                                                        <span className="inline-flex items-center px-4 py-2 rounded-lg text-xs font-bold bg-orange-500 text-white border-2 border-orange-600 shadow-lg">
+                                                            📝 BẢN NHÁP - Chưa được công bố
+                                                        </span>
+                                                    </div>
+                                                )}
 
-                                                        if (isDraft) {
-                                                            return (
-                                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-300">
-                                                                    📝 Nháp
-                                                                </span>
-                                                            );
-                                                        } else {
+                                                {/* Trạng thái sự kiện */}
+                                                {!isDraft && (
+                                                    <div className="mb-3 flex flex-wrap items-center gap-2">
+                                                        {(() => {
                                                             const eventStatus = getEventStatus(event);
                                                             return (
                                                                 <>
-                                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${eventStatus.color}`}>
+                                                                    <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold border-2 shadow-sm ${eventStatus.color}`}>
                                                                         {eventStatus.status === 'UPCOMING' && '⏰ '}
                                                                         {eventStatus.status === 'ONGOING' && '🟢 '}
                                                                         {eventStatus.status === 'ENDED' && '✅ '}
@@ -365,90 +403,91 @@ const EventList: React.FC = () => {
                                                                     )}
                                                                 </>
                                                             );
-                                                        }
-                                                    })()}
-                                                </div>
+                                                        })()}
+                                                    </div>
+                                                )}
 
-                                                <div className="flex flex-wrap gap-1">
-                                                    <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(event.status)}`}>
+                                                {/* Type and Score Type Tags */}
+                                                <div className="flex flex-wrap gap-2 mb-3">
+                                                    <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border-2 shadow-sm ${getTypeBadgeColor(event.type)}`}>
                                                         {getTypeLabel(event.type)}
                                                     </span>
-                                                    <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                                    <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#FFD66D] text-[#001C44] border-2 border-[#FFD66D] shadow-sm">
                                                         {getScoreTypeLabel(event.scoreType)}
                                                     </span>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <p className="text-gray-600 text-sm mb-4 line-clamp-3 flex-grow">
-                                            {event.description}
+                                        <p className="text-gray-700 text-sm mb-5 line-clamp-3 flex-grow leading-relaxed">
+                                            {event.description || 'Chưa có mô tả'}
                                         </p>
 
-                                        <div className="space-y-2 text-sm text-gray-500 mb-4">
+                                        <div className="space-y-2.5 text-sm text-gray-600 mb-5 bg-gray-50 p-3 rounded-lg">
                                             <div className="flex items-center">
-                                                <span className="w-4 h-4 mr-2">📅</span>
-                                                <span className="truncate">Bắt đầu: {formatDate(event.startDate)}</span>
+                                                <span className="w-5 h-5 mr-2.5 text-[#001C44]">📅</span>
+                                                <span className="truncate font-medium">Bắt đầu: <span className="text-gray-800">{formatDate(event.startDate)}</span></span>
                                             </div>
                                             <div className="flex items-center">
-                                                <span className="w-4 h-4 mr-2">📅</span>
-                                                <span className="truncate">Kết thúc: {formatDate(event.endDate)}</span>
+                                                <span className="w-5 h-5 mr-2.5 text-[#001C44]">📅</span>
+                                                <span className="truncate font-medium">Kết thúc: <span className="text-gray-800">{formatDate(event.endDate)}</span></span>
                                             </div>
                                             {event.registrationStartDate && (
                                                 <div className="flex items-center">
-                                                    <span className="w-4 h-4 mr-2">📝</span>
-                                                    <span className="truncate">Mở đăng ký: {formatDate(event.registrationStartDate)}</span>
+                                                    <span className="w-5 h-5 mr-2.5 text-green-600">📝</span>
+                                                    <span className="truncate font-medium">Mở đăng ký: <span className="text-gray-800">{formatDate(event.registrationStartDate)}</span></span>
                                                 </div>
                                             )}
                                             {event.registrationDeadline && (
                                                 <div className="flex items-center">
-                                                    <span className="w-4 h-4 mr-2">⏰</span>
-                                                    <span className="truncate">Hết hạn đăng ký: {formatDate(event.registrationDeadline)}</span>
+                                                    <span className="w-5 h-5 mr-2.5 text-orange-600">⏰</span>
+                                                    <span className="truncate font-medium">Hết hạn: <span className="text-gray-800">{formatDate(event.registrationDeadline)}</span></span>
                                                 </div>
                                             )}
                                             <div className="flex items-center">
-                                                <span className="w-4 h-4 mr-2">📍</span>
-                                                <span className="truncate">{event.location}</span>
+                                                <span className="w-5 h-5 mr-2.5 text-blue-600">📍</span>
+                                                <span className="truncate font-medium text-gray-800">{event.location}</span>
                                             </div>
                                             <div className="flex items-center">
-                                                <span className="w-4 h-4 mr-2">👥</span>
-                                                <span className="truncate">{event.participantCount || 0} người tham gia</span>
+                                                <span className="w-5 h-5 mr-2.5 text-purple-600">👥</span>
+                                                <span className="truncate font-medium text-gray-800">{event.participantCount || 0} người tham gia</span>
                                             </div>
                                             {event.maxPoints && parseFloat(event.maxPoints) > 0 && (
                                                 <div className="flex items-center">
-                                                    <span className="w-4 h-4 mr-2">🏆</span>
-                                                    <span className="truncate">{event.maxPoints} điểm</span>
+                                                    <span className="w-5 h-5 mr-2.5 text-[#FFD66D]">🏆</span>
+                                                    <span className="truncate font-semibold text-[#001C44]">{event.maxPoints} điểm</span>
                                                 </div>
                                             )}
                                             {event.ticketQuantity && event.ticketQuantity > 0 && (
                                                 <div className="flex items-center">
-                                                    <span className="w-4 h-4 mr-2">🎫</span>
-                                                    <span className="truncate">{event.ticketQuantity} vé</span>
+                                                    <span className="w-5 h-5 mr-2.5 text-indigo-600">🎫</span>
+                                                    <span className="truncate font-medium text-gray-800">{event.ticketQuantity} vé</span>
                                                 </div>
                                             )}
                                             {event.mandatoryForFacultyStudents && (
                                                 <div className="flex items-center">
-                                                    <span className="w-4 h-4 mr-2">🎯</span>
-                                                    <span className="truncate">Bắt buộc cho sinh viên khoa</span>
+                                                    <span className="w-5 h-5 mr-2.5 text-red-600">🎯</span>
+                                                    <span className="truncate font-medium text-red-700">Bắt buộc cho sinh viên khoa</span>
                                                 </div>
                                             )}
                                             {event.requiresApproval && (
                                                 <div className="flex items-center">
-                                                    <span className="w-4 h-4 mr-2">✓</span>
-                                                    <span className="truncate">Cần duyệt đăng ký</span>
+                                                    <span className="w-5 h-5 mr-2.5 text-green-600">✓</span>
+                                                    <span className="truncate font-medium text-gray-800">Cần duyệt đăng ký</span>
                                                 </div>
                                             )}
                                         </div>
 
-                                        <div className="flex space-x-2 mt-auto">
+                                        <div className="flex flex-wrap gap-2 mt-auto pt-4 border-t border-gray-100">
                                             <Link
                                                 to={`/manager/events/${event.id}`}
-                                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-center py-2 px-3 rounded-md text-sm font-medium"
+                                                className="flex-1 min-w-[100px] bg-[#001C44] hover:bg-[#002A66] text-white text-center py-2 px-3 rounded-lg text-sm font-medium transition-all shadow-sm hover:shadow-md"
                                             >
                                                 Xem chi tiết
                                             </Link>
                                             <Link
                                                 to={`/manager/events/${event.id}/edit`}
-                                                className="flex-1 bg-gray-600 hover:bg-gray-700 text-white text-center py-2 px-3 rounded-md text-sm font-medium"
+                                                className="flex-1 min-w-[100px] bg-gray-600 hover:bg-gray-700 text-white text-center py-2 px-3 rounded-lg text-sm font-medium transition-all shadow-sm hover:shadow-md"
                                             >
                                                 Chỉnh sửa
                                             </Link>
@@ -466,24 +505,24 @@ const EventList: React.FC = () => {
                                                         alert(res.message || 'Không thể sao chép');
                                                     }
                                                 }}
-                                                className="flex-1 bg-white border text-gray-700 hover:bg-gray-50 text-center py-2 px-3 rounded-md text-sm font-medium"
+                                                className="flex-1 min-w-[100px] bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-[#001C44] text-center py-2 px-3 rounded-lg text-sm font-medium transition-all"
                                             >
                                                 Sao chép
                                             </Link>
                                             <button
                                                 onClick={() => handleDeleteEvent(event.id)}
                                                 disabled={deletingId === event.id}
-                                                className="flex-1 bg-red-600 hover:bg-red-700 text-white text-center py-2 px-3 rounded-md text-sm font-medium disabled:opacity-50"
+                                                className="flex-1 min-w-[100px] bg-red-600 hover:bg-red-700 text-white text-center py-2 px-3 rounded-lg text-sm font-medium disabled:opacity-50 transition-all shadow-sm hover:shadow-md"
                                             >
                                                 {deletingId === event.id ? 'Đang xóa...' : 'Xóa'}
                                             </button>
                                         </div>
                                     </div>
                                 </div>
-                            ))}
+                            );
+                            })}
                         </div>
                     )}
-                </div>
             </div>
         </div>
     );

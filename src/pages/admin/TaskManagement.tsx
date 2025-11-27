@@ -152,37 +152,25 @@ const TaskManagement: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <div className="bg-white shadow">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center py-6">
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900">Quản lý nhiệm vụ</h1>
-                            <p className="text-gray-600 mt-1">Quản lý và phân công nhiệm vụ cho sinh viên</p>
-                        </div>
-                        <div className="flex space-x-3">
-                            <Link
-                                to="/dashboard"
-                                className="px-4 py-2 text-gray-600 hover:text-gray-900"
-                            >
-                                ← Quay lại Dashboard
-                            </Link>
-                            <button
-                                onClick={() => {
-                                    setEditingTask(null);
-                                    setShowForm(true);
-                                }}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                + Tạo nhiệm vụ mới
-                            </button>
-                        </div>
-                    </div>
+        <div>
+            {/* Header Actions */}
+            <div className="mb-6 flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold text-[#001C44]">Quản lý nhiệm vụ</h1>
+                    <p className="text-gray-600 mt-1">Quản lý và phân công nhiệm vụ cho sinh viên</p>
                 </div>
+                <button
+                    onClick={() => {
+                        setEditingTask(null);
+                        setShowForm(true);
+                    }}
+                    className="px-4 py-2 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66] focus:outline-none focus:ring-2 focus:ring-[#001C44] transition-colors"
+                >
+                    + Tạo nhiệm vụ mới
+                </button>
             </div>
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div>
                 {/* Filters */}
                 <div className="bg-white rounded-lg shadow p-6 mb-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

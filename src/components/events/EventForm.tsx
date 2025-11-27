@@ -2,7 +2,7 @@ import React, { useState, useEffect, ChangeEvent } from 'react';
 import { CreateActivityRequest, ActivityType, ScoreType } from '../../types/activity';
 import { uploadAPI } from '../../services/uploadAPI';
 import { getImageUrl } from '../../utils/imageUtils';
-import { departmentAPI } from '../../services/api';
+import OrganizerSelector from './OrganizerSelector';
 
 interface EventFormProps {
     onSubmit: (data: CreateActivityRequest) => void;
@@ -60,8 +60,6 @@ const EventForm: React.FC<EventFormProps> = ({
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
-    const [departments, setDepartments] = useState<any[]>([]);
-    const [organizerInput, setOrganizerInput] = useState<string>('');
     const [originalBannerUrl, setOriginalBannerUrl] = useState<string>('');
     const [isInitialLoad, setIsInitialLoad] = useState(true);
     const [unlimitedTickets, setUnlimitedTickets] = useState(false);
@@ -164,20 +162,6 @@ const EventForm: React.FC<EventFormProps> = ({
         }
     }, [initialData]);
 
-    // Load departments on component mount
-    useEffect(() => {
-        const loadDepartments = async () => {
-            try {
-                const response = await departmentAPI.getAll();
-                if (response.status && response.data) {
-                    setDepartments(response.data);
-                }
-            } catch (error) {
-                console.error('Error loading departments:', error);
-            }
-        };
-        loadDepartments();
-    }, []);
 
     // Auto-set ticketQuantity to undefined (unlimited) when isImportant or mandatoryForFacultyStudents is true
     // Only run after initial load to preserve values when editing
@@ -204,28 +188,11 @@ const EventForm: React.FC<EventFormProps> = ({
         }
     }, [formData.isImportant, formData.mandatoryForFacultyStudents, isInitialLoad]);
 
-    // Handle organizer input change
-    const handleOrganizerInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setOrganizerInput(e.target.value);
-    };
-
-    // Add organizer IDs from input
-    const addOrganizers = () => {
-        if (organizerInput.trim()) {
-            const ids = organizerInput.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
-            setFormData(prev => ({
-                ...prev,
-                organizerIds: [...prev.organizerIds, ...ids.filter(id => !prev.organizerIds.includes(id))]
-            }));
-            setOrganizerInput('');
-        }
-    };
-
-    // Remove organizer ID
-    const removeOrganizer = (idToRemove: number) => {
+    // Handle organizer change
+    const handleOrganizerChange = (ids: number[]) => {
         setFormData(prev => ({
             ...prev,
-            organizerIds: prev.organizerIds.filter(id => id !== idToRemove)
+            organizerIds: ids
         }));
     };
 
@@ -284,7 +251,7 @@ const EventForm: React.FC<EventFormProps> = ({
         <div className="max-w-4xl mx-auto p-6">
             <div className="bg-white shadow-lg rounded-lg">
                 <div className="px-6 py-4 border-b border-gray-200">
-                    <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
+                    <h2 className="text-2xl font-bold text-[#001C44]">{title}</h2>
                     <p className="text-gray-600 mt-1">Điền thông tin chi tiết về sự kiện</p>
                 </div>
 
@@ -292,7 +259,7 @@ const EventForm: React.FC<EventFormProps> = ({
                     {/* Basic Information */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="md:col-span-2">
-                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                            <label htmlFor="name" className="block text-sm font-medium text-[#001C44] mb-2">
                                 Tên sự kiện *
                             </label>
                             <input
@@ -301,7 +268,7 @@ const EventForm: React.FC<EventFormProps> = ({
                                 name="name"
                                 value={formData.name}
                                 onChange={handleChange}
-                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.name ? 'border-red-500' : 'border-gray-300'
+                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44] ${errors.name ? 'border-red-500' : 'border-gray-300'
                                     }`}
                                 placeholder="Nhập tên sự kiện"
                             />
@@ -340,7 +307,6 @@ const EventForm: React.FC<EventFormProps> = ({
                                 <option value={ScoreType.REN_LUYEN}>Điểm rèn luyện</option>
                                 <option value={ScoreType.CONG_TAC_XA_HOI}>Điểm công tác xã hội</option>
                                 <option value={ScoreType.CHUYEN_DE}>Điểm chuyên đề doanh nghiệp</option>
-                                <option value={ScoreType.KHAC}>Các loại khác</option>
                             </select>
                         </div>
 
@@ -718,68 +684,12 @@ const EventForm: React.FC<EventFormProps> = ({
                     </div>
 
                     {/* Organizer Selection */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Đơn vị tổ chức *
-                        </label>
-                        <div className="space-y-2">
-                            <div className="flex space-x-2">
-                                <input
-                                    type="text"
-                                    value={organizerInput}
-                                    onChange={handleOrganizerInputChange}
-                                    placeholder="Nhập ID đơn vị (phân tách bằng dấu phẩy)"
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={addOrganizers}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    Thêm
-                                </button>
-                            </div>
-
-                            {/* Selected Organizers */}
-                            {formData.organizerIds.length > 0 && (
-                                <div className="flex flex-wrap gap-2">
-                                    {formData.organizerIds.map(id => {
-                                        const dept = departments.find(d => d.id === id);
-                                        return (
-                                            <span
-                                                key={id}
-                                                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
-                                            >
-                                                {dept ? dept.name : `ID: ${id}`}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeOrganizer(id)}
-                                                    className="ml-2 text-blue-600 hover:text-blue-800"
-                                                >
-                                                    ×
-                                                </button>
-                                            </span>
-                                        );
-                                    })}
-                                </div>
-                            )}
-
-                            {/* Available Departments */}
-                            {departments.length > 0 && (
-                                <div className="mt-2">
-                                    <p className="text-sm text-gray-600 mb-1">Danh sách đơn vị có sẵn:</p>
-                                    <div className="text-xs text-gray-500">
-                                        {departments.map(dept => (
-                                            <span key={dept.id} className="mr-2">
-                                                {dept.id}: {dept.name}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                        {errors.organizerIds && <p className="text-red-500 text-sm mt-1">{errors.organizerIds}</p>}
-                    </div>
+                    <OrganizerSelector
+                        selectedIds={formData.organizerIds}
+                        onChange={handleOrganizerChange}
+                        error={errors.organizerIds}
+                        required={true}
+                    />
 
                     {/* Checkboxes */}
                     <div className="space-y-4">
@@ -858,7 +768,7 @@ const EventForm: React.FC<EventFormProps> = ({
                         <button
                             type="submit"
                             disabled={loading || isUploading}
-                            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-6 py-2 bg-[#001C44] text-white rounded-md hover:bg-[#002A66] focus:outline-none focus:ring-2 focus:ring-[#001C44] disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isUploading ? 'Đang upload ảnh...' : loading ? 'Đang tạo...' : 'Tạo sự kiện'}
                         </button>

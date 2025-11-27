@@ -114,7 +114,6 @@ const ViewScores: React.FC = () => {
                                 <option value="REN_LUYEN">Điểm rèn luyện</option>
                                 <option value="CONG_TAC_XA_HOI">Công tác xã hội</option>
                                 <option value="CHUYEN_DE">Chuyên đề doanh nghiệp</option>
-                                <option value="KHAC">Khác</option>
                             </select>
                         </div>
                     </div>
@@ -150,7 +149,6 @@ const ViewScores: React.FC = () => {
                                         {s.scoreType === 'REN_LUYEN' && 'Điểm rèn luyện'}
                                         {s.scoreType === 'CONG_TAC_XA_HOI' && 'Điểm công tác xã hội'}
                                         {s.scoreType === 'CHUYEN_DE' && 'Điểm chuyên đề doanh nghiệp'}
-                                        {s.scoreType === 'KHAC' && 'Điểm khác'}
                                     </div>
                                     <div className="text-xl font-bold text-[#001C44] bg-[#FFD66D] px-4 py-2 rounded-lg">
                                         Tổng: {s.total}
@@ -164,6 +162,9 @@ const ViewScores: React.FC = () => {
                                                     {it.sourceType === 'MANUAL' && 'Nhập tay'}
                                                     {it.sourceType === 'ACTIVITY_CHECKIN' && 'Điểm danh hoạt động'}
                                                     {it.sourceType === 'ACTIVITY_SUBMISSION' && 'Nộp bài hoạt động'}
+                                                    {it.sourceType === 'SERIES_MILESTONE' && '🎯 Điểm milestone (chuỗi sự kiện)'}
+                                                    {it.sourceType === 'MINIGAME' && '🎮 Điểm minigame quiz'}
+                                                    {it.sourceType === 'CHUYEN_DE_COUNT' && '📚 Đếm số buổi (chuyên đề)'}
                                                 </div>
                                                 {it.sourceNote && (
                                                     <div className="text-sm text-gray-600 mt-1">{it.sourceNote}</div>

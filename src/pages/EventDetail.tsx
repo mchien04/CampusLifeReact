@@ -452,7 +452,8 @@ const EventDetail: React.FC = () => {
 
 
 
-    const getTypeLabel = (type: ActivityType): string => {
+    const getTypeLabel = (type: ActivityType | null): string => {
+        if (!type) return 'N/A';
         const typeLabels: Record<ActivityType, string> = {
             [ActivityType.SUKIEN]: 'Sự kiện',
             [ActivityType.MINIGAME]: 'Mini Game',
@@ -462,12 +463,12 @@ const EventDetail: React.FC = () => {
         return typeLabels[type] || type;
     };
 
-    const getScoreTypeLabel = (scoreType: ScoreType): string => {
+    const getScoreTypeLabel = (scoreType: ScoreType | null): string => {
+        if (!scoreType) return 'N/A';
         const scoreTypeLabels: Record<ScoreType, string> = {
             [ScoreType.REN_LUYEN]: 'Điểm rèn luyện',
             [ScoreType.CONG_TAC_XA_HOI]: 'Điểm công tác xã hội',
-            [ScoreType.CHUYEN_DE]: 'Điểm chuyên đề doanh nghiệp',
-            [ScoreType.KHAC]: 'Các loại khác'
+            [ScoreType.CHUYEN_DE]: 'Điểm chuyên đề doanh nghiệp'
         };
         return scoreTypeLabels[scoreType] || scoreType;
     };
@@ -512,41 +513,25 @@ const EventDetail: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <div className="bg-white shadow">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center py-6">
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900">Chi tiết sự kiện</h1>
-                            <p className="text-gray-600 mt-1">Thông tin chi tiết về sự kiện</p>
-                        </div>
-                        <div className="flex space-x-3">
-                            <Link
-                                to={`/manager/events/${event.id}/edit`}
-                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                            >
-                                Chỉnh sửa
-                            </Link>
-                            <button
-                                onClick={() => navigate('/dashboard')}
-                                className="px-4 py-2 text-gray-600 hover:text-gray-900"
-                            >
-                                ← Quay lại Dashboard
-                            </button>
-                            <button
-                                onClick={() => navigate('/manager/events')}
-                                className="px-4 py-2 text-gray-600 hover:text-gray-900"
-                            >
-                                ← Quay lại danh sách
-                            </button>
-                        </div>
-                    </div>
+        <div>
+            {/* Header Actions */}
+            <div className="mb-6 flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold text-[#001C44]">Chi tiết sự kiện</h1>
+                    <p className="text-gray-600 mt-1">Thông tin chi tiết về sự kiện</p>
+                </div>
+                <div className="flex space-x-3">
+                    <Link
+                        to={`/manager/events/${event.id}/edit`}
+                        className="bg-[#001C44] hover:bg-[#002A66] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                    >
+                        Chỉnh sửa
+                    </Link>
                 </div>
             </div>
 
             {/* Event Details */}
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="max-w-4xl mx-auto">
                 <div className="bg-white shadow-lg rounded-lg overflow-hidden">
                     {/* Banner */}
                     {event.bannerUrl && (
@@ -559,43 +544,43 @@ const EventDetail: React.FC = () => {
                         {/* Header Info */}
                         <div className="flex items-start justify-between mb-6">
                             <div className="flex-1">
-                                <div className="flex items-center space-x-3 mb-2">
-                                    <h2 className="text-3xl font-bold text-gray-900">{event.name}</h2>
+                                <div className="flex items-center space-x-3 mb-3">
+                                    <h2 className="text-3xl font-bold text-[#001C44]">{event.name}</h2>
                                     {event.isDraft && (
-                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-800">
-                                            Bản nháp
+                                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-300">
+                                            📝 Bản nháp
                                         </span>
                                     )}
                                     {event.isImportant && (
-                                        <span className="text-yellow-500 text-2xl">⭐</span>
+                                        <span className="text-[#FFD66D] text-2xl" title="Sự kiện quan trọng">⭐</span>
                                     )}
                                 </div>
-                                <div className="flex items-center space-x-4">
-                                    <span className="inline-block px-3 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-800">
+                                <div className="flex items-center space-x-3 flex-wrap">
+                                    <span className="inline-block px-3 py-1.5 text-sm font-medium rounded-full bg-[#001C44] text-white">
                                         {getTypeLabel(event.type)}
                                     </span>
-                                    <span className="inline-block px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-800">
+                                    <span className="inline-block px-3 py-1.5 text-sm font-medium rounded-full bg-[#FFD66D] bg-opacity-30 text-[#001C44] border border-[#FFD66D]">
                                         {getScoreTypeLabel(event.scoreType)}
                                     </span>
-                                    <span className="text-sm text-gray-500">
+                                    <span className="text-sm text-gray-500 font-mono">
                                         ID: {event.id}
                                     </span>
                                 </div>
                             </div>
                             <div className="flex items-center space-x-2">
                                 {event.isDraft ? (
-                                    <button onClick={handlePublish} className="px-3 py-2 bg-green-600 text-white rounded-md text-sm">Công bố</button>
+                                    <button onClick={handlePublish} className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-all shadow-sm hover:shadow-md">Công bố</button>
                                 ) : (
-                                    <button onClick={handleUnpublish} className="px-3 py-2 bg-yellow-600 text-white rounded-md text-sm">Thu hồi</button>
+                                    <button onClick={handleUnpublish} className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm font-medium transition-all shadow-sm hover:shadow-md">Thu hồi</button>
                                 )}
-                                <button onClick={handleCopy} className="px-3 py-2 bg-gray-100 text-gray-800 rounded-md text-sm border">Sao chép</button>
+                                <button onClick={handleCopy} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-sm font-medium transition-all border-2 border-gray-300 hover:border-[#001C44]">Sao chép</button>
                             </div>
                         </div>
 
                         {/* Description */}
                         {event.description && (
-                            <div className="mb-8">
-                                <h3 className="text-lg font-semibold text-gray-900 mb-3">Mô tả</h3>
+                            <div className="mb-8 p-4 bg-gray-50 rounded-lg border-l-4 border-[#001C44]">
+                                <h3 className="text-lg font-semibold text-[#001C44] mb-3">Mô tả</h3>
                                 <p className="text-gray-700 leading-relaxed">{event.description}</p>
                             </div>
                         )}
@@ -603,8 +588,11 @@ const EventDetail: React.FC = () => {
                         {/* Event Details Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                             {/* Date & Time */}
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-4">Thời gian & Địa điểm</h3>
+                            <div className="bg-gray-50 p-5 rounded-lg border border-gray-200">
+                                <h3 className="text-lg font-semibold text-[#001C44] mb-4 flex items-center">
+                                    <span className="mr-2">📅</span>
+                                    Thời gian & Địa điểm
+                                </h3>
                                 <div className="space-y-3">
                                     <div className="flex items-center">
                                         <span className="w-5 h-5 mr-3 text-blue-600">📅</span>
@@ -649,8 +637,11 @@ const EventDetail: React.FC = () => {
                             </div>
 
                             {/* Event Info */}
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-4">Thông tin sự kiện</h3>
+                            <div className="bg-gray-50 p-5 rounded-lg border border-gray-200">
+                                <h3 className="text-lg font-semibold text-[#001C44] mb-4 flex items-center">
+                                    <span className="mr-2">ℹ️</span>
+                                    Thông tin sự kiện
+                                </h3>
                                 <div className="space-y-3">
                                     <div className="flex items-center">
                                         <span className="w-5 h-5 mr-3 text-purple-600">🏢</span>
@@ -750,7 +741,7 @@ const EventDetail: React.FC = () => {
                         {/* Additional Information */}
                         {(event.benefits || event.requirements || event.contactInfo) && (
                             <div className="border-t border-gray-200 pt-6 mb-8">
-                                <h3 className="text-lg font-semibold text-gray-900 mb-4">Thông tin bổ sung</h3>
+                                <h3 className="text-lg font-semibold text-[#001C44] mb-4">Thông tin bổ sung</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     {event.benefits && (
                                         <div>
@@ -776,7 +767,7 @@ const EventDetail: React.FC = () => {
 
                         {/* Metadata */}
                         <div className="border-t border-gray-200 pt-6">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Thông tin hệ thống</h3>
+                            <h3 className="text-lg font-semibold text-[#001C44] mb-4">Thông tin hệ thống</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
                                 <div>
                                     <p><span className="font-medium">Ngày tạo:</span> {formatDate(event.createdAt)}</p>
@@ -798,12 +789,15 @@ const EventDetail: React.FC = () => {
                 {/* Photo Gallery Section - Only show if event has ended */}
                 {event && new Date(event.endDate) < new Date() && (
                     <div className="mt-8">
-                        <div className="bg-white shadow-lg rounded-lg overflow-hidden">
-                            <div className="px-6 py-4 border-b border-gray-200">
+                        <div className="bg-white shadow-lg rounded-lg overflow-hidden border border-gray-100">
+                            <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-[#001C44] to-[#002A66]">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <h3 className="text-lg font-semibold text-gray-900">Hình ảnh sự kiện</h3>
-                                        <p className="text-sm text-gray-600 mt-1">
+                                        <h3 className="text-xl font-bold text-white flex items-center">
+                                            <span className="mr-2">📸</span>
+                                            Hình ảnh sự kiện
+                                        </h3>
+                                        <p className="text-sm text-gray-200 mt-1">
                                             {photos.length > 0 ? `${photos.length} ảnh` : 'Chưa có ảnh nào'}
                                         </p>
                                     </div>
@@ -811,9 +805,9 @@ const EventDetail: React.FC = () => {
                                         {(user?.role === 'MANAGER' || user?.role === 'ADMIN') && (
                                             <button
                                                 onClick={() => setShowUploadForm(!showUploadForm)}
-                                                className="px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                                                className="px-4 py-2 bg-[#FFD66D] text-[#001C44] text-sm font-medium rounded-lg hover:bg-[#FFC947] focus:outline-none focus:ring-2 focus:ring-[#FFD66D] transition-all shadow-sm hover:shadow-md"
                                             >
-                                                {showUploadForm ? 'Ẩn form' : 'Thêm ảnh'}
+                                                {showUploadForm ? 'Ẩn form' : '+ Thêm ảnh'}
                                             </button>
                                         )}
                                     </div>
@@ -917,20 +911,23 @@ const EventDetail: React.FC = () => {
 
                 {/* Tasks Management Section */}
                 <div className="mt-8">
-                    <div className="bg-white shadow-lg rounded-lg overflow-hidden">
-                        <div className="px-6 py-4 border-b border-gray-200">
+                    <div className="bg-white shadow-lg rounded-lg overflow-hidden border border-gray-100">
+                        <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-[#001C44] to-[#002A66]">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <h3 className="text-lg font-semibold text-gray-900">Quản lý nhiệm vụ</h3>
-                                    <p className="text-sm text-gray-600 mt-1">Tạo và quản lý các nhiệm vụ cho hoạt động này</p>
+                                    <h3 className="text-xl font-bold text-white flex items-center">
+                                        <span className="mr-2">📋</span>
+                                        Quản lý nhiệm vụ
+                                    </h3>
+                                    <p className="text-sm text-gray-200 mt-1">Tạo và quản lý các nhiệm vụ cho hoạt động này</p>
                                 </div>
                                 <div className="flex space-x-3">
                                     {event.mandatoryForFacultyStudents && (
                                         <button
                                             onClick={handleAutoAssign}
-                                            className="px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                                            className="px-4 py-2 bg-[#FFD66D] text-[#001C44] text-sm font-medium rounded-lg hover:bg-[#FFC947] focus:outline-none focus:ring-2 focus:ring-[#FFD66D] transition-all shadow-sm hover:shadow-md"
                                         >
-                                            Tự động phân công
+                                            ⚡ Tự động phân công
                                         </button>
                                     )}
                                     <button
@@ -938,7 +935,7 @@ const EventDetail: React.FC = () => {
                                             setEditingTask(null);
                                             setShowTaskForm(true);
                                         }}
-                                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="px-4 py-2 bg-[#FFD66D] text-[#001C44] text-sm font-medium rounded-lg hover:bg-[#FFC947] focus:outline-none focus:ring-2 focus:ring-[#FFD66D] transition-all shadow-sm hover:shadow-md"
                                     >
                                         + Tạo nhiệm vụ
                                     </button>
@@ -963,18 +960,37 @@ const EventDetail: React.FC = () => {
                                 showActions={true}
                             />
                             {event.requiresSubmission && tasks.length > 0 && (
-                                <div className="mt-4 border-t pt-4">
-                                    <h4 className="text-md font-medium text-gray-900 mb-2">Bài nộp theo nhiệm vụ</h4>
-                                    <div className="space-y-2">
+                                <div className="mt-6 border-t-2 border-[#FFD66D] pt-6">
+                                    <div className="bg-gradient-to-r from-[#FFD66D] to-[#FFC947] p-4 rounded-lg mb-4 shadow-md">
+                                        <h4 className="text-lg font-bold text-[#001C44] flex items-center mb-1">
+                                            <span className="mr-2 text-xl">📝</span>
+                                            Bài nộp theo nhiệm vụ
+                                        </h4>
+                                        <p className="text-sm text-[#001C44] text-opacity-80">
+                                            Xem và chấm điểm các bài nộp của sinh viên cho từng nhiệm vụ
+                                        </p>
+                                    </div>
+                                    <div className="space-y-3">
                                         {tasks.map(t => (
-                                            <div key={t.id} className="flex items-center justify-between text-sm">
-                                                <span className="text-gray-700">{t.name}</span>
-                                                <button
-                                                    onClick={() => handleViewSubmissions(t)}
-                                                    className="px-3 py-1 text-purple-600 hover:text-purple-800"
-                                                >
-                                                    Xem bài nộp
-                                                </button>
+                                            <div key={t.id} className="bg-white border-2 border-gray-200 rounded-lg p-4 hover:border-[#001C44] hover:shadow-md transition-all duration-300">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex-1">
+                                                        <h5 className="text-base font-semibold text-[#001C44] mb-1">
+                                                            📋 {t.name}
+                                                        </h5>
+                                                        {t.description && (
+                                                            <p className="text-sm text-gray-600 line-clamp-1">
+                                                                {t.description}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleViewSubmissions(t)}
+                                                        className="ml-4 px-5 py-2.5 bg-[#001C44] text-white text-sm font-medium rounded-lg hover:bg-[#002A66] focus:outline-none focus:ring-2 focus:ring-[#001C44] transition-all shadow-sm hover:shadow-md whitespace-nowrap"
+                                                    >
+                                                        👁️ Xem bài nộp
+                                                    </button>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -987,24 +1003,50 @@ const EventDetail: React.FC = () => {
 
             {/* Task Form Modal */}
             {showTaskForm && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-                    <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
-                        <TaskForm
-                            onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
-                            initialData={editingTask ? {
-                                name: editingTask.name,
-                                description: editingTask.description,
-                                deadline: editingTask.deadline,
-                                activityId: editingTask.activityId
-                            } : undefined}
-                            title={editingTask ? 'Chỉnh sửa nhiệm vụ' : 'Tạo nhiệm vụ mới'}
-                            activityId={event.id}
-                            activityName={event.name}
-                            onCancel={() => {
-                                setShowTaskForm(false);
-                                setEditingTask(null);
-                            }}
-                        />
+                <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+                    <div className="relative w-full max-w-2xl bg-white rounded-xl shadow-2xl border border-gray-200 max-h-[90vh] overflow-y-auto">
+                        <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] px-6 py-4 rounded-t-xl sticky top-0 z-10">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h2 className="text-xl font-bold text-white flex items-center">
+                                        <span className="mr-2">{editingTask ? '✏️' : '✨'}</span>
+                                        {editingTask ? 'Chỉnh sửa nhiệm vụ' : 'Tạo nhiệm vụ mới'}
+                                    </h2>
+                                    <p className="text-sm text-gray-200 mt-1">
+                                        Hoạt động: <span className="font-semibold">{event.name}</span>
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setShowTaskForm(false);
+                                        setEditingTask(null);
+                                    }}
+                                    className="text-white hover:text-[#FFD66D] transition-colors"
+                                >
+                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div className="p-6">
+                            <TaskForm
+                                onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
+                                initialData={editingTask ? {
+                                    name: editingTask.name,
+                                    description: editingTask.description,
+                                    deadline: editingTask.deadline,
+                                    activityId: editingTask.activityId
+                                } : undefined}
+                                title={editingTask ? 'Chỉnh sửa nhiệm vụ' : 'Tạo nhiệm vụ mới'}
+                                activityId={event.id}
+                                activityName={event.name}
+                                onCancel={() => {
+                                    setShowTaskForm(false);
+                                    setEditingTask(null);
+                                }}
+                            />
+                        </div>
                     </div>
                 </div>
             )}
@@ -1023,33 +1065,42 @@ const EventDetail: React.FC = () => {
 
             {/* Task Assignments Modal */}
             {showAssignments && selectedTask && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-                    <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-2/3 shadow-lg rounded-md bg-white">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-medium text-gray-900">
-                                Phân công nhiệm vụ: {selectedTask.name}
-                            </h3>
-                            <button
-                                onClick={() => {
-                                    setShowAssignments(false);
-                                    setSelectedTask(null);
-                                    setTaskAssignments([]);
-                                }}
-                                className="text-gray-400 hover:text-gray-600"
-                            >
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
+                <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+                    <div className="relative w-full max-w-4xl bg-white rounded-xl shadow-2xl border border-gray-200 max-h-[90vh] overflow-y-auto">
+                        <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] px-6 py-4 rounded-t-xl sticky top-0 z-10">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-xl font-bold text-white">
+                                        📋 {selectedTask.name}
+                                    </h3>
+                                    <p className="text-sm text-gray-200 mt-1">
+                                        Danh sách phân công nhiệm vụ
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setShowAssignments(false);
+                                        setSelectedTask(null);
+                                        setTaskAssignments([]);
+                                    }}
+                                    className="text-white hover:text-[#FFD66D] transition-colors"
+                                >
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
+                        <div className="p-6">
 
-                        <TaskAssignmentsList
-                            assignments={taskAssignments}
-                            loading={loadingAssignments}
-                            onUpdateStatus={handleUpdateAssignmentStatus}
-                            onRemove={handleRemoveAssignment}
-                            showActions={true}
-                        />
+                            <TaskAssignmentsList
+                                assignments={taskAssignments}
+                                loading={loadingAssignments}
+                                onUpdateStatus={handleUpdateAssignmentStatus}
+                                onRemove={handleRemoveAssignment}
+                                showActions={true}
+                            />
+                        </div>
                     </div>
                 </div>
             )}

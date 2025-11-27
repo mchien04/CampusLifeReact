@@ -1,5 +1,5 @@
-export type ScoreSourceType = 'MANUAL' | 'ACTIVITY_CHECKIN' | 'ACTIVITY_SUBMISSION';
-export type ScoreType = 'REN_LUYEN' | 'CONG_TAC_XA_HOI' | 'CHUYEN_DE' | 'KHAC';
+export type ScoreSourceType = 'MANUAL' | 'ACTIVITY_CHECKIN' | 'ACTIVITY_SUBMISSION' | 'SERIES_MILESTONE' | 'MINIGAME' | 'CHUYEN_DE_COUNT';
+export type ScoreType = 'REN_LUYEN' | 'CONG_TAC_XA_HOI' | 'CHUYEN_DE';
 
 export interface TrainingCalculateItem {
     criterionId: number;

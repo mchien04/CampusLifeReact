@@ -7,6 +7,16 @@ import { Home, Dashboard, CreateEvent, EventList, EditEvent, EventDetail, Studen
 import StudentEventDetail from './pages/StudentEventDetail';
 import StudentParticipationHistory from './pages/StudentParticipationHistory';
 import StudentProfile from './pages/StudentProfile';
+import StudentSeries from './pages/StudentSeries';
+import StudentSeriesDetail from './pages/StudentSeriesDetail';
+import StudentMinigame from './pages/StudentMinigame';
+import StudentMinigamePlay from './pages/StudentMinigamePlay';
+import SeriesManagement from './pages/admin/SeriesManagement';
+import CreateSeries from './pages/admin/CreateSeries';
+import EditSeries from './pages/admin/EditSeries';
+import SeriesDetail from './pages/admin/SeriesDetail';
+import MinigameManagement from './pages/admin/MinigameManagement';
+import CreateMinigame from './pages/admin/CreateMinigame';
 import AcademicYears from './pages/admin/AcademicYears';
 import Departments from './pages/admin/Departments';
 import Students from './pages/admin/Students';
@@ -25,6 +35,7 @@ import ManagerScores from './pages/ManagerScores';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import ManagerLayout from './components/layout/ManagerLayout';
 
 const queryClient = new QueryClient();
 
@@ -72,7 +83,9 @@ function App() {
                 path="/admin/departments/*"
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
-                    <Departments />
+                    <ManagerLayout>
+                      <Departments />
+                    </ManagerLayout>
                   </ProtectedRoute>
                 }
               />
@@ -80,7 +93,9 @@ function App() {
                 path="/admin/academic-years/*"
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
-                    <AcademicYears />
+                    <ManagerLayout>
+                      <AcademicYears />
+                    </ManagerLayout>
                   </ProtectedRoute>
                 }
               />
@@ -91,7 +106,9 @@ function App() {
                 path="/manager/events"
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
-                    <EventList />
+                    <ManagerLayout>
+                      <EventList />
+                    </ManagerLayout>
                   </ProtectedRoute>
                 }
               />
@@ -99,7 +116,9 @@ function App() {
                 path="/manager/events/create"
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
-                    <CreateEvent />
+                    <ManagerLayout>
+                      <CreateEvent />
+                    </ManagerLayout>
                   </ProtectedRoute>
                 }
               />
@@ -107,7 +126,9 @@ function App() {
                 path="/manager/events/:id"
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
-                    <EventDetail />
+                    <ManagerLayout>
+                      <EventDetail />
+                    </ManagerLayout>
                   </ProtectedRoute>
                 }
               />
@@ -115,7 +136,9 @@ function App() {
                 path="/manager/events/:id/edit"
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
-                    <EditEvent />
+                    <ManagerLayout>
+                      <EditEvent />
+                    </ManagerLayout>
                   </ProtectedRoute>
                 }
               />
@@ -125,7 +148,9 @@ function App() {
                 path="/admin/academic-years"
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
-                    <AcademicYears />
+                    <ManagerLayout>
+                      <AcademicYears />
+                    </ManagerLayout>
                   </ProtectedRoute>
                 }
               />
@@ -133,7 +158,9 @@ function App() {
                 path="/admin/departments"
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
-                    <Departments />
+                    <ManagerLayout>
+                      <Departments />
+                    </ManagerLayout>
                   </ProtectedRoute>
                 }
               />
@@ -142,7 +169,9 @@ function App() {
                 path="/admin/students"
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
-                    <Students />
+                    <ManagerLayout>
+                      <Students />
+                    </ManagerLayout>
                   </ProtectedRoute>
                 }
               />
@@ -150,7 +179,9 @@ function App() {
                 path="/admin/reports"
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
-                    <Reports />
+                    <ManagerLayout>
+                      <Reports />
+                    </ManagerLayout>
                   </ProtectedRoute>
                 }
               />
@@ -158,7 +189,9 @@ function App() {
                 path="/admin/events/:id/registrations"
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
-                    <EventRegistrations />
+                    <ManagerLayout>
+                      <EventRegistrations />
+                    </ManagerLayout>
                   </ProtectedRoute>
                 }
               />
@@ -166,15 +199,9 @@ function App() {
                 path="/admin/classes"
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
-                    <ClassManagement />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/tasks"
-                element={
-                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
-                    <TaskManagement />
+                    <ManagerLayout>
+                      <ClassManagement />
+                    </ManagerLayout>
                   </ProtectedRoute>
                 }
               />
@@ -193,6 +220,38 @@ function App() {
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
                     <StudentEventDetail />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/student/series"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
+                    <StudentSeries />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/student/series/:id"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
+                    <StudentSeriesDetail />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/student/minigames"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
+                    <StudentMinigame />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/student/minigames/:activityId/play"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
+                    <StudentMinigamePlay />
                   </ProtectedRoute>
                 }
               />
@@ -243,7 +302,9 @@ function App() {
                 path="/manager/registrations"
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
-                    <ManagerRegistrations />
+                    <ManagerLayout>
+                      <ManagerRegistrations />
+                    </ManagerLayout>
                   </ProtectedRoute>
                 }
               />
@@ -251,7 +312,9 @@ function App() {
                 path="/manager/scores"
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
-                    <ManagerScores />
+                    <ManagerLayout>
+                      <ManagerScores />
+                    </ManagerLayout>
                   </ProtectedRoute>
                 }
               />
@@ -259,7 +322,69 @@ function App() {
                 path="/manager/tasks"
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
-                    <TaskManagement />
+                    <ManagerLayout>
+                      <TaskManagement />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/series"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <ManagerLayout>
+                      <SeriesManagement />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/series/create"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <ManagerLayout>
+                      <CreateSeries />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/series/:id"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <ManagerLayout>
+                      <SeriesDetail />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/series/:id/edit"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <ManagerLayout>
+                      <EditSeries />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/minigames"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <ManagerLayout>
+                      <MinigameManagement />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/minigames/create"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <ManagerLayout>
+                      <CreateMinigame />
+                    </ManagerLayout>
                   </ProtectedRoute>
                 }
               />

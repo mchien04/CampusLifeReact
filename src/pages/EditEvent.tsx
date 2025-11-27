@@ -69,9 +69,9 @@ const EditEvent: React.FC = () => {
 
     if (loadingEvent) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="flex items-center justify-center min-h-[60vh]">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#001C44] mx-auto"></div>
                     <p className="mt-4 text-gray-600">Đang tải thông tin sự kiện...</p>
                 </div>
             </div>
@@ -80,14 +80,14 @@ const EditEvent: React.FC = () => {
 
     if (error && !event) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="flex items-center justify-center min-h-[60vh]">
                 <div className="text-center">
                     <div className="text-red-500 text-6xl mb-4">❌</div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Lỗi</h3>
+                    <h3 className="text-lg font-medium text-[#001C44] mb-2">Lỗi</h3>
                     <p className="text-gray-600 mb-4">{error}</p>
                     <button
                         onClick={() => navigate('/manager/events')}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                        className="bg-[#001C44] hover:bg-[#002A66] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                     >
                         Quay lại danh sách
                     </button>
@@ -117,16 +117,16 @@ const EditEvent: React.FC = () => {
     // Convert ActivityResponse to CreateActivityRequest format
     const initialData: Partial<CreateActivityRequest> = {
         name: event.name,
-        type: event.type,
-        scoreType: event.scoreType,
+        type: event.type ?? undefined,
+        scoreType: event.scoreType ?? undefined,
         description: event.description,
         startDate: event.startDate,
         endDate: event.endDate,
         requiresSubmission: event.requiresSubmission ?? false,
         maxPoints: event.maxPoints?.toString() || '0',
         penaltyPointsIncomplete: event.penaltyPointsIncomplete?.toString() || '0',
-        registrationStartDate: event.registrationStartDate,
-        registrationDeadline: event.registrationDeadline,
+        registrationStartDate: event.registrationStartDate ?? undefined,
+        registrationDeadline: event.registrationDeadline ?? undefined,
         shareLink: event.shareLink,
         isImportant: event.isImportant ?? false,
         isDraft: event.isDraft ?? false,

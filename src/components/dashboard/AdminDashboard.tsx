@@ -1,10 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { NotificationDropdown } from '../notification/NotificationDropdown';
 
 const AdminDashboard: React.FC = () => {
-    const { username, logout } = useAuth();
+    const { username } = useAuth();
 
     const stats = [
         { name: 'Tổng sinh viên', value: '1,234', icon: '👥', color: 'bg-blue-500' },
@@ -15,6 +14,8 @@ const AdminDashboard: React.FC = () => {
 
     const quickActions = [
         { name: 'Quản lý sự kiện', href: '/manager/events', icon: '📅', description: 'Tạo và quản lý các sự kiện hoạt động' },
+        { name: 'Chuỗi sự kiện', href: '/manager/series', icon: '📋', description: 'Tạo và quản lý chuỗi sự kiện' },
+        { name: 'Mini Game', href: '/manager/minigames', icon: '🎮', description: 'Tạo và quản lý quiz minigame' },
         { name: 'Quản lý lớp học', href: '/admin/classes', icon: '🏫', description: 'Quản lý lớp học và sinh viên' },
         { name: 'Quản lý năm học', href: '/admin/academic-years', icon: '📚', description: 'Quản lý năm học và học kỳ' },
         { name: 'Quản lý phòng ban', href: '/admin/departments', icon: '🏢', description: 'Quản lý khoa và phòng ban' },
@@ -23,31 +24,8 @@ const AdminDashboard: React.FC = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <div className="bg-white shadow">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center py-6">
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-                            <p className="mt-1 text-sm text-gray-500">
-                                Chào mừng, {username}! Quản lý hệ thống Campus Life
-                            </p>
-                        </div>
-                        <div className="flex items-center space-x-4">
-                            <NotificationDropdown />
-                            <button
-                                onClick={logout}
-                                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                            >
-                                Đăng xuất
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div>
+            <div className="max-w-7xl mx-auto">
                 {/* Stats */}
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
                     {stats.map((stat) => (
@@ -215,7 +193,7 @@ const AdminDashboard: React.FC = () => {
                         </div>
                     </div>
                 </div>
-            </main>
+            </div>
         </div>
     );
 };

@@ -197,44 +197,31 @@ const ManagerRegistrations: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <div className="bg-white shadow">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center py-6">
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900">Quản lý đăng ký sự kiện</h1>
-                            <p className="text-gray-600 mt-1">Duyệt và quản lý đăng ký sự kiện</p>
-                        </div>
-                        <Link to="/dashboard" className="px-4 py-2 text-gray-600 hover:text-gray-900">
-                            ← Quay lại Dashboard
-                        </Link>
-                    </div>
-                </div>
-            </div>
-
-
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div>
+            <div className="max-w-7xl mx-auto">
 
                 {/* Event Selection */}
-                <div className="bg-white rounded-lg shadow mb-6">
+                <div className="bg-white rounded-lg shadow-lg mb-6 border border-gray-100">
                     <div className="p-6">
-                        <h2 className="text-lg font-semibold text-gray-900 mb-4">Chọn sự kiện</h2>
+                        <h2 className="text-xl font-semibold text-[#001C44] mb-4 flex items-center">
+                            <span className="mr-2">📋</span>
+                            Chọn sự kiện
+                        </h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {events.map((event) => (
                                 <button
                                     key={event.id}
                                     onClick={() => setSelectedEventId(event.id)}
-                                    className={`p-4 text-left border rounded-lg transition-all ${selectedEventId === event.id
-                                        ? 'border-blue-500 bg-blue-50'
-                                        : 'border-gray-200 hover:border-gray-300'
+                                    className={`p-4 text-left border-2 rounded-lg transition-all ${selectedEventId === event.id
+                                        ? 'border-[#001C44] bg-[#001C44] bg-opacity-5 shadow-md'
+                                        : 'border-gray-200 hover:border-[#001C44] hover:shadow-sm'
                                         }`}
                                 >
-                                    <h3 className="font-medium text-gray-900">{event.name}</h3>
-                                    <p className="text-sm text-gray-500 mt-1">
-                                        {new Date(event.startDate).toLocaleDateString('vi-VN')} - {new Date(event.endDate).toLocaleDateString('vi-VN')}
+                                    <h3 className="font-semibold text-[#001C44] mb-2">{event.name}</h3>
+                                    <p className="text-sm text-gray-600 mt-1">
+                                        📅 {new Date(event.startDate).toLocaleDateString('vi-VN')} - {new Date(event.endDate).toLocaleDateString('vi-VN')}
                                     </p>
-                                    <p className="text-sm text-gray-500">{event.location}</p>
+                                    <p className="text-sm text-gray-600">📍 {event.location}</p>
                                 </button>
                             ))}
                         </div>
@@ -243,9 +230,12 @@ const ManagerRegistrations: React.FC = () => {
 
                 {/* Selected Event Info */}
                 {selectedEvent && (
-                    <div className="bg-white rounded-lg shadow mb-6">
+                    <div className="bg-white rounded-lg shadow-lg mb-6 border border-gray-100">
                         <div className="p-6">
-                            <h2 className="text-lg font-semibold text-gray-900 mb-4">Thông tin sự kiện đã chọn</h2>
+                            <h2 className="text-xl font-semibold text-[#001C44] mb-4 flex items-center">
+                                <span className="mr-2">ℹ️</span>
+                                Thông tin sự kiện đã chọn
+                            </h2>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                                 <div>
                                     <span className="font-medium text-gray-500">Tên sự kiện:</span>
@@ -267,9 +257,10 @@ const ManagerRegistrations: React.FC = () => {
                 )}
 
                 {/* Check-in Box */}
-                <div className="bg-white rounded-lg shadow mb-6">
+                <div className="bg-white rounded-lg shadow-lg mb-6 border border-gray-100">
                     <div className="p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                        <h3 className="text-xl font-semibold text-[#001C44] mb-4 flex items-center">
+                            <span className="mr-2">✅</span>
                             Check-in sinh viên
                         </h3>
 
@@ -287,12 +278,12 @@ const ManagerRegistrations: React.FC = () => {
                                         handleValidateTicketCode(ticketCode);
                                     }
                                 }}
-                                className="px-3 py-2 border rounded-md w-full md:w-1/3"
+                                className="px-4 py-2.5 border-2 border-gray-300 rounded-lg w-full md:w-1/3 focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all"
                             />
                             <button
                                 onClick={handleCheckIn}
                                 disabled={isValidating || !ticketCode.trim()}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                className="px-5 py-2.5 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66] disabled:bg-gray-400 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md font-medium"
                             >
                                 {isValidating ? "Đang kiểm tra..." : "Kiểm tra mã vé"}
                             </button>
@@ -304,9 +295,9 @@ const ManagerRegistrations: React.FC = () => {
                                         setValidatedInfo(null);
                                     }
                                 }}
-                                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                                className="px-5 py-2.5 bg-[#FFD66D] text-[#001C44] rounded-lg hover:bg-[#FFC947] transition-all shadow-sm hover:shadow-md font-medium"
                             >
-                                {showScanner ? "Đóng Camera" : "Quét QR Camera"}
+                                {showScanner ? "Đóng Camera" : "📷 Quét QR"}
                             </button>
                         </div>
 
@@ -321,8 +312,8 @@ const ManagerRegistrations: React.FC = () => {
                         )}
 
                         {validatedInfo && !showConfirmDialog && (
-                            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                                <h4 className="font-semibold text-blue-900 mb-3">Thông tin mã vé</h4>
+                            <div className="mt-4 p-5 bg-[#001C44] bg-opacity-5 border-2 border-[#001C44] border-opacity-20 rounded-lg">
+                                <h4 className="font-semibold text-[#001C44] mb-3 text-lg">Thông tin mã vé</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                                     <div>
                                         <span className="font-medium text-gray-600">Mã vé:</span>

@@ -3,10 +3,9 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { eventAPI } from '../../services/eventAPI';
 import { ActivityResponse } from '../../types/activity';
-import { NotificationDropdown } from '../notification/NotificationDropdown';
 
 const ManagerDashboard: React.FC = () => {
-    const { username, logout } = useAuth();
+    const { username } = useAuth();
     const [upcomingEvents, setUpcomingEvents] = useState<ActivityResponse[]>([]);
     const [loadingEvents, setLoadingEvents] = useState(true);
 
@@ -20,9 +19,10 @@ const ManagerDashboard: React.FC = () => {
     const quickActions = [
         { name: 'Tạo sự kiện mới', href: '/manager/events/create', icon: '➕', description: 'Tạo sự kiện hoạt động mới' },
         { name: 'Quản lý sự kiện', href: '/manager/events', icon: '📅', description: 'Xem và quản lý sự kiện' },
+        { name: 'Chuỗi sự kiện', href: '/manager/series', icon: '📋', description: 'Tạo và quản lý chuỗi sự kiện' },
+        { name: 'Mini Game', href: '/manager/minigames', icon: '🎮', description: 'Tạo và quản lý quiz minigame' },
         { name: 'Quản lý đăng ký', href: '/manager/registrations', icon: '📝', description: 'Duyệt đăng ký sự kiện' },
         { name: 'Điểm sinh viên', href: '/manager/scores', icon: '📊', description: 'Xem và sắp xếp theo điểm' },
-        { name: 'Báo cáo hoạt động', href: '/manager/reports', icon: '📈', description: 'Xem báo cáo thống kê' },
     ];
 
     // Load upcoming events
@@ -74,29 +74,8 @@ const ManagerDashboard: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <header className="bg-white shadow">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center py-6">
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900">Manager Dashboard</h1>
-                            <p className="text-gray-600">Chào mừng, {username}</p>
-                        </div>
-                        <div className="flex items-center space-x-4">
-                            <NotificationDropdown />
-                            <button
-                                onClick={logout}
-                                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                            >
-                                Đăng xuất
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </header>
-
-            <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div>
+            <div className="max-w-7xl mx-auto">
                 {/* Stats */}
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
                     {stats.map((stat) => (
@@ -258,7 +237,7 @@ const ManagerDashboard: React.FC = () => {
                         </div>
                     </div>
                 </div>
-            </main>
+            </div>
         </div>
     );
 };

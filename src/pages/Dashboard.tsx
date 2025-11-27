@@ -2,6 +2,7 @@ import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Role } from '../types';
 import { AdminDashboard, ManagerDashboard, StudentDashboard } from '../components/dashboard';
+import ManagerLayout from '../components/layout/ManagerLayout';
 
 const Dashboard: React.FC = () => {
     const { userRole, isAuthenticated, username } = useAuth();
@@ -10,9 +11,17 @@ const Dashboard: React.FC = () => {
 
         switch (userRole) {
             case Role.ADMIN:
-                return <AdminDashboard />;
+                return (
+                    <ManagerLayout>
+                        <AdminDashboard />
+                    </ManagerLayout>
+                );
             case Role.MANAGER:
-                return <ManagerDashboard />;
+                return (
+                    <ManagerLayout>
+                        <ManagerDashboard />
+                    </ManagerLayout>
+                );
             case Role.STUDENT:
                 return <StudentDashboard />;
             default:

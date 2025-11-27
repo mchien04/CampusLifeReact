@@ -152,45 +152,31 @@ const ManagerScores: React.FC = () => {
                 return 'Điểm công tác xã hội';
             case 'CHUYEN_DE':
                 return 'Điểm chuyên đề doanh nghiệp';
-            case 'KHAC':
-                return 'Điểm khác';
             default:
                 return type;
         }
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <div className="bg-white shadow">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="py-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h1 className="text-2xl font-bold text-gray-900">Xếp hạng điểm sinh viên</h1>
-                                <p className="text-sm text-gray-500">Xem, lọc và sắp xếp điểm theo học kỳ</p>
-                            </div>
-                            <Link
-                                to="/dashboard"
-                                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                            >
-                                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                                </svg>
-                                Về Dashboard
-                            </Link>
-                        </div>
-                    </div>
+        <div>
+            <div className="max-w-7xl mx-auto">
+                {/* Header */}
+                <div className="mb-6">
+                    <h1 className="text-3xl font-bold text-[#001C44] mb-2">Xếp hạng điểm sinh viên</h1>
+                    <p className="text-gray-600">Xem, lọc và sắp xếp điểm theo học kỳ</p>
                 </div>
-            </div>
 
-            <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
                 {/* Filters */}
-                <div className="bg-white shadow rounded-lg p-4 mb-4">
-                    <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+                <div className="bg-white shadow-lg rounded-lg p-6 mb-4 border border-gray-100">
+                    <h3 className="text-lg font-semibold text-[#001C44] mb-4 flex items-center">
+                        <span className="mr-2">🔍</span>
+                        Bộ lọc
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
                         <div>
-                            <label className="block text-sm text-gray-600 mb-1">Học kỳ *</label>
+                            <label className="block text-sm font-medium text-[#001C44] mb-2">Học kỳ *</label>
                             <select
-                                className="w-full border rounded-md px-3 py-2"
+                                className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all"
                                 value={semesterId || ''}
                                 onChange={(e) => setSemesterId(e.target.value ? Number(e.target.value) : null)}
                             >
@@ -203,9 +189,9 @@ const ManagerScores: React.FC = () => {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm text-gray-600 mb-1">Loại điểm</label>
+                            <label className="block text-sm font-medium text-[#001C44] mb-2">Loại điểm</label>
                             <select
-                                className="w-full border rounded-md px-3 py-2"
+                                className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all"
                                 value={scoreType || ''}
                                 onChange={(e) => setScoreType(e.target.value ? (e.target.value as ScoreType) : null)}
                             >
@@ -213,13 +199,12 @@ const ManagerScores: React.FC = () => {
                                 <option value="REN_LUYEN">Điểm rèn luyện</option>
                                 <option value="CONG_TAC_XA_HOI">Điểm công tác xã hội</option>
                                 <option value="CHUYEN_DE">Điểm chuyên đề doanh nghiệp</option>
-                                <option value="KHAC">Điểm khác</option>
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm text-gray-600 mb-1">Khoa</label>
+                            <label className="block text-sm font-medium text-[#001C44] mb-2">Khoa</label>
                             <select
-                                className="w-full border rounded-md px-3 py-2"
+                                className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all"
                                 value={departmentId || ''}
                                 onChange={(e) => setDepartmentId(e.target.value ? Number(e.target.value) : null)}
                             >
@@ -232,9 +217,9 @@ const ManagerScores: React.FC = () => {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm text-gray-600 mb-1">Lớp</label>
+                            <label className="block text-sm font-medium text-[#001C44] mb-2">Lớp</label>
                             <select
-                                className="w-full border rounded-md px-3 py-2"
+                                className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
                                 value={classId || ''}
                                 onChange={(e) => setClassId(e.target.value ? Number(e.target.value) : null)}
                                 disabled={!departmentId}
@@ -248,9 +233,9 @@ const ManagerScores: React.FC = () => {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm text-gray-600 mb-1">Sắp xếp</label>
+                            <label className="block text-sm font-medium text-[#001C44] mb-2">Sắp xếp</label>
                             <select
-                                className="w-full border rounded-md px-3 py-2"
+                                className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all"
                                 value={sortOrder}
                                 onChange={(e) => setSortOrder(e.target.value as "ASC" | "DESC")}
                             >
@@ -260,10 +245,10 @@ const ManagerScores: React.FC = () => {
                         </div>
                         <div className="flex items-end">
                             <button
-                                className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                                className="w-full px-4 py-2.5 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66] transition-all shadow-sm hover:shadow-md font-medium"
                                 onClick={loadRanking}
                             >
-                                Làm mới
+                                🔄 Làm mới
                             </button>
                         </div>
                     </div>
@@ -271,15 +256,15 @@ const ManagerScores: React.FC = () => {
 
                 {/* Metadata Info */}
                 {rankingMetadata.semesterName && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                    <div className="bg-[#FFD66D] bg-opacity-20 border-2 border-[#FFD66D] rounded-lg p-4 mb-4">
                         <div className="flex items-center justify-between">
                             <div>
-                                <h3 className="text-sm font-semibold text-blue-900">
-                                    {rankingMetadata.semesterName}
+                                <h3 className="text-base font-semibold text-[#001C44]">
+                                    📊 {rankingMetadata.semesterName}
                                 </h3>
-                                <p className="text-xs text-blue-700 mt-1">
-                                    Loại điểm: {getScoreTypeLabel(scoreType)} |
-                                    Tổng số sinh viên: {rankingMetadata.totalStudents || 0}
+                                <p className="text-sm text-[#001C44] mt-1">
+                                    Loại điểm: <span className="font-medium">{getScoreTypeLabel(scoreType)}</span> | 
+                                    Tổng số sinh viên: <span className="font-medium">{rankingMetadata.totalStudents || 0}</span>
                                 </p>
                             </div>
                         </div>
@@ -287,33 +272,33 @@ const ManagerScores: React.FC = () => {
                 )}
 
                 {/* Ranking Table */}
-                <div className="bg-white shadow rounded-lg overflow-hidden">
+                <div className="bg-white shadow-lg rounded-lg overflow-hidden border border-gray-100">
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
+                            <thead className="bg-[#001C44]">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
                                         Thứ hạng
                                     </th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
                                         MSSV
                                     </th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
                                         Họ tên
                                     </th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
                                         Lớp
                                     </th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
                                         Khoa
                                     </th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
                                         Học kỳ
                                     </th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
                                         Loại điểm
                                     </th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
                                         Điểm
                                     </th>
                                 </tr>
@@ -338,7 +323,7 @@ const ManagerScores: React.FC = () => {
                                     rankings.map((ranking) => (
                                         <tr key={`${ranking.studentId}-${ranking.scoreType || 'total'}`} className="hover:bg-gray-50">
                                             <td className="px-4 py-3 whitespace-nowrap">
-                                                <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-800 font-semibold text-sm">
+                                                <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-[#FFD66D] text-[#001C44] font-bold text-sm shadow-sm">
                                                     {ranking.rank}
                                                 </span>
                                             </td>
@@ -360,7 +345,7 @@ const ManagerScores: React.FC = () => {
                                             <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
                                                 {ranking.scoreTypeLabel}
                                             </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-blue-700">
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm font-bold text-[#001C44]">
                                                 {typeof ranking.score === 'number'
                                                     ? ranking.score.toFixed(2)
                                                     : ranking.score}
@@ -374,14 +359,14 @@ const ManagerScores: React.FC = () => {
 
                     {/* Footer with total count */}
                     {rankings.length > 0 && (
-                        <div className="bg-gray-50 px-4 py-3 border-t border-gray-200">
-                            <div className="text-sm text-gray-600">
-                                Tổng số sinh viên: <span className="font-semibold">{rankings.length}</span>
+                        <div className="bg-[#001C44] bg-opacity-5 px-4 py-3 border-t border-gray-200">
+                            <div className="text-sm text-[#001C44] font-medium">
+                                Tổng số sinh viên: <span className="font-bold text-lg">{rankings.length}</span>
                             </div>
                         </div>
                     )}
                 </div>
-            </main>
+            </div>
         </div>
     );
 };

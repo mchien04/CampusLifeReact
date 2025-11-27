@@ -10,6 +10,8 @@ export { notificationAPI } from './notificationAPI';
 export { studentAPI } from './studentAPI';
 export { submissionAPI } from './submissionAPI';
 export { scoresAPI } from './scoresAPI';
+export { seriesAPI } from './seriesAPI';
+export { minigameAPI } from './minigameAPI';
 export {
     departmentAPI as adminDepartmentAPI,
     academicYearAPI,

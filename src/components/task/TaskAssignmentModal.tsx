@@ -157,29 +157,32 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
     const allSelected = filteredStudents.length > 0 && filteredStudents.every(student => selectedStudents.includes(student.id));
 
     return (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-10 mx-auto p-5 border w-4/5 max-w-4xl shadow-lg rounded-md bg-white">
-                <div className="flex items-center justify-between mb-6">
-                    <div>
-                        <h3 className="text-lg font-medium text-gray-900">
-                            Phân công nhiệm vụ: {'title' in task ? task.title : task.name}
-                        </h3>
-                        <p className="text-sm text-gray-600">
-                            Sự kiện: {'activity' in task ? task.activity.name : 'Unknown Activity'}
-                        </p>
+        <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+            <div className="relative w-full max-w-4xl bg-white rounded-xl shadow-2xl border border-gray-200">
+                <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] px-6 py-4 rounded-t-xl">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h3 className="text-xl font-bold text-white">
+                                📋 Phân công nhiệm vụ: {'title' in task ? task.title : task.name}
+                            </h3>
+                            <p className="text-sm text-gray-200 mt-1">
+                                Sự kiện: {'activity' in task ? task.activity.name : 'Unknown Activity'}
+                            </p>
+                        </div>
+                        <button
+                            onClick={onClose}
+                            className="text-white hover:text-[#FFD66D] transition-colors"
+                        >
+                            <span className="sr-only">Đóng</span>
+                            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="text-gray-400 hover:text-gray-600"
-                    >
-                        <span className="sr-only">Đóng</span>
-                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
                 </div>
+                <div className="p-6">
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Assignment Details */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -191,7 +194,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                                 id="dueDate"
                                 value={dueDate}
                                 onChange={(e) => setDueDate(e.target.value)}
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                className="mt-1 block w-full px-3 py-2 border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all"
                             />
                         </div>
                         <div>
@@ -204,7 +207,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                                 value={note}
                                 onChange={(e) => setNote(e.target.value)}
                                 placeholder="Ghi chú thêm..."
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                className="mt-1 block w-full px-3 py-2 border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all"
                             />
                         </div>
                     </div>
@@ -230,7 +233,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                                     type="button"
                                     onClick={handleAutoAssignToRegistered}
                                     disabled={submitting}
-                                    className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
+                                    className="px-4 py-2 bg-[#FFD66D] text-[#001C44] text-sm font-medium rounded-lg hover:bg-[#FFC947] focus:outline-none focus:ring-2 focus:ring-[#FFD66D] disabled:opacity-50 transition-all shadow-sm hover:shadow-md"
                                 >
                                     {submitting ? 'Đang phân công...' : `Phân công cho tất cả (${registeredStudents.length})`}
                                 </button>
@@ -350,19 +353,20 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-[#001C44] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#001C44] transition-all"
                         >
                             Hủy
                         </button>
                         <button
                             type="submit"
                             disabled={submitting || selectedStudents.length === 0}
-                            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-5 py-2.5 text-sm font-medium text-white bg-[#001C44] border border-transparent rounded-lg hover:bg-[#002A66] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#001C44] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
                         >
                             {submitting ? 'Đang phân công...' : `Phân công cho ${selectedStudents.length} sinh viên`}
                         </button>
                     </div>
-                </form>
+                    </form>
+                </div>
             </div>
         </div>
     );

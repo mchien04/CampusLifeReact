@@ -70,19 +70,12 @@ const TaskForm: React.FC<TaskFormProps> = ({
     };
 
     return (
-        <div className="max-w-2xl mx-auto p-6">
-            <div className="bg-white shadow-lg rounded-lg">
-                <div className="px-6 py-4 border-b border-gray-200">
-                    <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
-                    <p className="text-gray-600 mt-1">
-                        Nhiệm vụ cho hoạt động: <span className="font-medium">{activityName}</span>
-                    </p>
-                </div>
-
-                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <div className="w-full">
+            <div className="bg-white rounded-lg">
+                <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Task Name */}
                     <div>
-                        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor="name" className="block text-sm font-semibold text-[#001C44] mb-2">
                             Tên nhiệm vụ *
                         </label>
                         <input
@@ -91,16 +84,16 @@ const TaskForm: React.FC<TaskFormProps> = ({
                             name="name"
                             value={formData.name}
                             onChange={handleChange}
-                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.name ? 'border-red-500' : 'border-gray-300'
+                            className={`w-full px-4 py-2.5 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all ${errors.name ? 'border-red-500' : 'border-gray-300'
                                 }`}
                             placeholder="Nhập tên nhiệm vụ"
                         />
-                        {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+                        {errors.name && <p className="text-red-500 text-sm mt-1 font-medium">{errors.name}</p>}
                     </div>
 
                     {/* Description */}
                     <div>
-                        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor="description" className="block text-sm font-semibold text-[#001C44] mb-2">
                             Mô tả nhiệm vụ
                         </label>
                         <textarea
@@ -109,46 +102,48 @@ const TaskForm: React.FC<TaskFormProps> = ({
                             value={formData.description}
                             onChange={handleChange}
                             rows={4}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all resize-none"
                             placeholder="Mô tả chi tiết về nhiệm vụ..."
                         />
                     </div>
 
                     {/* Deadline */}
                     <div>
-                        <label htmlFor="deadline" className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor="deadline" className="block text-sm font-semibold text-[#001C44] mb-2">
                             Hạn chót
                         </label>
                         <input
-                            type="date"
+                            type="datetime-local"
                             id="deadline"
                             name="deadline"
                             value={formData.deadline}
                             onChange={handleChange}
-                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.deadline ? 'border-red-500' : 'border-gray-300'
+                            className={`w-full px-4 py-2.5 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all ${errors.deadline ? 'border-red-500' : 'border-gray-300'
                                 }`}
                         />
-                        {errors.deadline && <p className="text-red-500 text-sm mt-1">{errors.deadline}</p>}
-                        <p className="text-xs text-gray-500 mt-1">
-                            Để trống nếu không có hạn chót cụ thể
+                        {errors.deadline && <p className="text-red-500 text-sm mt-1 font-medium">{errors.deadline}</p>}
+                        <p className="text-xs text-gray-600 mt-2 bg-gray-50 p-2 rounded border-l-4 border-[#FFD66D]">
+                            💡 Để trống nếu không có hạn chót cụ thể
                         </p>
                     </div>
 
                     {/* Submit Buttons */}
-                    <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-                        <button
-                            type="button"
-                            onClick={onCancel}
-                            className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            Hủy
-                        </button>
+                    <div className="flex justify-end space-x-3 pt-6 border-t-2 border-gray-200">
+                        {onCancel && (
+                            <button
+                                type="button"
+                                onClick={onCancel}
+                                className="px-6 py-2.5 border-2 border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 hover:border-[#001C44] focus:outline-none focus:ring-2 focus:ring-[#001C44] transition-all font-medium"
+                            >
+                                Hủy
+                            </button>
+                        )}
                         <button
                             type="submit"
                             disabled={loading}
-                            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-6 py-2.5 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66] focus:outline-none focus:ring-2 focus:ring-[#001C44] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md font-medium"
                         >
-                            {loading ? 'Đang xử lý...' : (initialData.name ? 'Cập nhật nhiệm vụ' : 'Tạo nhiệm vụ')}
+                            {loading ? 'Đang xử lý...' : (initialData?.name ? '💾 Cập nhật nhiệm vụ' : '✨ Tạo nhiệm vụ')}
                         </button>
                     </div>
                 </form>
