@@ -12,6 +12,7 @@ export { submissionAPI } from './submissionAPI';
 export { scoresAPI } from './scoresAPI';
 export { seriesAPI } from './seriesAPI';
 export { minigameAPI } from './minigameAPI';
+export { statisticsAPI } from './statisticsAPI';
 export {
     departmentAPI as adminDepartmentAPI,
     academicYearAPI,

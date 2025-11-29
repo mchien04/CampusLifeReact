@@ -1,24 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { MiniGame, MiniGameQuizQuestion, MiniGameQuizOption, AttemptStatus } from '../../types/minigame';
+import { MiniGame, QuestionWithoutAnswer } from '../../types/minigame';
 
 interface QuizPlayerProps {
     minigame: MiniGame;
+    questions: QuestionWithoutAnswer[]; // Questions from API (required, no fallback to minigame.quiz)
     attemptId: number;
     timeLimit?: number;
     startedAt: string;
-    onSubmit: (answers: Record<number, number>) => void;
+    onSubmit: (answers: Record<string, number>) => void; // Updated to use string keys
     onTimeUp?: () => void;
 }
 
 const QuizPlayer: React.FC<QuizPlayerProps> = ({
     minigame,
+    questions,
     attemptId,
     timeLimit,
     startedAt,
     onSubmit,
     onTimeUp
 }) => {
-    const questions = minigame.quiz?.questions || [];
+    // All hooks must be called before any conditional returns
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState<Record<number, number>>({});
     const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
@@ -49,9 +51,32 @@ const QuizPlayer: React.FC<QuizPlayerProps> = ({
         }
     }, [timeLimit, startedAt, onTimeUp]);
 
+    // Validate questions are provided (after all hooks)
+    if (!questions || questions.length === 0) {
+        return (
+            <div className="max-w-4xl mx-auto p-6">
+                <div className="card">
+                    <div className="p-6 text-center">
+                        <p className="text-red-600">Không có câu hỏi nào để hiển thị.</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     const currentQuestion = questions[currentQuestionIndex];
+    // Sort options by displayOrder if available, otherwise keep original order
     const sortedOptions = currentQuestion
-        ? [...currentQuestion.options].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
+        ? [...currentQuestion.options].sort((a, b) => {
+            // For QuestionWithoutAnswer, options don't have displayOrder, so just keep order
+            const aOrder: number = 'displayOrder' in a && typeof (a as any).displayOrder === 'number' 
+                ? ((a as any).displayOrder as number) 
+                : 0;
+            const bOrder: number = 'displayOrder' in b && typeof (b as any).displayOrder === 'number' 
+                ? ((b as any).displayOrder as number) 
+                : 0;
+            return aOrder - bOrder;
+        })
         : [];
 
     const handleAnswerSelect = (optionId: number) => {
@@ -83,7 +108,13 @@ const QuizPlayer: React.FC<QuizPlayerProps> = ({
 
         setIsSubmitting(true);
         try {
-            await onSubmit(answers);
+            // Convert answers from Record<number, number> to Record<string, number>
+            // API expects questionId as string
+            const answersForSubmit: Record<string, number> = {};
+            Object.entries(answers).forEach(([questionId, optionId]) => {
+                answersForSubmit[questionId.toString()] = optionId;
+            });
+            await onSubmit(answersForSubmit);
         } finally {
             setIsSubmitting(false);
         }

@@ -14,10 +14,14 @@ const SeriesActivityList: React.FC<SeriesActivityListProps> = ({
     onAddActivity,
     canManage = false
 }) => {
-    const activities = series.activities || [];
+    // Get activities and sort by seriesOrder (ascending)
+    // Activities in series have type, scoreType, maxPoints = null (values come from series)
+    const activities = (series.activities || [])
+        .sort((a, b) => (a.seriesOrder || 0) - (b.seriesOrder || 0));
 
     const getTypeLabel = (type: string | null) => {
-        if (!type) return 'N/A';
+        // Activities in series have type = null, so show "N/A" or "Sự kiện trong chuỗi"
+        if (!type) return 'Sự kiện trong chuỗi';
         const labels: Record<string, string> = {
             SUKIEN: 'Sự kiện',
             MINIGAME: 'Mini Game',
@@ -57,9 +61,7 @@ const SeriesActivityList: React.FC<SeriesActivityListProps> = ({
                 </div>
             ) : (
                 <div className="space-y-3">
-                    {activities
-                        .sort((a, b) => (a.seriesOrder || 0) - (b.seriesOrder || 0))
-                        .map((activity) => (
+                    {activities.map((activity) => (
                             <div
                                 key={activity.id}
                                 className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"

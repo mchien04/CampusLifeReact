@@ -117,6 +117,20 @@ const MinigameManagement: React.FC = () => {
                     <h1 className="text-3xl font-bold text-[#001C44]">Quản lý Mini Game</h1>
                     <p className="text-gray-600 mt-1">Quản lý các quiz và minigame</p>
                 </div>
+                <div className="flex space-x-3">
+                    <Link
+                        to="/manager/minigames/create"
+                        className="btn-primary px-4 py-2 rounded-lg text-sm font-medium"
+                    >
+                        + Tạo Mini Game mới
+                    </Link>
+                    <Link
+                        to="/manager/minigames/create-quiz"
+                        className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm font-medium"
+                    >
+                        Tạo Quiz từ Activity có sẵn
+                    </Link>
+                </div>
                 <Link
                     to="/manager/minigames/create"
                     className="btn-primary px-6 py-2 rounded-lg font-medium"

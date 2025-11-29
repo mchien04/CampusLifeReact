@@ -3,21 +3,54 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { eventAPI } from '../../services/eventAPI';
 import { registrationAPI } from '../../services/registrationAPI';
+import { statisticsAPI } from '../../services/statisticsAPI';
 import { ActivityResponse } from '../../types';
 import { RegistrationStatus } from '../../types/registration';
+import { DashboardStatisticsResponse } from '../../types/statistics';
 import StudentLayout from '../layout/StudentLayout';
+import { LoadingSpinner } from '../common';
 
 const StudentDashboard: React.FC = () => {
     const { username } = useAuth();
     const [upcomingEvents, setUpcomingEvents] = useState<ActivityResponse[]>([]);
     const [registrationStatuses, setRegistrationStatuses] = useState<Map<number, RegistrationStatus>>(new Map());
     const [loading, setLoading] = useState(true);
+    const [dashboardData, setDashboardData] = useState<DashboardStatisticsResponse | null>(null);
+    const [loadingStats, setLoadingStats] = useState(true);
 
-    const stats = [
-        { name: 'Điểm rèn luyện HK này', value: '85', icon: '⭐' },
-        { name: 'Sự kiện đã tham gia', value: '12', icon: '🎯' },
-        { name: 'Hoạt động chờ duyệt', value: '3', icon: '⏳' },
-        { name: 'Tin nhắn mới', value: '2', icon: '💬' },
+    useEffect(() => {
+        loadDashboardData();
+        loadUpcomingEvents();
+    }, []);
+
+    const loadDashboardData = async () => {
+        setLoadingStats(true);
+        try {
+            const response = await statisticsAPI.getDashboardStatistics();
+            if (response.status && response.data) {
+                setDashboardData(response.data);
+            }
+        } catch (err) {
+            console.error('Error loading dashboard data:', err);
+        } finally {
+            setLoadingStats(false);
+        }
+    };
+
+    const formatNumber = (num: number) => {
+        return new Intl.NumberFormat('vi-VN').format(num);
+    };
+
+    const stats = dashboardData ? [
+        { name: 'Sự kiện đã tham gia', value: formatNumber(dashboardData.monthlyParticipations), icon: '🎯' },
+        { name: 'Đăng ký tháng này', value: formatNumber(dashboardData.monthlyRegistrations), icon: '📝' },
+        { name: 'Tỷ lệ tham gia', value: (dashboardData.averageParticipationRate * 100).toFixed(1) + '%', icon: '📊' },
+        { name: 'Tổng hoạt động', value: formatNumber(dashboardData.totalActivities), icon: '📅' },
+    ] : [
+        { name: 'Sự kiện đã tham gia', value: '...', icon: '🎯' },
+        { name: 'Đăng ký tháng này', value: '...', icon: '📝' },
+        { name: 'Tỷ lệ tham gia', value: '...', icon: '📊' },
+        { name: 'Tổng hoạt động', value: '...', icon: '📅' },
     ];
 
     const quickActions = [

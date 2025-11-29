@@ -46,7 +46,21 @@ export const seriesAPI = {
         }
     },
 
-    // Get activities in series
+    /**
+     * Get activities in series
+     * 
+     * Endpoint: GET /api/series/{seriesId}/activities
+     * 
+     * Notes:
+     * - Activities are sorted by seriesOrder (ascending)
+     * - Only returns activities that are not deleted (isDeleted = false)
+     * - Activities in series have type, scoreType, maxPoints = null (values come from series)
+     * - Properties like registrationStartDate, registrationDeadline, requiresApproval, 
+     *   ticketQuantity are inherited from the series
+     * 
+     * @param seriesId - ID of the series
+     * @returns Response containing array of ActivityResponse, sorted by seriesOrder
+     */
     getSeriesActivities: async (seriesId: number): Promise<Response<ActivityResponse[]>> => {
         try {
             const response = await api.get(`/api/series/${seriesId}/activities`);
@@ -147,7 +161,21 @@ export const seriesAPI = {
         }
     },
 
-    // Get my series progress (Student)
+    /**
+     * Get my series progress (Student)
+     * Endpoint: GET /api/series/{seriesId}/progress/my
+     * 
+     * Response includes:
+     * - completedCount: Số sự kiện đã hoàn thành
+     * - totalActivities: Tổng số sự kiện trong series
+     * - completedActivityIds: Danh sách ID các sự kiện đã hoàn thành
+     * - pointsEarned: Tổng điểm milestone đã nhận
+     * - currentMilestone: Mốc hiện tại đã đạt
+     * - nextMilestoneCount: Số sự kiện cần để đạt mốc tiếp theo
+     * - nextMilestonePoints: Điểm sẽ nhận khi đạt mốc tiếp theo
+     * - milestonePoints: Map các mốc điểm
+     * - scoreType: Loại điểm (REN_LUYEN, etc.)
+     */
     getMySeriesProgress: async (seriesId: number): Promise<Response<StudentSeriesProgress>> => {
         try {
             const response = await api.get(`/api/series/${seriesId}/progress/my`);
@@ -167,6 +195,41 @@ export const seriesAPI = {
                 };
             }
             throw error;
+        }
+    },
+
+    /**
+     * Get student series progress (Admin/Manager)
+     * Endpoint: GET /api/series/{seriesId}/students/{studentId}/progress
+     * 
+     * Response includes the same fields as getMySeriesProgress
+     * 
+     * @param seriesId - ID of the series
+     * @param studentId - ID of the student
+     * @returns Response containing StudentSeriesProgress
+     */
+    getStudentSeriesProgress: async (seriesId: number, studentId: number): Promise<Response<StudentSeriesProgress>> => {
+        try {
+            const response = await api.get(`/api/series/${seriesId}/students/${studentId}/progress`);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Error fetching student series progress:', error);
+            if (error.response?.status === 404) {
+                return {
+                    status: false,
+                    message: 'Sinh viên chưa đăng ký chuỗi sự kiện này',
+                    data: undefined
+                };
+            }
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Không thể tải tiến độ của sinh viên',
+                data: undefined
+            };
         }
     },
 

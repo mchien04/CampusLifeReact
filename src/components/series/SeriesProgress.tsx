@@ -9,11 +9,23 @@ interface SeriesProgressProps {
 }
 
 const SeriesProgress: React.FC<SeriesProgressProps> = ({ series, progress }) => {
-    const totalActivities = series.activities?.length || series.totalActivities || 0;
+    // Use totalActivities from progress (API response) if available, otherwise from series
+    const totalActivities = progress?.totalActivities || series.activities?.length || series.totalActivities || 0;
     const completedCount = progress?.completedCount || 0;
-    const completedActivityIds = progress?.completedActivityIds
-        ? JSON.parse(progress.completedActivityIds)
-        : [];
+    
+    // Handle completedActivityIds - can be string (JSON) or array
+    let completedActivityIds: number[] = [];
+    if (progress?.completedActivityIds) {
+        if (typeof progress.completedActivityIds === 'string') {
+            try {
+                completedActivityIds = JSON.parse(progress.completedActivityIds);
+            } catch {
+                completedActivityIds = [];
+            }
+        } else if (Array.isArray(progress.completedActivityIds)) {
+            completedActivityIds = progress.completedActivityIds;
+        }
+    }
 
     return (
         <div className="card p-6">

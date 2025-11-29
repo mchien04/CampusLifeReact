@@ -6,6 +6,7 @@ import { studentAPI, departmentAPI, classAPI, uploadAPI, addressAPI } from '../s
 import { GENDER_OPTIONS, getGenderLabel } from '../types/student';
 import { Address, Province, Ward, CreateAddressRequest, UpdateAddressRequest } from '../types/address';
 import StudentLayout from '../components/layout/StudentLayout';
+import SearchableSelect from '../components/common/SearchableSelect';
 
 const StudentProfile: React.FC = () => {
     const [student, setStudent] = useState<StudentProfileResponse | null>(null);
@@ -166,12 +167,58 @@ const StudentProfile: React.FC = () => {
                 setAddressSuccess('Tạo địa chỉ thành công!');
             }
 
-            // Reload address data
+            // Reload address data and update form
             const addressData = await addressAPI.getMyAddress();
             setAddress(addressData);
-        } catch (error) {
+            
+            // Update form data with the new address
+            if (addressData) {
+                setAddressFormData({
+                    provinceCode: addressData.provinceCode,
+                    wardCode: addressData.wardCode,
+                    street: addressData.street || '',
+                    note: addressData.note || ''
+                });
+                // Reload wards for the province
+                if (addressData.provinceCode) {
+                    await loadWards(addressData.provinceCode);
+                }
+            }
+        } catch (error: any) {
             console.error('Error saving address:', error);
-            setAddressError('Có lỗi xảy ra khi lưu địa chỉ');
+            const errorMessage = error?.response?.data?.message || error?.message || 'Có lỗi xảy ra khi lưu địa chỉ';
+            setAddressError(errorMessage);
+        } finally {
+            setAddressSaving(false);
+        }
+    };
+
+    const handleDeleteAddress = async () => {
+        if (!address) return;
+        
+        if (!window.confirm('Bạn có chắc chắn muốn xóa địa chỉ này?')) {
+            return;
+        }
+
+        setAddressSaving(true);
+        setAddressError('');
+        setAddressSuccess('');
+
+        try {
+            await addressAPI.deleteMyAddress();
+            setAddress(null);
+            setAddressFormData({
+                provinceCode: 0,
+                wardCode: 0,
+                street: '',
+                note: ''
+            });
+            setWards([]);
+            setAddressSuccess('Xóa địa chỉ thành công!');
+        } catch (error: any) {
+            console.error('Error deleting address:', error);
+            const errorMessage = error?.response?.data?.message || error?.message || 'Có lỗi xảy ra khi xóa địa chỉ';
+            setAddressError(errorMessage);
         } finally {
             setAddressSaving(false);
         }
@@ -597,7 +644,19 @@ const StudentProfile: React.FC = () => {
 
                         {/* Address Management */}
                         <div className="border-t border-gray-200 pt-6">
-                            <h3 className="text-lg font-medium text-gray-900 mb-4">Địa chỉ</h3>
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-medium text-gray-900">Địa chỉ</h3>
+                                {address && (
+                                    <button
+                                        type="button"
+                                        onClick={handleDeleteAddress}
+                                        disabled={addressSaving}
+                                        className="text-sm text-red-600 hover:text-red-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Xóa địa chỉ
+                                    </button>
+                                )}
+                            </div>
 
                             {/* Current Address Display */}
                             {address && (
@@ -613,45 +672,46 @@ const StudentProfile: React.FC = () => {
 
                             {/* Address Form */}
                             <div className="space-y-4">
+                                {address && (
+                                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                                        <p className="text-sm text-blue-700">
+                                            <strong>Lưu ý:</strong> Bạn đã có địa chỉ. Bạn có thể chỉnh sửa hoặc xóa địa chỉ hiện tại.
+                                        </p>
+                                    </div>
+                                )}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label htmlFor="addressProvince" className="block text-sm font-medium text-gray-700">
-                                            Tỉnh/Thành phố *
-                                        </label>
-                                        <select
-                                            id="addressProvince"
-                                            value={addressFormData.provinceCode}
-                                            onChange={(e) => handleProvinceChange(Number(e.target.value))}
-                                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
-                                        >
-                                            <option value={0}>Chọn tỉnh/thành phố</option>
-                                            {provinces.map((province) => (
-                                                <option key={`province-${province.code}`} value={province.code}>
-                                                    {province.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
+                                    <SearchableSelect
+                                        id="addressProvince"
+                                        label="Tỉnh/Thành phố"
+                                        options={[
+                                            { value: 0, label: 'Chọn tỉnh/thành phố' },
+                                            ...provinces.map(province => ({
+                                                value: province.code,
+                                                label: province.name
+                                            }))
+                                        ]}
+                                        value={addressFormData.provinceCode}
+                                        onChange={(value) => handleProvinceChange(Number(value))}
+                                        placeholder="Tìm kiếm tỉnh/thành phố..."
+                                        required
+                                    />
 
-                                    <div>
-                                        <label htmlFor="addressWard" className="block text-sm font-medium text-gray-700">
-                                            Phường/Xã *
-                                        </label>
-                                        <select
-                                            id="addressWard"
-                                            value={addressFormData.wardCode}
-                                            onChange={(e) => setAddressFormData(prev => ({ ...prev, wardCode: Number(e.target.value) }))}
-                                            disabled={wards.length === 0}
-                                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors disabled:bg-gray-100"
-                                        >
-                                            <option value={0}>Chọn phường/xã</option>
-                                            {wards.map((ward) => (
-                                                <option key={`ward-${ward.code}`} value={ward.code}>
-                                                    {ward.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
+                                    <SearchableSelect
+                                        id="addressWard"
+                                        label="Phường/Xã"
+                                        options={[
+                                            { value: 0, label: 'Chọn phường/xã' },
+                                            ...wards.map(ward => ({
+                                                value: ward.code,
+                                                label: ward.name
+                                            }))
+                                        ]}
+                                        value={addressFormData.wardCode}
+                                        onChange={(value) => setAddressFormData(prev => ({ ...prev, wardCode: Number(value) }))}
+                                        placeholder="Tìm kiếm phường/xã..."
+                                        disabled={wards.length === 0}
+                                        required
+                                    />
                                 </div>
 
                                 <div>
@@ -695,7 +755,17 @@ const StudentProfile: React.FC = () => {
                                     </div>
                                 )}
 
-                                <div className="flex justify-end">
+                                <div className="flex justify-end gap-3">
+                                    {address && (
+                                        <button
+                                            type="button"
+                                            onClick={handleDeleteAddress}
+                                            disabled={addressSaving}
+                                            className="px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        >
+                                            {addressSaving ? 'Đang xử lý...' : 'Xóa địa chỉ'}
+                                        </button>
+                                    )}
                                     <button
                                         type="button"
                                         onClick={handleAddressSubmit}

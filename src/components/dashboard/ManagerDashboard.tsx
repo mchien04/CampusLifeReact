@@ -2,18 +2,51 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { eventAPI } from '../../services/eventAPI';
+import { statisticsAPI } from '../../services/statisticsAPI';
 import { ActivityResponse } from '../../types/activity';
+import { DashboardStatisticsResponse } from '../../types/statistics';
+import { LoadingSpinner } from '../common';
 
 const ManagerDashboard: React.FC = () => {
     const { username } = useAuth();
     const [upcomingEvents, setUpcomingEvents] = useState<ActivityResponse[]>([]);
     const [loadingEvents, setLoadingEvents] = useState(true);
+    const [dashboardData, setDashboardData] = useState<DashboardStatisticsResponse | null>(null);
+    const [loadingStats, setLoadingStats] = useState(true);
 
-    const stats = [
-        { name: 'Sự kiện đã tạo', value: '23', icon: '📅' },
-        { name: 'Sinh viên tham gia', value: '456', icon: '👥' },
-        { name: 'Điểm đã nhập', value: '89', icon: '📊' },
-        { name: 'Tin nhắn chờ', value: '5', icon: '💬' },
+    useEffect(() => {
+        loadDashboardData();
+        loadUpcomingEvents();
+    }, []);
+
+    const loadDashboardData = async () => {
+        setLoadingStats(true);
+        try {
+            const response = await statisticsAPI.getDashboardStatistics();
+            if (response.status && response.data) {
+                setDashboardData(response.data);
+            }
+        } catch (err) {
+            console.error('Error loading dashboard data:', err);
+        } finally {
+            setLoadingStats(false);
+        }
+    };
+
+    const formatNumber = (num: number) => {
+        return new Intl.NumberFormat('vi-VN').format(num);
+    };
+
+    const stats = dashboardData ? [
+        { name: 'Sự kiện đã tạo', value: formatNumber(dashboardData.totalActivities), icon: '📅' },
+        { name: 'Sinh viên tham gia', value: formatNumber(dashboardData.totalStudents), icon: '👥' },
+        { name: 'Đăng ký tháng này', value: formatNumber(dashboardData.monthlyRegistrations), icon: '📝' },
+        { name: 'Tham gia tháng này', value: formatNumber(dashboardData.monthlyParticipations), icon: '✅' },
+    ] : [
+        { name: 'Sự kiện đã tạo', value: '...', icon: '📅' },
+        { name: 'Sinh viên tham gia', value: '...', icon: '👥' },
+        { name: 'Đăng ký tháng này', value: '...', icon: '📝' },
+        { name: 'Tham gia tháng này', value: '...', icon: '✅' },
     ];
 
     const quickActions = [
@@ -25,29 +58,24 @@ const ManagerDashboard: React.FC = () => {
         { name: 'Điểm sinh viên', href: '/manager/scores', icon: '📊', description: 'Xem và sắp xếp theo điểm' },
     ];
 
-    // Load upcoming events
-    useEffect(() => {
-        const loadUpcomingEvents = async () => {
-            try {
-                setLoadingEvents(true);
-                const response = await eventAPI.getEvents();
-                if (response.status && response.data) {
-                    const now = new Date();
-                    const upcoming = response.data
-                        .filter(event => new Date(event.startDate) >= now)
-                        .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
-                        .slice(0, 3); // Show only first 3 upcoming events
-                    setUpcomingEvents(upcoming);
-                }
-            } catch (error) {
-                console.error('Error loading upcoming events:', error);
-            } finally {
-                setLoadingEvents(false);
+    const loadUpcomingEvents = async () => {
+        try {
+            setLoadingEvents(true);
+            const response = await eventAPI.getEvents();
+            if (response.status && response.data) {
+                const now = new Date();
+                const upcoming = response.data
+                    .filter(event => new Date(event.startDate) >= now)
+                    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+                    .slice(0, 3); // Show only first 3 upcoming events
+                setUpcomingEvents(upcoming);
             }
-        };
-
-        loadUpcomingEvents();
-    }, []);
+        } catch (error) {
+            console.error('Error loading upcoming events:', error);
+        } finally {
+            setLoadingEvents(false);
+        }
+    };
 
     const getEventStatus = (event: ActivityResponse) => {
         const now = new Date();

@@ -6,7 +6,7 @@ import { ActivityResponse } from '../../types/activity';
 interface QuizCardProps {
     minigame: MiniGame;
     activity?: ActivityResponse;
-    onStart?: (minigameId: number) => void;
+    onStart?: (activityId: number) => void; // Changed to activityId
     hasAttempts?: boolean;
 }
 
@@ -80,9 +80,12 @@ const QuizCard: React.FC<QuizCardProps> = ({ minigame, activity, onStart, hasAtt
 
                 {/* Action Buttons */}
                 <div className="flex flex-col space-y-2 mt-auto">
-                    {canStart() && onStart ? (
+                    {canStart() && onStart && activity ? (
                         <button
-                            onClick={() => onStart(minigame.id)}
+                            onClick={() => {
+                                console.log('QuizCard: Button clicked, activity.id:', activity.id);
+                                onStart(activity.id);
+                            }}
                             className="w-full btn-yellow px-4 py-2 rounded-lg text-sm font-medium"
                         >
                             Bắt đầu làm quiz

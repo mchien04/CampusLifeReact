@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { eventAPI } from '../../services/eventAPI';
 import { minigameAPI } from '../../services/minigameAPI';
 import { ActivityResponse, ActivityType } from '../../types/activity';
@@ -32,10 +32,15 @@ const CreateMinigame: React.FC = () => {
                 const activitiesWithoutMinigame: ActivityResponse[] = [];
                 for (const activity of minigameActivities) {
                     try {
-                        await minigameAPI.getMiniGameByActivity(activity.id);
-                        // If no error, it has a minigame, skip it
+                        const minigameResponse = await minigameAPI.getMiniGameByActivity(activity.id);
+                        // If status is true and has data, it has a minigame, skip it
+                        if (!minigameResponse.status || !minigameResponse.data) {
+                            // No minigame, add to list
+                            activitiesWithoutMinigame.push(activity);
+                        }
+                        // If status is true and has data, skip (already has minigame)
                     } catch {
-                        // No minigame, add to list
+                        // Error occurred, assume no minigame, add to list
                         activitiesWithoutMinigame.push(activity);
                     }
                 }
@@ -115,14 +120,22 @@ const CreateMinigame: React.FC = () => {
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-3xl font-bold text-[#001C44]">Tạo Mini Game</h1>
-                        <p className="text-gray-600 mt-1">Chọn activity để tạo quiz</p>
+                        <p className="text-gray-600 mt-1">Chọn activity để tạo quiz hoặc tạo mới hoàn toàn</p>
                     </div>
-                    <button
-                        onClick={handleCancel}
-                        className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-                    >
-                        Quay lại
-                    </button>
+                    <div className="flex space-x-3">
+                        <Link
+                            to="/manager/minigames/create"
+                            className="px-4 py-2 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66] transition-colors"
+                        >
+                            Tạo mới hoàn toàn
+                        </Link>
+                        <button
+                            onClick={handleCancel}
+                            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                            Quay lại
+                        </button>
+                    </div>
                 </div>
 
                 <div className="card p-6">
