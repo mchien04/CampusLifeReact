@@ -14,6 +14,7 @@ interface BaseEventFormProps {
     title?: string;
     onCancel?: () => void;
     renderFields?: (props: RenderFieldsProps) => React.ReactNode;
+    inline?: boolean; // If true, render without wrapper (for modals)
 }
 
 export interface RenderFieldsProps {
@@ -34,7 +35,8 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
     initialData = {},
     title = "Tạo sự kiện mới",
     onCancel,
-    renderFields
+    renderFields,
+    inline = false
 }) => {
     const [formData, setFormData] = useState<CreateActivityRequest>(() => {
         const defaultData: CreateActivityRequest = {
@@ -113,20 +115,24 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
             newErrors.name = 'Tên sự kiện là bắt buộc';
         }
 
-        if (!formData.startDate) {
-            newErrors.startDate = 'Ngày bắt đầu là bắt buộc';
+        // For series mode, startDate, endDate, and location are optional
+        if (mode !== 'series') {
+            if (!formData.startDate) {
+                newErrors.startDate = 'Ngày bắt đầu là bắt buộc';
+            }
+
+            if (!formData.endDate) {
+                newErrors.endDate = 'Ngày kết thúc là bắt buộc';
+            }
+
+            if (!formData.location.trim()) {
+                newErrors.location = 'Địa điểm là bắt buộc';
+            }
         }
 
-        if (!formData.endDate) {
-            newErrors.endDate = 'Ngày kết thúc là bắt buộc';
-        }
-
+        // Validate date logic if both dates are provided
         if (formData.startDate && formData.endDate && new Date(formData.startDate) >= new Date(formData.endDate)) {
             newErrors.endDate = 'Ngày kết thúc phải sau ngày bắt đầu';
-        }
-
-        if (!formData.location.trim()) {
-            newErrors.location = 'Địa điểm là bắt buộc';
         }
 
         // Only validate maxPoints for normal mode and if requiresSubmission
@@ -254,37 +260,46 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
         mode
     };
 
+    const formContent = (
+        <form onSubmit={handleSubmit} className={inline ? "space-y-6" : "p-6 space-y-6"}>
+            {renderFields ? renderFields(renderFieldsProps) : null}
+
+            {/* Submit Button */}
+            <div className={`flex justify-end space-x-4 ${inline ? 'pt-6 border-t border-gray-200' : 'pt-6 border-t border-gray-200'}`}>
+                {onCancel && (
+                    <button
+                        type="button"
+                        onClick={onCancel}
+                        className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#001C44]"
+                    >
+                        Hủy
+                    </button>
+                )}
+                <button
+                    type="submit"
+                    disabled={loading || isUploading}
+                    className="px-6 py-2 bg-[#001C44] text-white rounded-md hover:bg-[#002A66] focus:outline-none focus:ring-2 focus:ring-[#001C44] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    {isUploading ? 'Đang upload ảnh...' : loading ? 'Đang tạo...' : 'Tạo sự kiện'}
+                </button>
+            </div>
+        </form>
+    );
+
+    if (inline) {
+        return formContent;
+    }
+
     return (
         <div className="max-w-4xl mx-auto p-6">
             <div className="bg-white shadow-lg rounded-lg">
-                <div className="px-6 py-4 border-b border-gray-200">
-                    <h2 className="text-2xl font-bold text-[#001C44]">{title}</h2>
-                    <p className="text-gray-600 mt-1">Điền thông tin chi tiết về sự kiện</p>
-                </div>
-
-                <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                    {renderFields ? renderFields(renderFieldsProps) : null}
-
-                    {/* Submit Button */}
-                    <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-                        {onCancel && (
-                            <button
-                                type="button"
-                                onClick={onCancel}
-                                className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#001C44]"
-                            >
-                                Hủy
-                            </button>
-                        )}
-                        <button
-                            type="submit"
-                            disabled={loading || isUploading}
-                            className="px-6 py-2 bg-[#001C44] text-white rounded-md hover:bg-[#002A66] focus:outline-none focus:ring-2 focus:ring-[#001C44] disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {isUploading ? 'Đang upload ảnh...' : loading ? 'Đang tạo...' : 'Tạo sự kiện'}
-                        </button>
+                {title && (
+                    <div className="px-6 py-4 border-b border-gray-200">
+                        <h2 className="text-2xl font-bold text-[#001C44]">{title}</h2>
+                        <p className="text-gray-600 mt-1">Điền thông tin chi tiết về sự kiện</p>
                     </div>
-                </form>
+                )}
+                {formContent}
             </div>
         </div>
     );

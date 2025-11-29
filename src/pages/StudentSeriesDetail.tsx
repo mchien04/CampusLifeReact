@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { seriesAPI } from '../services/seriesAPI';
 import { SeriesResponse, StudentSeriesProgress } from '../types/series';
+import { ActivityResponse } from '../types/activity';
 import { LoadingSpinner } from '../components/common';
 import { SeriesProgress, MilestoneDisplay } from '../components/series';
 import { SeriesActivityList } from '../components/series';
@@ -13,6 +14,7 @@ const StudentSeriesDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [series, setSeries] = useState<SeriesResponse | null>(null);
+    const [activities, setActivities] = useState<ActivityResponse[]>([]);
     const [progress, setProgress] = useState<StudentSeriesProgress | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -29,12 +31,26 @@ const StudentSeriesDetail: React.FC = () => {
 
         try {
             setLoading(true);
-            const seriesResponse = await seriesAPI.getSeriesById(parseInt(id));
+            const seriesId = parseInt(id);
+            
+            // Load series info and activities in parallel
+            const [seriesResponse, activitiesResponse] = await Promise.all([
+                seriesAPI.getSeriesById(seriesId),
+                seriesAPI.getSeriesActivities(seriesId)
+            ]);
+
             if (seriesResponse.status && seriesResponse.data) {
                 setSeries(seriesResponse.data);
                 await loadProgress(seriesResponse.data.id);
             } else {
                 setError(seriesResponse.message || 'Không thể tải thông tin chuỗi sự kiện');
+            }
+
+            if (activitiesResponse.status && activitiesResponse.data) {
+                setActivities(activitiesResponse.data);
+            } else {
+                console.warn('Could not load activities:', activitiesResponse.message);
+                setActivities([]);
             }
         } catch (err) {
             setError('Có lỗi xảy ra khi tải thông tin chuỗi sự kiện');
@@ -155,7 +171,7 @@ const StudentSeriesDetail: React.FC = () => {
                                 <div className="flex items-center">
                                     <span className="w-4 h-4 mr-2">📋</span>
                                     <span className="text-gray-600">
-                                        {series.activities?.length || series.totalActivities || 0} sự kiện trong chuỗi
+                                        {activities.length || series.totalActivities || 0} sự kiện trong chuỗi
                                     </span>
                                 </div>
                                 <div className="flex items-center">
@@ -192,7 +208,13 @@ const StudentSeriesDetail: React.FC = () => {
                         </div>
 
                         {/* Activities List */}
-                        <SeriesActivityList series={series} canManage={false} />
+                        <SeriesActivityList 
+                            series={{
+                                ...series,
+                                activities: activities
+                            }} 
+                            canManage={false} 
+                        />
                     </div>
 
                     {/* Sidebar */}
@@ -205,10 +227,13 @@ const StudentSeriesDetail: React.FC = () => {
                         {/* Milestone Display */}
                         {isRegistered && progress && (
                             <MilestoneDisplay
-                                milestonePoints={series.milestonePoints}
-                                scoreType={series.scoreType}
+                                milestonePoints={progress.milestonePoints || series.milestonePoints}
+                                scoreType={progress.scoreType || series.scoreType}
                                 completedCount={progress.completedCount}
                                 currentPoints={progress.pointsEarned}
+                                currentMilestone={progress.currentMilestone}
+                                nextMilestoneCount={progress.nextMilestoneCount}
+                                nextMilestonePoints={progress.nextMilestonePoints}
                             />
                         )}
 

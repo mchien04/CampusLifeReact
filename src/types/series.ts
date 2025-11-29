@@ -17,13 +17,20 @@ export interface ActivitySeries {
 }
 
 export interface StudentSeriesProgress {
-    id: number;
-    studentId: number;
-    seriesId: number;
-    completedActivityIds: string; // JSON array: [1,3,5]
+    id?: number;
+    studentId?: number;
+    seriesId?: number;
+    completedActivityIds?: string | number[]; // JSON array: [1,3,5] or array
     completedCount: number;
+    totalActivities?: number;
     pointsEarned: string; // BigDecimal as string
-    lastUpdated: string;
+    lastUpdated?: string;
+    // New fields from API response
+    currentMilestone?: number; // Mốc hiện tại đã đạt
+    nextMilestoneCount?: number; // Số sự kiện cần để đạt mốc tiếp theo
+    nextMilestonePoints?: string; // Điểm sẽ nhận khi đạt mốc tiếp theo
+    milestonePoints?: string | Record<number, number>; // Map các mốc điểm (JSON string or object)
+    scoreType?: ScoreType; // Loại điểm (REN_LUYEN, etc.)
 }
 
 export interface CreateSeriesRequest {
@@ -39,12 +46,18 @@ export interface CreateSeriesRequest {
 }
 
 export interface CreateActivityInSeriesRequest {
-    name: string;
+    name: string; // bắt buộc
     description?: string;
-    startDate: string;
-    endDate: string;
-    location: string;
-    order: number;
+    startDate?: string;
+    endDate?: string;
+    location?: string;
+    order?: number;
+    shareLink?: string;
+    bannerUrl?: string;
+    benefits?: string;
+    requirements?: string;
+    contactInfo?: string;
+    organizerIds?: number[]; // Danh sách ID các khoa/ban tổ chức
 }
 
 export interface AddActivityToSeriesRequest {

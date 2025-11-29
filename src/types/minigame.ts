@@ -39,18 +39,19 @@ export interface MiniGame {
     activityId: number;
     requiredCorrectAnswers?: number;
     rewardPoints?: string; // BigDecimal as string
-    quiz?: MiniGameQuiz;
+    // Note: quiz is no longer included in MiniGameResponse from backend
+    // Use getQuestions API to fetch questions separately
 }
 
+// Matches MiniGameAttemptResponse from backend
 export interface MiniGameAttempt {
     id: number;
-    miniGameId: number;
-    studentId: number;
+    status: string; // Changed from AttemptStatus enum to string to match backend
     correctCount: number;
-    status: AttemptStatus;
+    totalQuestions: number;
+    pointsEarned?: string; // BigDecimal as string
     startedAt: string;
     submittedAt?: string;
-    answers?: MiniGameAnswer[];
 }
 
 export interface MiniGameAnswer {
@@ -81,22 +82,100 @@ export interface CreateOptionRequest {
     isCorrect: boolean;
 }
 
+// UpdateMiniGameRequest - matches backend DTO
+export interface UpdateMiniGameRequest {
+    title?: string;
+    description?: string;
+    questionCount?: number;
+    timeLimit?: number;
+    requiredCorrectAnswers?: number;
+    rewardPoints?: string;
+    questions?: CreateQuestionRequest[];
+}
+
 export interface StartAttemptResponse {
-    attemptId: number;
+    id: number;
+    miniGameId: number;
+    studentId: number;
+    status: string; // Changed to string to match backend
     startedAt: string;
     timeLimit?: number;
+    // Legacy field for backward compatibility
+    attemptId?: number;
 }
 
 export interface SubmitAttemptRequest {
-    answers: Record<number, number>; // questionId -> optionId
+    answers: Record<string, number>; // questionId (string) -> optionId (number)
 }
 
 export interface SubmitAttemptResponse {
-    attemptId: number;
+    id: number;
+    status: string; // Changed to string to match backend
     correctCount: number;
     totalQuestions: number;
-    status: AttemptStatus;
+    requiredCorrectAnswers?: number; // Shown when FAILED
     pointsEarned?: string;
-    passed: boolean;
+    participation?: {
+        id: number;
+        pointsEarned: string;
+        isCompleted: boolean;
+        participationType: string;
+    }; // Present when PASSED
+    // Legacy field for backward compatibility
+    attemptId?: number;
+    passed?: boolean; // Can be derived from status === 'PASSED'
+}
+
+// Types for Questions API (without correct answers)
+export interface OptionWithoutAnswer {
+    id: number;
+    text: string;
+}
+
+export interface QuestionWithoutAnswer {
+    id: number;
+    questionText: string;
+    displayOrder: number;
+    options: OptionWithoutAnswer[];
+}
+
+export interface QuestionsResponse {
+    miniGameId: number;
+    title: string;
+    description?: string;
+    questionCount: number;
+    timeLimit?: number;
+    questions: QuestionWithoutAnswer[];
+}
+
+// Types for Attempt Detail API (with correct answers)
+export interface OptionWithAnswer {
+    id: number;
+    text: string;
+    isCorrect: boolean;
+    isSelected: boolean;
+}
+
+export interface QuestionWithAnswer {
+    id: number;
+    questionText: string;
+    displayOrder: number;
+    options: OptionWithAnswer[];
+    correctOptionId: number;
+    selectedOptionId?: number;
+    isCorrect: boolean;
+}
+
+// AttemptDetailResponse - matches backend DTO exactly
+export interface AttemptDetailResponse {
+    id: number;
+    status: string;
+    correctCount: number;
+    totalQuestions: number;
+    pointsEarned?: string;
+    startedAt: string;
+    submittedAt?: string;
+    requiredCorrectAnswers?: number;
+    questions: QuestionWithAnswer[];
 }
 

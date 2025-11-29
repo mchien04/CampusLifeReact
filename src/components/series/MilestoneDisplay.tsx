@@ -3,19 +3,33 @@ import { parseMilestonePoints } from '../../types/series';
 import { ScoreType } from '../../types/activity';
 
 interface MilestoneDisplayProps {
-    milestonePoints: string;
+    milestonePoints: string | Record<number, number>;
     scoreType: ScoreType;
     completedCount: number;
     currentPoints?: string;
+    // Optional fields from API response
+    currentMilestone?: number;
+    nextMilestoneCount?: number;
+    nextMilestonePoints?: string;
 }
 
 const MilestoneDisplay: React.FC<MilestoneDisplayProps> = ({
     milestonePoints,
     scoreType,
     completedCount,
-    currentPoints
+    currentPoints,
+    currentMilestone: apiCurrentMilestone,
+    nextMilestoneCount: apiNextMilestoneCount,
+    nextMilestonePoints: apiNextMilestonePoints
 }) => {
-    const milestones = parseMilestonePoints(milestonePoints);
+    // Parse milestonePoints - can be string or object
+    let milestones: Record<number, number>;
+    if (typeof milestonePoints === 'string') {
+        milestones = parseMilestonePoints(milestonePoints);
+    } else {
+        milestones = milestonePoints;
+    }
+    
     const milestoneEntries = Object.entries(milestones)
         .map(([count, points]) => ({ count: parseInt(count), points: points as number }))
         .sort((a, b) => a.count - b.count);
@@ -29,11 +43,18 @@ const MilestoneDisplay: React.FC<MilestoneDisplayProps> = ({
         return labels[type] || type;
     };
 
+    // Use API values if available, otherwise calculate
     const getNextMilestone = () => {
+        if (apiNextMilestoneCount !== undefined) {
+            return milestoneEntries.find(m => m.count === apiNextMilestoneCount);
+        }
         return milestoneEntries.find(m => m.count > completedCount);
     };
 
     const getCurrentMilestone = () => {
+        if (apiCurrentMilestone !== undefined) {
+            return milestoneEntries.find(m => m.count === apiCurrentMilestone);
+        }
         return milestoneEntries
             .filter(m => m.count <= completedCount)
             .sort((a, b) => b.count - a.count)[0];

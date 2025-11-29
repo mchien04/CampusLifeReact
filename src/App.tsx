@@ -11,12 +11,14 @@ import StudentSeries from './pages/StudentSeries';
 import StudentSeriesDetail from './pages/StudentSeriesDetail';
 import StudentMinigame from './pages/StudentMinigame';
 import StudentMinigamePlay from './pages/StudentMinigamePlay';
+import StudentMinigameHistory from './pages/StudentMinigameHistory';
 import SeriesManagement from './pages/admin/SeriesManagement';
 import CreateSeries from './pages/admin/CreateSeries';
 import EditSeries from './pages/admin/EditSeries';
 import SeriesDetail from './pages/admin/SeriesDetail';
 import MinigameManagement from './pages/admin/MinigameManagement';
 import CreateMinigame from './pages/admin/CreateMinigame';
+import CreateMinigameWizard from './pages/admin/CreateMinigameWizard';
 import AcademicYears from './pages/admin/AcademicYears';
 import Departments from './pages/admin/Departments';
 import Students from './pages/admin/Students';
@@ -256,6 +258,14 @@ function App() {
                 }
               />
               <Route
+                path="/student/minigames/:activityId/history"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
+                    <StudentMinigameHistory />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/student/registrations"
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
@@ -380,6 +390,16 @@ function App() {
               />
               <Route
                 path="/manager/minigames/create"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <ManagerLayout>
+                      <CreateMinigameWizard />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/minigames/create-quiz"
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
                     <ManagerLayout>

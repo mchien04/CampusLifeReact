@@ -1,25 +1,25 @@
 import React from 'react';
-import { MiniGameAttempt, AttemptStatus } from '../../types/minigame';
+import { MiniGameAttempt } from '../../types/minigame';
 
 interface AttemptHistoryProps {
     attempts: MiniGameAttempt[];
 }
 
 const AttemptHistory: React.FC<AttemptHistoryProps> = ({ attempts }) => {
-    const getStatusLabel = (status: AttemptStatus) => {
-        const labels: Record<AttemptStatus, string> = {
-            [AttemptStatus.IN_PROGRESS]: 'Đang làm',
-            [AttemptStatus.PASSED]: 'Đạt',
-            [AttemptStatus.FAILED]: 'Không đạt'
+    const getStatusLabel = (status: string) => {
+        const labels: Record<string, string> = {
+            'IN_PROGRESS': 'Đang làm',
+            'PASSED': 'Đạt',
+            'FAILED': 'Không đạt'
         };
         return labels[status] || status;
     };
 
-    const getStatusColor = (status: AttemptStatus) => {
-        const colors: Record<AttemptStatus, string> = {
-            [AttemptStatus.IN_PROGRESS]: 'bg-yellow-100 text-yellow-800',
-            [AttemptStatus.PASSED]: 'bg-green-100 text-green-800',
-            [AttemptStatus.FAILED]: 'bg-red-100 text-red-800'
+    const getStatusColor = (status: string) => {
+        const colors: Record<string, string> = {
+            'IN_PROGRESS': 'bg-yellow-100 text-yellow-800',
+            'PASSED': 'bg-green-100 text-green-800',
+            'FAILED': 'bg-red-100 text-red-800'
         };
         return colors[status] || 'bg-gray-100 text-gray-800';
     };

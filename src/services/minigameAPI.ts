@@ -3,10 +3,13 @@ import { Response } from '../types/auth';
 import {
     MiniGame,
     CreateMiniGameRequest,
+    UpdateMiniGameRequest,
     StartAttemptResponse,
     SubmitAttemptRequest,
     SubmitAttemptResponse,
-    MiniGameAttempt
+    MiniGameAttempt,
+    QuestionsResponse,
+    AttemptDetailResponse
 } from '../types/minigame';
 
 export const minigameAPI = {
@@ -32,14 +35,23 @@ export const minigameAPI = {
     // Get minigame by activity ID
     getMiniGameByActivity: async (activityId: number): Promise<Response<MiniGame>> => {
         try {
+            console.log('minigameAPI.getMiniGameByActivity: Calling GET /api/minigames/activity/' + activityId);
             const response = await api.get(`/api/minigames/activity/${activityId}`);
-            return {
+            console.log('minigameAPI.getMiniGameByActivity: Raw response:', response.data);
+
+            const result = {
                 status: response.data.status,
                 message: response.data.message,
                 data: response.data.body || response.data.data
             };
+
+            console.log('minigameAPI.getMiniGameByActivity: Processed response:', result);
+            console.log('minigameAPI.getMiniGameByActivity: Minigame data:', result.data);
+
+            return result;
         } catch (error: any) {
-            console.error('Error fetching minigame:', error);
+            console.error('minigameAPI.getMiniGameByActivity: Error', error);
+            console.error('minigameAPI.getMiniGameByActivity: Error response:', error.response?.data);
             if (error.response?.status === 404) {
                 return {
                     status: false,
@@ -54,14 +66,16 @@ export const minigameAPI = {
     // Start attempt (Student)
     startAttempt: async (miniGameId: number): Promise<Response<StartAttemptResponse>> => {
         try {
+            console.log('minigameAPI.startAttempt: Calling POST /api/minigames/' + miniGameId + '/start');
             const response = await api.post(`/api/minigames/${miniGameId}/start`);
+            console.log('minigameAPI.startAttempt: Response received', response.data);
             return {
                 status: response.data.status,
                 message: response.data.message,
                 data: response.data.body || response.data.data
             };
         } catch (error: any) {
-            console.error('Error starting attempt:', error);
+            console.error('minigameAPI.startAttempt: Error', error);
             return {
                 status: false,
                 message: error.response?.data?.message || 'Có lỗi xảy ra khi bắt đầu làm quiz',
@@ -76,14 +90,17 @@ export const minigameAPI = {
         data: SubmitAttemptRequest
     ): Promise<Response<SubmitAttemptResponse>> => {
         try {
+            console.log('minigameAPI.submitAttempt: Calling POST /api/minigames/attempts/' + attemptId + '/submit');
+            console.log('minigameAPI.submitAttempt: Request data:', data);
             const response = await api.post(`/api/minigames/attempts/${attemptId}/submit`, data);
+            console.log('minigameAPI.submitAttempt: Response received', response.data);
             return {
                 status: response.data.status,
                 message: response.data.message,
                 data: response.data.body || response.data.data
             };
         } catch (error: any) {
-            console.error('Error submitting attempt:', error);
+            console.error('minigameAPI.submitAttempt: Error', error);
             return {
                 status: false,
                 message: error.response?.data?.message || 'Có lỗi xảy ra khi nộp bài quiz',
@@ -131,7 +148,7 @@ export const minigameAPI = {
     },
 
     // Update minigame
-    updateMiniGame: async (id: number, data: Partial<CreateMiniGameRequest>): Promise<Response<MiniGame>> => {
+    updateMiniGame: async (id: number, data: UpdateMiniGameRequest): Promise<Response<MiniGame>> => {
         try {
             const response = await api.put(`/api/minigames/${id}`, data);
             return {
@@ -163,6 +180,67 @@ export const minigameAPI = {
             return {
                 status: false,
                 message: error.response?.data?.message || 'Có lỗi xảy ra khi xóa minigame',
+                data: undefined
+            };
+        }
+    },
+
+    // Get questions for quiz (without correct answers)
+    getQuestions: async (miniGameId: number): Promise<Response<QuestionsResponse>> => {
+        try {
+            console.log('minigameAPI.getQuestions: Calling GET /api/minigames/' + miniGameId + '/questions');
+            const response = await api.get(`/api/minigames/${miniGameId}/questions`);
+            console.log('minigameAPI.getQuestions: Response received', response.data);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('minigameAPI.getQuestions: Error', error);
+            if (error.response?.status === 404) {
+                return {
+                    status: false,
+                    message: 'Không tìm thấy câu hỏi cho minigame này',
+                    data: undefined
+                };
+            }
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Có lỗi xảy ra khi tải câu hỏi',
+                data: undefined
+            };
+        }
+    },
+
+    // Get attempt detail (with correct answers)
+    getAttemptDetail: async (attemptId: number): Promise<Response<AttemptDetailResponse>> => {
+        try {
+            const response = await api.get(`/api/minigames/attempts/${attemptId}`);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Error fetching attempt detail:', error);
+            if (error.response?.status === 404) {
+                return {
+                    status: false,
+                    message: 'Không tìm thấy attempt này',
+                    data: undefined
+                };
+            }
+            if (error.response?.status === 403) {
+                return {
+                    status: false,
+                    message: 'Bạn không có quyền xem attempt này',
+                    data: undefined
+                };
+            }
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Có lỗi xảy ra khi tải chi tiết attempt',
                 data: undefined
             };
         }

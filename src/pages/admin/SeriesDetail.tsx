@@ -14,17 +14,11 @@ const SeriesDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [series, setSeries] = useState<SeriesResponse | null>(null);
+    const [activities, setActivities] = useState<ActivityResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showAddActivityModal, setShowAddActivityModal] = useState(false);
-    const [newActivityData, setNewActivityData] = useState<CreateActivityInSeriesRequest>({
-        name: '',
-        description: '',
-        startDate: '',
-        endDate: '',
-        location: '',
-        order: 1
-    });
+    const [isCreating, setIsCreating] = useState(false);
 
     useEffect(() => {
         if (id) {
@@ -37,18 +31,25 @@ const SeriesDetail: React.FC = () => {
 
         try {
             setLoading(true);
-            const response = await seriesAPI.getSeriesById(parseInt(id));
-            if (response.status && response.data) {
-                setSeries(response.data);
-                if (response.data.activities) {
-                    const maxOrder = Math.max(
-                        ...response.data.activities.map(a => a.seriesOrder || 0),
-                        0
-                    );
-                    setNewActivityData(prev => ({ ...prev, order: maxOrder + 1 }));
-                }
+            const seriesId = parseInt(id);
+            
+            // Load series info and activities in parallel
+            const [seriesResponse, activitiesResponse] = await Promise.all([
+                seriesAPI.getSeriesById(seriesId),
+                seriesAPI.getSeriesActivities(seriesId)
+            ]);
+
+            if (seriesResponse.status && seriesResponse.data) {
+                setSeries(seriesResponse.data);
             } else {
-                setError(response.message || 'Không thể tải thông tin chuỗi sự kiện');
+                setError(seriesResponse.message || 'Không thể tải thông tin chuỗi sự kiện');
+            }
+
+            if (activitiesResponse.status && activitiesResponse.data) {
+                setActivities(activitiesResponse.data);
+            } else {
+                console.warn('Could not load activities:', activitiesResponse.message);
+                setActivities([]);
             }
         } catch (err) {
             setError('Có lỗi xảy ra khi tải thông tin chuỗi sự kiện');
@@ -58,22 +59,16 @@ const SeriesDetail: React.FC = () => {
         }
     };
 
-    const handleCreateActivity = async () => {
-        if (!id || !series) return;
+    const handleCreateActivity = async (data: CreateActivityInSeriesRequest) => {
+        if (!id) return;
 
         try {
-            const response = await seriesAPI.createActivityInSeries(parseInt(id), newActivityData);
+            setIsCreating(true);
+            const response = await seriesAPI.createActivityInSeries(parseInt(id), data);
             if (response.status && response.data) {
                 toast.success('Tạo sự kiện trong chuỗi thành công!');
                 setShowAddActivityModal(false);
-                setNewActivityData({
-                    name: '',
-                    description: '',
-                    startDate: '',
-                    endDate: '',
-                    location: '',
-                    order: (series.activities?.length || 0) + 1
-                });
+                // Reload both series and activities
                 await loadSeries();
             } else {
                 toast.error(response.message || 'Tạo sự kiện thất bại');
@@ -81,6 +76,8 @@ const SeriesDetail: React.FC = () => {
         } catch (err: any) {
             toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi tạo sự kiện');
             console.error('Error creating activity:', err);
+        } finally {
+            setIsCreating(false);
         }
     };
 
@@ -153,7 +150,7 @@ const SeriesDetail: React.FC = () => {
                             <div className="flex items-center">
                                 <span className="w-4 h-4 mr-2">📋</span>
                                 <span className="text-gray-600">
-                                    {series.activities?.length || series.totalActivities || 0} sự kiện trong chuỗi
+                                    {activities.length || series.totalActivities || 0} sự kiện trong chuỗi
                                 </span>
                             </div>
                             <div className="flex items-center">
@@ -189,7 +186,10 @@ const SeriesDetail: React.FC = () => {
 
                     {/* Activities List */}
                     <SeriesActivityList
-                        series={series}
+                        series={{
+                            ...series,
+                            activities: activities
+                        }}
                         onAddActivity={() => setShowAddActivityModal(true)}
                         canManage={true}
                     />
@@ -208,130 +208,36 @@ const SeriesDetail: React.FC = () => {
 
             {/* Add Activity Modal */}
             {showAddActivityModal && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-                    <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-2/3 lg:w-1/2 shadow-lg rounded-md bg-white">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-medium text-gray-900">Thêm sự kiện vào chuỗi</h3>
-                            <button
-                                onClick={() => setShowAddActivityModal(false)}
-                                className="text-gray-400 hover:text-gray-600"
-                            >
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M6 18L18 6M6 6l12 12"
-                                    />
-                                </svg>
-                            </button>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Tên sự kiện *
-                                </label>
-                                <input
-                                    type="text"
-                                    value={newActivityData.name}
-                                    onChange={(e) =>
-                                        setNewActivityData(prev => ({ ...prev, name: e.target.value }))
-                                    }
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44]"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Mô tả
-                                </label>
-                                <textarea
-                                    value={newActivityData.description || ''}
-                                    onChange={(e) =>
-                                        setNewActivityData(prev => ({ ...prev, description: e.target.value }))
-                                    }
-                                    rows={3}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44]"
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Ngày bắt đầu *
-                                    </label>
-                                    <input
-                                        type="datetime-local"
-                                        value={newActivityData.startDate}
-                                        onChange={(e) =>
-                                            setNewActivityData(prev => ({ ...prev, startDate: e.target.value }))
-                                        }
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44]"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Ngày kết thúc *
-                                    </label>
-                                    <input
-                                        type="datetime-local"
-                                        value={newActivityData.endDate}
-                                        onChange={(e) =>
-                                            setNewActivityData(prev => ({ ...prev, endDate: e.target.value }))
-                                        }
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44]"
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Địa điểm *
-                                </label>
-                                <input
-                                    type="text"
-                                    value={newActivityData.location}
-                                    onChange={(e) =>
-                                        setNewActivityData(prev => ({ ...prev, location: e.target.value }))
-                                    }
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44]"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Thứ tự trong chuỗi *
-                                </label>
-                                <input
-                                    type="number"
-                                    min="1"
-                                    value={newActivityData.order}
-                                    onChange={(e) =>
-                                        setNewActivityData(prev => ({
-                                            ...prev,
-                                            order: parseInt(e.target.value) || 1
-                                        }))
-                                    }
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44]"
-                                />
+                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+                    <div className="relative bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+                        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 z-10">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-xl font-bold text-[#001C44]">Thêm sự kiện vào chuỗi</h3>
+                                <button
+                                    onClick={() => setShowAddActivityModal(false)}
+                                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                                >
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M6 18L18 6M6 6l12 12"
+                                        />
+                                    </svg>
+                                </button>
                             </div>
                         </div>
-
-                        <div className="mt-6 flex justify-end space-x-3">
-                            <button
-                                onClick={() => setShowAddActivityModal(false)}
-                                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-                            >
-                                Hủy
-                            </button>
-                            <button
-                                onClick={handleCreateActivity}
-                                className="px-4 py-2 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66] transition-colors"
-                            >
-                                Tạo sự kiện
-                            </button>
+                        <div className="p-6">
+                            <SeriesActivityForm
+                                onSubmit={handleCreateActivity}
+                                loading={isCreating}
+                                initialData={{
+                                    order: activities.length > 0 ? Math.max(...activities.map(a => a.seriesOrder || 0), 0) + 1 : 1
+                                }}
+                                title=""
+                                onCancel={() => setShowAddActivityModal(false)}
+                            />
                         </div>
                     </div>
                 </div>
