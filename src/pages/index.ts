@@ -11,3 +11,5 @@ export { default as StudentProfile } from './StudentProfile';
 export { default as StudentRegistrations } from './StudentRegistrations';
 export { default as StudentTasks } from './StudentTasks';
 export { default as ManagerRegistrations } from './ManagerRegistrations';
+export { default as UserManagement } from './admin/UserManagement';
+export { default as Statistics } from './admin/Statistics';

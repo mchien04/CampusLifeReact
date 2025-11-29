@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/common';
-import { Login, Register, VerifyAccount } from './components/auth';
+import { Login, Register, VerifyAccount, ForgotPassword, ResetPassword } from './components/auth';
 import { Home, Dashboard, CreateEvent, EventList, EditEvent, EventDetail, StudentEvents } from './pages';
 import StudentEventDetail from './pages/StudentEventDetail';
 import StudentParticipationHistory from './pages/StudentParticipationHistory';
@@ -23,6 +23,8 @@ import AcademicYears from './pages/admin/AcademicYears';
 import Departments from './pages/admin/Departments';
 import Students from './pages/admin/Students';
 import Reports from './pages/admin/Reports';
+import Statistics from './pages/admin/Statistics';
+import UserManagement from './pages/admin/UserManagement';
 import EventRegistrations from './pages/admin/EventRegistrations';
 import ClassManagement from './pages/admin/ClassManagement';
 import TaskManagement from './pages/admin/TaskManagement';
@@ -70,6 +72,22 @@ function App() {
               />
               <Route path="/verify" element={<VerifyAccount />} />
               <Route path="/verify-account" element={<VerifyAccount />} />
+              <Route
+                path="/forgot-password"
+                element={
+                  <ProtectedRoute requireAuth={false}>
+                    <ForgotPassword />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/reset-password"
+                element={
+                  <ProtectedRoute requireAuth={false}>
+                    <ResetPassword />
+                  </ProtectedRoute>
+                }
+              />
               {/* Protected Routes */}
               <Route
                 path="/dashboard"
@@ -183,6 +201,26 @@ function App() {
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
                     <ManagerLayout>
                       <Reports />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/statistics"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <ManagerLayout>
+                      <Statistics />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/users"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
+                    <ManagerLayout>
+                      <UserManagement />
                     </ManagerLayout>
                   </ProtectedRoute>
                 }

@@ -45,7 +45,9 @@ const ManagerLayout: React.FC<ManagerLayoutProps> = ({ children }) => {
         if (path.includes('/admin/classes')) return 'Quản lý lớp học';
         if (path.includes('/admin/departments')) return 'Quản lý phòng ban';
         if (path.includes('/admin/students')) return 'Quản lý sinh viên';
+        if (path.includes('/admin/users')) return 'Quản lý tài khoản';
         if (path.includes('/admin/reports')) return 'Báo cáo thống kê';
+        if (path.includes('/admin/statistics')) return 'Thống kê hệ thống';
         if (path.includes('/admin/academic-years')) return 'Quản lý năm học';
         if (path.includes('/admin/semesters')) return 'Quản lý học kỳ';
         return 'Dashboard';
@@ -130,8 +132,26 @@ const ManagerLayout: React.FC<ManagerLayoutProps> = ({ children }) => {
             ),
         },
         {
+            name: 'Quản lý tài khoản',
+            href: '/admin/users',
+            icon: (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+            ),
+        },
+        {
             name: 'Báo cáo thống kê',
             href: '/admin/reports',
+            icon: (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+            ),
+        },
+        {
+            name: 'Thống kê hệ thống',
+            href: '/admin/statistics',
             icon: (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -234,6 +254,24 @@ const ManagerLayout: React.FC<ManagerLayoutProps> = ({ children }) => {
                                         </svg>
                                     </span>
                                     {sidebarOpen && <span>Quản lý điểm số</span>}
+                                </Link>
+                            </li>
+
+                            <li>
+                                <Link
+                                    to="/admin/statistics"
+                                    className={`sidebar-link flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                        isActive('/admin/statistics')
+                                            ? 'bg-[#FFD66D] bg-opacity-20 text-[#FFD66D] border-l-4 border-[#FFD66D]'
+                                            : 'text-gray-300 hover:bg-[#002A66] hover:text-white border-l-4 border-transparent'
+                                    }`}
+                                >
+                                    <span className={`${sidebarOpen ? 'mr-3' : 'mx-auto'}`}>
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                        </svg>
+                                    </span>
+                                    {sidebarOpen && <span>Thống kê hệ thống</span>}
                                 </Link>
                             </li>
 

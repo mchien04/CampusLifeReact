@@ -1,5 +1,5 @@
 import api from './api';
-import { Response } from '../types/auth';
+import { Response, UserResponse, CreateUserRequest, UpdateUserRequest } from '../types/auth';
 import {
     Department, CreateDepartmentRequest, UpdateDepartmentRequest,
     AcademicYear, CreateAcademicYearRequest, UpdateAcademicYearRequest,
@@ -383,6 +383,80 @@ export const criteriaItemAPI = {
         } catch (error: any) {
             console.error('Criteria Item API: deleteCriteriaItem failed:', error);
             return { status: false, message: error.response?.data?.message || 'Failed to delete criteria item', data: undefined };
+        }
+    }
+};
+
+// User Management API
+export const userAPI = {
+    getUsers: async (role?: 'ADMIN' | 'MANAGER'): Promise<Response<UserResponse[]>> => {
+        try {
+            const url = role ? `/api/admin/users?role=${role}` : '/api/admin/users';
+            const response = await api.get(url);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('User API: getUsers failed:', error);
+            return { status: false, message: error.response?.data?.message || 'Failed to fetch users', data: [] };
+        }
+    },
+
+    getUser: async (userId: number): Promise<Response<UserResponse>> => {
+        try {
+            const response = await api.get(`/api/admin/users/${userId}`);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('User API: getUser failed:', error);
+            return { status: false, message: error.response?.data?.message || 'Failed to fetch user', data: undefined };
+        }
+    },
+
+    createUser: async (data: CreateUserRequest): Promise<Response<UserResponse>> => {
+        try {
+            const response = await api.post('/api/admin/users', data);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('User API: createUser failed:', error);
+            return { status: false, message: error.response?.data?.message || 'Failed to create user', data: undefined };
+        }
+    },
+
+    updateUser: async (userId: number, data: UpdateUserRequest): Promise<Response<UserResponse>> => {
+        try {
+            const response = await api.put(`/api/admin/users/${userId}`, data);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('User API: updateUser failed:', error);
+            return { status: false, message: error.response?.data?.message || 'Failed to update user', data: undefined };
+        }
+    },
+
+    deleteUser: async (userId: number): Promise<Response<void>> => {
+        try {
+            const response = await api.delete(`/api/admin/users/${userId}`);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('User API: deleteUser failed:', error);
+            return { status: false, message: error.response?.data?.message || 'Failed to delete user', data: undefined };
         }
     }
 };
