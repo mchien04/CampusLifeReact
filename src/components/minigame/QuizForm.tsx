@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { CreateMiniGameRequest, CreateQuestionRequest, CreateOptionRequest } from '../../types/minigame';
+import { CreateMiniGameRequest, UpdateMiniGameRequest, CreateQuestionRequest, CreateOptionRequest } from '../../types/minigame';
 import { ActivityResponse } from '../../types/activity';
 
 interface QuizFormProps {
     activity: ActivityResponse;
-    onSubmit: (data: CreateMiniGameRequest) => void;
+    onSubmit: (data: CreateMiniGameRequest | UpdateMiniGameRequest) => void;
     loading?: boolean;
-    initialData?: Partial<CreateMiniGameRequest>;
+    initialData?: Partial<CreateMiniGameRequest | UpdateMiniGameRequest>;
     title?: string;
     onCancel?: () => void;
 }
@@ -152,7 +152,12 @@ const QuizForm: React.FC<QuizFormProps> = ({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (validateForm()) {
-            onSubmit(formData);
+            // Ensure activityId is always included
+            const dataWithActivityId = {
+                ...formData,
+                activityId: activity.id
+            };
+            onSubmit(dataWithActivityId as CreateMiniGameRequest | UpdateMiniGameRequest);
         }
     };
 

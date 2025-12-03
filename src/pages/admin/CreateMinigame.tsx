@@ -3,14 +3,26 @@ import { useNavigate, Link } from 'react-router-dom';
 import { eventAPI } from '../../services/eventAPI';
 import { minigameAPI } from '../../services/minigameAPI';
 import { ActivityResponse, ActivityType } from '../../types/activity';
-import { CreateMiniGameRequest } from '../../types/minigame';
+import { CreateMiniGameRequest, UpdateMiniGameRequest } from '../../types/minigame';
 import { QuizForm } from '../../components/minigame';
 import { LoadingSpinner } from '../../components/common';
 import { toast } from 'react-toastify';
 
+interface ActivityWithQuizStatus extends ActivityResponse {
+    hasQuiz: boolean;
+    miniGameId?: number;
+    quizInfo?: {
+        miniGameId: number;
+        miniGameTitle: string;
+        isActive: boolean;
+        quizId: number;
+        questionCount: number;
+    };
+}
+
 const CreateMinigame: React.FC = () => {
     const navigate = useNavigate();
-    const [activities, setActivities] = useState<ActivityResponse[]>([]);
+    const [activities, setActivities] = useState<ActivityWithQuizStatus[]>([]);
     const [selectedActivity, setSelectedActivity] = useState<ActivityResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -25,30 +37,39 @@ const CreateMinigame: React.FC = () => {
             setLoading(true);
             const response = await eventAPI.getEvents();
             if (response.status && response.data) {
-                // Filter activities with type MINIGAME that don't have a minigame yet
+                // Filter activities with type MINIGAME
                 const minigameActivities = response.data.filter(a => a.type === ActivityType.MINIGAME);
                 
-                // Check which ones already have minigames
-                const activitiesWithoutMinigame: ActivityResponse[] = [];
+                // Check which ones already have quizzes
+                const activitiesWithStatus: ActivityWithQuizStatus[] = [];
                 for (const activity of minigameActivities) {
-                    try {
-                        const minigameResponse = await minigameAPI.getMiniGameByActivity(activity.id);
-                        // If status is true and has data, it has a minigame, skip it
-                        if (!minigameResponse.status || !minigameResponse.data) {
-                            // No minigame, add to list
-                            activitiesWithoutMinigame.push(activity);
-                        }
-                        // If status is true and has data, skip (already has minigame)
-                    } catch {
-                        // Error occurred, assume no minigame, add to list
-                        activitiesWithoutMinigame.push(activity);
+                    const checkResponse = await minigameAPI.checkActivityHasQuiz(activity.id);
+                    if (checkResponse.status && checkResponse.data) {
+                        activitiesWithStatus.push({
+                            ...activity,
+                            hasQuiz: checkResponse.data.hasQuiz,
+                            miniGameId: checkResponse.data.miniGameId,
+                            quizInfo: checkResponse.data.hasQuiz ? {
+                                miniGameId: checkResponse.data.miniGameId!,
+                                miniGameTitle: checkResponse.data.miniGameTitle!,
+                                isActive: checkResponse.data.isActive!,
+                                quizId: checkResponse.data.quizId!,
+                                questionCount: checkResponse.data.questionCount!
+                            } : undefined
+                        });
+                    } else {
+                        // If check fails, assume no quiz
+                        activitiesWithStatus.push({
+                            ...activity,
+                            hasQuiz: false
+                        });
                     }
                 }
 
-                setActivities(activitiesWithoutMinigame);
+                setActivities(activitiesWithStatus);
                 
-                if (activitiesWithoutMinigame.length === 0) {
-                    setError('Không có activity nào với type MINIGAME chưa có quiz. Vui lòng tạo activity với type MINIGAME trước.');
+                if (activitiesWithStatus.length === 0) {
+                    setError('Không có activity nào với type MINIGAME. Vui lòng tạo activity với type MINIGAME trước.');
                 }
             } else {
                 setError('Không thể tải danh sách activities');
@@ -66,10 +87,16 @@ const CreateMinigame: React.FC = () => {
         setSelectedActivity(activity || null);
     };
 
-    const handleSubmit = async (data: CreateMiniGameRequest) => {
+    const handleSubmit = async (data: CreateMiniGameRequest | UpdateMiniGameRequest) => {
         setSaving(true);
         try {
-            const response = await minigameAPI.createMiniGame(data);
+            // For create, we need CreateMiniGameRequest with activityId
+            const createData: CreateMiniGameRequest = {
+                ...data,
+                activityId: selectedActivity!.id
+            } as CreateMiniGameRequest;
+            
+            const response = await minigameAPI.createMiniGame(createData);
             if (response.status && response.data) {
                 toast.success('Tạo minigame thành công!');
                 navigate('/manager/minigames');
@@ -142,21 +169,53 @@ const CreateMinigame: React.FC = () => {
                     <h3 className="text-lg font-semibold text-[#001C44] mb-4">Chọn Activity</h3>
                     {activities.length === 0 ? (
                         <p className="text-gray-500">
-                            Không có activity nào với type MINIGAME chưa có quiz. Vui lòng tạo activity với type MINIGAME trước.
+                            Không có activity nào với type MINIGAME. Vui lòng tạo activity với type MINIGAME trước.
                         </p>
                     ) : (
                         <div className="space-y-2">
                             {activities.map((activity) => (
-                                <button
+                                <div
                                     key={activity.id}
-                                    onClick={() => handleActivitySelect(activity.id)}
-                                    className="w-full text-left p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-[#001C44] transition-colors"
+                                    className={`w-full p-4 border rounded-lg transition-colors ${
+                                        activity.hasQuiz
+                                            ? 'border-yellow-300 bg-yellow-50'
+                                            : 'border-gray-200 hover:bg-gray-50 hover:border-[#001C44]'
+                                    }`}
                                 >
-                                    <div className="font-medium text-gray-900">{activity.name}</div>
-                                    {activity.description && (
-                                        <div className="text-sm text-gray-500 mt-1">{activity.description}</div>
-                                    )}
-                                </button>
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex-1">
+                                            <div className="font-medium text-gray-900">{activity.name}</div>
+                                            {activity.description && (
+                                                <div className="text-sm text-gray-500 mt-1">{activity.description}</div>
+                                            )}
+                                            {activity.hasQuiz && activity.quizInfo && (
+                                                <div className="mt-2 text-sm">
+                                                    <span className="inline-flex items-center px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 text-xs font-medium">
+                                                        Đã có quiz
+                                                    </span>
+                                                    <span className="ml-2 text-gray-600">
+                                                        {activity.quizInfo.questionCount} câu hỏi
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        {activity.hasQuiz ? (
+                                            <Link
+                                                to={`/manager/minigames/edit/${activity.miniGameId}`}
+                                                className="ml-4 px-4 py-2 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66] transition-colors text-sm font-medium"
+                                            >
+                                                Chỉnh sửa Quiz
+                                            </Link>
+                                        ) : (
+                                            <button
+                                                onClick={() => handleActivitySelect(activity.id)}
+                                                className="ml-4 px-4 py-2 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66] transition-colors text-sm font-medium"
+                                            >
+                                                Tạo Quiz
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
                             ))}
                         </div>
                     )}

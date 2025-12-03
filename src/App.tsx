@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/common';
 import { Login, Register, VerifyAccount, ForgotPassword, ResetPassword } from './components/auth';
+import ChangePassword from './components/auth/ChangePassword';
 import { Home, Dashboard, CreateEvent, EventList, EditEvent, EventDetail, StudentEvents } from './pages';
 import StudentEventDetail from './pages/StudentEventDetail';
 import StudentParticipationHistory from './pages/StudentParticipationHistory';
@@ -19,12 +20,14 @@ import SeriesDetail from './pages/admin/SeriesDetail';
 import MinigameManagement from './pages/admin/MinigameManagement';
 import CreateMinigame from './pages/admin/CreateMinigame';
 import CreateMinigameWizard from './pages/admin/CreateMinigameWizard';
+import EditQuiz from './pages/admin/EditQuiz';
 import AcademicYears from './pages/admin/AcademicYears';
 import Departments from './pages/admin/Departments';
 import Students from './pages/admin/Students';
 import Reports from './pages/admin/Reports';
 import Statistics from './pages/admin/Statistics';
 import UserManagement from './pages/admin/UserManagement';
+import StudentAccountManagement from './pages/admin/StudentAccountManagement';
 import EventRegistrations from './pages/admin/EventRegistrations';
 import ClassManagement from './pages/admin/ClassManagement';
 import TaskManagement from './pages/admin/TaskManagement';
@@ -85,6 +88,14 @@ function App() {
                 element={
                   <ProtectedRoute requireAuth={false}>
                     <ResetPassword />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/change-password"
+                element={
+                  <ProtectedRoute requireAuth={true}>
+                    <ChangePassword />
                   </ProtectedRoute>
                 }
               />
@@ -221,6 +232,16 @@ function App() {
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
                     <ManagerLayout>
                       <UserManagement />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/student-accounts"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
+                    <ManagerLayout>
+                      <StudentAccountManagement />
                     </ManagerLayout>
                   </ProtectedRoute>
                 }
@@ -442,6 +463,16 @@ function App() {
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
                     <ManagerLayout>
                       <CreateMinigame />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/minigames/edit/:miniGameId"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <ManagerLayout>
+                      <EditQuiz />
                     </ManagerLayout>
                   </ProtectedRoute>
                 }

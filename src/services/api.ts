@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { LoginRequest, RegisterRequest, ForgotPasswordRequest, ResetPasswordRequest, Response, AuthResponse } from '../types';
+import { LoginRequest, RegisterRequest, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest, Response, AuthResponse } from '../types';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080';
 
@@ -68,6 +68,11 @@ export const authAPI = {
 
     resetPassword: async (data: ResetPasswordRequest): Promise<Response<null>> => {
         const response = await api.post('/api/auth/reset-password', data);
+        return response.data;
+    },
+
+    changePassword: async (data: ChangePasswordRequest): Promise<Response<null>> => {
+        const response = await api.post('/api/auth/change-password', data);
         return response.data;
     },
 };

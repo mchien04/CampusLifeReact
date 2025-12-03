@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { NotificationDropdown } from '../notification/NotificationDropdown';
+import UserProfileMenu from './UserProfileMenu';
 
 interface StudentLayoutProps {
     children: React.ReactNode;
@@ -151,21 +152,7 @@ const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
 
                     {/* User Info */}
                     <div className="border-t border-[#002A66] p-4">
-                        <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                                <div className="w-10 h-10 rounded-full bg-[#FFD66D] flex items-center justify-center">
-                                    <span className="text-[#001C44] font-semibold text-sm">
-                                        {username?.charAt(0).toUpperCase()}
-                                    </span>
-                                </div>
-                            </div>
-                            {sidebarOpen && (
-                                <div className="ml-3 flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-white truncate">{username}</p>
-                                    <p className="text-xs text-gray-400 truncate">Sinh viên</p>
-                                </div>
-                            )}
-                        </div>
+                        <UserProfileMenu sidebarOpen={sidebarOpen} />
                     </div>
                 </div>
             </aside>
@@ -183,15 +170,6 @@ const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                             </div>
                             <div className="flex items-center space-x-4">
                                 <NotificationDropdown />
-                                <button
-                                    onClick={logout}
-                                    className="flex items-center space-x-2 px-4 py-2 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66] transition-colors text-sm font-medium"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                                    </svg>
-                                    <span>Đăng xuất</span>
-                                </button>
                             </div>
                         </div>
                     </div>

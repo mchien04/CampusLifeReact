@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Role } from '../../types';
 import { NotificationDropdown } from '../notification/NotificationDropdown';
 import Submenu from './Submenu';
+import UserProfileMenu from './UserProfileMenu';
 
 interface ManagerLayoutProps {
     children: React.ReactNode;
@@ -134,6 +135,15 @@ const ManagerLayout: React.FC<ManagerLayoutProps> = ({ children }) => {
         {
             name: 'Quản lý tài khoản',
             href: '/admin/users',
+            icon: (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+            ),
+        },
+        {
+            name: 'Quản lý tài khoản sinh viên',
+            href: '/admin/student-accounts',
             icon: (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -299,23 +309,7 @@ const ManagerLayout: React.FC<ManagerLayoutProps> = ({ children }) => {
 
                     {/* User Info */}
                     <div className="border-t border-[#002A66] p-4">
-                        <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                                <div className="w-10 h-10 rounded-full bg-[#FFD66D] flex items-center justify-center">
-                                    <span className="text-[#001C44] font-semibold text-sm">
-                                        {username?.charAt(0).toUpperCase()}
-                                    </span>
-                                </div>
-                            </div>
-                            {sidebarOpen && (
-                                <div className="ml-3 flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-white truncate">{username}</p>
-                                    <p className="text-xs text-gray-400 truncate">
-                                        {userRole === Role.ADMIN ? 'Quản trị viên' : 'Quản lý'}
-                                    </p>
-                                </div>
-                            )}
-                        </div>
+                        <UserProfileMenu sidebarOpen={sidebarOpen} />
                     </div>
                 </div>
             </aside>
@@ -333,15 +327,6 @@ const ManagerLayout: React.FC<ManagerLayoutProps> = ({ children }) => {
                             </div>
                             <div className="flex items-center space-x-4">
                                 <NotificationDropdown />
-                                <button
-                                    onClick={logout}
-                                    className="flex items-center space-x-2 px-4 py-2 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66] transition-colors text-sm font-medium"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                                    </svg>
-                                    <span>Đăng xuất</span>
-                                </button>
                             </div>
                         </div>
                     </div>

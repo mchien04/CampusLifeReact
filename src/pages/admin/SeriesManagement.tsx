@@ -21,7 +21,9 @@ const SeriesManagement: React.FC = () => {
             setLoading(true);
             const response = await seriesAPI.getSeries();
             if (response.status && response.data) {
-                setSeries(response.data);
+                // Filter out deleted series (backend uses "deleted" field)
+                const activeSeries = response.data.filter(s => !s.deleted);
+                setSeries(activeSeries);
             } else {
                 setError(response.message || 'Không thể tải danh sách chuỗi sự kiện');
             }

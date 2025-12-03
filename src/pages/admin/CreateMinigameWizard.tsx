@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { eventAPI } from '../../services/eventAPI';
 import { minigameAPI } from '../../services/minigameAPI';
 import { CreateActivityRequest, ActivityResponse } from '../../types/activity';
-import { CreateMiniGameRequest } from '../../types/minigame';
+import { CreateMiniGameRequest, UpdateMiniGameRequest } from '../../types/minigame';
 import MinigameActivityForm from '../../components/events/MinigameActivityForm';
 import { QuizForm } from '../../components/minigame';
 import { LoadingSpinner } from '../../components/common';
@@ -37,15 +37,18 @@ const CreateMinigameWizard: React.FC = () => {
         }
     };
 
-    const handleQuizSubmit = async (data: CreateMiniGameRequest) => {
+    const handleQuizSubmit = async (data: CreateMiniGameRequest | UpdateMiniGameRequest) => {
         if (!createdActivity) return;
 
         setSaving(true);
         try {
-            const response = await minigameAPI.createMiniGame({
+            // For create, we need CreateMiniGameRequest with activityId
+            const createData: CreateMiniGameRequest = {
                 ...data,
                 activityId: createdActivity.id
-            });
+            } as CreateMiniGameRequest;
+            
+            const response = await minigameAPI.createMiniGame(createData);
             if (response.status && response.data) {
                 toast.success('Tạo minigame thành công!');
                 navigate('/manager/minigames');

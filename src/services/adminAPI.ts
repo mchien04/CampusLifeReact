@@ -7,6 +7,16 @@ import {
     CriteriaGroup, CreateCriteriaGroupRequest, UpdateCriteriaGroupRequest,
     CriteriaItem, CreateCriteriaItemRequest, UpdateCriteriaItemRequest
 } from '../types/admin';
+import {
+    ExcelStudentRow,
+    UploadExcelResponse,
+    BulkCreateStudentsRequest,
+    StudentAccountResponse,
+    UpdateStudentAccountRequest,
+    BulkSendCredentialsRequest,
+    BulkCreateResponse,
+    BulkSendCredentialsResponse
+} from '../types/studentAccount';
 
 // Department API
 export const departmentAPI = {
@@ -457,6 +467,143 @@ export const userAPI = {
         } catch (error: any) {
             console.error('User API: deleteUser failed:', error);
             return { status: false, message: error.response?.data?.message || 'Failed to delete user', data: undefined };
+        }
+    }
+};
+
+// Student Account Management API
+export const studentAccountAPI = {
+    uploadExcel: async (file: File): Promise<Response<UploadExcelResponse>> => {
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await api.post('/api/admin/students/upload-excel', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Student Account API: uploadExcel failed:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Failed to upload Excel file',
+                data: undefined
+            };
+        }
+    },
+
+    bulkCreate: async (data: BulkCreateStudentsRequest): Promise<Response<BulkCreateResponse>> => {
+        try {
+            const response = await api.post('/api/admin/students/bulk-create', data);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Student Account API: bulkCreate failed:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Failed to create student accounts',
+                data: undefined
+            };
+        }
+    },
+
+    getPendingAccounts: async (): Promise<Response<StudentAccountResponse[]>> => {
+        try {
+            const response = await api.get('/api/admin/students/pending');
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Student Account API: getPendingAccounts failed:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Failed to fetch pending accounts',
+                data: []
+            };
+        }
+    },
+
+    updateAccount: async (studentId: number, data: UpdateStudentAccountRequest): Promise<Response<StudentAccountResponse>> => {
+        try {
+            const response = await api.put(`/api/admin/students/${studentId}/account`, data);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Student Account API: updateAccount failed:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Failed to update student account',
+                data: undefined
+            };
+        }
+    },
+
+    deleteAccount: async (studentId: number): Promise<Response<void>> => {
+        try {
+            const response = await api.delete(`/api/admin/students/${studentId}/account`);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Student Account API: deleteAccount failed:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Failed to delete student account',
+                data: undefined
+            };
+        }
+    },
+
+    sendCredentials: async (studentId: number): Promise<Response<void>> => {
+        try {
+            const response = await api.post(`/api/admin/students/${studentId}/send-credentials`);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Student Account API: sendCredentials failed:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Failed to send credentials',
+                data: undefined
+            };
+        }
+    },
+
+    bulkSendCredentials: async (data: BulkSendCredentialsRequest): Promise<Response<BulkSendCredentialsResponse>> => {
+        try {
+            const response = await api.post('/api/admin/students/bulk-send-credentials', data);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Student Account API: bulkSendCredentials failed:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Failed to send credentials',
+                data: undefined
+            };
         }
     }
 };

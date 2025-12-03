@@ -45,6 +45,18 @@ export interface CreateSeriesRequest {
     ticketQuantity?: number;
 }
 
+export interface UpdateSeriesRequest {
+    name?: string;
+    description?: string;
+    milestonePoints?: string; // JSON string
+    scoreType?: ScoreType;
+    mainActivityId?: number | null;
+    registrationStartDate?: string;
+    registrationDeadline?: string;
+    requiresApproval?: boolean;
+    ticketQuantity?: number;
+}
+
 export interface CreateActivityInSeriesRequest {
     name: string; // bắt buộc
     description?: string;
@@ -79,6 +91,7 @@ export interface SeriesResponse {
     createdAt: string;
     activities?: ActivityResponse[];
     totalActivities?: number;
+    deleted?: boolean; // Soft delete flag (from backend: "deleted")
 }
 
 export interface SeriesRegistrationResponse {
