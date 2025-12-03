@@ -9,7 +9,8 @@ import {
     SubmitAttemptResponse,
     MiniGameAttempt,
     QuestionsResponse,
-    AttemptDetailResponse
+    AttemptDetailResponse,
+    QuizQuestionsEditResponse
 } from '../types/minigame';
 
 export const minigameAPI = {
@@ -27,6 +28,33 @@ export const minigameAPI = {
             return {
                 status: false,
                 message: error.response?.data?.message || 'Có lỗi xảy ra khi tạo minigame',
+                data: undefined
+            };
+        }
+    },
+
+    // Check if activity has quiz
+    checkActivityHasQuiz: async (activityId: number): Promise<Response<{
+        hasQuiz: boolean;
+        miniGameId?: number;
+        miniGameTitle?: string;
+        isActive?: boolean;
+        quizId?: number;
+        questionCount?: number;
+        message: string;
+    }>> => {
+        try {
+            const response = await api.get(`/api/minigames/activity/${activityId}/check`);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Error checking activity quiz:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Có lỗi xảy ra khi kiểm tra quiz',
                 data: undefined
             };
         }
@@ -241,6 +269,32 @@ export const minigameAPI = {
             return {
                 status: false,
                 message: error.response?.data?.message || 'Có lỗi xảy ra khi tải chi tiết attempt',
+                data: undefined
+            };
+        }
+    },
+
+    // Get questions for edit (with correct answers for admin/manager)
+    getQuestionsForEdit: async (miniGameId: number): Promise<Response<QuizQuestionsEditResponse>> => {
+        try {
+            const response = await api.get(`/api/minigames/${miniGameId}/questions/edit`);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Error fetching questions for edit:', error);
+            if (error.response?.status === 404) {
+                return {
+                    status: false,
+                    message: 'Không tìm thấy minigame này',
+                    data: undefined
+                };
+            }
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Có lỗi xảy ra khi tải câu hỏi để chỉnh sửa',
                 data: undefined
             };
         }

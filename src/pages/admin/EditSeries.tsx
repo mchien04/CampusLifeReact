@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { SeriesForm } from '../../components/series';
-import { CreateSeriesRequest, SeriesResponse } from '../../types/series';
+import { CreateSeriesRequest, UpdateSeriesRequest, SeriesResponse } from '../../types/series';
 import { seriesAPI } from '../../services/seriesAPI';
 import { LoadingSpinner } from '../../components/common';
 import { toast } from 'react-toastify';
@@ -44,7 +44,19 @@ const EditSeries: React.FC = () => {
 
         setSaving(true);
         try {
-            const response = await seriesAPI.updateSeries(parseInt(id), data);
+            // Convert CreateSeriesRequest to UpdateSeriesRequest (all fields optional)
+            const updateData: UpdateSeriesRequest = {
+                name: data.name,
+                description: data.description,
+                milestonePoints: data.milestonePoints,
+                scoreType: data.scoreType,
+                mainActivityId: data.mainActivityId,
+                registrationStartDate: data.registrationStartDate,
+                registrationDeadline: data.registrationDeadline,
+                requiresApproval: data.requiresApproval,
+                ticketQuantity: data.ticketQuantity
+            };
+            const response = await seriesAPI.updateSeries(parseInt(id), updateData);
             if (response.status && response.data) {
                 toast.success('Cập nhật chuỗi sự kiện thành công!');
                 navigate(`/manager/series/${id}`);

@@ -1264,22 +1264,22 @@ const TimelineTab: React.FC<{
         );
     }
 
-    const registrationsData = data.registrationsOverTime.map(item => ({
+    const registrationsData = (data.registrationsOverTime || []).map(item => ({
         period: item.period,
         value: item.count || 0
     }));
 
-    const participationsData = data.participationsOverTime.map(item => ({
+    const participationsData = (data.participationsOverTime || []).map(item => ({
         period: item.period,
         value: item.count || 0
     }));
 
-    const scoresData = data.scoresOverTime.map(item => ({
+    const scoresData = (data.scoresOverTime || []).map(item => ({
         period: item.period,
         value: item.value || 0
     }));
 
-    const peakHoursData = Object.entries(data.peakHours).map(([hour, count]) => ({
+    const peakHoursData = Object.entries(data.peakHours || {}).map(([hour, count]) => ({
         hour: `${hour}:00`,
         count: Number(count)
     }));

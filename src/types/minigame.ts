@@ -179,3 +179,28 @@ export interface AttemptDetailResponse {
     questions: QuestionWithAnswer[];
 }
 
+// Types for Edit Questions API (with correct answers for admin/manager)
+export interface QuizOptionEditResponse {
+    id: number;
+    text: string;
+    isCorrect: boolean;
+}
+
+export interface QuizQuestionEditResponse {
+    id: number;
+    questionText: string;
+    displayOrder: number;
+    options: QuizOptionEditResponse[];
+}
+
+export interface QuizQuestionsEditResponse {
+    miniGameId: number;
+    title: string;
+    description?: string;
+    questionCount: number;
+    timeLimit?: number;
+    requiredCorrectAnswers?: number;
+    rewardPoints?: string;
+    questions: QuizQuestionEditResponse[];
+}
+

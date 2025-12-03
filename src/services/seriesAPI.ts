@@ -4,6 +4,7 @@ import {
     ActivitySeries,
     SeriesResponse,
     CreateSeriesRequest,
+    UpdateSeriesRequest,
     CreateActivityInSeriesRequest,
     AddActivityToSeriesRequest,
     SeriesRegistrationResponse,
@@ -253,7 +254,7 @@ export const seriesAPI = {
     },
 
     // Update series
-    updateSeries: async (id: number, data: Partial<CreateSeriesRequest>): Promise<Response<SeriesResponse>> => {
+    updateSeries: async (id: number, data: UpdateSeriesRequest): Promise<Response<SeriesResponse>> => {
         try {
             const response = await api.put(`/api/series/${id}`, data);
             return {
@@ -271,14 +272,14 @@ export const seriesAPI = {
         }
     },
 
-    // Delete series
-    deleteSeries: async (id: number): Promise<Response<void>> => {
+    // Delete series (soft delete)
+    deleteSeries: async (id: number): Promise<Response<null>> => {
         try {
             const response = await api.delete(`/api/series/${id}`);
             return {
                 status: response.data.status,
                 message: response.data.message,
-                data: response.data.body || response.data.data
+                data: null
             };
         } catch (error: any) {
             console.error('Error deleting series:', error);

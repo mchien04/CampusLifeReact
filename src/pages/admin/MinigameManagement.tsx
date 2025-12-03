@@ -131,12 +131,6 @@ const MinigameManagement: React.FC = () => {
                         Tạo Quiz từ Activity có sẵn
                     </Link>
                 </div>
-                <Link
-                    to="/manager/minigames/create"
-                    className="btn-primary px-6 py-2 rounded-lg font-medium"
-                >
-                    + Tạo minigame mới
-                </Link>
             </div>
 
             {/* Search */}
@@ -212,10 +206,16 @@ const MinigameManagement: React.FC = () => {
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <div className="flex justify-end space-x-2">
                                                 <Link
-                                                    to={`/manager/events/${activity.id}`}
+                                                    to={`/manager/minigames/edit/${minigame.id}`}
                                                     className="text-[#001C44] hover:text-[#002A66]"
                                                 >
-                                                    Xem
+                                                    Chỉnh sửa
+                                                </Link>
+                                                <Link
+                                                    to={`/manager/events/${activity.id}`}
+                                                    className="text-gray-600 hover:text-gray-800"
+                                                >
+                                                    Xem Activity
                                                 </Link>
                                                 <button
                                                     onClick={() => handleDelete(minigame.id, minigame.title)}
@@ -237,4 +237,5 @@ const MinigameManagement: React.FC = () => {
 };
 
 export default MinigameManagement;
+
 
