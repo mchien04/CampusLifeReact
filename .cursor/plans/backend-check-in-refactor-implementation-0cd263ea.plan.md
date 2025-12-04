@@ -1,4 +1,9 @@
-<!-- 0cd263ea-78e3-491c-ade9-e4d0aa644c39 7df691f4-9221-4004-b330-62c23a471427 -->
+---
+name: Frontend Updates for Backend Check-in Refactor
+overview: ""
+todos: []
+---
+
 # Frontend Updates for Backend Check-in Refactor
 
 ## 1. Update TypeScript Types

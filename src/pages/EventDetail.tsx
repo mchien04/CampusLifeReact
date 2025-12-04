@@ -18,6 +18,8 @@ import { activityPhotoAPI } from '../services/activityPhotoAPI';
 import { ActivityPhotoResponse } from '../types/activity';
 import { minigameAPI } from '../services/minigameAPI';
 import { MiniGame } from '../types/minigame';
+import { QRCodeSVG } from 'qrcode.react';
+import { toast } from 'react-toastify';
 
 const EventDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -51,6 +53,11 @@ const EventDetail: React.FC = () => {
     // Minigame/Quiz states
     const [minigame, setMinigame] = useState<MiniGame | null>(null);
     const [loadingMinigame, setLoadingMinigame] = useState(false);
+    
+    // QR Code states
+    const [showQrCode, setShowQrCode] = useState(false);
+    const [backfilling, setBackfilling] = useState(false);
+    const [showFullScreenQr, setShowFullScreenQr] = useState(false);
     
     const navigate = useNavigate();
     const refetch = async () => {
@@ -268,6 +275,133 @@ const EventDetail: React.FC = () => {
         } catch (error) {
             console.error('Error reloading photos:', error);
         }
+    };
+
+    // QR Code handlers
+    const handleBackfillCheckInCodes = async () => {
+        if (!window.confirm('Bạn có chắc chắn muốn tạo checkInCode cho tất cả các sự kiện chưa có? Thao tác này có thể mất một chút thời gian.')) {
+            return;
+        }
+        setBackfilling(true);
+        try {
+            const response = await eventAPI.backfillCheckInCodes();
+            if (response.status && response.data) {
+                toast.success(`Đã tạo checkInCode cho ${response.data.updatedCount}/${response.data.totalActivities} sự kiện`);
+                await refetch(); // Reload event to get new checkInCode
+            } else {
+                toast.error(response.message || 'Có lỗi xảy ra khi tạo checkInCode');
+            }
+        } catch (error: any) {
+            console.error('Error backfilling checkInCodes:', error);
+            toast.error('Có lỗi xảy ra khi tạo checkInCode');
+        } finally {
+            setBackfilling(false);
+        }
+    };
+
+    const handleCopyCheckInCode = () => {
+        if (event?.checkInCode) {
+            navigator.clipboard.writeText(event.checkInCode);
+            toast.success('Đã sao chép mã QR code');
+        }
+    };
+
+    const handlePrintQrCode = () => {
+        if (!event?.checkInCode) return;
+        
+        // Tạo một cửa sổ mới để in
+        const printContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>QR Code - ${event.name}</title>
+                <style>
+                    @media print {
+                        @page {
+                            margin: 20mm;
+                            size: A4;
+                        }
+                        body {
+                            margin: 0;
+                            padding: 0;
+                        }
+                    }
+                    body {
+                        font-family: Arial, sans-serif;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        min-height: 100vh;
+                        padding: 20px;
+                        text-align: center;
+                    }
+                    .qr-container {
+                        background: white;
+                        padding: 40px;
+                        border: 2px solid #001C44;
+                        border-radius: 10px;
+                        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                    }
+                    .qr-title {
+                        font-size: 24px;
+                        font-weight: bold;
+                        color: #001C44;
+                        margin-bottom: 20px;
+                    }
+                    .qr-code {
+                        margin: 20px 0;
+                    }
+                    .qr-code-text {
+                        font-family: monospace;
+                        font-size: 16px;
+                        color: #333;
+                        margin-top: 20px;
+                        padding: 10px;
+                        background: #f5f5f5;
+                        border-radius: 5px;
+                    }
+                    .qr-event-name {
+                        font-size: 18px;
+                        color: #666;
+                        margin-top: 20px;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="qr-container">
+                    <div class="qr-title">QR Code Check-in</div>
+                    <div class="qr-event-name">${event.name}</div>
+                    <div class="qr-code" id="qr-code-placeholder"></div>
+                    <div class="qr-code-text">Mã: ${event.checkInCode}</div>
+                </div>
+                <script>
+                    // Tạo QR code bằng cách sử dụng API hoặc thư viện
+                    // Tạm thời sử dụng URL của QR code service
+                    const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=' + encodeURIComponent('${event.checkInCode}');
+                    document.getElementById('qr-code-placeholder').innerHTML = '<img src="' + qrUrl + '" alt="QR Code" />';
+                    
+                    window.onload = function() {
+                        setTimeout(function() {
+                            window.print();
+                            window.onafterprint = function() {
+                                window.close();
+                            };
+                        }, 500);
+                    };
+                </script>
+            </body>
+            </html>
+        `;
+        
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            toast.error('Không thể mở cửa sổ in. Vui lòng cho phép popup.');
+            return;
+        }
+        
+        printWindow.document.write(printContent);
+        printWindow.document.close();
     };
 
     const handleCreateTask = async (data: CreateActivityTaskRequest) => {
@@ -817,6 +951,162 @@ const EventDetail: React.FC = () => {
                         </div>
                     </div>
                 </div>
+
+                {/* QR Code Section - Only for Admin/Manager */}
+                {(user?.role === 'ADMIN' || user?.role === 'MANAGER') && (
+                    <div className="mt-8">
+                        <div className="bg-white shadow-lg rounded-lg overflow-hidden border border-gray-100">
+                            <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-[#001C44] to-[#002A66]">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h3 className="text-xl font-bold text-white flex items-center">
+                                            <span className="mr-2">📱</span>
+                                            QR Code Check-in
+                                        </h3>
+                                        <p className="text-sm text-gray-200 mt-1">
+                                            Mã QR code để sinh viên điểm danh sự kiện
+                                        </p>
+                                    </div>
+                                    <div className="flex space-x-3">
+                                        {event.checkInCode ? (
+                                            <button
+                                                onClick={() => setShowQrCode(!showQrCode)}
+                                                className="px-4 py-2 bg-[#FFD66D] text-[#001C44] rounded-lg text-sm font-medium hover:bg-[#FFE082] transition-colors"
+                                            >
+                                                {showQrCode ? 'Ẩn QR Code' : 'Hiển thị QR Code'}
+                                            </button>
+                                        ) : (
+                                            <div className="flex items-center space-x-2">
+                                                <span className="text-yellow-300 text-sm">⚠️ Chưa có mã QR</span>
+                                                <button
+                                                    onClick={handleBackfillCheckInCodes}
+                                                    disabled={backfilling}
+                                                    className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                                                >
+                                                    {backfilling ? 'Đang tạo...' : 'Tạo QR Code'}
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-6">
+                                {event.checkInCode ? (
+                                    <div>
+                                        {showQrCode && (
+                                            <div className="flex flex-col items-center space-y-4 mb-6">
+                                                <div className="bg-white p-4 rounded-lg border-2 border-gray-200 qr-code-svg">
+                                                    <QRCodeSVG
+                                                        value={event.checkInCode}
+                                                        size={256}
+                                                        level="H"
+                                                        includeMargin={true}
+                                                    />
+                                                </div>
+                                                <div className="text-center">
+                                                    <p className="text-sm text-gray-600 mb-2">Mã QR Code:</p>
+                                                    <div className="flex items-center space-x-2">
+                                                        <code className="px-4 py-2 bg-gray-100 rounded-lg text-sm font-mono text-gray-800">
+                                                            {event.checkInCode}
+                                                        </code>
+                                                        <button
+                                                            onClick={handleCopyCheckInCode}
+                                                            className="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                                                            title="Sao chép mã"
+                                                        >
+                                                            📋
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div className="flex space-x-3 mt-4">
+                                                    <button
+                                                        onClick={() => setShowFullScreenQr(true)}
+                                                        className="px-4 py-2 bg-gradient-to-r from-[#001C44] to-[#002A66] hover:from-[#002A66] hover:to-[#003A88] text-white rounded-lg text-sm font-medium transition-colors shadow-md"
+                                                    >
+                                                        🖥️ Hiển thị Full Màn hình
+                                                    </button>
+                                                    <button
+                                                        onClick={handlePrintQrCode}
+                                                        className="px-4 py-2 bg-[#FFD66D] hover:bg-[#FFE082] text-[#001C44] rounded-lg text-sm font-medium transition-colors shadow-md"
+                                                    >
+                                                        🖨️ In QR Code
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {!showQrCode && (
+                                            <div className="text-center py-8">
+                                                <p className="text-gray-600 mb-4">Nhấn "Hiển thị QR Code" để xem mã QR</p>
+                                                <p className="text-sm text-gray-500">Mã QR Code: <code className="bg-gray-100 px-2 py-1 rounded">{event.checkInCode}</code></p>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-8">
+                                        <div className="text-yellow-600 text-4xl mb-4">⚠️</div>
+                                        <p className="text-gray-700 mb-4">Sự kiện này chưa có mã QR code để điểm danh.</p>
+                                        <p className="text-sm text-gray-500 mb-4">
+                                            Nhấn "Tạo QR Code" để tạo mã cho sự kiện này.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Full Screen QR Code Modal */}
+                {showFullScreenQr && event?.checkInCode && (
+                    <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4" onClick={() => setShowFullScreenQr(false)}>
+                        <div className="bg-white rounded-lg p-8 max-w-2xl w-full relative" onClick={(e) => e.stopPropagation()}>
+                            <button
+                                onClick={() => setShowFullScreenQr(false)}
+                                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100"
+                            >
+                                ×
+                            </button>
+                            <div className="flex flex-col items-center space-y-6">
+                                <h3 className="text-2xl font-bold text-[#001C44]">QR Code Check-in</h3>
+                                <p className="text-lg text-gray-600">{event.name}</p>
+                                <div className="bg-white p-6 rounded-lg border-4 border-[#001C44]">
+                                    <QRCodeSVG
+                                        value={event.checkInCode}
+                                        size={400}
+                                        level="H"
+                                        includeMargin={true}
+                                    />
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-sm text-gray-600 mb-2">Mã QR Code:</p>
+                                    <code className="px-4 py-2 bg-gray-100 rounded-lg text-base font-mono text-gray-800">
+                                        {event.checkInCode}
+                                    </code>
+                                </div>
+                                <div className="flex space-x-3">
+                                    <button
+                                        onClick={handleCopyCheckInCode}
+                                        className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors"
+                                    >
+                                        📋 Sao chép mã
+                                    </button>
+                                    <button
+                                        onClick={handlePrintQrCode}
+                                        className="px-6 py-2 bg-[#FFD66D] hover:bg-[#FFE082] text-[#001C44] rounded-lg font-medium transition-colors shadow-md"
+                                    >
+                                        🖨️ In QR Code
+                                    </button>
+                                    <button
+                                        onClick={() => setShowFullScreenQr(false)}
+                                        className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                                    >
+                                        Đóng
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Photo Gallery Section - Only show if event has ended */}
                 {event && new Date(event.endDate) < new Date() && (

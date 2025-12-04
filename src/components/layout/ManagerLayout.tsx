@@ -43,6 +43,12 @@ const ManagerLayout: React.FC<ManagerLayoutProps> = ({ children }) => {
         }
         if (path.includes('/manager/registrations')) return 'Quản lý đăng ký';
         if (path.includes('/manager/scores')) return 'Quản lý điểm số';
+        if (path.includes('/manager/emails')) {
+            if (path.includes('/notifications/send')) return 'Gửi Thông báo';
+            if (path.includes('/send')) return 'Gửi Email';
+            if (path.match(/\/manager\/emails\/history\/\d+/)) return 'Chi tiết Email';
+            if (path.includes('/history')) return 'Lịch sử Email';
+        }
         if (path.includes('/admin/classes')) return 'Quản lý lớp học';
         if (path.includes('/admin/departments')) return 'Quản lý phòng ban';
         if (path.includes('/admin/students')) return 'Quản lý sinh viên';
@@ -104,6 +110,44 @@ const ManagerLayout: React.FC<ManagerLayoutProps> = ({ children }) => {
         ],
     };
 
+    const emailNotificationSubmenu = {
+        title: 'Email & Thông báo',
+        icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+        ),
+        items: [
+            {
+                name: 'Gửi Email',
+                href: '/manager/emails/send',
+                icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12H8m4 4V8m-4 4l.01 0M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                ),
+            },
+            {
+                name: 'Gửi Thông báo',
+                href: '/manager/emails/notifications/send',
+                icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                ),
+            },
+            {
+                name: 'Lịch sử Email',
+                href: '/manager/emails/history',
+                icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                ),
+            },
+        ],
+    };
+
     const adminOnlyItems = [
         {
             name: 'Quản lý lớp học',
@@ -120,15 +164,6 @@ const ManagerLayout: React.FC<ManagerLayoutProps> = ({ children }) => {
             icon: (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-            ),
-        },
-        {
-            name: 'Quản lý sinh viên',
-            href: '/admin/students',
-            icon: (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
             ),
         },
@@ -150,33 +185,14 @@ const ManagerLayout: React.FC<ManagerLayoutProps> = ({ children }) => {
                 </svg>
             ),
         },
-        {
-            name: 'Báo cáo thống kê',
-            href: '/admin/reports',
-            icon: (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-            ),
-        },
-        {
-            name: 'Thống kê hệ thống',
-            href: '/admin/statistics',
-            icon: (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-            ),
-        },
     ];
 
     return (
         <div className="min-h-screen bg-gray-50 flex">
             {/* Sidebar */}
             <aside
-                className={`bg-[#001C44] text-white transition-all duration-300 ease-in-out ${
-                    sidebarOpen ? 'w-64' : 'w-20'
-                } fixed h-screen z-30`}
+                className={`bg-[#001C44] text-white transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-64' : 'w-20'
+                    } fixed h-screen z-30`}
             >
                 <div className="flex flex-col h-full">
                     {/* Logo/Brand */}
@@ -209,11 +225,10 @@ const ManagerLayout: React.FC<ManagerLayoutProps> = ({ children }) => {
                                     <li key={item.name}>
                                         <Link
                                             to={item.href}
-                                            className={`sidebar-link flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                                                active
-                                                    ? 'bg-[#FFD66D] bg-opacity-20 text-[#FFD66D] border-l-4 border-[#FFD66D]'
-                                                    : 'text-gray-300 hover:bg-[#002A66] hover:text-white border-l-4 border-transparent'
-                                            }`}
+                                            className={`sidebar-link flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${active
+                                                ? 'bg-[#FFD66D] bg-opacity-20 text-[#FFD66D] border-l-4 border-[#FFD66D]'
+                                                : 'text-gray-300 hover:bg-[#002A66] hover:text-white border-l-4 border-transparent'
+                                                }`}
                                         >
                                             <span className={`${sidebarOpen ? 'mr-3' : 'mx-auto'}`}>{item.icon}</span>
                                             {sidebarOpen && <span>{item.name}</span>}
@@ -230,15 +245,22 @@ const ManagerLayout: React.FC<ManagerLayoutProps> = ({ children }) => {
                                 sidebarOpen={sidebarOpen}
                             />
 
+                            {/* Email & Notification Submenu */}
+                            <Submenu
+                                title={emailNotificationSubmenu.title}
+                                icon={emailNotificationSubmenu.icon}
+                                items={emailNotificationSubmenu.items}
+                                sidebarOpen={sidebarOpen}
+                            />
+
                             {/* Common Manager Items */}
                             <li>
                                 <Link
                                     to="/manager/registrations"
-                                    className={`sidebar-link flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                                        isActive('/manager/registrations')
-                                            ? 'bg-[#FFD66D] bg-opacity-20 text-[#FFD66D] border-l-4 border-[#FFD66D]'
-                                            : 'text-gray-300 hover:bg-[#002A66] hover:text-white border-l-4 border-transparent'
-                                    }`}
+                                    className={`sidebar-link flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${isActive('/manager/registrations')
+                                        ? 'bg-[#FFD66D] bg-opacity-20 text-[#FFD66D] border-l-4 border-[#FFD66D]'
+                                        : 'text-gray-300 hover:bg-[#002A66] hover:text-white border-l-4 border-transparent'
+                                        }`}
                                 >
                                     <span className={`${sidebarOpen ? 'mr-3' : 'mx-auto'}`}>
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -252,11 +274,10 @@ const ManagerLayout: React.FC<ManagerLayoutProps> = ({ children }) => {
                             <li>
                                 <Link
                                     to="/manager/scores"
-                                    className={`sidebar-link flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                                        isActive('/manager/scores')
-                                            ? 'bg-[#FFD66D] bg-opacity-20 text-[#FFD66D] border-l-4 border-[#FFD66D]'
-                                            : 'text-gray-300 hover:bg-[#002A66] hover:text-white border-l-4 border-transparent'
-                                    }`}
+                                    className={`sidebar-link flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${isActive('/manager/scores')
+                                        ? 'bg-[#FFD66D] bg-opacity-20 text-[#FFD66D] border-l-4 border-[#FFD66D]'
+                                        : 'text-gray-300 hover:bg-[#002A66] hover:text-white border-l-4 border-transparent'
+                                        }`}
                                 >
                                     <span className={`${sidebarOpen ? 'mr-3' : 'mx-auto'}`}>
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -270,11 +291,10 @@ const ManagerLayout: React.FC<ManagerLayoutProps> = ({ children }) => {
                             <li>
                                 <Link
                                     to="/admin/statistics"
-                                    className={`sidebar-link flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                                        isActive('/admin/statistics')
-                                            ? 'bg-[#FFD66D] bg-opacity-20 text-[#FFD66D] border-l-4 border-[#FFD66D]'
-                                            : 'text-gray-300 hover:bg-[#002A66] hover:text-white border-l-4 border-transparent'
-                                    }`}
+                                    className={`sidebar-link flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${isActive('/admin/statistics')
+                                        ? 'bg-[#FFD66D] bg-opacity-20 text-[#FFD66D] border-l-4 border-[#FFD66D]'
+                                        : 'text-gray-300 hover:bg-[#002A66] hover:text-white border-l-4 border-transparent'
+                                        }`}
                                 >
                                     <span className={`${sidebarOpen ? 'mr-3' : 'mx-auto'}`}>
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -292,11 +312,10 @@ const ManagerLayout: React.FC<ManagerLayoutProps> = ({ children }) => {
                                     <li key={item.name}>
                                         <Link
                                             to={item.href}
-                                            className={`sidebar-link flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                                                active
-                                                    ? 'bg-[#FFD66D] bg-opacity-20 text-[#FFD66D] border-l-4 border-[#FFD66D]'
-                                                    : 'text-gray-300 hover:bg-[#002A66] hover:text-white border-l-4 border-transparent'
-                                            }`}
+                                            className={`sidebar-link flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${active
+                                                ? 'bg-[#FFD66D] bg-opacity-20 text-[#FFD66D] border-l-4 border-[#FFD66D]'
+                                                : 'text-gray-300 hover:bg-[#002A66] hover:text-white border-l-4 border-transparent'
+                                                }`}
                                         >
                                             <span className={`${sidebarOpen ? 'mr-3' : 'mx-auto'}`}>{item.icon}</span>
                                             {sidebarOpen && <span>{item.name}</span>}
