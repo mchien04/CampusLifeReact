@@ -252,8 +252,29 @@ const StudentDashboard: React.FC = () => {
                                     ) : (
                                         upcomingEvents.map((event) => {
                                             const registrationStatus = registrationStatuses.get(event.id);
-                                            const isRegistered = registrationStatus === RegistrationStatus.APPROVED || registrationStatus === RegistrationStatus.PENDING;
-                                            const canRegister = !isRegistered;
+                                            // Đã đăng ký nếu có status APPROVED, PENDING, hoặc ATTENDED
+                                            const isRegistered = registrationStatus === RegistrationStatus.APPROVED || 
+                                                                registrationStatus === RegistrationStatus.PENDING ||
+                                                                registrationStatus === RegistrationStatus.ATTENDED;
+                                            
+                                            // Kiểm tra có thể đăng ký: trong thời gian đăng ký và chưa đăng ký
+                                            const canRegister = (() => {
+                                                if (isRegistered) return false; // Đã đăng ký rồi
+                                                
+                                                const now = new Date();
+                                                const registrationStartDate = event.registrationStartDate ? new Date(event.registrationStartDate) : null;
+                                                const registrationDeadline = event.registrationDeadline ? new Date(event.registrationDeadline) : null;
+                                                
+                                                // Kiểm tra thời gian đăng ký
+                                                if (registrationStartDate && now < registrationStartDate) {
+                                                    return false; // Chưa đến thời gian mở đăng ký
+                                                }
+                                                if (registrationDeadline && now > registrationDeadline) {
+                                                    return false; // Đã hết hạn đăng ký
+                                                }
+                                                
+                                                return true; // Trong thời gian đăng ký
+                                            })();
 
                                             return (
                                                 <div key={event.id} className="border border-gray-200 rounded-lg p-4">

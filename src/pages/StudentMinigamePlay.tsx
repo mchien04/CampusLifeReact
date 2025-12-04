@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { minigameAPI } from '../services/minigameAPI';
 import { eventAPI } from '../services/eventAPI';
+import { registrationAPI } from '../services/registrationAPI';
 import { MiniGame, StartAttemptResponse, SubmitAttemptResponse, QuestionWithoutAnswer, AttemptDetailResponse } from '../types/minigame';
 import { ActivityResponse } from '../types/activity';
+import { RegistrationStatus } from '../types/registration';
 import { LoadingSpinner } from '../components/common';
 import { QuizPlayer, QuizResults } from '../components/minigame';
 import StudentLayout from '../components/layout/StudentLayout';
@@ -24,12 +26,26 @@ const StudentMinigamePlay: React.FC = () => {
     const [questions, setQuestions] = useState<QuestionWithoutAnswer[]>([]);
     const [loadingQuestions, setLoadingQuestions] = useState(false);
     const [attemptDetail, setAttemptDetail] = useState<AttemptDetailResponse | null>(null);
+    const [attemptCount, setAttemptCount] = useState<number>(0);
+    const [isRegistered, setIsRegistered] = useState<boolean>(false);
 
     useEffect(() => {
         if (activityId) {
             loadMinigame();
         }
     }, [activityId]);
+
+    const loadAttemptCount = async () => {
+        if (!minigame) return;
+        try {
+            const attemptsResponse = await minigameAPI.getMyAttempts(minigame.id);
+            if (attemptsResponse.status && attemptsResponse.data) {
+                setAttemptCount(attemptsResponse.data.length);
+            }
+        } catch (err) {
+            console.error('Error loading attempt count:', err);
+        }
+    };
 
     const loadMinigame = async () => {
         if (!activityId) {
@@ -48,6 +64,41 @@ const StudentMinigamePlay: React.FC = () => {
                 setActivity(activityResponse.data);
                 console.log('loadMinigame: Activity loaded:', activityResponse.data.id);
 
+                // Check registration status
+                try {
+                    const activityId = activityResponse.data.id;
+                    const registrationData = await registrationAPI.checkRegistrationStatus(activityId);
+                    if (registrationData) {
+                        // Với MINIGAME, ATTENDED cũng được coi là đã đăng ký (cho phép làm quiz lại)
+                        const registered = registrationData.status === RegistrationStatus.APPROVED || 
+                                         registrationData.status === RegistrationStatus.PENDING ||
+                                         registrationData.status === RegistrationStatus.ATTENDED;
+                        setIsRegistered(registered);
+                        if (!registered) {
+                            toast.error('Bạn cần đăng ký sự kiện trước khi làm quiz');
+                            setTimeout(() => {
+                                navigate(`/student/events/${activityId}`);
+                            }, 2000);
+                            return;
+                        }
+                    } else {
+                        setIsRegistered(false);
+                        toast.error('Bạn cần đăng ký sự kiện trước khi làm quiz');
+                        setTimeout(() => {
+                            navigate(`/student/events/${activityId}`);
+                        }, 2000);
+                        return;
+                    }
+                } catch (regErr) {
+                    console.error('Error checking registration:', regErr);
+                    setIsRegistered(false);
+                    toast.error('Không thể kiểm tra trạng thái đăng ký');
+                    setTimeout(() => {
+                        navigate('/student/minigames');
+                    }, 2000);
+                    return;
+                }
+
                 console.log('loadMinigame: Loading minigame by activity...');
                 const minigameResponse = await minigameAPI.getMiniGameByActivity(parseInt(activityId));
                 console.log('loadMinigame: Minigame response:', minigameResponse);
@@ -55,6 +106,11 @@ const StudentMinigamePlay: React.FC = () => {
                 if (minigameResponse.status && minigameResponse.data) {
                     setMinigame(minigameResponse.data);
                     console.log('loadMinigame: Minigame loaded successfully:', minigameResponse.data.id);
+                    // Load attempt count after minigame is loaded
+                    const attemptsResponse = await minigameAPI.getMyAttempts(minigameResponse.data.id);
+                    if (attemptsResponse.status && attemptsResponse.data) {
+                        setAttemptCount(attemptsResponse.data.length);
+                    }
                 } else {
                     console.error('loadMinigame: Failed to load minigame:', minigameResponse);
                     setError(minigameResponse.message || 'Không tìm thấy quiz cho activity này. Vui lòng liên hệ quản trị viên để tạo quiz.');
@@ -76,6 +132,17 @@ const StudentMinigamePlay: React.FC = () => {
         if (!minigame) {
             console.error('handleStart: minigame is null');
             toast.error('Không tìm thấy thông tin quiz');
+            return;
+        }
+
+        // Kiểm tra lại registration status trước khi start
+        if (!isRegistered) {
+            toast.error('Bạn cần đăng ký sự kiện trước khi làm quiz');
+            if (activity) {
+                navigate(`/student/events/${activity.id}`);
+            } else {
+                navigate('/student/minigames');
+            }
             return;
         }
 
@@ -112,13 +179,27 @@ const StudentMinigamePlay: React.FC = () => {
                 console.log('handleStart: Attempt started successfully, attemptId:', newAttemptId);
             } else {
                 console.error('handleStart: Failed to start attempt', response);
-                toast.error(response.message || 'Không thể bắt đầu quiz');
-                setError('Không thể bắt đầu quiz');
+                const errorMessage = response.message || 'Không thể bắt đầu quiz';
+                // Check if error is about maxAttempts
+                if (errorMessage.includes('đạt số lần làm quiz tối đa') || errorMessage.includes('maxAttempts')) {
+                    toast.error(errorMessage);
+                    setError(errorMessage);
+                } else {
+                    toast.error(errorMessage);
+                    setError('Không thể bắt đầu quiz');
+                }
             }
         } catch (err: any) {
             console.error('handleStart: Exception in flow', err);
-            toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi bắt đầu quiz');
-            setError('Có lỗi xảy ra khi bắt đầu quiz');
+            const errorMessage = err.response?.data?.message || 'Có lỗi xảy ra khi bắt đầu quiz';
+            // Check if error is about maxAttempts
+            if (errorMessage.includes('đạt số lần làm quiz tối đa') || errorMessage.includes('maxAttempts')) {
+                toast.error(errorMessage);
+                setError(errorMessage);
+            } else {
+                toast.error(errorMessage);
+                setError('Có lỗi xảy ra khi bắt đầu quiz');
+            }
         } finally {
             setLoadingQuestions(false);
         }
@@ -159,6 +240,14 @@ const StudentMinigamePlay: React.FC = () => {
                 
                 setShowResults(true);
                 console.log('handleSubmit: Show results set to true');
+                
+                // Reload attempt count after submission
+                if (minigame) {
+                    const attemptsResponse = await minigameAPI.getMyAttempts(minigame.id);
+                    if (attemptsResponse.status && attemptsResponse.data) {
+                        setAttemptCount(attemptsResponse.data.length);
+                    }
+                }
                 
                 // Show success message if passed (status is now a string)
                 if (response.data.status === 'PASSED' && response.data.pointsEarned) {
@@ -389,6 +478,7 @@ const StudentMinigamePlay: React.FC = () => {
                     attemptDetail={attemptDetail || undefined}
                     onClose={handleCloseResults}
                     onRetry={handleRetry}
+                    attemptCount={attemptCount}
                 />
             ) : loadingQuestions ? (
                 <div className="flex items-center justify-center min-h-[60vh]">

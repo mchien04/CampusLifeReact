@@ -406,9 +406,13 @@ const StudentTasks: React.FC = () => {
 
                                                 <button
                                                     onClick={() => openSubmissionModal(assignment)}
-                                                    className="btn-primary px-4 py-2 text-sm font-medium"
+                                                    className="btn-primary px-4 py-2 text-sm font-medium rounded-md"
                                                 >
-                                                    {mySubmission ? 'Xem/Sửa bài nộp' : 'Nộp bài'}
+                                                    {mySubmission 
+                                                        ? (mySubmission.status === 'GRADED' || mySubmission.isCompleted !== null || mySubmission.gradedAt !== null)
+                                                            ? 'Xem bài nộp'
+                                                            : 'Xem/Sửa bài nộp'
+                                                        : 'Nộp bài'}
                                                 </button>
                                             </div>
                                         </div>
@@ -486,7 +490,12 @@ const StudentTasks: React.FC = () => {
                                     rows={5}
                                     value={submissionContent}
                                     onChange={(e) => setSubmissionContent(e.target.value)}
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
+                                    disabled={!!(currentSubmission && (currentSubmission.status === 'GRADED' || currentSubmission.isCompleted !== null || currentSubmission.gradedAt !== null))}
+                                    className={`mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors ${
+                                        currentSubmission && (currentSubmission.status === 'GRADED' || currentSubmission.isCompleted !== null || currentSubmission.gradedAt !== null)
+                                            ? 'bg-gray-100 cursor-not-allowed'
+                                            : ''
+                                    }`}
                                     placeholder="Nhập nội dung bài nộp của bạn..."
                                 ></textarea>
                             </div>
@@ -497,7 +506,12 @@ const StudentTasks: React.FC = () => {
                                     id="submissionFiles"
                                     multiple
                                     onChange={handleFileChange}
-                                    className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#001C44] file:text-[#FFD66D] hover:file:bg-[#002A66] transition-colors"
+                                    disabled={!!(currentSubmission && (currentSubmission.status === 'GRADED' || currentSubmission.isCompleted !== null || currentSubmission.gradedAt !== null))}
+                                    className={`mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#001C44] file:text-[#FFD66D] hover:file:bg-[#002A66] transition-colors ${
+                                        currentSubmission && (currentSubmission.status === 'GRADED' || currentSubmission.isCompleted !== null || currentSubmission.gradedAt !== null)
+                                            ? 'opacity-50 cursor-not-allowed'
+                                            : ''
+                                    }`}
                                 />
                                 <p className="mt-1 text-xs text-gray-500">Cho phép nhiều file.</p>
                                 {submissionFilePreviews.length > 0 && (
@@ -579,7 +593,7 @@ const StudentTasks: React.FC = () => {
                                 </div>
                             )}
                             <div className="flex justify-end space-x-3">
-                                {currentSubmission && (
+                                {currentSubmission && (currentSubmission.status !== 'GRADED' && currentSubmission.isCompleted === null && currentSubmission.gradedAt === null) && (
                                     <button
                                         type="button"
                                         onClick={async () => {
@@ -615,15 +629,17 @@ const StudentTasks: React.FC = () => {
                                     onClick={closeSubmissionModal}
                                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
                                 >
-                                    Hủy
+                                    {currentSubmission && (currentSubmission.status === 'GRADED' || currentSubmission.isCompleted !== null || currentSubmission.gradedAt !== null) ? 'Đóng' : 'Hủy'}
                                 </button>
-                                <button
-                                    type="submit"
-                                    disabled={submissionLoading}
-                                    className="btn-primary px-4 py-2 text-sm font-medium disabled:opacity-50"
-                                >
-                                    {submissionLoading ? 'Đang lưu...' : (currentSubmission ? 'Cập nhật bài nộp' : 'Nộp bài')}
-                                </button>
+                                {!(currentSubmission && (currentSubmission.status === 'GRADED' || currentSubmission.isCompleted !== null || currentSubmission.gradedAt !== null)) && (
+                                    <button
+                                        type="submit"
+                                        disabled={submissionLoading}
+                                        className="btn-primary px-4 py-2 text-sm font-medium disabled:opacity-50"
+                                    >
+                                        {submissionLoading ? 'Đang lưu...' : (currentSubmission ? 'Cập nhật bài nộp' : 'Nộp bài')}
+                                    </button>
+                                )}
                             </div>
                         </form>
                     </div>

@@ -47,13 +47,22 @@ const StudentSeries: React.FC = () => {
 
         for (const s of seriesList) {
             try {
-                const progressResponse = await seriesAPI.getMySeriesProgress(s.id);
-                if (progressResponse.status && progressResponse.data) {
+                // Check registration status using new API
+                const [registrationResponse, progressResponse] = await Promise.all([
+                    seriesAPI.getMySeriesRegistrationStatus(s.id),
+                    seriesAPI.getMySeriesProgress(s.id)
+                ]);
+
+                if (registrationResponse.status && registrationResponse.data?.isRegistered) {
                     registeredIds.add(s.id);
+                }
+
+                if (progressResponse.status && progressResponse.data) {
                     progress.set(s.id, progressResponse.data);
                 }
             } catch (err) {
-                // Not registered or no progress yet
+                // Ignore errors per series; treat as not registered / no progress
+                // console.error('Error loading series registration/progress:', err);
             }
         }
 

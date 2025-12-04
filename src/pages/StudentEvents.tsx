@@ -204,8 +204,31 @@ const StudentEvents: React.FC = () => {
     const renderEventCard = (event: ActivityResponse) => {
         const registrationStatus = registrationStatuses.get(event.id);
         const eventStatus = getEventStatus(event);
-        const isRegistered = registrationStatus === RegistrationStatus.APPROVED || registrationStatus === RegistrationStatus.PENDING;
-        const canRegister = eventStatus === 'UPCOMING' && !isRegistered;
+        // Đã đăng ký nếu có status APPROVED, PENDING, hoặc ATTENDED
+        const isRegistered = registrationStatus === RegistrationStatus.APPROVED || 
+                            registrationStatus === RegistrationStatus.PENDING ||
+                            registrationStatus === RegistrationStatus.ATTENDED;
+        
+        // Kiểm tra có thể đăng ký: trong thời gian đăng ký và chưa đăng ký
+        const canRegister = (() => {
+            if (isRegistered) return false; // Đã đăng ký rồi (bao gồm cả ATTENDED)
+            
+            const now = new Date();
+            const registrationStartDate = event.registrationStartDate ? new Date(event.registrationStartDate) : null;
+            const registrationDeadline = event.registrationDeadline ? new Date(event.registrationDeadline) : null;
+            
+            // Kiểm tra thời gian đăng ký
+            if (registrationStartDate && now < registrationStartDate) {
+                return false; // Chưa đến thời gian mở đăng ký
+            }
+            if (registrationDeadline && now > registrationDeadline) {
+                return false; // Đã hết hạn đăng ký
+            }
+            
+            // Kiểm tra sự kiện chưa kết thúc
+            return eventStatus === 'UPCOMING' || eventStatus === 'ONGOING';
+        })();
+        
         const canCancel = isRegistered && eventStatus === 'UPCOMING' &&
             registrationStatus !== RegistrationStatus.APPROVED;
 
@@ -368,7 +391,9 @@ const StudentEvents: React.FC = () => {
                             </div>
                         )}
 
-                        {isRegistered && eventStatus === 'ONGOING' && (
+                        {/* Với sự kiện thường, khi đang diễn ra và đã đăng ký, cho phép vào nhanh để ghi nhận tham gia.
+                            Với MINIGAME, quiz sẽ tự lấy điểm nên không cần nút "Ghi nhận tham gia" ở danh sách. */}
+                        {isRegistered && eventStatus === 'ONGOING' && event.type !== ActivityType.MINIGAME && (
                             <Link
                                 to={`/student/events/${event.id}`}
                                 className="flex-1 min-w-[100px] bg-[#FFD66D] hover:bg-[#FFC947] text-[#001C44] text-center py-2 px-3 rounded-lg text-sm font-medium transition-all shadow-sm hover:shadow-md"

@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CreateMiniGameRequest, UpdateMiniGameRequest, CreateQuestionRequest, CreateOptionRequest } from '../../types/minigame';
 import { ActivityResponse } from '../../types/activity';
+import { uploadAPI } from '../../services/uploadAPI';
+import { getImageUrl } from '../../utils/imageUtils';
 
 interface QuizFormProps {
     activity: ActivityResponse;
@@ -28,18 +30,97 @@ const QuizForm: React.FC<QuizFormProps> = ({
             timeLimit: undefined,
             requiredCorrectAnswers: undefined,
             rewardPoints: undefined,
+            maxAttempts: null,
             questions: []
         };
 
-        return {
+        const merged = {
             ...defaultData,
             ...initialData,
             activityId: activity.id
         };
+        
+        // Ensure maxAttempts is properly set (can be null, undefined, or number)
+        if (initialData && 'maxAttempts' in initialData) {
+            merged.maxAttempts = initialData.maxAttempts ?? null;
+        }
+        
+        return merged;
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number | null>(null);
+    const [uploadingImages, setUploadingImages] = useState<Record<number, boolean>>({});
+    
+    // Convert seconds to MM:SS format
+    const secondsToTimeString = (seconds?: number): string => {
+        if (!seconds || seconds === 0) return '';
+        const minutes = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
+    
+    // Convert MM:SS format to seconds
+    const timeStringToSeconds = (timeString: string): number | undefined => {
+        if (!timeString || timeString.trim() === '') return undefined;
+        const parts = timeString.split(':');
+        if (parts.length === 2) {
+            const minutes = parseInt(parts[0]) || 0;
+            const seconds = parseInt(parts[1]) || 0;
+            return minutes * 60 + seconds;
+        }
+        return undefined;
+    };
+    
+    // Initialize timeLimit display value
+    const [timeLimitDisplay, setTimeLimitDisplay] = useState<string>(() => {
+        const timeLimit = initialData?.timeLimit;
+        if (timeLimit) {
+            return secondsToTimeString(timeLimit);
+        }
+        return '';
+    });
+    
+    // Update timeLimitDisplay when initialData changes (for edit mode)
+    useEffect(() => {
+        if (initialData?.timeLimit !== undefined) {
+            setTimeLimitDisplay(secondsToTimeString(initialData.timeLimit));
+        }
+    }, [initialData?.timeLimit]);
+    
+    // Sync formData when initialData changes (for edit mode when data loads asynchronously)
+    useEffect(() => {
+        if (initialData && Object.keys(initialData).length > 0) {
+            console.log('QuizForm - Syncing formData with initialData:', {
+                'initialData.maxAttempts': initialData.maxAttempts,
+                'initialData keys': Object.keys(initialData)
+            });
+            
+            setFormData(prev => {
+                const updated = {
+                    ...prev,
+                    ...initialData,
+                    activityId: activity.id // Always keep activityId from activity prop
+                };
+                // Ensure maxAttempts is properly set (can be null, undefined, or number)
+                if ('maxAttempts' in initialData) {
+                    updated.maxAttempts = initialData.maxAttempts !== undefined ? initialData.maxAttempts : null;
+                }
+                
+                console.log('QuizForm - Updated formData:', {
+                    'updated.maxAttempts': updated.maxAttempts,
+                    'type': typeof updated.maxAttempts
+                });
+                
+                return updated;
+            });
+            
+            // Also update timeLimitDisplay
+            if (initialData.timeLimit !== undefined) {
+                setTimeLimitDisplay(secondsToTimeString(initialData.timeLimit));
+            }
+        }
+    }, [initialData, activity.id]);
 
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -48,7 +129,7 @@ const QuizForm: React.FC<QuizFormProps> = ({
 
         setFormData(prev => ({
             ...prev,
-            [name]: type === 'number' ? (value ? parseFloat(value) : undefined) : value
+            [name]: type === 'number' ? (value ? (name === 'maxAttempts' ? parseInt(value) : parseFloat(value)) : (name === 'maxAttempts' ? null : undefined)) : value
         }));
 
         if (errors[name]) {
@@ -62,6 +143,7 @@ const QuizForm: React.FC<QuizFormProps> = ({
     const addQuestion = () => {
         const newQuestion: CreateQuestionRequest = {
             questionText: '',
+            imageUrl: null,
             options: [
                 { text: '', isCorrect: false },
                 { text: '', isCorrect: false },
@@ -77,6 +159,40 @@ const QuizForm: React.FC<QuizFormProps> = ({
         }));
 
         setCurrentQuestionIndex(formData.questions.length);
+    };
+
+    const handleImageUpload = async (questionIndex: number, file: File) => {
+        setUploadingImages(prev => ({ ...prev, [questionIndex]: true }));
+        try {
+            const uploadResponse = await uploadAPI.uploadImage(file);
+            if (uploadResponse.status && uploadResponse.data) {
+                const question = formData.questions[questionIndex];
+                updateQuestion(questionIndex, {
+                    ...question,
+                    imageUrl: uploadResponse.data.bannerUrl
+                });
+            } else {
+                setErrors(prev => ({
+                    ...prev,
+                    [`question_${questionIndex}_image`]: uploadResponse.message || 'Upload ảnh thất bại'
+                }));
+            }
+        } catch (error) {
+            setErrors(prev => ({
+                ...prev,
+                [`question_${questionIndex}_image`]: 'Có lỗi xảy ra khi upload ảnh'
+            }));
+        } finally {
+            setUploadingImages(prev => ({ ...prev, [questionIndex]: false }));
+        }
+    };
+
+    const handleRemoveImage = (questionIndex: number) => {
+        const question = formData.questions[questionIndex];
+        updateQuestion(questionIndex, {
+            ...question,
+            imageUrl: null
+        });
     };
 
     const updateQuestion = (index: number, question: CreateQuestionRequest) => {
@@ -205,18 +321,79 @@ const QuizForm: React.FC<QuizFormProps> = ({
 
                         <div>
                             <label htmlFor="timeLimit" className="block text-sm font-medium text-gray-700 mb-2">
-                                Thời gian giới hạn (giây)
+                                Thời gian giới hạn (phút:giây)
                             </label>
                             <input
-                                type="number"
+                                type="text"
                                 id="timeLimit"
                                 name="timeLimit"
-                                min="0"
-                                value={formData.timeLimit || ''}
-                                onChange={handleChange}
+                                value={timeLimitDisplay}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    // Allow only digits and colon
+                                    const cleaned = value.replace(/[^\d:]/g, '');
+                                    
+                                    // Format as MM:SS
+                                    let formatted = cleaned;
+                                    if (cleaned.length > 0 && !cleaned.includes(':')) {
+                                        // Auto-format: if user types "5", show "00:05", if "65", show "01:05"
+                                        if (cleaned.length <= 2) {
+                                            const num = parseInt(cleaned) || 0;
+                                            const mins = Math.floor(num / 60);
+                                            const secs = num % 60;
+                                            formatted = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                                        } else {
+                                            // More than 2 digits, treat as MMSS
+                                            const num = parseInt(cleaned) || 0;
+                                            const mins = Math.floor(num / 100);
+                                            const secs = num % 100;
+                                            formatted = `${Math.min(mins, 59).toString().padStart(2, '0')}:${Math.min(secs, 59).toString().padStart(2, '0')}`;
+                                        }
+                                    } else if (cleaned.includes(':')) {
+                                        // Already has colon, validate format
+                                        const parts = cleaned.split(':');
+                                        if (parts.length === 2) {
+                                            const mins = Math.min(parseInt(parts[0]) || 0, 59);
+                                            const secs = Math.min(parseInt(parts[1]) || 0, 59);
+                                            formatted = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                                        }
+                                    }
+                                    
+                                    setTimeLimitDisplay(formatted);
+                                    
+                                    // Convert to seconds and update formData
+                                    const seconds = timeStringToSeconds(formatted);
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        timeLimit: seconds
+                                    }));
+                                }}
+                                onBlur={(e) => {
+                                    // Ensure format is correct on blur
+                                    const seconds = timeStringToSeconds(e.target.value);
+                                    if (seconds !== undefined) {
+                                        const minutes = Math.floor(seconds / 60);
+                                        const secs = seconds % 60;
+                                        setTimeLimitDisplay(`${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
+                                    } else if (e.target.value.trim() === '') {
+                                        setTimeLimitDisplay('');
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            timeLimit: undefined
+                                        }));
+                                    }
+                                }}
+                                placeholder="00:00 hoặc để trống"
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
-                                placeholder="Không giới hạn"
                             />
+                            <p className="text-xs text-gray-500 mt-1">
+                                Nhập theo định dạng phút:giây (ví dụ: 05:30 = 5 phút 30 giây). Để trống nếu không giới hạn.
+                            </p>
+                            {formData.timeLimit && (
+                                <p className="text-xs text-blue-600 mt-1">
+                                    Tương đương: {formData.timeLimit} giây ({Math.floor(formData.timeLimit / 60)} phút {formData.timeLimit % 60} giây)
+                                </p>
+                            )}
                         </div>
 
                         <div>
@@ -248,6 +425,29 @@ const QuizForm: React.FC<QuizFormProps> = ({
                                 onChange={handleChange}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
                             />
+                        </div>
+
+                        <div>
+                            <label htmlFor="maxAttempts" className="block text-sm font-medium text-gray-700 mb-2">
+                                Số lần làm tối đa
+                            </label>
+                            <input
+                                type="number"
+                                id="maxAttempts"
+                                name="maxAttempts"
+                                min="1"
+                                value={formData.maxAttempts !== undefined && formData.maxAttempts !== null ? String(formData.maxAttempts) : ''}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        maxAttempts: value ? parseInt(value) : null
+                                    }));
+                                }}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
+                                placeholder="Không giới hạn (để trống)"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">Để trống nếu không giới hạn số lần làm</p>
                         </div>
                     </div>
 
@@ -313,6 +513,57 @@ const QuizForm: React.FC<QuizFormProps> = ({
                                             <p className="text-red-500 text-sm mt-1">
                                                 {errors[`question_${qIndex}_correct`]}
                                             </p>
+                                        )}
+                                    </div>
+
+                                    {/* Image Upload for Question */}
+                                    <div className="mb-4">
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Ảnh minh họa (tùy chọn)
+                                        </label>
+                                        {question.imageUrl ? (
+                                            <div className="space-y-2">
+                                                <div className="relative inline-block">
+                                                    <img
+                                                        src={getImageUrl(question.imageUrl) || ''}
+                                                        alt="Question illustration"
+                                                        className="max-w-full h-auto max-h-48 rounded-lg border border-gray-300"
+                                                        onError={(e) => {
+                                                            (e.target as HTMLImageElement).style.display = 'none';
+                                                        }}
+                                                    />
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveImage(qIndex)}
+                                                    className="text-sm text-red-600 hover:text-red-800 font-medium"
+                                                >
+                                                    Xóa ảnh
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                            handleImageUpload(qIndex, file);
+                                                        }
+                                                    }}
+                                                    disabled={uploadingImages[qIndex]}
+                                                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#001C44] file:text-white hover:file:bg-[#002A66] disabled:opacity-50"
+                                                />
+                                                {uploadingImages[qIndex] && (
+                                                    <p className="text-sm text-gray-500 mt-1">Đang upload...</p>
+                                                )}
+                                                {errors[`question_${qIndex}_image`] && (
+                                                    <p className="text-red-500 text-sm mt-1">
+                                                        {errors[`question_${qIndex}_image`]}
+                                                    </p>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
 

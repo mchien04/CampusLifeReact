@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { eventAPI } from '../services/eventAPI';
 import { minigameAPI } from '../services/minigameAPI';
+import { registrationAPI } from '../services/registrationAPI';
 import { ActivityResponse, ActivityType } from '../types/activity';
 import { MiniGame } from '../types/minigame';
+import { RegistrationStatus } from '../types/registration';
 import { LoadingSpinner } from '../components/common';
 import { QuizCard } from '../components/minigame';
 import StudentLayout from '../components/layout/StudentLayout';
@@ -15,6 +17,8 @@ const StudentMinigame: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [attemptsMap, setAttemptsMap] = useState<Map<number, boolean>>(new Map());
+    const [attemptCountsMap, setAttemptCountsMap] = useState<Map<number, number>>(new Map());
+    const [registrationStatuses, setRegistrationStatuses] = useState<Map<number, RegistrationStatus | null>>(new Map());
 
     useEffect(() => {
         loadMinigames();
@@ -34,6 +38,19 @@ const StudentMinigame: React.FC = () => {
 
                 for (const activity of minigameActivities) {
                     try {
+                        // Load registration status for this activity
+                        let registrationStatus: RegistrationStatus | null = null;
+                        try {
+                            const registrationData = await registrationAPI.checkRegistrationStatus(activity.id);
+                            if (registrationData) {
+                                registrationStatus = registrationData.status;
+                            }
+                        } catch (regErr) {
+                            console.warn(`Error checking registration for activity ${activity.id}:`, regErr);
+                            // Continue without registration status
+                        }
+                        setRegistrationStatuses(prev => new Map(prev.set(activity.id, registrationStatus)));
+
                         const minigameResponse = await minigameAPI.getMiniGameByActivity(activity.id);
                         if (minigameResponse.status && minigameResponse.data) {
                             minigameData.push({
@@ -41,10 +58,14 @@ const StudentMinigame: React.FC = () => {
                                 activity
                             });
 
-                            // Check if student has attempts
+                            // Check if student has attempts and count them
                             const attemptsResponse = await minigameAPI.getMyAttempts(minigameResponse.data.id);
-                            if (attemptsResponse.status && attemptsResponse.data && attemptsResponse.data.length > 0) {
-                                setAttemptsMap(prev => new Map(prev.set(activity.id, true)));
+                            if (attemptsResponse.status && attemptsResponse.data) {
+                                const attemptCount = attemptsResponse.data.length;
+                                if (attemptCount > 0) {
+                                    setAttemptsMap(prev => new Map(prev.set(activity.id, true)));
+                                }
+                                setAttemptCountsMap(prev => new Map(prev.set(activity.id, attemptCount)));
                             }
                         }
                     } catch (err) {
@@ -144,15 +165,25 @@ const StudentMinigame: React.FC = () => {
                             </p>
                         </div>
                     ) : (
-                        filteredMinigames.map(({ minigame, activity }) => (
-                            <QuizCard
-                                key={minigame.id}
-                                minigame={minigame}
-                                activity={activity}
-                                onStart={handleStart}
-                                hasAttempts={attemptsMap.get(activity.id) || false}
-                            />
-                        ))
+                        filteredMinigames.map(({ minigame, activity }) => {
+                            const registrationStatus = registrationStatuses.get(activity.id);
+                            // Với MINIGAME, ATTENDED cũng được coi là đã đăng ký (cho phép làm quiz lại)
+                            const isRegistered = registrationStatus === RegistrationStatus.APPROVED || 
+                                                registrationStatus === RegistrationStatus.PENDING ||
+                                                registrationStatus === RegistrationStatus.ATTENDED;
+                            
+                            return (
+                                <QuizCard
+                                    key={minigame.id}
+                                    minigame={minigame}
+                                    activity={activity}
+                                    onStart={handleStart}
+                                    hasAttempts={attemptsMap.get(activity.id) || false}
+                                    attemptCount={attemptCountsMap.get(activity.id) || 0}
+                                    isRegistered={isRegistered}
+                                />
+                            );
+                        })
                     )}
                 </div>
             </div>

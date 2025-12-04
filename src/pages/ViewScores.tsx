@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { scoresAPI } from '../services/scoresAPI';
-import { ScoreType, ScoreTypeSummary } from '../types/score';
+import { ScoreType, ScoreTypeSummary, ScoreHistoryViewResponse, getSourceTypeLabel, getSourceTypeColor, formatScore, formatDateTime } from '../types/score';
 import { useAuth } from '../contexts/AuthContext';
 import { academicPublicAPI } from '../services/academicPublicAPI';
 import { studentAPI } from '../services/studentAPI';
@@ -16,6 +17,9 @@ const ViewScores: React.FC = () => {
     const [yearId, setYearId] = useState<string>('');
     const [years, setYears] = useState<Array<{ id: number; name: string }>>([]);
     const [scoreType, setScoreType] = useState<'ALL' | ScoreType>('ALL');
+    const [activeTab, setActiveTab] = useState<'overview' | 'history'>('overview');
+    const [historyPage, setHistoryPage] = useState(0);
+    const historyPageSize = 20;
 
     useEffect(() => {
         // Get student id
@@ -67,10 +71,58 @@ const ViewScores: React.FC = () => {
         return data.summaries.filter(s => s.scoreType === scoreType);
     }, [data, scoreType]);
 
+    // Query for score history
+    const { data: historyData, isFetching: isHistoryFetching, isError: isHistoryError } = useQuery({
+        enabled: Boolean(semesterId && studentId && activeTab === 'history'),
+        queryKey: ['scoreHistory', studentId, semesterId, scoreType, historyPage],
+        queryFn: async () => {
+            const response = await scoresAPI.getScoreHistory({
+                studentId: Number(studentId),
+                semesterId: Number(semesterId),
+                scoreType: scoreType === 'ALL' ? null : scoreType,
+                page: historyPage,
+                size: historyPageSize,
+            });
+            if (!response.status || !response.data) {
+                throw new Error(response.message || 'Không lấy được lịch sử điểm');
+            }
+            return response.data;
+        },
+    });
+
     return (
         <StudentLayout>
             <div className="max-w-4xl mx-auto space-y-6">
                 <h1 className="text-2xl font-bold text-[#001C44]">Bảng điểm học kỳ</h1>
+                
+                {/* Tabs */}
+                <div className="border-b border-gray-200">
+                    <nav className="-mb-px flex space-x-8">
+                        <button
+                            onClick={() => setActiveTab('overview')}
+                            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                                activeTab === 'overview'
+                                    ? 'border-[#001C44] text-[#001C44]'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            }`}
+                        >
+                            Tổng quan
+                        </button>
+                        <button
+                            onClick={() => {
+                                setActiveTab('history');
+                                setHistoryPage(0);
+                            }}
+                            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                                activeTab === 'history'
+                                    ? 'border-[#001C44] text-[#001C44]'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            }`}
+                        >
+                            Lịch sử chi tiết
+                        </button>
+                    </nav>
+                </div>
                 
                 {/* Filters */}
                 <div className="card p-6">
@@ -120,7 +172,7 @@ const ViewScores: React.FC = () => {
                 </div>
 
                 {/* Loading State */}
-                {isFetching && (
+                {((activeTab === 'overview' && isFetching) || (activeTab === 'history' && isHistoryFetching)) && (
                     <div className="flex items-center justify-center py-8">
                         <div className="text-center">
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#001C44] mx-auto"></div>
@@ -130,7 +182,7 @@ const ViewScores: React.FC = () => {
                 )}
 
                 {/* Error State */}
-                {isError && (
+                {((activeTab === 'overview' && isError) || (activeTab === 'history' && isHistoryError)) && (
                     <div className="card p-6">
                         <div className="text-center">
                             <div className="text-red-500 text-4xl mb-2">⚠️</div>
@@ -139,6 +191,9 @@ const ViewScores: React.FC = () => {
                     </div>
                 )}
 
+                {/* Overview Tab */}
+                {activeTab === 'overview' && (
+                <>
                 {/* Scores List */}
                 {Array.isArray(summaries) && summaries.length > 0 && (
                     <div className="space-y-4">
@@ -184,6 +239,168 @@ const ViewScores: React.FC = () => {
                     <div className="card p-8 text-center">
                         <div className="text-gray-400 text-6xl mb-4">📊</div>
                         <p className="text-gray-600 text-lg">Không có dữ liệu điểm cho học kỳ này.</p>
+                    </div>
+                )}
+                </>
+                )}
+
+                {/* History Tab */}
+                {activeTab === 'history' && historyData && (
+                    <div className="space-y-6">
+                        {/* Current Score */}
+                        <div className="card p-6 bg-gradient-to-r from-[#001C44] to-[#002A66] text-white">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <p className="text-sm opacity-90">Điểm hiện tại</p>
+                                    <p className="text-3xl font-bold mt-1">{formatScore(historyData.currentScore)}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-sm opacity-90">{historyData.semesterName}</p>
+                                    <p className="text-sm opacity-90 mt-1">
+                                        {historyData.scoreType 
+                                            ? (historyData.scoreType === 'REN_LUYEN' ? 'Điểm rèn luyện' :
+                                               historyData.scoreType === 'CONG_TAC_XA_HOI' ? 'Điểm công tác xã hội' :
+                                               'Điểm chuyên đề doanh nghiệp')
+                                            : 'Tất cả loại điểm'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Score Histories */}
+                        {historyData.scoreHistories && historyData.scoreHistories.length > 0 && (
+                            <div className="card p-6">
+                                <h2 className="text-xl font-semibold text-[#001C44] mb-4">Lịch sử thay đổi điểm</h2>
+                                <div className="space-y-4">
+                                    {historyData.scoreHistories.map((history) => (
+                                        <div key={history.id} className="border-l-4 border-[#001C44] pl-4 py-2 bg-gray-50 rounded-r">
+                                            <div className="flex justify-between items-start">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <span className={`px-2 py-1 rounded text-xs font-medium border ${getSourceTypeColor(history.sourceType)}`}>
+                                                            {getSourceTypeLabel(history.sourceType)}
+                                                        </span>
+                                                        <span className="text-sm text-gray-600">
+                                                            {formatDateTime(history.changeDate)}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-sm text-gray-700 mb-1">{history.reason}</p>
+                                                    {history.activityName && (
+                                                        <p className="text-sm text-gray-600">
+                                                            Hoạt động: {history.activityId ? (
+                                                                <Link to={`/student/events/${history.activityId}`} className="text-[#001C44] hover:underline">
+                                                                    {history.activityName}
+                                                                </Link>
+                                                            ) : (
+                                                                history.activityName
+                                                            )}
+                                                        </p>
+                                                    )}
+                                                    {history.seriesName && (
+                                                        <p className="text-sm text-gray-600">
+                                                            Chuỗi sự kiện: {history.seriesName}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <div className="text-right ml-4">
+                                                    <div className="text-sm text-gray-600">Điểm cũ</div>
+                                                    <div className="text-lg font-semibold text-gray-500">{formatScore(history.oldScore)}</div>
+                                                    <div className="text-2xl font-bold text-[#001C44] mt-1">→</div>
+                                                    <div className="text-sm text-gray-600 mt-1">Điểm mới</div>
+                                                    <div className="text-lg font-semibold text-[#001C44]">{formatScore(history.newScore)}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Activity Participations */}
+                        {historyData.activityParticipations && historyData.activityParticipations.length > 0 && (
+                            <div className="card p-6">
+                                <h2 className="text-xl font-semibold text-[#001C44] mb-4">Chi tiết tham gia hoạt động</h2>
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Hoạt động</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Loại</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Chuỗi sự kiện</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Điểm</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Ngày</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Nguồn</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                            {historyData.activityParticipations.map((participation) => (
+                                                <tr key={participation.id} className="hover:bg-gray-50">
+                                                    <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                                        {participation.activityId && participation.activityName ? (
+                                                            <Link to={`/student/events/${participation.activityId}`} className="text-[#001C44] hover:underline">
+                                                                {participation.activityName}
+                                                            </Link>
+                                                        ) : (
+                                                            <span className="text-gray-500">-</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                                        {participation.activityType || '-'}
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                                        {participation.seriesName || '-'}
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-[#001C44]">
+                                                        {formatScore(participation.pointsEarned)}
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                                        {formatDateTime(participation.date)}
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                        <span className={`px-2 py-1 rounded text-xs font-medium border ${getSourceTypeColor(participation.sourceType)}`}>
+                                                            {getSourceTypeLabel(participation.sourceType)}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Empty State for History */}
+                        {(!historyData.scoreHistories || historyData.scoreHistories.length === 0) && 
+                         (!historyData.activityParticipations || historyData.activityParticipations.length === 0) && 
+                         !isHistoryFetching && !isHistoryError && (
+                            <div className="card p-8 text-center">
+                                <div className="text-gray-400 text-6xl mb-4">📊</div>
+                                <p className="text-gray-600 text-lg">Không có lịch sử điểm cho học kỳ này.</p>
+                            </div>
+                        )}
+
+                        {/* Pagination */}
+                        {historyData.totalPages > 1 && (
+                            <div className="flex justify-center items-center gap-2">
+                                <button
+                                    onClick={() => setHistoryPage(p => Math.max(0, p - 1))}
+                                    disabled={historyPage === 0}
+                                    className="px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                                >
+                                    Trước
+                                </button>
+                                <span className="px-4 py-2 text-sm text-gray-700">
+                                    Trang {historyPage + 1} / {historyData.totalPages}
+                                </span>
+                                <button
+                                    onClick={() => setHistoryPage(p => Math.min(historyData.totalPages - 1, p + 1))}
+                                    disabled={historyPage >= historyData.totalPages - 1}
+                                    className="px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                                >
+                                    Sau
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
