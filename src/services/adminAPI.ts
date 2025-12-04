@@ -23,14 +23,31 @@ export const departmentAPI = {
     getDepartments: async (): Promise<Response<Department[]>> => {
         try {
             const response = await api.get('/api/admin/departments');
+            console.log('Department API raw response:', response.data);
+            
+            // Handle different response formats
+            let departments: Department[] = [];
+            if (response.data) {
+                if (Array.isArray(response.data)) {
+                    departments = response.data;
+                } else if (response.data.body && Array.isArray(response.data.body)) {
+                    departments = response.data.body;
+                } else if (response.data.data && Array.isArray(response.data.data)) {
+                    departments = response.data.data;
+                } else if (response.data.content && Array.isArray(response.data.content)) {
+                    departments = response.data.content;
+                }
+            }
+            
             return {
-                status: response.data.status,
-                message: response.data.message,
-                data: response.data.body || response.data.data
+                status: response.data?.status !== false,
+                message: response.data?.message || 'Departments retrieved successfully',
+                data: departments
             };
         } catch (error: any) {
             console.error('Department API: getDepartments failed:', error);
-            return { status: false, message: 'Failed to fetch departments', data: [] };
+            const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch departments';
+            return { status: false, message: errorMessage, data: [] };
         }
     },
 

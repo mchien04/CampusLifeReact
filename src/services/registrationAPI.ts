@@ -68,6 +68,12 @@ export const registrationAPI = {
         const response = await api.post('/api/registrations/checkin', data);
         return response.data; // { status, message, body }
     },
+
+    checkInByQrCode: async (checkInCode: string): Promise<ApiResponse<ActivityParticipationResponse>> => {
+        const response = await api.post('/api/registrations/checkin/qr', { checkInCode });
+        return response.data; // { status, message, body }
+    },
+
     getParticipationReport: async (activityId: number) => {
         const token = localStorage.getItem("token");
         const res = await api.get(`/api/registrations/activities/${activityId}/report`, {

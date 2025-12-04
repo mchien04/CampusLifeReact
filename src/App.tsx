@@ -13,6 +13,7 @@ import StudentSeriesDetail from './pages/StudentSeriesDetail';
 import StudentMinigame from './pages/StudentMinigame';
 import StudentMinigamePlay from './pages/StudentMinigamePlay';
 import StudentMinigameHistory from './pages/StudentMinigameHistory';
+import QRCodeCheckIn from './pages/QRCodeCheckIn';
 import SeriesManagement from './pages/admin/SeriesManagement';
 import CreateSeries from './pages/admin/CreateSeries';
 import EditSeries from './pages/admin/EditSeries';
@@ -23,8 +24,6 @@ import CreateMinigameWizard from './pages/admin/CreateMinigameWizard';
 import EditQuiz from './pages/admin/EditQuiz';
 import AcademicYears from './pages/admin/AcademicYears';
 import Departments from './pages/admin/Departments';
-import Students from './pages/admin/Students';
-import Reports from './pages/admin/Reports';
 import Statistics from './pages/admin/Statistics';
 import UserManagement from './pages/admin/UserManagement';
 import StudentAccountManagement from './pages/admin/StudentAccountManagement';
@@ -39,6 +38,10 @@ import TaskSubmissionsRoute from './pages/TaskSubmissionsRoute';
 // Removed criteria-based TrainingScore page
 import ViewScores from './pages/ViewScores';
 import ManagerScores from './pages/ManagerScores';
+import SendEmail from './pages/admin/SendEmail';
+import SendNotification from './pages/admin/SendNotification';
+import EmailHistory from './pages/admin/EmailHistory';
+import EmailDetail from './pages/admin/EmailDetail';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -196,26 +199,8 @@ function App() {
                 }
               />
               {/* Removed /admin/criteria route */}
-              <Route
-                path="/admin/students"
-                element={
-                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
-                    <ManagerLayout>
-                      <Students />
-                    </ManagerLayout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/reports"
-                element={
-                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
-                    <ManagerLayout>
-                      <Reports />
-                    </ManagerLayout>
-                  </ProtectedRoute>
-                }
-              />
+              {/* Removed /admin/students route */}
+              {/* Removed /admin/reports route */}
               <Route
                 path="/admin/statistics"
                 element={
@@ -262,6 +247,46 @@ function App() {
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
                     <ManagerLayout>
                       <ClassManagement />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/emails/send"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <ManagerLayout>
+                      <SendEmail />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/emails/notifications/send"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <ManagerLayout>
+                      <SendNotification />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/emails/history"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <ManagerLayout>
+                      <EmailHistory />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/emails/history/:id"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <ManagerLayout>
+                      <EmailDetail />
                     </ManagerLayout>
                   </ProtectedRoute>
                 }
@@ -313,6 +338,14 @@ function App() {
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
                     <StudentMinigamePlay />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/student/qr-checkin"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
+                    <QRCodeCheckIn />
                   </ProtectedRoute>
                 }
               />

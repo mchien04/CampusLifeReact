@@ -32,7 +32,7 @@ const StudentSeriesDetail: React.FC = () => {
         try {
             setLoading(true);
             const seriesId = parseInt(id);
-            
+
             // Load series info and activities in parallel
             const [seriesResponse, activitiesResponse] = await Promise.all([
                 seriesAPI.getSeriesById(seriesId),
@@ -41,7 +41,7 @@ const StudentSeriesDetail: React.FC = () => {
 
             if (seriesResponse.status && seriesResponse.data) {
                 setSeries(seriesResponse.data);
-                await loadProgress(seriesResponse.data.id);
+                await loadRegistrationAndProgress(seriesResponse.data.id);
             } else {
                 setError(seriesResponse.message || 'Không thể tải thông tin chuỗi sự kiện');
             }
@@ -60,17 +60,30 @@ const StudentSeriesDetail: React.FC = () => {
         }
     };
 
-    const loadProgress = async (seriesId: number) => {
+    const loadRegistrationAndProgress = async (seriesId: number) => {
         try {
-            const progressResponse = await seriesAPI.getMySeriesProgress(seriesId);
-            if (progressResponse.status && progressResponse.data) {
-                setProgress(progressResponse.data);
-                setIsRegistered(true);
+            const [registrationResponse, progressResponse] = await Promise.all([
+                seriesAPI.getMySeriesRegistrationStatus(seriesId),
+                seriesAPI.getMySeriesProgress(seriesId)
+            ]);
+
+            // Update registration flag based on new API
+            if (registrationResponse.status && registrationResponse.data) {
+                setIsRegistered(registrationResponse.data.isRegistered);
             } else {
                 setIsRegistered(false);
             }
+
+            // Update progress info (may be undefined if chưa có)
+            if (progressResponse.status && progressResponse.data) {
+                setProgress(progressResponse.data);
+            } else {
+                setProgress(null);
+            }
         } catch (err) {
+            console.error('Error loading registration/progress:', err);
             setIsRegistered(false);
+            setProgress(null);
         }
     };
 
@@ -81,7 +94,7 @@ const StudentSeriesDetail: React.FC = () => {
             const response = await seriesAPI.registerForSeries(series.id);
             if (response.status) {
                 toast.success(response.message || 'Đăng ký thành công!');
-                await loadSeries();
+                await loadRegistrationAndProgress(series.id);
             } else {
                 toast.error(response.message || 'Đăng ký thất bại');
             }

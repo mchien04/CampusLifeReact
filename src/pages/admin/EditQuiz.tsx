@@ -49,16 +49,24 @@ const EditQuiz: React.FC = () => {
                 type: 'QUIZ' as any,
                 activityId: 0, // We'll get this from activity
                 requiredCorrectAnswers: editData.requiredCorrectAnswers,
-                rewardPoints: editData.rewardPoints
+                rewardPoints: editData.rewardPoints,
+                maxAttempts: editData.maxAttempts ?? null // Include maxAttempts from API response
             };
             setMinigame(minigameData);
 
             // Load activity - we need to get activityId from minigame list
+            // Also get maxAttempts from getAllMiniGames if not in editData
             const minigamesResponse = await minigameAPI.getAllMiniGames();
             if (minigamesResponse.status && minigamesResponse.data) {
                 const foundMinigame = minigamesResponse.data.find(m => m.id === parseInt(miniGameId));
                 if (foundMinigame) {
                     minigameData.activityId = foundMinigame.activityId;
+                    // Always use maxAttempts from getAllMiniGames (more reliable source)
+                    // editData.maxAttempts might not be included in the API response
+                    minigameData.maxAttempts = foundMinigame.maxAttempts ?? null;
+                    // Update minigame state with maxAttempts
+                    setMinigame({ ...minigameData });
+                    
                     // Load activity
                     const eventsResponse = await eventAPI.getEvents();
                     if (eventsResponse.status && eventsResponse.data) {
@@ -85,6 +93,7 @@ const EditQuiz: React.FC = () => {
             // Convert questions from edit format to CreateQuestionRequest format
             const convertedQuestions: CreateQuestionRequest[] = editData.questions.map(q => ({
                 questionText: q.questionText,
+                imageUrl: q.imageUrl ?? null, // Include imageUrl if available
                 options: q.options.map(opt => ({
                     text: opt.text,
                     isCorrect: opt.isCorrect
@@ -159,9 +168,18 @@ const EditQuiz: React.FC = () => {
         timeLimit: minigame.timeLimit,
         requiredCorrectAnswers: minigame.requiredCorrectAnswers,
         rewardPoints: minigame.rewardPoints,
+        maxAttempts: minigame.maxAttempts !== undefined ? minigame.maxAttempts : null,
         // Use loaded questions with correct answers
         questions: initialQuestions
     };
+    
+    // Debug log to check maxAttempts value
+    console.log('EditQuiz - Debug maxAttempts:', {
+        'minigame.maxAttempts': minigame.maxAttempts,
+        'initialData.maxAttempts': initialData.maxAttempts,
+        'hasMaxAttempts': 'maxAttempts' in minigame,
+        'minigame object': minigame
+    });
 
     return (
         <div className="min-h-screen bg-gray-50 py-8">

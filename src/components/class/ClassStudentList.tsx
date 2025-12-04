@@ -105,40 +105,53 @@ export const ClassStudentList: React.FC<ClassStudentListProps> = ({
 
     return (
         <>
-            <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-                <div className="relative top-10 mx-auto p-5 border w-4/5 max-w-6xl shadow-lg rounded-md bg-white">
-                    <div className="flex items-center justify-between mb-6">
-                        <div>
-                            <h3 className="text-lg font-medium text-gray-900">
-                                Danh sách sinh viên - {classData.className}
-                            </h3>
-                            <p className="text-sm text-gray-600">
-                                Khoa: {classData.department.name} | Tổng số: {students?.length || 0} sinh viên
-                            </p>
-                        </div>
-                        <div className="flex space-x-3">
-                            <button
-                                onClick={() => setShowAddModal(true)}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                + Thêm sinh viên
-                            </button>
-                            <button
-                                onClick={onClose}
-                                className="px-4 py-2 text-gray-600 hover:text-gray-900"
-                            >
-                                Đóng
-                            </button>
+            <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-start justify-center p-4">
+                <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-6xl my-8">
+                    {/* Header */}
+                    <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] px-6 py-4 rounded-t-xl">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                                <div className="w-10 h-10 bg-[#FFD66D] rounded-lg flex items-center justify-center mr-3">
+                                    <span className="text-2xl">👥</span>
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-white">
+                                        Danh sách sinh viên - {classData.className}
+                                    </h3>
+                                    <p className="text-sm text-gray-200 mt-0.5">
+                                        Khoa: {classData.department.name} | Tổng số: {students?.length || 0} sinh viên
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowAddModal(true)}
+                                    className="px-4 py-2 bg-[#FFD66D] text-[#001C44] rounded-lg hover:bg-[#FFE082] font-semibold transition-colors shadow-sm"
+                                >
+                                    + Thêm sinh viên
+                                </button>
+                                <button
+                                    onClick={onClose}
+                                    className="px-4 py-2 text-white hover:text-[#FFD66D] transition-colors"
+                                >
+                                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    {error && (
-                        <div className="mb-4 bg-red-50 border border-red-200 rounded-md p-4">
-                            <p className="text-sm text-red-600">{error}</p>
-                        </div>
-                    )}
+                    {/* Content */}
+                    <div className="p-6">
 
-                    <div className="overflow-x-auto">
+                        {error && (
+                            <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
+                                <p className="text-sm text-red-600">{error}</p>
+                            </div>
+                        )}
+
+                        <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
@@ -217,6 +230,7 @@ export const ClassStudentList: React.FC<ClassStudentListProps> = ({
                                 )}
                             </tbody>
                         </table>
+                        </div>
                     </div>
                 </div>
             </div>

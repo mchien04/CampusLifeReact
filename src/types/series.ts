@@ -100,6 +100,13 @@ export interface SeriesRegistrationResponse {
     data: any[]; // Array of ActivityRegistrationResponse
 }
 
+// Student registration status for a series
+export interface SeriesRegistrationStatus {
+    seriesId: number;
+    studentId: number;
+    isRegistered: boolean;
+}
+
 // Helper to parse milestone points
 export const parseMilestonePoints = (milestonePoints: string): Record<number, number> => {
     try {

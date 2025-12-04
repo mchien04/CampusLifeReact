@@ -8,7 +8,8 @@ import {
     CreateActivityInSeriesRequest,
     AddActivityToSeriesRequest,
     SeriesRegistrationResponse,
-    StudentSeriesProgress
+    StudentSeriesProgress,
+    SeriesRegistrationStatus
 } from '../types/series';
 import { ActivityResponse } from '../types/activity';
 
@@ -158,6 +159,31 @@ export const seriesAPI = {
                 status: false,
                 message: error.response?.data?.message || 'Có lỗi xảy ra khi đăng ký chuỗi sự kiện',
                 data: []
+            };
+        }
+    },
+
+    /**
+     * Get my registration status for a series (Student)
+     * Endpoint: GET /api/series/{seriesId}/registration/my
+     *
+     * Used to check whether the current student has registered for any activity in this series.
+     */
+    getMySeriesRegistrationStatus: async (seriesId: number): Promise<Response<SeriesRegistrationStatus>> => {
+        try {
+            const response = await api.get(`/api/series/${seriesId}/registration/my`);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Error fetching series registration status:', error);
+            // In case of error, treat as not registered but still return a valid response shape
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Không thể kiểm tra trạng thái đăng ký chuỗi sự kiện',
+                data: undefined
             };
         }
     },

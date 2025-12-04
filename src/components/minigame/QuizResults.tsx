@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { SubmitAttemptResponse, MiniGame, AttemptDetailResponse } from '../../types/minigame';
+import { getImageUrl } from '../../utils/imageUtils';
 
 interface QuizResultsProps {
     result: SubmitAttemptResponse;
@@ -7,13 +8,33 @@ interface QuizResultsProps {
     attemptDetail?: AttemptDetailResponse; // Optional: detailed attempt with correct answers
     onClose?: () => void;
     onRetry?: () => void;
+    attemptCount?: number; // Số lần đã làm
 }
 
-const QuizResults: React.FC<QuizResultsProps> = ({ result, minigame, attemptDetail, onClose, onRetry }) => {
+const QuizResults: React.FC<QuizResultsProps> = ({ result, minigame, attemptDetail, onClose, onRetry, attemptCount = 0 }) => {
     const percentage = (result.correctCount / result.totalQuestions) * 100;
     // Status is now a string from backend, check for 'PASSED'
     const passed = result.status === 'PASSED' || result.passed === true;
     const [showDetails, setShowDetails] = useState(false);
+    
+    // Check if can retry (has attempts remaining)
+    const canRetry = () => {
+        if (minigame.maxAttempts === null || minigame.maxAttempts === undefined) {
+            return true; // Unlimited attempts
+        }
+        return attemptCount < minigame.maxAttempts;
+    };
+    
+    const handleRetryClick = () => {
+        if (passed && onRetry) {
+            const confirmed = window.confirm('Làm lại sẽ ghi đè điểm cũ. Bạn có chắc muốn tiếp tục?');
+            if (confirmed && onRetry) {
+                onRetry();
+            }
+        } else if (onRetry) {
+            onRetry();
+        }
+    };
 
     return (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
@@ -114,13 +135,19 @@ const QuizResults: React.FC<QuizResultsProps> = ({ result, minigame, attemptDeta
                                 Xem chi tiết
                             </button>
                         )}
-                        {onRetry && !passed && (
+                        {onRetry && canRetry() && (
                             <button
-                                onClick={onRetry}
-                                className="flex-1 btn-yellow px-4 py-2 rounded-lg text-sm font-medium"
+                                onClick={handleRetryClick}
+                                disabled={!canRetry()}
+                                className="flex-1 btn-yellow px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Làm lại
                             </button>
+                        )}
+                        {onRetry && !canRetry() && (
+                            <div className="flex-1 text-center text-sm text-gray-500 py-2">
+                                Đã đạt số lần làm tối đa
+                            </div>
                         )}
                         {onClose && (
                             <button
@@ -170,6 +197,20 @@ const QuizResults: React.FC<QuizResultsProps> = ({ result, minigame, attemptDeta
                                                 )}
                                             </div>
                                         </div>
+                                        
+                                        {/* Question Image */}
+                                        {question.imageUrl && (
+                                            <div className="mb-3">
+                                                <img
+                                                    src={getImageUrl(question.imageUrl) || ''}
+                                                    alt="Question illustration"
+                                                    className="max-w-full h-auto max-h-48 rounded-lg border border-gray-300"
+                                                    onError={(e) => {
+                                                        (e.target as HTMLImageElement).style.display = 'none';
+                                                    }}
+                                                />
+                                            </div>
+                                        )}
                                         <div className="space-y-2">
                                             {question.options.map((option) => {
                                                 const isCorrect = option.isCorrect;

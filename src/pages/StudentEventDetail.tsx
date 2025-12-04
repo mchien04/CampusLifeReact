@@ -17,6 +17,8 @@ import { LoadingSpinner } from '../components/common';
 import { PhotoGrid } from '../components/events';
 import { activityPhotoAPI } from '../services/activityPhotoAPI';
 import StudentLayout from '../components/layout/StudentLayout';
+import { minigameAPI } from '../services/minigameAPI';
+import { MiniGame } from '../types/minigame';
 
 const StudentEventDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -28,6 +30,10 @@ const StudentEventDetail: React.FC = () => {
     const [registration, setRegistration] = useState<ActivityRegistrationResponse | null>(null);
     const [showRegistrationForm, setShowRegistrationForm] = useState(false);
     const [feedback, setFeedback] = useState('');
+
+    // Minigame state (for activities with type MINIGAME)
+    const [minigame, setMinigame] = useState<MiniGame | null>(null);
+    const [loadingMinigame, setLoadingMinigame] = useState(false);
 
     // Tasks and submissions (within this event page)
     const [tasks, setTasks] = useState<TaskAssignmentResponse[]>([]);
@@ -89,6 +95,13 @@ const StudentEventDetail: React.FC = () => {
                 setEvent(response.data);
                 await checkRegistrationStatus(response.data.id);
                 await loadTasksByActivity(response.data.id);
+
+                // If this is a minigame activity, load its quiz info
+                if (response.data.type === ActivityType.MINIGAME) {
+                    await loadMinigame(response.data.id);
+                } else {
+                    setMinigame(null);
+                }
             } else {
                 setError(response.message || 'Không thể tải thông tin sự kiện');
             }
@@ -97,6 +110,23 @@ const StudentEventDetail: React.FC = () => {
             console.error('Error loading event:', err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadMinigame = async (activityId: number) => {
+        try {
+            setLoadingMinigame(true);
+            const minigameResponse = await minigameAPI.getMiniGameByActivity(activityId);
+            if (minigameResponse.status && minigameResponse.data) {
+                setMinigame(minigameResponse.data);
+            } else {
+                setMinigame(null);
+            }
+        } catch (err) {
+            console.error('Error loading minigame for activity:', err);
+            setMinigame(null);
+        } finally {
+            setLoadingMinigame(false);
         }
     };
 
@@ -250,8 +280,53 @@ const StudentEventDetail: React.FC = () => {
 
     const canRegister = () => {
         if (!event) return false;
+        // Đã đăng ký rồi nếu có registration với status APPROVED, PENDING, hoặc ATTENDED
+        if (registration) {
+            const registeredStatuses = [
+                RegistrationStatus.APPROVED,
+                RegistrationStatus.PENDING,
+                RegistrationStatus.ATTENDED
+            ];
+            if (registeredStatuses.includes(registration.status)) {
+                return false; // Đã đăng ký rồi (bao gồm cả ATTENDED)
+            }
+        }
+        
+        const now = new Date();
+        const registrationStartDate = event.registrationStartDate ? new Date(event.registrationStartDate) : null;
+        const registrationDeadline = event.registrationDeadline ? new Date(event.registrationDeadline) : null;
+        
+        // Kiểm tra thời gian đăng ký
+        if (registrationStartDate && now < registrationStartDate) {
+            return false; // Chưa đến thời gian mở đăng ký
+        }
+        if (registrationDeadline && now > registrationDeadline) {
+            return false; // Đã hết hạn đăng ký
+        }
+        
+        // Kiểm tra sự kiện chưa kết thúc
         const eventStatus = getEventStatus();
-        return eventStatus === 'UPCOMING' && !registration;
+        return eventStatus === 'UPCOMING' || eventStatus === 'ONGOING';
+    };
+
+    const canStartQuiz = () => {
+        if (!event || !minigame) return false;
+        // Chỉ cho làm quiz nếu đã đăng ký sự kiện
+        // Với MINIGAME, ATTENDED cũng được coi là đã đăng ký (cho phép làm quiz lại)
+        if (!registration) return false;
+        
+        const allowedStatuses = [
+            RegistrationStatus.APPROVED,
+            RegistrationStatus.PENDING,
+            RegistrationStatus.ATTENDED
+        ];
+        if (!allowedStatuses.includes(registration.status)) {
+            return false;
+        }
+
+        // Áp dụng thêm điều kiện thời gian: chỉ khi sự kiện đang diễn ra
+        const eventStatus = getEventStatus();
+        return eventStatus === 'ONGOING' || eventStatus === 'UPCOMING';
     };
 
     const canCancel = () => {
@@ -556,10 +631,97 @@ const StudentEventDetail: React.FC = () => {
                                             </span>
                                         </div>
                                     )}
-
                                 </div>
                             </div>
                         </div>
+
+                        {/* Minigame Quiz Section (only for MINIGAME activities) */}
+                        {event.type === ActivityType.MINIGAME && (
+                            <div className="card">
+                                <div className="p-6">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="text-lg font-semibold text-[#001C44]">
+                                            Quiz Mini Game
+                                        </h3>
+                                        {loadingMinigame && (
+                                            <span className="text-xs text-gray-500">Đang tải quiz...</span>
+                                        )}
+                                    </div>
+
+                                    {minigame ? (
+                                        <>
+                                            <p className="text-sm text-gray-700 mb-3">
+                                                <span className="font-medium">{minigame.title}</span>
+                                            </p>
+                                            {minigame.description && (
+                                                <p className="text-sm text-gray-600 mb-4">
+                                                    {minigame.description}
+                                                </p>
+                                            )}
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm mb-4">
+                                                <div className="flex flex-col">
+                                                    <span className="text-gray-500">Số câu hỏi</span>
+                                                    <span className="font-semibold">
+                                                        {minigame.questionCount}
+                                                    </span>
+                                                </div>
+                                                {minigame.timeLimit && (
+                                                    <div className="flex flex-col">
+                                                        <span className="text-gray-500">Thời gian</span>
+                                                        <span className="font-semibold">
+                                                            {Math.floor(minigame.timeLimit / 60)} phút
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                {minigame.rewardPoints && (
+                                                    <div className="flex flex-col">
+                                                        <span className="text-gray-500">Điểm thưởng</span>
+                                                        <span className="font-semibold text-[#001C44]">
+                                                            {parseFloat(minigame.rewardPoints).toFixed(1)} điểm
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                                {registration ? (
+                                                    <button
+                                                        type="button"
+                                                        disabled={!canStartQuiz()}
+                                                        onClick={() => navigate(`/student/minigames/${event.id}/play`)}
+                                                        className={`btn-yellow px-6 py-2 rounded-lg text-sm font-medium ${
+                                                            !canStartQuiz()
+                                                                ? 'opacity-60 cursor-not-allowed'
+                                                                : ''
+                                                        }`}
+                                                    >
+                                                        Làm quiz
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        disabled
+                                                        className="btn-yellow px-6 py-2 rounded-lg text-sm font-medium opacity-60 cursor-not-allowed"
+                                                    >
+                                                        Vui lòng đăng ký sự kiện để làm quiz
+                                                    </button>
+                                                )}
+
+                                                {!registration && (
+                                                    <p className="text-xs text-gray-500">
+                                                        Bạn cần đăng ký sự kiện trước khi có thể làm quiz.
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <p className="text-sm text-gray-500">
+                                            Chưa cấu hình quiz cho minigame này. Vui lòng liên hệ quản trị viên.
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        )}
 
                         {/* Photo Gallery Section - Only show if event has ended */}
                         {event && new Date(event.endDate) < new Date() && (

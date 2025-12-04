@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MiniGame, QuestionWithoutAnswer } from '../../types/minigame';
+import { getImageUrl } from '../../utils/imageUtils';
 
 interface QuizPlayerProps {
     minigame: MiniGame;
@@ -173,6 +174,20 @@ const QuizPlayer: React.FC<QuizPlayerProps> = ({
                             <h3 className="text-lg font-semibold text-gray-900 mb-4">
                                 {currentQuestion.questionText}
                             </h3>
+                            
+                            {/* Question Image */}
+                            {currentQuestion.imageUrl && (
+                                <div className="mb-4">
+                                    <img
+                                        src={getImageUrl(currentQuestion.imageUrl) || ''}
+                                        alt="Question illustration"
+                                        className="max-w-full h-auto max-h-64 rounded-lg border border-gray-300 mx-auto"
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).style.display = 'none';
+                                        }}
+                                    />
+                                </div>
+                            )}
 
                             <div className="space-y-3">
                                 {sortedOptions.map((option) => {

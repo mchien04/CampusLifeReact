@@ -1,5 +1,5 @@
 import api from './api';
-import { TrainingCalculateResponse, ScoreViewResponse, StudentRankingResponseData } from '../types/score';
+import { TrainingCalculateResponse, ScoreViewResponse, StudentRankingResponseData, ScoreHistoryViewResponse, ScoreType } from '../types/score';
 import { mockSemesterScores } from './mocks/scores.mock';
 
 // Normalize response format
@@ -67,6 +67,31 @@ export const scoresAPI = {
 
         const res = await api.get(`/api/scores/ranking?${queryParams.toString()}`);
         return normalize<StudentRankingResponseData>(res.data);
+    },
+
+    getScoreHistory: async (params: {
+        studentId: number;
+        semesterId: number;
+        scoreType?: ScoreType | null;
+        page?: number;
+        size?: number;
+    }): Promise<{ status: boolean; message: string; data?: ScoreHistoryViewResponse }> => {
+        const { studentId, semesterId, scoreType, page = 0, size = 20 } = params;
+        
+        const queryParams = new URLSearchParams();
+        queryParams.append('semesterId', String(semesterId));
+        if (scoreType) {
+            queryParams.append('scoreType', scoreType);
+        }
+        if (page !== undefined) {
+            queryParams.append('page', String(page));
+        }
+        if (size !== undefined) {
+            queryParams.append('size', String(size));
+        }
+
+        const res = await api.get(`/api/scores/history/student/${studentId}?${queryParams.toString()}`);
+        return normalize<ScoreHistoryViewResponse>(res.data);
     },
 
     // Mocked list for manager view (deprecated - use getStudentRanking instead)

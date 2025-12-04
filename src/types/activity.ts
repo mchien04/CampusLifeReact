@@ -77,6 +77,7 @@ export interface ActivityResponse {
     benefits?: string;
     requirements?: string;
     contactInfo?: string;
+    checkInCode?: string; // QR code for check-in
     requiresApproval: boolean;
     mandatoryForFacultyStudents: boolean;
     organizerIds: number[];

@@ -342,5 +342,24 @@ export const eventAPI = {
                 data: null
             };
         }
+    },
+
+    // Backfill checkInCodes for existing activities (Admin/Manager only)
+    backfillCheckInCodes: async (): Promise<Response<{ updatedCount: number; totalActivities: number } | null>> => {
+        try {
+            const response = await api.post('/api/activities/backfill-checkin-codes');
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data || null
+            };
+        } catch (error: any) {
+            console.error('Error backfilling checkInCodes:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Có lỗi xảy ra khi tạo checkInCodes',
+                data: null
+            };
+        }
     }
 };
