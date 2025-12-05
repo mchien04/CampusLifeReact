@@ -56,25 +56,27 @@ const EditDepartment: React.FC = () => {
 
     if (initialLoading) {
         return (
-            <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#001C44] mx-auto"></div>
+                    <p className="mt-4 text-gray-600">Đang tải dữ liệu...</p>
+                </div>
             </div>
         );
     }
 
     if (!department) {
         return (
-            <div className="text-center py-12">
-                <h3 className="text-lg font-medium text-gray-900">Không tìm thấy khoa/phòng ban</h3>
-                <p className="mt-1 text-sm text-gray-500">Khoa/phòng ban bạn đang tìm có thể đã bị xóa hoặc không tồn tại.</p>
-                <div className="mt-6">
-                    <button
-                        onClick={() => navigate('/admin/departments')}
-                        className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
-                    >
-                        Quay lại danh sách
-                    </button>
-                </div>
+            <div className="bg-white rounded-xl shadow-lg border-2 border-dashed border-gray-300 p-12 text-center">
+                <div className="text-gray-400 text-6xl mb-4">❌</div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Không tìm thấy khoa/phòng ban</h3>
+                <p className="text-gray-600 mb-6">Khoa/phòng ban bạn đang tìm có thể đã bị xóa hoặc không tồn tại.</p>
+                <button
+                    onClick={() => navigate('/admin/departments')}
+                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-[#001C44] to-[#002A66] text-white rounded-xl hover:from-[#002A66] hover:to-[#001C44] shadow-lg hover:shadow-xl font-semibold transition-all"
+                >
+                    ← Quay lại danh sách
+                </button>
             </div>
         );
     }
@@ -84,9 +86,12 @@ const EditDepartment: React.FC = () => {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Chỉnh sửa khoa/phòng ban</h1>
-                    <p className="mt-1 text-sm text-gray-500">
-                        Cập nhật thông tin khoa/phòng ban: {department.name}
+                    <h1 className="text-3xl font-bold text-[#001C44] flex items-center">
+                        <span className="mr-3 text-4xl">✏️</span>
+                        Chỉnh sửa khoa/phòng ban
+                    </h1>
+                    <p className="mt-2 text-gray-600">
+                        Cập nhật thông tin khoa/phòng ban: <span className="font-semibold text-[#001C44]">{department.name}</span>
                     </p>
                 </div>
             </div>

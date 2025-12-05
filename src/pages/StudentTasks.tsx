@@ -320,35 +320,53 @@ const StudentTasks: React.FC = () => {
     return (
         <StudentLayout>
             <div className="space-y-6">
-                {/* Summary */}
-                <div className="flex justify-end items-center gap-3">
-                    <div className="text-sm text-gray-600 font-medium">
-                        Tổng: <span className="text-[#001C44]">{assignments.length}</span> nhiệm vụ
+                {/* Header */}
+                <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h1 className="text-3xl font-bold mb-2 flex items-center">
+                                <span className="mr-3 text-4xl">📋</span>
+                                Nhiệm vụ của tôi
+                            </h1>
+                            <p className="text-gray-200">Quản lý và theo dõi các nhiệm vụ đã được phân công</p>
+                        </div>
+                        <div className="text-right">
+                            <div className="text-sm text-gray-200 mb-1">Tổng số nhiệm vụ</div>
+                            <div className="text-4xl font-bold text-[#FFD66D]">{assignments.length}</div>
+                        </div>
                     </div>
                 </div>
 
                 {/* Filters */}
-                <div className="card p-6">
-                    <div className="flex flex-wrap gap-4">
+                <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
+                    <div className="flex flex-wrap gap-3">
                         <button
                             onClick={() => setFilter('ALL')}
-                            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filter === 'ALL'
-                                ? 'btn-primary text-white'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                }`}
+                            className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                                filter === 'ALL'
+                                    ? 'bg-gradient-to-r from-[#001C44] to-[#002A66] text-white shadow-md'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-2 border-gray-200'
+                            }`}
                         >
                             Tất cả ({assignments.length})
                         </button>
                         {[TaskStatus.PENDING, TaskStatus.IN_PROGRESS, TaskStatus.COMPLETED, TaskStatus.CANCELLED].map(status => {
                             const count = assignments.filter(a => a.status === status).length;
+                            const statusColors = {
+                                [TaskStatus.PENDING]: 'from-yellow-400 to-yellow-500',
+                                [TaskStatus.IN_PROGRESS]: 'from-blue-400 to-blue-500',
+                                [TaskStatus.COMPLETED]: 'from-green-400 to-green-500',
+                                [TaskStatus.CANCELLED]: 'from-red-400 to-red-500',
+                            };
                             return (
                                 <button
                                     key={status}
                                     onClick={() => setFilter(status)}
-                                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filter === status
-                                        ? 'btn-primary text-white'
-                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                        }`}
+                                    className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                                        filter === status
+                                            ? `bg-gradient-to-r ${statusColors[status]} text-white shadow-md`
+                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-2 border-gray-200'
+                                    }`}
                                 >
                                     {getStatusLabel(status)} ({count})
                                 </button>
@@ -359,9 +377,9 @@ const StudentTasks: React.FC = () => {
 
                 {/* Tasks List */}
                 {filteredAssignments.length === 0 ? (
-                    <div className="card p-8 text-center">
-                        <div className="text-gray-400 text-6xl mb-4">📋</div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    <div className="bg-white rounded-xl shadow-lg border-2 border-dashed border-gray-300 p-12 text-center">
+                        <div className="text-gray-400 text-7xl mb-4">📋</div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">
                             {filter === 'ALL' ? 'Chưa có nhiệm vụ nào' : `Không có nhiệm vụ ${getStatusLabel(filter as TaskStatus).toLowerCase()}`}
                         </h3>
                         <p className="text-gray-600">
@@ -379,84 +397,136 @@ const StudentTasks: React.FC = () => {
                             const isLate = assignment.submissionDeadline ? new Date() > new Date(assignment.submissionDeadline) : false;
 
                             return (
-                                <div key={assignment.id} className="card hover:shadow-lg transition-shadow">
+                                <div key={assignment.id} className="bg-white rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 overflow-hidden">
                                     <div className="p-6">
-                                        <div className="flex items-start justify-between">
-                                            <div className="flex-1">
-                                                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                                                    {assignment.taskName}
-                                                </h3>
-                                                <div className="flex items-center space-x-4 text-sm text-gray-500 mb-2">
-                                                    <span>Mã sinh viên: {assignment.studentCode}</span>
-                                                    <span>•</span>
-                                                    <span>Cập nhật: {formatDate(assignment.updatedAt)}</span>
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-start gap-3 mb-3">
+                                                    <div className="w-12 h-12 bg-gradient-to-br from-[#001C44] to-[#002A66] rounded-xl flex items-center justify-center text-2xl text-white shadow-md flex-shrink-0">
+                                                        📝
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <h3 className="text-xl font-bold text-gray-900 mb-2 truncate">
+                                                            {assignment.taskName}
+                                                        </h3>
+                                                        {assignment.activityName && (
+                                                            <div className="mb-3 flex items-center flex-wrap gap-2">
+                                                                <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-semibold bg-gradient-to-r from-[#001C44] to-[#002A66] text-white shadow-sm">
+                                                                    📅 {assignment.activityName}
+                                                                </span>
+                                                                {assignment.activityId && (
+                                                                    <Link
+                                                                        to={`/student/events/${assignment.activityId}`}
+                                                                        className="inline-flex items-center text-sm text-[#001C44] hover:text-[#002A66] hover:underline font-medium transition-colors"
+                                                                    >
+                                                                        Xem chi tiết sự kiện →
+                                                                    </Link>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
+                                                
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                                                    <div className="flex items-center text-sm text-gray-600">
+                                                        <span className="font-semibold text-gray-700 mr-2">Mã SV:</span>
+                                                        <span>{assignment.studentCode}</span>
+                                                    </div>
+                                                    <div className="flex items-center text-sm text-gray-600">
+                                                        <span className="font-semibold text-gray-700 mr-2">Cập nhật:</span>
+                                                        <span>{formatDate(assignment.updatedAt)}</span>
+                                                    </div>
+                                                </div>
+                                                
                                                 {assignment.submissionDeadline && (
-                                                    <p className={`text-sm ${isLate ? 'text-red-600 font-medium' : 'text-gray-600'}`}>
+                                                    <div className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-semibold ${
+                                                        isLate 
+                                                            ? 'bg-red-50 text-red-700 border-2 border-red-200' 
+                                                            : 'bg-blue-50 text-blue-700 border-2 border-blue-200'
+                                                    }`}>
+                                                        <span className="mr-2">⏰</span>
                                                         Hạn nộp: {formatDate(assignment.submissionDeadline)}
-                                                        {isLate && ' (Đã quá hạn)'}
-                                                    </p>
+                                                        {isLate && <span className="ml-2 font-bold">(Đã quá hạn)</span>}
+                                                    </div>
                                                 )}
                                             </div>
 
-                                            <div className="flex items-center space-x-3">
-                                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(assignment.status)}`}>
+                                            <div className="flex flex-col items-end gap-3 flex-shrink-0">
+                                                <span className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold shadow-sm ${getStatusColor(assignment.status)}`}>
                                                     {getStatusLabel(assignment.status)}
                                                 </span>
 
                                                 <button
                                                     onClick={() => openSubmissionModal(assignment)}
-                                                    className="btn-primary px-4 py-2 text-sm font-medium rounded-md"
+                                                    className="px-5 py-2.5 bg-gradient-to-r from-[#001C44] to-[#002A66] text-white rounded-lg hover:from-[#002A66] hover:to-[#001C44] font-semibold shadow-md hover:shadow-lg transition-all text-sm"
                                                 >
                                                     {mySubmission 
                                                         ? (mySubmission.status === 'GRADED' || mySubmission.isCompleted !== null || mySubmission.gradedAt !== null)
-                                                            ? 'Xem bài nộp'
-                                                            : 'Xem/Sửa bài nộp'
-                                                        : 'Nộp bài'}
+                                                            ? '👁️ Xem bài nộp'
+                                                            : '✏️ Xem/Sửa bài nộp'
+                                                        : '📤 Nộp bài'}
                                                 </button>
                                             </div>
                                         </div>
                                         {mySubmission && (
-                                            <div className="mt-4 p-3 bg-gray-50 rounded-md text-sm">
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                    <p className="font-medium text-gray-700">Trạng thái:
-                                                        <span className={`ml-2 px-2 py-1 rounded-full ${getSubmissionStatusColor(mySubmission.status)}`}>
+                                            <div className="mt-4 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border-2 border-gray-200">
+                                                <div className="flex flex-wrap items-center gap-3 mb-3">
+                                                    <div className="flex items-center">
+                                                        <span className="font-semibold text-gray-700 mr-2">Trạng thái:</span>
+                                                        <span className={`px-3 py-1 rounded-lg font-semibold text-sm ${getSubmissionStatusColor(mySubmission.status)}`}>
                                                             {getSubmissionStatusLabel(mySubmission.status)}
                                                         </span>
-                                                    </p>
-                                                    <span className="text-gray-500">•</span>
-                                                    <p className="text-gray-700">Nộp lúc: {formatDate(mySubmission.submittedAt)}</p>
+                                                    </div>
+                                                    <span className="text-gray-400">•</span>
+                                                    <div className="flex items-center text-sm text-gray-600">
+                                                        <span className="mr-2">📅</span>
+                                                        <span className="font-medium">Nộp lúc: {formatDate(mySubmission.submittedAt)}</span>
+                                                    </div>
                                                 </div>
                                                 {mySubmission.content && (
-                                                    <p className="text-gray-700 mt-2 whitespace-pre-wrap">{mySubmission.content}</p>
+                                                    <div className="mb-3 p-3 bg-white rounded-lg border border-gray-200">
+                                                        <p className="text-gray-700 whitespace-pre-wrap">{mySubmission.content}</p>
+                                                    </div>
                                                 )}
                                                 {(mySubmission.fileUrls && (Array.isArray(mySubmission.fileUrls) ? mySubmission.fileUrls.length > 0 : String(mySubmission.fileUrls).length > 0)) && (
-                                                    <div className="mt-2">
-                                                        <p className="text-gray-700 font-medium">File đính kèm:</p>
-                                                        <div className="mt-1 space-y-1">
+                                                    <div className="mb-3">
+                                                        <p className="text-gray-700 font-semibold mb-2">📎 File đính kèm:</p>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                                             {(Array.isArray(mySubmission.fileUrls) ? mySubmission.fileUrls : String(mySubmission.fileUrls).split(',').map((u: string) => u.trim())).map((url: string, idx: number) => (
                                                                 <button
                                                                     key={idx}
                                                                     type="button"
                                                                     onClick={() => handleDownload(url)}
-                                                                    className="text-[#001C44] hover:text-[#002A66] hover:underline flex items-center text-sm font-medium transition-colors"
+                                                                    className="flex items-center p-2 bg-white rounded-lg border border-gray-200 hover:border-[#001C44] hover:bg-gray-50 transition-all text-sm font-medium text-[#001C44]"
                                                                 >
-                                                                    <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                                    <svg className="h-5 w-5 mr-2 text-[#001C44]" fill="currentColor" viewBox="0 0 20 20">
                                                                         <path fillRule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clipRule="evenodd" />
                                                                     </svg>
-                                                                    {url.split('/').pop()}
+                                                                    <span className="truncate">{url.split('/').pop()}</span>
                                                                 </button>
                                                             ))}
                                                         </div>
                                                     </div>
                                                 )}
                                                 {(mySubmission.isCompleted !== null || mySubmission.feedback) && (
-                                                    <div className="mt-2">
+                                                    <div className="p-3 bg-white rounded-lg border border-gray-200">
                                                         {mySubmission.isCompleted !== null && (
-                                                            <p className="text-gray-700">Kết quả: {mySubmission.isCompleted === true ? 'Đạt' : mySubmission.isCompleted === false ? 'Không đạt' : 'Chưa chấm'}</p>
+                                                            <p className="text-gray-700 mb-2">
+                                                                <span className="font-semibold">Kết quả:</span>{' '}
+                                                                <span className={`font-bold ${
+                                                                    mySubmission.isCompleted === true ? 'text-green-600' : 
+                                                                    mySubmission.isCompleted === false ? 'text-red-600' : 
+                                                                    'text-gray-600'
+                                                                }`}>
+                                                                    {mySubmission.isCompleted === true ? '✅ Đạt' : mySubmission.isCompleted === false ? '❌ Không đạt' : '⏳ Chưa chấm'}
+                                                                </span>
+                                                            </p>
                                                         )}
                                                         {mySubmission.feedback && (
-                                                            <p className="text-gray-700">Phản hồi: {mySubmission.feedback}</p>
+                                                            <p className="text-gray-700">
+                                                                <span className="font-semibold">💬 Phản hồi:</span>{' '}
+                                                                <span>{mySubmission.feedback}</span>
+                                                            </p>
                                                         )}
                                                     </div>
                                                 )}
@@ -472,26 +542,54 @@ const StudentTasks: React.FC = () => {
 
             {/* Submission Modal */}
             {isSubmissionModalOpen && currentTaskForSubmission && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-                            <h3 className="text-xl font-semibold text-gray-900">Nộp bài cho: {currentTaskForSubmission.taskName}</h3>
-                            <button onClick={closeSubmissionModal} className="text-gray-400 hover:text-gray-600">
-                                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] p-6 rounded-t-xl">
+                            <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                    <h3 className="text-2xl font-bold text-white mb-2">Nộp bài cho: {currentTaskForSubmission.taskName}</h3>
+                                    {currentTaskForSubmission.activityName && (
+                                        <div className="flex items-center flex-wrap gap-2">
+                                            <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-semibold bg-[#FFD66D] text-[#001C44] shadow-sm">
+                                                📅 {currentTaskForSubmission.activityName}
+                                            </span>
+                                            {currentTaskForSubmission.activityId && (
+                                                <Link
+                                                    to={`/student/events/${currentTaskForSubmission.activityId}`}
+                                                    className="inline-flex items-center text-sm text-white hover:text-[#FFD66D] hover:underline font-medium transition-colors"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        closeSubmissionModal();
+                                                    }}
+                                                >
+                                                    Xem chi tiết sự kiện →
+                                                </Link>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                                <button 
+                                    onClick={closeSubmissionModal} 
+                                    className="text-white hover:text-[#FFD66D] ml-4 transition-colors"
+                                >
+                                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
-                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                        <form onSubmit={handleSubmit} className="p-6 space-y-6">
                             <div>
-                                <label htmlFor="submissionContent" className="block text-sm font-medium text-gray-700">Nội dung (tùy chọn)</label>
+                                <label htmlFor="submissionContent" className="block text-sm font-semibold text-gray-700 mb-2">
+                                    📝 Nội dung (tùy chọn)
+                                </label>
                                 <textarea
                                     id="submissionContent"
                                     rows={5}
                                     value={submissionContent}
                                     onChange={(e) => setSubmissionContent(e.target.value)}
                                     disabled={!!(currentSubmission && (currentSubmission.status === 'GRADED' || currentSubmission.isCompleted !== null || currentSubmission.gradedAt !== null))}
-                                    className={`mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors ${
+                                    className={`block w-full px-4 py-3 border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors ${
                                         currentSubmission && (currentSubmission.status === 'GRADED' || currentSubmission.isCompleted !== null || currentSubmission.gradedAt !== null)
                                             ? 'bg-gray-100 cursor-not-allowed'
                                             : ''
@@ -500,27 +598,31 @@ const StudentTasks: React.FC = () => {
                                 ></textarea>
                             </div>
                             <div>
-                                <label htmlFor="submissionFiles" className="block text-sm font-medium text-gray-700">File đính kèm (tùy chọn)</label>
+                                <label htmlFor="submissionFiles" className="block text-sm font-semibold text-gray-700 mb-2">
+                                    📎 File đính kèm (tùy chọn)
+                                </label>
                                 <input
                                     type="file"
                                     id="submissionFiles"
                                     multiple
                                     onChange={handleFileChange}
                                     disabled={!!(currentSubmission && (currentSubmission.status === 'GRADED' || currentSubmission.isCompleted !== null || currentSubmission.gradedAt !== null))}
-                                    className={`mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#001C44] file:text-[#FFD66D] hover:file:bg-[#002A66] transition-colors ${
+                                    className={`block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-5 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-[#001C44] file:to-[#002A66] file:text-[#FFD66D] hover:file:from-[#002A66] hover:file:to-[#001C44] transition-all ${
                                         currentSubmission && (currentSubmission.status === 'GRADED' || currentSubmission.isCompleted !== null || currentSubmission.gradedAt !== null)
                                             ? 'opacity-50 cursor-not-allowed'
                                             : ''
                                     }`}
                                 />
-                                <p className="mt-1 text-xs text-gray-500">Cho phép nhiều file.</p>
+                                <p className="mt-2 text-xs text-gray-500">Cho phép chọn nhiều file cùng lúc.</p>
                                 {submissionFilePreviews.length > 0 && (
-                                    <div className="mt-2 grid grid-cols-2 gap-2">
+                                    <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
                                         {submissionFilePreviews.map((fileUrl, index) => (
-                                            <div key={index} className="flex items-center space-x-2 p-2 border border-gray-200 rounded-md">
-                                                <svg className="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0113 3.414L16.586 7A2 2 0 0118 8.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 0v12h10V8.414L11.586 4H6z" clipRule="evenodd" />
-                                                </svg>
+                                            <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 border-2 border-gray-200 rounded-lg hover:border-[#001C44] hover:bg-gray-100 transition-all">
+                                                <div className="w-10 h-10 bg-gradient-to-br from-[#001C44] to-[#002A66] rounded-lg flex items-center justify-center flex-shrink-0">
+                                                    <svg className="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0113 3.414L16.586 7A2 2 0 0118 8.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 0v12h10V8.414L11.586 4H6z" clipRule="evenodd" />
+                                                    </svg>
+                                                </div>
                                                 <button
                                                     type="button"
                                                     onClick={async () => {
@@ -540,7 +642,7 @@ const StudentTasks: React.FC = () => {
                                                             alert('Tải file thất bại. Vui lòng thử lại.');
                                                         }
                                                     }}
-                                                    className="text-[#001C44] hover:text-[#002A66] hover:underline text-sm truncate font-medium transition-colors"
+                                                    className="text-[#001C44] hover:text-[#002A66] hover:underline text-sm truncate font-semibold transition-colors flex-1 text-left"
                                                 >
                                                     {fileUrl.split('/').pop()}
                                                 </button>
@@ -550,49 +652,59 @@ const StudentTasks: React.FC = () => {
                                 )}
                             </div>
                             {submissionError && (
-                                <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
-                                    {submissionError}
+                                <div className="p-4 bg-red-50 border-2 border-red-200 rounded-lg text-red-700 text-sm font-medium">
+                                    <div className="flex items-center">
+                                        <span className="mr-2 text-lg">❌</span>
+                                        {submissionError}
+                                    </div>
                                 </div>
                             )}
                             {submissionSuccess && (
-                                <div className="p-3 bg-green-50 border border-green-200 rounded-md text-green-700 text-sm">
-                                    {submissionSuccess}
+                                <div className="p-4 bg-green-50 border-2 border-green-200 rounded-lg text-green-700 text-sm font-medium">
+                                    <div className="flex items-center">
+                                        <span className="mr-2 text-lg">✅</span>
+                                        {submissionSuccess}
+                                    </div>
                                 </div>
                             )}
                             {/* Graded result (if already graded) */}
                             {currentSubmission && (currentSubmission.isCompleted !== null || currentSubmission.feedback || currentSubmission.status === 'GRADED') && (
-                                <div className="p-3 bg-gray-50 border border-gray-200 rounded-md text-sm">
-                                    <div className="flex flex-wrap items-center gap-2 mb-2">
-                                        <span className="font-medium text-gray-700">Trạng thái:</span>
-                                        <span className={`px-2 py-1 rounded-full ${getSubmissionStatusColor(currentSubmission.status)}`}>
+                                <div className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 border-2 border-gray-200 rounded-xl">
+                                    <div className="flex flex-wrap items-center gap-3 mb-3">
+                                        <span className="font-semibold text-gray-700">Trạng thái:</span>
+                                        <span className={`px-3 py-1.5 rounded-lg font-semibold text-sm ${getSubmissionStatusColor(currentSubmission.status)}`}>
                                             {getSubmissionStatusLabel(currentSubmission.status)}
                                         </span>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                                        <div>
-                                            <span className="text-gray-600">Kết quả: </span>
-                                            <span className="font-medium">
-                                                {currentSubmission.isCompleted === true ? 'Đạt' : currentSubmission.isCompleted === false ? 'Không đạt' : 'Chưa chấm'}
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                                        <div className="bg-white p-3 rounded-lg border border-gray-200">
+                                            <span className="text-gray-600 text-xs block mb-1">Kết quả</span>
+                                            <span className={`font-bold text-base ${
+                                                currentSubmission.isCompleted === true ? 'text-green-600' : 
+                                                currentSubmission.isCompleted === false ? 'text-red-600' : 
+                                                'text-gray-600'
+                                            }`}>
+                                                {currentSubmission.isCompleted === true ? '✅ Đạt' : currentSubmission.isCompleted === false ? '❌ Không đạt' : '⏳ Chưa chấm'}
                                             </span>
                                         </div>
-                                        <div>
-                                            <span className="text-gray-600">Chấm lúc: </span>
-                                            <span className="font-medium">{currentSubmission.gradedAt ? new Date(currentSubmission.gradedAt).toLocaleString('vi-VN') : '-'}</span>
+                                        <div className="bg-white p-3 rounded-lg border border-gray-200">
+                                            <span className="text-gray-600 text-xs block mb-1">Chấm lúc</span>
+                                            <span className="font-semibold text-gray-900">{currentSubmission.gradedAt ? new Date(currentSubmission.gradedAt).toLocaleString('vi-VN') : '-'}</span>
                                         </div>
-                                        <div>
-                                            <span className="text-gray-600">Người chấm: </span>
-                                            <span className="font-medium">{currentSubmission.graderUsername || '-'}</span>
+                                        <div className="bg-white p-3 rounded-lg border border-gray-200">
+                                            <span className="text-gray-600 text-xs block mb-1">Người chấm</span>
+                                            <span className="font-semibold text-gray-900">{currentSubmission.graderUsername || '-'}</span>
                                         </div>
                                     </div>
                                     {currentSubmission.feedback && (
-                                        <div className="mt-2">
-                                            <span className="text-gray-600">Phản hồi: </span>
-                                            <span className="font-medium">{currentSubmission.feedback}</span>
+                                        <div className="bg-white p-3 rounded-lg border border-gray-200">
+                                            <span className="text-gray-600 text-xs block mb-1">💬 Phản hồi</span>
+                                            <span className="font-medium text-gray-900">{currentSubmission.feedback}</span>
                                         </div>
                                     )}
                                 </div>
                             )}
-                            <div className="flex justify-end space-x-3">
+                            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                                 {currentSubmission && (currentSubmission.status !== 'GRADED' && currentSubmission.isCompleted === null && currentSubmission.gradedAt === null) && (
                                     <button
                                         type="button"
@@ -619,15 +731,15 @@ const StudentTasks: React.FC = () => {
                                                 setSubmissionLoading(false);
                                             }
                                         }}
-                                        className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                                        className="px-5 py-2.5 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all shadow-md hover:shadow-lg"
                                     >
-                                        Xóa bài nộp
+                                        🗑️ Xóa bài nộp
                                     </button>
                                 )}
                                 <button
                                     type="button"
                                     onClick={closeSubmissionModal}
-                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                                    className="px-5 py-2.5 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-all"
                                 >
                                     {currentSubmission && (currentSubmission.status === 'GRADED' || currentSubmission.isCompleted !== null || currentSubmission.gradedAt !== null) ? 'Đóng' : 'Hủy'}
                                 </button>
@@ -635,9 +747,9 @@ const StudentTasks: React.FC = () => {
                                     <button
                                         type="submit"
                                         disabled={submissionLoading}
-                                        className="btn-primary px-4 py-2 text-sm font-medium disabled:opacity-50"
+                                        className="px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-lg hover:from-[#002A66] hover:to-[#001C44] disabled:opacity-50 transition-all shadow-md hover:shadow-lg"
                                     >
-                                        {submissionLoading ? 'Đang lưu...' : (currentSubmission ? 'Cập nhật bài nộp' : 'Nộp bài')}
+                                        {submissionLoading ? '⏳ Đang lưu...' : (currentSubmission ? '💾 Cập nhật bài nộp' : '📤 Nộp bài')}
                                     </button>
                                 )}
                             </div>

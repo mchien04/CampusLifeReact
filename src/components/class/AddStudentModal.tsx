@@ -102,7 +102,7 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Nhập tên hoặc mã sinh viên..."
-                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] transition-colors"
+                                className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
                             />
                             <p className="mt-1 text-xs text-gray-500">
                                 Nhập ít nhất 2 ký tự để tìm kiếm
@@ -123,40 +123,46 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
                         )}
 
                         {!loading && students.length > 0 && (
-                            <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-lg">
+                            <div className="max-h-60 overflow-y-auto border-2 border-gray-200 rounded-lg">
                                 <div className="divide-y divide-gray-200">
                                     {students.map((student) => (
                                         <div
                                             key={student.id}
-                                            className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
-                                                selectedStudent?.id === student.id ? 'bg-[#001C44] bg-opacity-5 border-l-4 border-[#001C44]' : ''
+                                            className={`p-4 hover:bg-gray-50 cursor-pointer transition-all ${
+                                                selectedStudent?.id === student.id 
+                                                    ? 'bg-gradient-to-r from-[#001C44] to-[#002A66] bg-opacity-10 border-l-4 border-[#001C44]' 
+                                                    : ''
                                             }`}
                                             onClick={() => setSelectedStudent(student)}
                                         >
                                             <div className="flex items-center">
-                                                {student.avatarUrl && (
+                                                {student.avatarUrl ? (
                                                     <img
                                                         className="h-12 w-12 rounded-full mr-4 border-2 border-gray-200"
                                                         src={student.avatarUrl}
                                                         alt={student.fullName}
                                                     />
+                                                ) : (
+                                                    <div className="h-12 w-12 rounded-full mr-4 bg-gradient-to-br from-[#001C44] to-[#002A66] flex items-center justify-center text-white font-semibold text-lg">
+                                                        {student.fullName.charAt(0).toUpperCase()}
+                                                    </div>
                                                 )}
                                                 <div className="flex-1">
-                                                    <div className="text-sm font-semibold text-gray-900">
+                                                    <div className={`text-sm font-semibold ${selectedStudent?.id === student.id ? 'text-[#001C44]' : 'text-gray-900'}`}>
                                                         {student.fullName}
                                                     </div>
-                                                    <div className="text-sm text-gray-600 mt-0.5">
+                                                    <div className={`text-sm mt-0.5 ${selectedStudent?.id === student.id ? 'text-gray-700' : 'text-gray-600'}`}>
                                                         {student.studentCode} • {student.email}
                                                     </div>
                                                     {student.className && (
-                                                        <div className="text-xs text-orange-600 mt-1">
+                                                        <div className="text-xs text-orange-600 mt-1 font-medium">
                                                             ⚠️ Đã có lớp: {student.className}
                                                         </div>
                                                     )}
                                                 </div>
                                                 {selectedStudent?.id === student.id && (
-                                                    <div className="text-[#001C44]">
-                                                        <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
+                                                    <div className="text-[#001C44] bg-[#FFD66D] rounded-full p-1">
+                                                        <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                                                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                                         </svg>
                                                     </div>
@@ -169,16 +175,18 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
                         )}
 
                         {!loading && searchQuery.length >= 2 && students.length === 0 && (
-                            <div className="text-center py-12 text-gray-500">
-                                <p className="text-lg">Không tìm thấy sinh viên nào</p>
-                                <p className="text-sm mt-1">Thử tìm kiếm với từ khóa khác</p>
+                            <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+                                <div className="text-gray-400 text-5xl mb-3">🔍</div>
+                                <p className="text-lg font-medium text-gray-600">Không tìm thấy sinh viên nào</p>
+                                <p className="text-sm text-gray-500 mt-1">Thử tìm kiếm với từ khóa khác</p>
                             </div>
                         )}
 
                         {!loading && searchQuery.length < 2 && (
-                            <div className="text-center py-12 text-gray-500">
-                                <p className="text-lg">Nhập tên hoặc mã sinh viên để tìm kiếm</p>
-                                <p className="text-sm mt-1">Tối thiểu 2 ký tự</p>
+                            <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+                                <div className="text-gray-400 text-5xl mb-3">👤</div>
+                                <p className="text-lg font-medium text-gray-600">Nhập tên hoặc mã sinh viên để tìm kiếm</p>
+                                <p className="text-sm text-gray-500 mt-1">Tối thiểu 2 ký tự</p>
                             </div>
                         )}
                     </div>

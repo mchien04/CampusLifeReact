@@ -92,11 +92,11 @@ export const ClassStudentList: React.FC<ClassStudentListProps> = ({
 
     if (loading) {
         return (
-            <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-                <div className="relative top-20 mx-auto p-5 border w-4/5 max-w-4xl shadow-lg rounded-md bg-white">
-                    <div className="text-center py-8">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                        <p className="mt-4 text-gray-600">Đang tải danh sách sinh viên...</p>
+            <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+                <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#001C44] mx-auto"></div>
+                        <p className="mt-4 text-gray-600 font-medium">Đang tải danh sách sinh viên...</p>
                     </div>
                 </div>
             </div>
@@ -126,7 +126,7 @@ export const ClassStudentList: React.FC<ClassStudentListProps> = ({
                             <div className="flex gap-3">
                                 <button
                                     onClick={() => setShowAddModal(true)}
-                                    className="px-4 py-2 bg-[#FFD66D] text-[#001C44] rounded-lg hover:bg-[#FFE082] font-semibold transition-colors shadow-sm"
+                                    className="px-5 py-2.5 bg-[#FFD66D] text-[#001C44] rounded-lg hover:bg-[#FFC947] font-semibold transition-all shadow-md hover:shadow-lg"
                                 >
                                     + Thêm sinh viên
                                 </button>
@@ -151,86 +151,90 @@ export const ClassStudentList: React.FC<ClassStudentListProps> = ({
                             </div>
                         )}
 
-                        <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Mã sinh viên
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Họ và tên
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Email
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Số điện thoại
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Ngày thêm
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Thao tác
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {(!students || students.length === 0) ? (
-                                    <tr>
-                                        <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
-                                            Chưa có sinh viên nào trong lớp này
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    (students || []).map((student) => (
-                                        <tr key={student.id} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm font-medium text-gray-900">
-                                                    {student.studentCode}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex items-center">
-                                                    {student.profileImageUrl && (
-                                                        <img
-                                                            className="h-10 w-10 rounded-full mr-3"
-                                                            src={student.profileImageUrl}
-                                                            alt={student.fullName}
-                                                        />
-                                                    )}
-                                                    <div className="text-sm font-medium text-gray-900">
-                                                        {student.fullName}
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">{student.email}</div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">
-                                                    {student.phoneNumber || 'Chưa cập nhật'}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">
-                                                    {new Date(student.addedAt).toLocaleDateString('vi-VN')}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                <button
-                                                    onClick={() => handleRemoveStudent(student.id)}
-                                                    className="text-red-600 hover:text-red-900"
-                                                >
-                                                    Xóa khỏi lớp
-                                                </button>
-                                            </td>
+                        {(!students || students.length === 0) ? (
+                            <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+                                <div className="text-gray-400 text-6xl mb-4">👥</div>
+                                <p className="text-gray-600 text-lg font-medium">Chưa có sinh viên nào trong lớp này</p>
+                                <p className="text-gray-500 text-sm mt-2">Thêm sinh viên vào lớp để bắt đầu</p>
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gradient-to-r from-[#001C44] to-[#002A66]">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                                                Mã sinh viên
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                                                Họ và tên
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                                                Email
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                                                Số điện thoại
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                                                Ngày thêm
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                                                Thao tác
+                                            </th>
                                         </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                        </div>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {(students || []).map((student) => (
+                                            <tr key={student.id} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm font-semibold text-[#001C44]">
+                                                        {student.studentCode}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center">
+                                                        {student.profileImageUrl ? (
+                                                            <img
+                                                                className="h-10 w-10 rounded-full mr-3 border-2 border-gray-200"
+                                                                src={student.profileImageUrl}
+                                                                alt={student.fullName}
+                                                            />
+                                                        ) : (
+                                                            <div className="h-10 w-10 rounded-full mr-3 bg-gradient-to-br from-[#001C44] to-[#002A66] flex items-center justify-center text-white font-semibold text-sm">
+                                                                {student.fullName.charAt(0).toUpperCase()}
+                                                            </div>
+                                                        )}
+                                                        <div className="text-sm font-medium text-gray-900">
+                                                            {student.fullName}
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm text-gray-700">{student.email}</div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm text-gray-700">
+                                                        {student.phoneNumber || <span className="text-gray-400">Chưa cập nhật</span>}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm text-gray-700">
+                                                        {new Date(student.addedAt).toLocaleDateString('vi-VN')}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                    <button
+                                                        onClick={() => handleRemoveStudent(student.id)}
+                                                        className="px-3 py-1.5 bg-rose-50 text-rose-700 rounded-lg hover:bg-rose-100 border border-rose-200 font-semibold transition-all"
+                                                    >
+                                                        🗑️ Xóa
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

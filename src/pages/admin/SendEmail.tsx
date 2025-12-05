@@ -5,8 +5,7 @@ import { emailAPI, recipientService } from '../../services/emailAPI';
 import { eventAPI } from '../../services/eventAPI';
 import { seriesAPI } from '../../services/seriesAPI';
 import { classAPI } from '../../services/classAPI';
-import { departmentAPI } from '../../services/adminAPI';
-import { studentAPI } from '../../services/studentAPI';
+import { departmentAPI } from '../../services/api';
 import {
     SendEmailRequest,
     RecipientType,
@@ -18,51 +17,143 @@ import { ActivityResponse } from '../../types/activity';
 import { SeriesResponse } from '../../types/series';
 import { StudentClass } from '../../types/class';
 import { Department } from '../../types/admin';
-import { StudentResponse } from '../../types/student';
+import { UserResponse } from '../../types/auth';
+import { RecipientSelectorCard, RecipientPreviewCard, UserSelector } from '../../components/email';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+const ACTION_URL_OPTIONS: Array<{
+    value: string;
+    label: string;
+    requiresId?: boolean;
+    idLabel?: string;
+    placeholder?: string;
+}> = [
+        { value: '', label: 'Không chọn hành động' },
+        { value: '/manager/dashboard', label: 'Dashboard quản lý' },
+        { value: '/activities', label: 'Danh sách sự kiện' },
+        { value: '/series', label: 'Danh sách chuỗi sự kiện' },
+        { value: '/notifications', label: 'Trung tâm thông báo' },
+        { value: '/activities/:id', label: 'Chi tiết sự kiện (nhập ID)', requiresId: true, idLabel: 'Activity ID', placeholder: 'VD: 10' },
+        { value: '/series/:id', label: 'Chi tiết chuỗi sự kiện (nhập ID)', requiresId: true, idLabel: 'Series ID', placeholder: 'VD: 5' }
+    ];
 
 const SendEmail: React.FC = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [sending, setSending] = useState(false);
-    
+
     // Form data
     const [formData, setFormData] = useState<SendEmailRequest>({
-        recipientType: RecipientType.INDIVIDUAL,
+        recipientType: RecipientType.BULK, // Mặc định là BULK (Người dùng)
         subject: '',
         content: '',
         isHtml: false,
         createNotification: false
     });
-    
+
     // Dropdown data
     const [activities, setActivities] = useState<ActivityResponse[]>([]);
     const [series, setSeries] = useState<SeriesResponse[]>([]);
     const [classes, setClasses] = useState<StudentClass[]>([]);
     const [departments, setDepartments] = useState<Department[]>([]);
-    const [students, setStudents] = useState<StudentResponse[]>([]);
+    const [users, setUsers] = useState<UserResponse[]>([]);
     const [loadingDropdowns, setLoadingDropdowns] = useState(false);
-    
-    // For BULK/CUSTOM_LIST: search and pagination
+
+    // For INDIVIDUAL/BULK/CUSTOM_LIST: search and pagination
     const [searchKeyword, setSearchKeyword] = useState('');
+    const [roleFilter, setRoleFilter] = useState<string>('ALL');
     const [currentPage, setCurrentPage] = useState(0);
-    const [totalStudents, setTotalStudents] = useState(0);
-    const [loadingStudents, setLoadingStudents] = useState(false);
-    const [selectedStudentIds, setSelectedStudentIds] = useState<Set<number>>(new Set());
-    
+    const [totalUsers, setTotalUsers] = useState(0);
+    const [loadingUsers, setLoadingUsers] = useState(false);
+    const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
+
     // Attachments
     const [attachments, setAttachments] = useState<File[]>([]);
-    
+
     // Template variables
     const [templateVars, setTemplateVars] = useState<Array<{ key: string; value: string }>>([]);
-    
+    const [actionUrlOption, setActionUrlOption] = useState<string>('');
+    const [actionUrlParam, setActionUrlParam] = useState<string>('');
+
+    const buildActionUrl = (optionValue: string, param: string) => {
+        const option = ACTION_URL_OPTIONS.find(o => o.value === optionValue);
+        if (!option) return '';
+        if (option.requiresId) {
+            if (!param?.trim()) return '';
+            return option.value.replace(':id', param.trim());
+        }
+        return option.value;
+    };
+
     // Errors
     const [errors, setErrors] = useState<Record<string, string>>({});
+
+    // Preview data
+    const [previewData, setPreviewData] = useState<{
+        totalCount: number;
+        previewList: Array<{ id: number; name: string; code?: string; email?: string }>;
+    } | null>(null);
+    const [loadingPreview, setLoadingPreview] = useState(false);
 
     useEffect(() => {
         loadDropdownData();
     }, []);
+
+    // Load preview when activity/series/class/department is selected
+    useEffect(() => {
+        const loadPreview = async () => {
+            if (formData.recipientType === RecipientType.ACTIVITY_REGISTRATIONS && formData.activityId) {
+                setLoadingPreview(true);
+                try {
+                    const preview = await recipientService.previewActivityRecipients(formData.activityId);
+                    setPreviewData(preview);
+                } catch (error) {
+                    console.error('Error loading preview:', error);
+                    setPreviewData(null);
+                } finally {
+                    setLoadingPreview(false);
+                }
+            } else if (formData.recipientType === RecipientType.SERIES_REGISTRATIONS && formData.seriesId) {
+                setLoadingPreview(true);
+                try {
+                    const preview = await recipientService.previewSeriesRecipients(formData.seriesId);
+                    setPreviewData(preview);
+                } catch (error) {
+                    console.error('Error loading preview:', error);
+                    setPreviewData(null);
+                } finally {
+                    setLoadingPreview(false);
+                }
+            } else if (formData.recipientType === RecipientType.BY_CLASS && formData.classId) {
+                setLoadingPreview(true);
+                try {
+                    const preview = await recipientService.previewClassRecipients(formData.classId);
+                    setPreviewData(preview);
+                } catch (error) {
+                    console.error('Error loading preview:', error);
+                    setPreviewData(null);
+                } finally {
+                    setLoadingPreview(false);
+                }
+            } else if (formData.recipientType === RecipientType.BY_DEPARTMENT && formData.departmentId) {
+                setLoadingPreview(true);
+                try {
+                    const preview = await recipientService.previewDepartmentRecipients(formData.departmentId);
+                    setPreviewData(preview);
+                } catch (error) {
+                    console.error('Error loading preview:', error);
+                    setPreviewData(null);
+                } finally {
+                    setLoadingPreview(false);
+                }
+            } else {
+                setPreviewData(null);
+            }
+        };
+
+        loadPreview();
+    }, [formData.recipientType, formData.activityId, formData.seriesId, formData.classId, formData.departmentId]);
 
     const loadDropdownData = async () => {
         setLoadingDropdowns(true);
@@ -85,8 +176,8 @@ const SendEmail: React.FC = () => {
                 setClasses(classesRes.content);
             }
 
-            // Load departments
-            const deptRes = await departmentAPI.getDepartments();
+            // Load departments (public API)
+            const deptRes = await departmentAPI.getAll();
             console.log('Departments response:', deptRes);
             if (deptRes.status && deptRes.data) {
                 setDepartments(Array.isArray(deptRes.data) ? deptRes.data : []);
@@ -95,8 +186,8 @@ const SendEmail: React.FC = () => {
                 toast.warning('Không thể tải danh sách khoa: ' + (deptRes.message || 'Lỗi không xác định'));
             }
 
-            // Load initial students (for INDIVIDUAL)
-            await loadStudents(0, 20);
+            // Load initial users (for INDIVIDUAL/BULK/CUSTOM_LIST)
+            await loadUsers(0, 20);
         } catch (error) {
             console.error('Error loading dropdown data:', error);
             toast.error('Có lỗi xảy ra khi tải dữ liệu');
@@ -109,7 +200,27 @@ const SendEmail: React.FC = () => {
         const { name, value, type } = e.target;
         const checked = (e.target as HTMLInputElement).checked;
 
-        if (type === 'checkbox') {
+        if (name === 'createNotification') {
+            if (checked && !actionUrlOption) {
+                setActionUrlOption('/notifications');
+            }
+            setFormData(prev => ({
+                ...prev,
+                createNotification: checked,
+                ...(checked
+                    ? {
+                        notificationActionUrl: buildActionUrl(actionUrlOption || '/notifications', actionUrlParam) || undefined
+                    }
+                    : {
+                        notificationTitle: undefined,
+                        notificationType: undefined,
+                        notificationActionUrl: undefined
+                    })
+            }));
+            if (!checked) {
+                setActionUrlParam('');
+            }
+        } else if (type === 'checkbox') {
             setFormData(prev => ({ ...prev, [name]: checked }));
         } else {
             setFormData(prev => ({ ...prev, [name]: value }));
@@ -131,12 +242,13 @@ const SendEmail: React.FC = () => {
                 classId: undefined,
                 departmentId: undefined
             }));
-            setSelectedStudentIds(new Set());
+            setSelectedUserIds(new Set());
             setSearchKeyword('');
             setCurrentPage(0);
-            // Reload students for new type
+            setPreviewData(null);
+            // Reload users for new type
             if (value === RecipientType.INDIVIDUAL || value === RecipientType.BULK || value === RecipientType.CUSTOM_LIST) {
-                loadStudents(0, 20);
+                loadUsers(0, 20);
             }
         }
     };
@@ -147,77 +259,121 @@ const SendEmail: React.FC = () => {
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
+        // Clear preview when changing selection
+        setPreviewData(null);
     };
 
-    const loadStudents = async (page: number = 0, size: number = 20, keyword?: string) => {
-        setLoadingStudents(true);
+    const handleRecipientTypeSelect = (type: RecipientType) => {
+        setFormData(prev => ({
+            ...prev,
+            recipientType: type,
+            recipientIds: undefined,
+            activityId: undefined,
+            seriesId: undefined,
+            classId: undefined,
+            departmentId: undefined
+        }));
+        setSelectedUserIds(new Set());
+        setSearchKeyword('');
+        setCurrentPage(0);
+        setPreviewData(null);
+        // Reload users for new type
+        // Reload users for new type
+        if (type === RecipientType.INDIVIDUAL || type === RecipientType.BULK || type === RecipientType.CUSTOM_LIST) {
+            loadUsers(0, 20);
+        }
+    };
+
+    const loadUsers = async (page: number = 0, size: number = 20, keyword?: string, role?: string) => {
+        setLoadingUsers(true);
         try {
-            const result = await recipientService.getAllStudents(page, size, keyword);
+            const result = await recipientService.getAllUsers(
+                page,
+                size,
+                keyword,
+                role && role !== 'ALL' ? (role as 'ADMIN' | 'MANAGER' | 'STUDENT') : undefined
+            );
+
+            const mappedUsers = result.content.map(u => ({
+                ...u,
+                fullName: (u as any).fullName || u.username || u.email
+            }));
+
             if (formData.recipientType === RecipientType.INDIVIDUAL) {
-                // For INDIVIDUAL, just set the list
-                setStudents(result.content);
+                setUsers(mappedUsers);
             } else {
-                // For BULK/CUSTOM_LIST, append to existing list
-                setStudents(prev => page === 0 ? result.content : [...prev, ...result.content]);
+                setUsers(prev => (page === 0 ? mappedUsers : [...prev, ...mappedUsers]));
             }
-            setTotalStudents(result.totalElements);
+            setTotalUsers(result.totalElements);
             setCurrentPage(page);
         } catch (error) {
-            console.error('Error loading students:', error);
-            toast.error('Có lỗi xảy ra khi tải danh sách sinh viên');
+            console.error('Error loading users:', error);
+            toast.error('Có lỗi xảy ra khi tải danh sách người dùng');
         } finally {
-            setLoadingStudents(false);
+            setLoadingUsers(false);
         }
     };
 
     const handleSearch = () => {
         setCurrentPage(0);
-        loadStudents(0, 20, searchKeyword);
+        loadUsers(0, 20, searchKeyword, roleFilter);
     };
 
     const handleLoadMore = () => {
-        loadStudents(currentPage + 1, 20, searchKeyword);
+        loadUsers(currentPage + 1, 20, searchKeyword, roleFilter);
     };
 
-    const handleStudentToggle = (studentId: number) => {
-        setSelectedStudentIds(prev => {
+    const handleUserToggle = (userId: number) => {
+        setSelectedUserIds(prev => {
             const newSet = new Set(prev);
-            if (newSet.has(studentId)) {
-                newSet.delete(studentId);
+            if (newSet.has(userId)) {
+                newSet.delete(userId);
             } else {
-                // For INDIVIDUAL, limit to 10
-                if (formData.recipientType === RecipientType.INDIVIDUAL && newSet.size >= 10) {
-                    toast.warning('Chỉ có thể chọn tối đa 10 người cho loại INDIVIDUAL');
-                    return prev;
-                }
-                newSet.add(studentId);
+                newSet.add(userId);
             }
-            // Update formData
             setFormData(prev => ({ ...prev, recipientIds: Array.from(newSet) }));
             return newSet;
         });
     };
 
     const handleSelectAll = () => {
-        const allIds = new Set(students.map(s => s.id));
-        setSelectedStudentIds(allIds);
+        const allIds = new Set(users.map(u => u.id));
+        setSelectedUserIds(allIds);
         setFormData(prev => ({ ...prev, recipientIds: Array.from(allIds) }));
     };
 
     const handleDeselectAll = () => {
-        setSelectedStudentIds(new Set());
+        setSelectedUserIds(new Set());
         setFormData(prev => ({ ...prev, recipientIds: [] }));
     };
 
-    const handleMultiSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const selectedOptions = Array.from(e.target.selectedOptions, option => parseInt(option.value, 10));
-        setFormData(prev => ({ ...prev, recipientIds: selectedOptions }));
-        setSelectedStudentIds(new Set(selectedOptions));
+    const handleRoleFilterChange = (value: string) => {
+        setRoleFilter(value);
+        setCurrentPage(0);
+        loadUsers(0, 20, searchKeyword, value);
+    };
+
+    const handleActionOptionChange = (value: string) => {
+        setActionUrlOption(value);
+        const url = buildActionUrl(value, actionUrlParam);
+        setFormData(prev => ({ ...prev, notificationActionUrl: url || undefined }));
+        if (errors.notificationActionUrl) {
+            setErrors(prev => ({ ...prev, notificationActionUrl: '' }));
+        }
+    };
+
+    const handleActionParamChange = (value: string) => {
+        setActionUrlParam(value);
+        const url = buildActionUrl(actionUrlOption, value);
+        setFormData(prev => ({ ...prev, notificationActionUrl: url || undefined }));
+        if (errors.notificationActionUrl) {
+            setErrors(prev => ({ ...prev, notificationActionUrl: '' }));
+        }
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
-        
+
         // Validate file sizes
         const invalidFiles = files.filter(file => file.size > MAX_FILE_SIZE);
         if (invalidFiles.length > 0) {
@@ -237,7 +393,7 @@ const SendEmail: React.FC = () => {
     };
 
     const handleTemplateVarChange = (index: number, field: 'key' | 'value', value: string) => {
-        setTemplateVars(prev => prev.map((item, i) => 
+        setTemplateVars(prev => prev.map((item, i) =>
             i === index ? { ...item, [field]: value } : item
         ));
     };
@@ -260,12 +416,6 @@ const SendEmail: React.FC = () => {
         // Validate conditional fields based on recipientType
         switch (formData.recipientType) {
             case RecipientType.INDIVIDUAL:
-                if (!formData.recipientIds || formData.recipientIds.length === 0) {
-                    newErrors.recipientIds = 'Vui lòng chọn ít nhất một người nhận';
-                } else if (formData.recipientIds.length > 10) {
-                    newErrors.recipientIds = 'INDIVIDUAL chỉ cho phép chọn tối đa 10 người';
-                }
-                break;
             case RecipientType.BULK:
             case RecipientType.CUSTOM_LIST:
                 if (!formData.recipientIds || formData.recipientIds.length === 0) {
@@ -302,6 +452,10 @@ const SendEmail: React.FC = () => {
             if (!formData.notificationType) {
                 newErrors.notificationType = 'Loại thông báo là bắt buộc';
             }
+            const selectedAction = ACTION_URL_OPTIONS.find(o => o.value === actionUrlOption);
+            if (selectedAction?.requiresId && !actionUrlParam.trim()) {
+                newErrors.notificationActionUrl = 'Vui lòng nhập ID cho URL hành động';
+            }
         }
 
         setErrors(newErrors);
@@ -317,8 +471,17 @@ const SendEmail: React.FC = () => {
         }
 
         // Build request
+        // QUAN TRỌNG: Convert INDIVIDUAL và CUSTOM_LIST thành BULK vì backend chỉ hỗ trợ BULK
+        // UI vẫn giữ INDIVIDUAL và CUSTOM_LIST để phân biệt UX (giới hạn số lượng, v.v.)
+        const backendRecipientType =
+            formData.recipientType === RecipientType.INDIVIDUAL ||
+                formData.recipientType === RecipientType.CUSTOM_LIST
+                ? RecipientType.BULK
+                : formData.recipientType;
+
         const request: SendEmailRequest = {
             ...formData,
+            recipientType: backendRecipientType, // Convert sang BULK nếu là INDIVIDUAL hoặc CUSTOM_LIST
             templateVariables: templateVars.length > 0
                 ? templateVars.reduce((acc, item) => {
                     if (item.key && item.value) {
@@ -338,17 +501,26 @@ const SendEmail: React.FC = () => {
 
         setSending(true);
         try {
-            const response = await emailAPI.sendEmail(request, attachments.length > 0 ? attachments : undefined);
-            
+            // Tự động chọn endpoint: JSON nếu không có attachments, multipart nếu có
+            const hasAttachments = attachments.length > 0;
+            const response = hasAttachments
+                ? await emailAPI.sendEmail(request, attachments)
+                : await emailAPI.sendEmailJson(request);
+
             if (response.status && response.body) {
                 const { totalRecipients, successCount, failedCount } = response.body;
+
+                // Show success animation
                 toast.success(
-                    `Gửi email thành công! Tổng: ${totalRecipients}, Thành công: ${successCount}, Thất bại: ${failedCount}`
+                    `Gửi email thành công! Tổng: ${totalRecipients}, Thành công: ${successCount}, Thất bại: ${failedCount}`,
+                    {
+                        autoClose: 3000
+                    }
                 );
-                
+
                 // Reset form
                 setFormData({
-                    recipientType: RecipientType.INDIVIDUAL,
+                    recipientType: RecipientType.BULK, // Mặc định là BULK (Người dùng)
                     subject: '',
                     content: '',
                     isHtml: false,
@@ -357,8 +529,12 @@ const SendEmail: React.FC = () => {
                 setAttachments([]);
                 setTemplateVars([]);
                 setErrors({});
-                
-                // Navigate to history
+                setSelectedUserIds(new Set());
+                setActionUrlOption('');
+                setActionUrlParam('');
+                setPreviewData(null);
+
+                // Navigate to history after delay
                 setTimeout(() => {
                     navigate('/manager/emails/history');
                 }, 2000);
@@ -374,292 +550,121 @@ const SendEmail: React.FC = () => {
     };
 
     return (
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="mb-6">
                 <h1 className="text-2xl font-bold text-[#001C44]">Gửi Email</h1>
-                <p className="text-gray-600 mt-1">Gửi email cho sinh viên với nhiều tùy chọn người nhận</p>
+                <p className="text-gray-600 mt-1">Gửi email cho người dùng với nhiều tùy chọn người nhận</p>
             </div>
 
             <form onSubmit={handleSubmit} className="bg-white shadow-lg rounded-lg overflow-hidden">
                 <div className="p-6 space-y-6">
-                    {/* Recipient Type */}
+                    {/* Recipient Type - Card Selection */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-3">
                             Loại người nhận <span className="text-red-500">*</span>
                         </label>
-                        <select
-                            name="recipientType"
-                            value={formData.recipientType}
-                            onChange={handleChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
-                        >
-                            {Object.values(RecipientType).map(type => (
-                                <option key={type} value={type}>
-                                    {getRecipientTypeLabel(type)}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* INDIVIDUAL: Simple dropdown/autocomplete for 1-10 people */}
-                    {formData.recipientType === RecipientType.INDIVIDUAL && (
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Chọn người nhận (tối đa 10 người) <span className="text-red-500">*</span>
-                            </label>
-                            <div className="space-y-3">
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        placeholder="Tìm kiếm theo tên hoặc mã sinh viên..."
-                                        value={searchKeyword}
-                                        onChange={(e) => setSearchKeyword(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={handleSearch}
-                                        disabled={loadingStudents}
-                                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
-                                    >
-                                        🔍 Tìm
-                                    </button>
-                                </div>
-                                <div className="border border-gray-300 rounded-lg max-h-60 overflow-y-auto">
-                                    {loadingStudents ? (
-                                        <div className="p-4 text-center text-gray-500">Đang tải...</div>
-                                    ) : students.length === 0 ? (
-                                        <div className="p-4 text-center text-gray-500">Không tìm thấy sinh viên nào</div>
-                                    ) : (
-                                        students.map(student => (
-                                            <div
-                                                key={student.id}
-                                                onClick={() => handleStudentToggle(student.id)}
-                                                className={`p-3 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ${
-                                                    selectedStudentIds.has(student.id) ? 'bg-[#001C44] bg-opacity-10' : ''
-                                                }`}
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <div>
-                                                        <span className="font-medium">{student.studentCode}</span>
-                                                        <span className="ml-2 text-gray-600">{student.fullName}</span>
-                                                    </div>
-                                                    {selectedStudentIds.has(student.id) && (
-                                                        <span className="text-[#001C44]">✓</span>
-                                                    )}
-                                                </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                            {/* Card "Người dùng" - Gộp INDIVIDUAL và BULK */}
+                            <button
+                                type="button"
+                                onClick={() => handleRecipientTypeSelect(RecipientType.BULK)}
+                                className={`
+                                    relative w-full p-4 rounded-lg border-2 transition-all duration-200
+                                    ${(formData.recipientType === RecipientType.INDIVIDUAL || formData.recipientType === RecipientType.BULK || formData.recipientType === RecipientType.CUSTOM_LIST)
+                                        ? 'border-[#001C44] bg-[#001C44] bg-opacity-5'
+                                        : 'border-gray-200 hover:border-[#001C44] hover:bg-gray-50'
+                                    }
+                                    focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:ring-offset-2
+                                `}
+                            >
+                                <div className="flex items-start space-x-3">
+                                    <div className={`flex-shrink-0 ${(formData.recipientType === RecipientType.INDIVIDUAL || formData.recipientType === RecipientType.BULK || formData.recipientType === RecipientType.CUSTOM_LIST) ? 'text-[#001C44]' : 'text-gray-600'}`}>
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                        </svg>
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className={`text-sm font-semibold ${(formData.recipientType === RecipientType.INDIVIDUAL || formData.recipientType === RecipientType.BULK || formData.recipientType === RecipientType.CUSTOM_LIST) ? 'text-[#001C44]' : 'text-gray-900'}`}>
+                                                Người dùng
+                                            </h3>
+                                            {(formData.recipientType === RecipientType.INDIVIDUAL || formData.recipientType === RecipientType.BULK || formData.recipientType === RecipientType.CUSTOM_LIST) && (
+                                                <span className="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#001C44] text-white text-xs">
+                                                    ✓
+                                                </span>
+                                            )}
+                                        </div>
+                                        {selectedUserIds.size > 0 && (
+                                            <div className="mt-2">
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                                    {selectedUserIds.size} người đã chọn
+                                                </span>
                                             </div>
-                                        ))
-                                    )}
-                                </div>
-                                {selectedStudentIds.size > 0 && (
-                                    <div className="text-sm text-gray-600">
-                                        Đã chọn: <strong>{selectedStudentIds.size}</strong> người
-                                        {formData.recipientType === RecipientType.INDIVIDUAL && selectedStudentIds.size >= 10 && (
-                                            <span className="text-orange-600 ml-2">(Đã đạt giới hạn)</span>
                                         )}
                                     </div>
-                                )}
-                            </div>
-                            {errors.recipientIds && (
-                                <p className="mt-1 text-sm text-red-600">{errors.recipientIds}</p>
-                            )}
+                                </div>
+                            </button>
+
+                            {/* Các card khác (bỏ INDIVIDUAL, BULK, CUSTOM_LIST) */}
+                            {Object.values(RecipientType)
+                                .filter(type =>
+                                    type !== RecipientType.INDIVIDUAL &&
+                                    type !== RecipientType.BULK &&
+                                    type !== RecipientType.CUSTOM_LIST
+                                )
+                                .map(type => (
+                                    <RecipientSelectorCard
+                                        key={type}
+                                        recipientType={type}
+                                        isSelected={formData.recipientType === type}
+                                        onSelect={handleRecipientTypeSelect}
+                                    />
+                                ))}
                         </div>
+                    </div>
+
+                    {/* Preview Card for Activity/Series/Class/Department */}
+                    {previewData && (
+                        <RecipientPreviewCard
+                            recipientType={formData.recipientType}
+                            totalCount={previewData.totalCount}
+                            previewList={previewData.previewList}
+                            isLoading={loadingPreview}
+                        />
                     )}
 
-                    {/* BULK: Multi-select with search, filter, import file */}
-                    {formData.recipientType === RecipientType.BULK && (
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Chọn người nhận (có thể chọn nhiều) <span className="text-red-500">*</span>
-                            </label>
-                            <div className="space-y-3">
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        placeholder="Tìm kiếm theo tên hoặc mã sinh viên..."
-                                        value={searchKeyword}
-                                        onChange={(e) => setSearchKeyword(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={handleSearch}
-                                        disabled={loadingStudents}
-                                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
-                                    >
-                                        🔍 Tìm
-                                    </button>
-                                </div>
-                                <div className="flex gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={handleSelectAll}
-                                        className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
-                                    >
-                                        Chọn tất cả
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={handleDeselectAll}
-                                        className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
-                                    >
-                                        Bỏ chọn tất cả
-                                    </button>
-                                </div>
-                                <div className="border border-gray-300 rounded-lg max-h-96 overflow-y-auto">
-                                    {loadingStudents ? (
-                                        <div className="p-4 text-center text-gray-500">Đang tải...</div>
-                                    ) : students.length === 0 ? (
-                                        <div className="p-4 text-center text-gray-500">Không tìm thấy sinh viên nào</div>
-                                    ) : (
-                                        students.map(student => (
-                                            <div
-                                                key={student.id}
-                                                onClick={() => handleStudentToggle(student.id)}
-                                                className={`p-3 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ${
-                                                    selectedStudentIds.has(student.id) ? 'bg-[#001C44] bg-opacity-10' : ''
-                                                }`}
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <div>
-                                                        <span className="font-medium">{student.studentCode}</span>
-                                                        <span className="ml-2 text-gray-600">{student.fullName}</span>
-                                                    </div>
-                                                    {selectedStudentIds.has(student.id) && (
-                                                        <span className="text-[#001C44]">✓</span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                                {students.length > 0 && students.length < totalStudents && (
-                                    <button
-                                        type="button"
-                                        onClick={handleLoadMore}
-                                        disabled={loadingStudents}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
-                                    >
-                                        {loadingStudents ? 'Đang tải...' : `Tải thêm (${totalStudents - students.length} còn lại)`}
-                                    </button>
-                                )}
-                                {selectedStudentIds.size > 0 && (
-                                    <div className="text-sm text-gray-600">
-                                        Đã chọn: <strong>{selectedStudentIds.size}</strong> người
-                                    </div>
+                    {/* Người dùng: Gộp INDIVIDUAL, BULK, CUSTOM_LIST thành một UI */}
+                    {(formData.recipientType === RecipientType.INDIVIDUAL ||
+                        formData.recipientType === RecipientType.BULK ||
+                        formData.recipientType === RecipientType.CUSTOM_LIST) && (
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                                <label className="block text-sm font-medium text-gray-700 mb-3">
+                                    Chọn người nhận <span className="text-red-500">*</span>
+                                </label>
+                                <UserSelector
+                                    users={users}
+                                    selectedIds={selectedUserIds}
+                                    onToggle={handleUserToggle}
+                                    onSelectAll={handleSelectAll}
+                                    onDeselectAll={handleDeselectAll}
+                                    searchKeyword={searchKeyword}
+                                    onSearchChange={setSearchKeyword}
+                                    onSearch={handleSearch}
+                                    onLoadMore={users.length < totalUsers ? handleLoadMore : undefined}
+                                    isLoading={loadingUsers}
+                                    hasMore={users.length < totalUsers}
+                                    showCount={true}
+                                    roleFilter={roleFilter}
+                                    onRoleFilterChange={handleRoleFilterChange}
+                                />
+                                {errors.recipientIds && (
+                                    <p className="mt-2 text-sm text-red-600">{errors.recipientIds}</p>
                                 )}
                             </div>
-                            {errors.recipientIds && (
-                                <p className="mt-1 text-sm text-red-600">{errors.recipientIds}</p>
-                            )}
-                        </div>
-                    )}
-
-                    {/* CUSTOM_LIST: Similar to BULK but with save/load functionality */}
-                    {formData.recipientType === RecipientType.CUSTOM_LIST && (
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Danh sách tùy chọn <span className="text-red-500">*</span>
-                            </label>
-                            <div className="space-y-3">
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        placeholder="Tìm kiếm theo tên hoặc mã sinh viên..."
-                                        value={searchKeyword}
-                                        onChange={(e) => setSearchKeyword(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={handleSearch}
-                                        disabled={loadingStudents}
-                                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
-                                    >
-                                        🔍 Tìm
-                                    </button>
-                                </div>
-                                <div className="flex gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={handleSelectAll}
-                                        className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
-                                    >
-                                        Chọn tất cả
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={handleDeselectAll}
-                                        className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
-                                    >
-                                        Bỏ chọn tất cả
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            // TODO: Implement save list functionality
-                                            toast.info('Tính năng lưu danh sách sẽ được thêm sau');
-                                        }}
-                                        className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
-                                    >
-                                        💾 Lưu danh sách
-                                    </button>
-                                </div>
-                                <div className="border border-gray-300 rounded-lg max-h-96 overflow-y-auto">
-                                    {loadingStudents ? (
-                                        <div className="p-4 text-center text-gray-500">Đang tải...</div>
-                                    ) : students.length === 0 ? (
-                                        <div className="p-4 text-center text-gray-500">Không tìm thấy sinh viên nào</div>
-                                    ) : (
-                                        students.map(student => (
-                                            <div
-                                                key={student.id}
-                                                onClick={() => handleStudentToggle(student.id)}
-                                                className={`p-3 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ${
-                                                    selectedStudentIds.has(student.id) ? 'bg-[#001C44] bg-opacity-10' : ''
-                                                }`}
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <div>
-                                                        <span className="font-medium">{student.studentCode}</span>
-                                                        <span className="ml-2 text-gray-600">{student.fullName}</span>
-                                                    </div>
-                                                    {selectedStudentIds.has(student.id) && (
-                                                        <span className="text-[#001C44]">✓</span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                                {students.length > 0 && students.length < totalStudents && (
-                                    <button
-                                        type="button"
-                                        onClick={handleLoadMore}
-                                        disabled={loadingStudents}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
-                                    >
-                                        {loadingStudents ? 'Đang tải...' : `Tải thêm (${totalStudents - students.length} còn lại)`}
-                                    </button>
-                                )}
-                                {selectedStudentIds.size > 0 && (
-                                    <div className="text-sm text-gray-600">
-                                        Đã chọn: <strong>{selectedStudentIds.size}</strong> người
-                                    </div>
-                                )}
-                            </div>
-                            {errors.recipientIds && (
-                                <p className="mt-1 text-sm text-red-600">{errors.recipientIds}</p>
-                            )}
-                        </div>
-                    )}
+                        )}
 
                     {formData.recipientType === RecipientType.ACTIVITY_REGISTRATIONS && (
-                        <div>
+                        <div className="bg-gray-50 p-4 rounded-lg">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Chọn sự kiện <span className="text-red-500">*</span>
                             </label>
@@ -667,7 +672,7 @@ const SendEmail: React.FC = () => {
                                 name="activityId"
                                 value={formData.activityId || ''}
                                 onChange={(e) => handleNumberChange('activityId', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent bg-white"
                             >
                                 <option value="">-- Chọn sự kiện --</option>
                                 {activities.map(activity => (
@@ -683,7 +688,7 @@ const SendEmail: React.FC = () => {
                     )}
 
                     {formData.recipientType === RecipientType.SERIES_REGISTRATIONS && (
-                        <div>
+                        <div className="bg-gray-50 p-4 rounded-lg">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Chọn chuỗi sự kiện <span className="text-red-500">*</span>
                             </label>
@@ -691,7 +696,7 @@ const SendEmail: React.FC = () => {
                                 name="seriesId"
                                 value={formData.seriesId || ''}
                                 onChange={(e) => handleNumberChange('seriesId', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent bg-white"
                             >
                                 <option value="">-- Chọn chuỗi sự kiện --</option>
                                 {series.map(s => (
@@ -707,7 +712,7 @@ const SendEmail: React.FC = () => {
                     )}
 
                     {formData.recipientType === RecipientType.BY_CLASS && (
-                        <div>
+                        <div className="bg-gray-50 p-4 rounded-lg">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Chọn lớp <span className="text-red-500">*</span>
                             </label>
@@ -715,7 +720,7 @@ const SendEmail: React.FC = () => {
                                 name="classId"
                                 value={formData.classId || ''}
                                 onChange={(e) => handleNumberChange('classId', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent bg-white"
                             >
                                 <option value="">-- Chọn lớp --</option>
                                 {classes.map(cls => (
@@ -731,7 +736,7 @@ const SendEmail: React.FC = () => {
                     )}
 
                     {formData.recipientType === RecipientType.BY_DEPARTMENT && (
-                        <div>
+                        <div className="bg-gray-50 p-4 rounded-lg">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Chọn khoa <span className="text-red-500">*</span>
                             </label>
@@ -739,7 +744,7 @@ const SendEmail: React.FC = () => {
                                 name="departmentId"
                                 value={formData.departmentId || ''}
                                 onChange={(e) => handleNumberChange('departmentId', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent bg-white"
                             >
                                 <option value="">-- Chọn khoa --</option>
                                 {departments.map(dept => (
@@ -754,127 +759,187 @@ const SendEmail: React.FC = () => {
                         </div>
                     )}
 
-                    {/* Subject */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Tiêu đề email <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                            type="text"
-                            name="subject"
-                            value={formData.subject}
-                            onChange={handleChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
-                            placeholder="Nhập tiêu đề email"
-                        />
-                        {errors.subject && (
-                            <p className="mt-1 text-sm text-red-600">{errors.subject}</p>
-                        )}
-                    </div>
+                    {/* Content Section */}
+                    <div className="border-t pt-6">
+                        <h2 className="text-lg font-semibold text-gray-900 mb-4">Nội dung Email</h2>
 
-                    {/* Content */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Nội dung email <span className="text-red-500">*</span>
-                        </label>
-                        <textarea
-                            name="content"
-                            value={formData.content}
-                            onChange={handleChange}
-                            rows={10}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent font-mono text-sm"
-                            placeholder="Nhập nội dung email..."
-                        />
-                        {errors.content && (
-                            <p className="mt-1 text-sm text-red-600">{errors.content}</p>
-                        )}
-                        <p className="mt-1 text-xs text-gray-500">
-                            Sử dụng biến template: {'{{studentName}}'}, {'{{studentCode}}'}, {'{{activityName}}'}, etc.
-                        </p>
-                    </div>
-
-                    {/* HTML Toggle */}
-                    <div className="flex items-center">
-                        <input
-                            type="checkbox"
-                            name="isHtml"
-                            checked={formData.isHtml || false}
-                            onChange={handleChange}
-                            className="h-4 w-4 text-[#001C44] focus:ring-[#001C44] border-gray-300 rounded"
-                        />
-                        <label className="ml-2 text-sm text-gray-700">
-                            Nội dung HTML
-                        </label>
-                    </div>
-
-                    {/* Template Variables */}
-                    <div>
-                        <div className="flex items-center justify-between mb-2">
-                            <label className="block text-sm font-medium text-gray-700">
-                                Biến template (tùy chọn)
+                        {/* Subject */}
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Tiêu đề email <span className="text-red-500">*</span>
                             </label>
-                            <button
-                                type="button"
-                                onClick={handleAddTemplateVar}
-                                className="text-sm text-[#001C44] hover:text-[#002A66] font-medium"
-                            >
-                                + Thêm biến
-                            </button>
+                            <input
+                                type="text"
+                                name="subject"
+                                value={formData.subject}
+                                onChange={handleChange}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
+                                placeholder="Nhập tiêu đề email"
+                            />
+                            {errors.subject && (
+                                <p className="mt-1 text-sm text-red-600 flex items-center">
+                                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                    {errors.subject}
+                                </p>
+                            )}
                         </div>
-                        {templateVars.map((item, index) => (
-                            <div key={index} className="flex gap-2 mb-2">
-                                <input
-                                    type="text"
-                                    placeholder="Tên biến"
-                                    value={item.key}
-                                    onChange={(e) => handleTemplateVarChange(index, 'key', e.target.value)}
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                                />
-                                <input
-                                    type="text"
-                                    placeholder="Giá trị"
-                                    value={item.value}
-                                    onChange={(e) => handleTemplateVarChange(index, 'value', e.target.value)}
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                                />
+
+                        {/* Content */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Nội dung email <span className="text-red-500">*</span>
+                            </label>
+                            <textarea
+                                name="content"
+                                value={formData.content}
+                                onChange={handleChange}
+                                rows={10}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent font-mono text-sm"
+                                placeholder="Nhập nội dung email..."
+                            />
+                            <div className="mt-2 flex items-center justify-between">
+                                <p className="text-xs text-gray-500">
+                                    Sử dụng biến template: {'{{studentName}}'}, {'{{studentCode}}'}, {'{{activityName}}'}, etc.
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                    {formData.content.length} ký tự
+                                </p>
+                            </div>
+                            {errors.content && (
+                                <p className="mt-1 text-sm text-red-600 flex items-center">
+                                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                    {errors.content}
+                                </p>
+                            )}
+
+                            {/* Template helper */}
+                            <div className="mt-3 border border-dashed border-gray-200 rounded-lg p-3 bg-gray-50">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-800">Hướng dẫn biến template</p>
+                                        <p className="text-xs text-gray-500">Chèn vào nội dung email để tự động thay thế</p>
+                                    </div>
+                                    <span className="text-[11px] px-2 py-1 bg-blue-100 text-blue-700 rounded-full">Tip</span>
+                                </div>
+                                <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-700">
+                                    <div className="space-y-1">
+                                        <p><span className="font-semibold">{'{{studentName}}'}</span> - Tên sinh viên</p>
+                                        <p><span className="font-semibold">{'{{studentCode}}'}</span> - Mã sinh viên</p>
+                                        <p><span className="font-semibold">{'{{activityName}}'}</span> - Tên sự kiện (nếu có)</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p><span className="font-semibold">{'{{seriesName}}'}</span> - Tên chuỗi sự kiện (nếu có)</p>
+                                        <p><span className="font-semibold">{'{{email}}'}</span> - Email người nhận</p>
+                                        <p className="text-gray-500">Có thể thêm biến tuỳ chọn ở mục “Biến template” phía dưới.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Options Section */}
+                    <div className="border-t pt-6">
+                        <h2 className="text-lg font-semibold text-gray-900 mb-4">Tùy chọn</h2>
+
+                        {/* HTML Toggle */}
+                        <div className="flex items-center mb-4">
+                            <input
+                                type="checkbox"
+                                name="isHtml"
+                                checked={formData.isHtml || false}
+                                onChange={handleChange}
+                                className="h-4 w-4 text-[#001C44] focus:ring-[#001C44] border-gray-300 rounded"
+                            />
+                            <label className="ml-2 text-sm text-gray-700">
+                                Nội dung HTML
+                            </label>
+                        </div>
+
+                        {/* Template Variables */}
+                        <div className="mb-4">
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="block text-sm font-medium text-gray-700">
+                                    Biến template (tùy chọn)
+                                </label>
                                 <button
                                     type="button"
-                                    onClick={() => handleRemoveTemplateVar(index)}
-                                    className="px-3 py-2 text-red-600 hover:text-red-800"
+                                    onClick={handleAddTemplateVar}
+                                    className="text-sm text-[#001C44] hover:text-[#002A66] font-medium"
                                 >
-                                    ✕
+                                    + Thêm biến
                                 </button>
                             </div>
-                        ))}
-                    </div>
+                            {templateVars.map((item, index) => (
+                                <div key={index} className="flex gap-2 mb-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Tên biến"
+                                        value={item.key}
+                                        onChange={(e) => handleTemplateVarChange(index, 'key', e.target.value)}
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                    />
+                                    <input
+                                        type="text"
+                                        placeholder="Giá trị"
+                                        value={item.value}
+                                        onChange={(e) => handleTemplateVarChange(index, 'value', e.target.value)}
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => handleRemoveTemplateVar(index)}
+                                        className="px-3 py-2 text-red-600 hover:text-red-800"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
 
-                    {/* Attachments */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            File đính kèm (tối đa 10MB mỗi file)
-                        </label>
-                        <input
-                            type="file"
-                            multiple
-                            onChange={handleFileChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
-                        />
-                        {attachments.length > 0 && (
-                            <div className="mt-2 space-y-1">
-                                {attachments.map((file, index) => (
-                                    <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded">
-                                        <span className="text-sm text-gray-700">{file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleRemoveFile(index)}
-                                            className="text-red-600 hover:text-red-800 text-sm"
-                                        >
-                                            ✕
-                                        </button>
-                                    </div>
-                                ))}
+                        {/* Attachments */}
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                File đính kèm (tối đa 10MB mỗi file)
+                            </label>
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-[#001C44] transition-colors">
+                                <input
+                                    type="file"
+                                    multiple
+                                    onChange={handleFileChange}
+                                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#001C44] file:text-white hover:file:bg-[#002A66] cursor-pointer"
+                                />
                             </div>
-                        )}
+                            {attachments.length > 0 && (
+                                <div className="mt-3 space-y-2">
+                                    {attachments.map((file, index) => (
+                                        <div key={index} className="flex items-center justify-between bg-gray-50 px-4 py-2.5 rounded-lg border border-gray-200">
+                                            <div className="flex items-center space-x-2">
+                                                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                </svg>
+                                                <div>
+                                                    <span className="text-sm font-medium text-gray-700">{file.name}</span>
+                                                    <span className="ml-2 text-xs text-gray-500">({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveFile(index)}
+                                                className="text-red-600 hover:text-red-800 hover:bg-red-50 p-1 rounded transition-colors"
+                                            >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Create Notification */}
@@ -935,16 +1000,37 @@ const SendEmail: React.FC = () => {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        URL hành động (tùy chọn)
+                                        URL hành động (chọn sẵn)
                                     </label>
-                                    <input
-                                        type="text"
-                                        name="notificationActionUrl"
-                                        value={formData.notificationActionUrl || ''}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
-                                        placeholder="/activities/1"
-                                    />
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <select
+                                            value={actionUrlOption}
+                                            onChange={(e) => handleActionOptionChange(e.target.value)}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent bg-white"
+                                        >
+                                            {ACTION_URL_OPTIONS.map(opt => (
+                                                <option key={opt.value || 'none'} value={opt.value}>
+                                                    {opt.label}
+                                                </option>
+                                            ))}
+                                        </select>
+
+                                        {ACTION_URL_OPTIONS.find(o => o.value === actionUrlOption)?.requiresId && (
+                                            <input
+                                                type="text"
+                                                value={actionUrlParam}
+                                                onChange={(e) => handleActionParamChange(e.target.value)}
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
+                                                placeholder={ACTION_URL_OPTIONS.find(o => o.value === actionUrlOption)?.placeholder || 'Nhập ID'}
+                                            />
+                                        )}
+                                    </div>
+                                    {errors.notificationActionUrl && (
+                                        <p className="mt-1 text-sm text-red-600">{errors.notificationActionUrl}</p>
+                                    )}
+                                    <p className="mt-1 text-xs text-gray-500">
+                                        Hệ thống sẽ tự build URL, không cần nhập tay.
+                                    </p>
                                 </div>
                             </div>
                         )}
@@ -952,7 +1038,7 @@ const SendEmail: React.FC = () => {
                 </div>
 
                 {/* Form Actions */}
-                <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3">
+                <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
                     <button
                         type="button"
                         onClick={() => navigate('/manager/emails/history')}
@@ -964,9 +1050,24 @@ const SendEmail: React.FC = () => {
                     <button
                         type="submit"
                         disabled={sending || loadingDropdowns}
-                        className="px-6 py-2 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-6 py-2 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                     >
-                        {sending ? 'Đang gửi...' : 'Gửi Email'}
+                        {sending ? (
+                            <>
+                                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span>Đang gửi...</span>
+                            </>
+                        ) : (
+                            <>
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                </svg>
+                                <span>Gửi Email</span>
+                            </>
+                        )}
                     </button>
                 </div>
             </form>

@@ -5,8 +5,7 @@ import { emailAPI, recipientService } from '../../services/emailAPI';
 import { eventAPI } from '../../services/eventAPI';
 import { seriesAPI } from '../../services/seriesAPI';
 import { classAPI } from '../../services/classAPI';
-import { departmentAPI } from '../../services/adminAPI';
-import { studentAPI } from '../../services/studentAPI';
+import { departmentAPI } from '../../services/api';
 import {
     SendNotificationOnlyRequest,
     RecipientType,
@@ -18,7 +17,24 @@ import { ActivityResponse } from '../../types/activity';
 import { SeriesResponse } from '../../types/series';
 import { StudentClass } from '../../types/class';
 import { Department } from '../../types/admin';
-import { StudentResponse } from '../../types/student';
+import { UserResponse } from '../../types/auth';
+import { RecipientSelectorCard, RecipientPreviewCard, UserSelector } from '../../components/email';
+
+const ACTION_URL_OPTIONS: Array<{
+    value: string;
+    label: string;
+    requiresId?: boolean;
+    idLabel?: string;
+    placeholder?: string;
+}> = [
+        { value: '', label: 'Không chọn hành động' },
+        { value: '/manager/dashboard', label: 'Dashboard quản lý' },
+        { value: '/activities', label: 'Danh sách sự kiện' },
+        { value: '/series', label: 'Danh sách chuỗi sự kiện' },
+        { value: '/notifications', label: 'Trung tâm thông báo' },
+        { value: '/activities/:id', label: 'Chi tiết sự kiện (nhập ID)', requiresId: true, idLabel: 'Activity ID', placeholder: 'VD: 10' },
+        { value: '/series/:id', label: 'Chi tiết chuỗi sự kiện (nhập ID)', requiresId: true, idLabel: 'Series ID', placeholder: 'VD: 5' }
+    ];
 
 const SendNotification: React.FC = () => {
     const navigate = useNavigate();
@@ -26,7 +42,7 @@ const SendNotification: React.FC = () => {
     
     // Form data
     const [formData, setFormData] = useState<SendNotificationOnlyRequest>({
-        recipientType: RecipientType.INDIVIDUAL,
+        recipientType: RecipientType.BULK, // Mặc định là BULK (Người dùng)
         title: '',
         content: '',
         type: NotificationType.SYSTEM_ANNOUNCEMENT
@@ -37,22 +53,99 @@ const SendNotification: React.FC = () => {
     const [series, setSeries] = useState<SeriesResponse[]>([]);
     const [classes, setClasses] = useState<StudentClass[]>([]);
     const [departments, setDepartments] = useState<Department[]>([]);
-    const [students, setStudents] = useState<StudentResponse[]>([]);
+    const [users, setUsers] = useState<UserResponse[]>([]);
     const [loadingDropdowns, setLoadingDropdowns] = useState(false);
     
-    // For BULK/CUSTOM_LIST: search and pagination
+    // For BULK: search and pagination
     const [searchKeyword, setSearchKeyword] = useState('');
+    const [roleFilter, setRoleFilter] = useState<string>('ALL');
     const [currentPage, setCurrentPage] = useState(0);
-    const [totalStudents, setTotalStudents] = useState(0);
-    const [loadingStudents, setLoadingStudents] = useState(false);
-    const [selectedStudentIds, setSelectedStudentIds] = useState<Set<number>>(new Set());
+    const [totalUsers, setTotalUsers] = useState(0);
+    const [loadingUsers, setLoadingUsers] = useState(false);
+    const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
+    
+    // Action URL
+    const [actionUrlOption, setActionUrlOption] = useState<string>('');
+    const [actionUrlParam, setActionUrlParam] = useState<string>('');
+
+    const buildActionUrl = (optionValue: string, param: string) => {
+        const option = ACTION_URL_OPTIONS.find(o => o.value === optionValue);
+        if (!option) return '';
+        if (option.requiresId) {
+            if (!param?.trim()) return '';
+            return option.value.replace(':id', param.trim());
+        }
+        return option.value;
+    };
     
     // Errors
     const [errors, setErrors] = useState<Record<string, string>>({});
 
+    // Preview data
+    const [previewData, setPreviewData] = useState<{
+        totalCount: number;
+        previewList: Array<{ id: number; name: string; code?: string; email?: string }>;
+    } | null>(null);
+    const [loadingPreview, setLoadingPreview] = useState(false);
+
     useEffect(() => {
         loadDropdownData();
     }, []);
+
+    // Load preview when activity/series/class/department is selected
+    useEffect(() => {
+        const loadPreview = async () => {
+            if (formData.recipientType === RecipientType.ACTIVITY_REGISTRATIONS && formData.activityId) {
+                setLoadingPreview(true);
+                try {
+                    const preview = await recipientService.previewActivityRecipients(formData.activityId);
+                    setPreviewData(preview);
+                } catch (error) {
+                    console.error('Error loading preview:', error);
+                    setPreviewData(null);
+                } finally {
+                    setLoadingPreview(false);
+                }
+            } else if (formData.recipientType === RecipientType.SERIES_REGISTRATIONS && formData.seriesId) {
+                setLoadingPreview(true);
+                try {
+                    const preview = await recipientService.previewSeriesRecipients(formData.seriesId);
+                    setPreviewData(preview);
+                } catch (error) {
+                    console.error('Error loading preview:', error);
+                    setPreviewData(null);
+                } finally {
+                    setLoadingPreview(false);
+                }
+            } else if (formData.recipientType === RecipientType.BY_CLASS && formData.classId) {
+                setLoadingPreview(true);
+                try {
+                    const preview = await recipientService.previewClassRecipients(formData.classId);
+                    setPreviewData(preview);
+                } catch (error) {
+                    console.error('Error loading preview:', error);
+                    setPreviewData(null);
+                } finally {
+                    setLoadingPreview(false);
+                }
+            } else if (formData.recipientType === RecipientType.BY_DEPARTMENT && formData.departmentId) {
+                setLoadingPreview(true);
+                try {
+                    const preview = await recipientService.previewDepartmentRecipients(formData.departmentId);
+                    setPreviewData(preview);
+                } catch (error) {
+                    console.error('Error loading preview:', error);
+                    setPreviewData(null);
+                } finally {
+                    setLoadingPreview(false);
+                }
+            } else {
+                setPreviewData(null);
+            }
+        };
+
+        loadPreview();
+    }, [formData.recipientType, formData.activityId, formData.seriesId, formData.classId, formData.departmentId]);
 
     const loadDropdownData = async () => {
         setLoadingDropdowns(true);
@@ -75,8 +168,8 @@ const SendNotification: React.FC = () => {
                 setClasses(classesRes.content);
             }
 
-            // Load departments
-            const deptRes = await departmentAPI.getDepartments();
+            // Load departments (public API)
+            const deptRes = await departmentAPI.getAll();
             console.log('Departments response:', deptRes);
             if (deptRes.status && deptRes.data) {
                 setDepartments(Array.isArray(deptRes.data) ? deptRes.data : []);
@@ -85,8 +178,13 @@ const SendNotification: React.FC = () => {
                 toast.warning('Không thể tải danh sách khoa: ' + (deptRes.message || 'Lỗi không xác định'));
             }
 
-            // Load initial students (for INDIVIDUAL)
-            await loadStudents(0, 20);
+            // Load initial users (for BULK/INDIVIDUAL/CUSTOM_LIST)
+            // Chỉ load nếu recipientType là BULK, INDIVIDUAL, hoặc CUSTOM_LIST
+            if (formData.recipientType === RecipientType.INDIVIDUAL || 
+                formData.recipientType === RecipientType.BULK || 
+                formData.recipientType === RecipientType.CUSTOM_LIST) {
+                await loadUsers(0, 20);
+            }
         } catch (error) {
             console.error('Error loading dropdown data:', error);
             toast.error('Có lỗi xảy ra khi tải dữ liệu');
@@ -116,11 +214,12 @@ const SendNotification: React.FC = () => {
                 classId: undefined,
                 departmentId: undefined
             }));
-            setSelectedStudentIds(new Set());
+            setSelectedUserIds(new Set());
             setSearchKeyword('');
             setCurrentPage(0);
+            setPreviewData(null);
             if (value === RecipientType.INDIVIDUAL || value === RecipientType.BULK || value === RecipientType.CUSTOM_LIST) {
-                loadStudents(0, 20);
+                loadUsers(0, 20);
             }
         }
     };
@@ -131,47 +230,89 @@ const SendNotification: React.FC = () => {
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
+        // Clear preview when changing selection
+        setPreviewData(null);
     };
 
-    const loadStudents = async (page: number = 0, size: number = 20, keyword?: string) => {
-        setLoadingStudents(true);
+    const handleRecipientTypeSelect = (type: RecipientType) => {
+        setFormData(prev => ({
+            ...prev,
+            recipientType: type,
+            recipientIds: undefined,
+            activityId: undefined,
+            seriesId: undefined,
+            classId: undefined,
+            departmentId: undefined
+        }));
+        setSelectedUserIds(new Set());
+        setSearchKeyword('');
+        setCurrentPage(0);
+        setPreviewData(null);
+        // Reload users for new type
+        if (type === RecipientType.INDIVIDUAL || type === RecipientType.BULK || type === RecipientType.CUSTOM_LIST) {
+            loadUsers(0, 20);
+        }
+    };
+
+    const loadUsers = async (page: number = 0, size: number = 20, keyword?: string, role?: string) => {
+        setLoadingUsers(true);
         try {
-            const result = await recipientService.getAllStudents(page, size, keyword);
-            if (formData.recipientType === RecipientType.INDIVIDUAL) {
-                setStudents(result.content);
+            console.log('🔍 SendNotification.loadUsers - Calling with:', { page, size, keyword, role });
+            const result = await recipientService.getAllUsers(
+                page,
+                size,
+                keyword,
+                role && role !== 'ALL' ? (role as 'ADMIN' | 'MANAGER' | 'STUDENT') : undefined
+            );
+
+            console.log('🔍 SendNotification.loadUsers - Result:', result);
+            console.log('🔍 SendNotification.loadUsers - Result.content length:', result.content?.length);
+
+            if (result.content && result.content.length > 0) {
+                const mappedUsers = result.content.map(u => ({
+                    ...u,
+                    fullName: (u as any).fullName || u.username || u.email
+                }));
+
+                if (page === 0) {
+                    setUsers(mappedUsers);
+                } else {
+                    setUsers(prev => [...prev, ...mappedUsers]);
+                }
+                setTotalUsers(result.totalElements);
+                setCurrentPage(page);
+                console.log('🔍 SendNotification.loadUsers - Successfully set users, count:', mappedUsers.length);
             } else {
-                setStudents(prev => page === 0 ? result.content : [...prev, ...result.content]);
+                console.warn('🔍 SendNotification.loadUsers - No users found in result');
+                if (page === 0) {
+                    setUsers([]);
+                }
+                setTotalUsers(0);
             }
-            setTotalStudents(result.totalElements);
-            setCurrentPage(page);
         } catch (error) {
-            console.error('Error loading students:', error);
-            toast.error('Có lỗi xảy ra khi tải danh sách sinh viên');
+            console.error('Error loading users:', error);
+            toast.error('Có lỗi xảy ra khi tải danh sách người dùng');
         } finally {
-            setLoadingStudents(false);
+            setLoadingUsers(false);
         }
     };
 
     const handleSearch = () => {
         setCurrentPage(0);
-        loadStudents(0, 20, searchKeyword);
+        loadUsers(0, 20, searchKeyword, roleFilter);
     };
 
     const handleLoadMore = () => {
-        loadStudents(currentPage + 1, 20, searchKeyword);
+        loadUsers(currentPage + 1, 20, searchKeyword, roleFilter);
     };
 
-    const handleStudentToggle = (studentId: number) => {
-        setSelectedStudentIds(prev => {
+    const handleUserToggle = (userId: number) => {
+        setSelectedUserIds(prev => {
             const newSet = new Set(prev);
-            if (newSet.has(studentId)) {
-                newSet.delete(studentId);
+            if (newSet.has(userId)) {
+                newSet.delete(userId);
             } else {
-                if (formData.recipientType === RecipientType.INDIVIDUAL && newSet.size >= 10) {
-                    toast.warning('Chỉ có thể chọn tối đa 10 người cho loại INDIVIDUAL');
-                    return prev;
-                }
-                newSet.add(studentId);
+                newSet.add(userId);
             }
             setFormData(prev => ({ ...prev, recipientIds: Array.from(newSet) }));
             return newSet;
@@ -179,21 +320,22 @@ const SendNotification: React.FC = () => {
     };
 
     const handleSelectAll = () => {
-        const allIds = new Set(students.map(s => s.id));
-        setSelectedStudentIds(allIds);
+        const allIds = new Set(users.map(u => u.id));
+        setSelectedUserIds(allIds);
         setFormData(prev => ({ ...prev, recipientIds: Array.from(allIds) }));
     };
 
     const handleDeselectAll = () => {
-        setSelectedStudentIds(new Set());
+        setSelectedUserIds(new Set());
         setFormData(prev => ({ ...prev, recipientIds: [] }));
     };
 
-    const handleMultiSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const selectedOptions = Array.from(e.target.selectedOptions, option => parseInt(option.value, 10));
-        setFormData(prev => ({ ...prev, recipientIds: selectedOptions }));
-        setSelectedStudentIds(new Set(selectedOptions));
+    const handleRoleFilterChange = (role: string) => {
+        setRoleFilter(role);
+        setCurrentPage(0);
+        loadUsers(0, 20, searchKeyword, role);
     };
+
 
     const validateForm = (): boolean => {
         const newErrors: Record<string, string> = {};
@@ -213,12 +355,6 @@ const SendNotification: React.FC = () => {
         // Validate conditional fields
         switch (formData.recipientType) {
             case RecipientType.INDIVIDUAL:
-                if (!formData.recipientIds || formData.recipientIds.length === 0) {
-                    newErrors.recipientIds = 'Vui lòng chọn ít nhất một người nhận';
-                } else if (formData.recipientIds.length > 10) {
-                    newErrors.recipientIds = 'INDIVIDUAL chỉ cho phép chọn tối đa 10 người';
-                }
-                break;
             case RecipientType.BULK:
             case RecipientType.CUSTOM_LIST:
                 if (!formData.recipientIds || formData.recipientIds.length === 0) {
@@ -262,6 +398,22 @@ const SendNotification: React.FC = () => {
         // Build request
         const request: SendNotificationOnlyRequest = { ...formData };
 
+        // QUAN TRỌNG: Convert INDIVIDUAL và CUSTOM_LIST thành BULK vì backend chỉ hỗ trợ BULK
+        // UI vẫn giữ INDIVIDUAL và CUSTOM_LIST để phân biệt UX (giới hạn số lượng, v.v.)
+        const backendRecipientType = 
+            formData.recipientType === RecipientType.INDIVIDUAL ||
+            formData.recipientType === RecipientType.CUSTOM_LIST
+                ? RecipientType.BULK
+                : formData.recipientType;
+        
+        request.recipientType = backendRecipientType; // Convert sang BULK nếu là INDIVIDUAL hoặc CUSTOM_LIST
+
+        // Build action URL from dropdown
+        const finalActionUrl = buildActionUrl(actionUrlOption, actionUrlParam);
+        if (finalActionUrl) {
+            request.actionUrl = finalActionUrl;
+        }
+
         // Remove undefined fields
         Object.keys(request).forEach(key => {
             if (request[key as keyof SendNotificationOnlyRequest] === undefined) {
@@ -275,20 +427,29 @@ const SendNotification: React.FC = () => {
             
             if (response.status && response.body) {
                 const { totalRecipients, successCount, failedCount } = response.body;
+                
+                // Show success animation
                 toast.success(
-                    `Gửi thông báo thành công! Tổng: ${totalRecipients}, Thành công: ${successCount}, Thất bại: ${failedCount}`
+                    `Gửi thông báo thành công! Tổng: ${totalRecipients}, Thành công: ${successCount}, Thất bại: ${failedCount}`,
+                    {
+                        autoClose: 3000
+                    }
                 );
                 
                 // Reset form
                 setFormData({
-                    recipientType: RecipientType.INDIVIDUAL,
+                    recipientType: RecipientType.BULK, // Mặc định là BULK (Người dùng)
                     title: '',
                     content: '',
                     type: NotificationType.SYSTEM_ANNOUNCEMENT
                 });
                 setErrors({});
+                setSelectedUserIds(new Set());
+                setPreviewData(null);
+                setActionUrlOption('');
+                setActionUrlParam('');
                 
-                // Navigate to history
+                // Navigate to history after delay
                 setTimeout(() => {
                     navigate('/manager/emails/history');
                 }, 2000);
@@ -304,7 +465,7 @@ const SendNotification: React.FC = () => {
     };
 
     return (
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="mb-6">
                 <h1 className="text-2xl font-bold text-[#001C44]">Gửi Thông báo</h1>
                 <p className="text-gray-600 mt-1">Tạo thông báo hệ thống cho sinh viên (không gửi email)</p>
@@ -312,284 +473,113 @@ const SendNotification: React.FC = () => {
 
             <form onSubmit={handleSubmit} className="bg-white shadow-lg rounded-lg overflow-hidden">
                 <div className="p-6 space-y-6">
-                    {/* Recipient Type */}
+                    {/* Recipient Type - Card Selection */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-3">
                             Loại người nhận <span className="text-red-500">*</span>
                         </label>
-                        <select
-                            name="recipientType"
-                            value={formData.recipientType}
-                            onChange={handleChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
-                        >
-                            {Object.values(RecipientType).map(type => (
-                                <option key={type} value={type}>
-                                    {getRecipientTypeLabel(type)}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Conditional Fields - Same as SendEmail */}
-                    {/* INDIVIDUAL: Simple dropdown/autocomplete for 1-10 people */}
-                    {formData.recipientType === RecipientType.INDIVIDUAL && (
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Chọn người nhận (tối đa 10 người) <span className="text-red-500">*</span>
-                            </label>
-                            <div className="space-y-3">
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        placeholder="Tìm kiếm theo tên hoặc mã sinh viên..."
-                                        value={searchKeyword}
-                                        onChange={(e) => setSearchKeyword(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={handleSearch}
-                                        disabled={loadingStudents}
-                                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
-                                    >
-                                        🔍 Tìm
-                                    </button>
-                                </div>
-                                <div className="border border-gray-300 rounded-lg max-h-60 overflow-y-auto">
-                                    {loadingStudents ? (
-                                        <div className="p-4 text-center text-gray-500">Đang tải...</div>
-                                    ) : students.length === 0 ? (
-                                        <div className="p-4 text-center text-gray-500">Không tìm thấy sinh viên nào</div>
-                                    ) : (
-                                        students.map(student => (
-                                            <div
-                                                key={student.id}
-                                                onClick={() => handleStudentToggle(student.id)}
-                                                className={`p-3 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ${
-                                                    selectedStudentIds.has(student.id) ? 'bg-[#001C44] bg-opacity-10' : ''
-                                                }`}
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <div>
-                                                        <span className="font-medium">{student.studentCode}</span>
-                                                        <span className="ml-2 text-gray-600">{student.fullName}</span>
-                                                    </div>
-                                                    {selectedStudentIds.has(student.id) && (
-                                                        <span className="text-[#001C44]">✓</span>
-                                                    )}
-                                                </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                            {/* Card "Người dùng" - Gộp INDIVIDUAL và BULK */}
+                            <button
+                                type="button"
+                                onClick={() => handleRecipientTypeSelect(RecipientType.BULK)}
+                                className={`
+                                    relative w-full p-4 rounded-lg border-2 transition-all duration-200
+                                    ${(formData.recipientType === RecipientType.INDIVIDUAL || formData.recipientType === RecipientType.BULK || formData.recipientType === RecipientType.CUSTOM_LIST)
+                                        ? 'border-[#001C44] bg-[#001C44] bg-opacity-5'
+                                        : 'border-gray-200 hover:border-[#001C44] hover:bg-gray-50'
+                                    }
+                                    focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:ring-offset-2
+                                `}
+                            >
+                                <div className="flex items-start space-x-3">
+                                    <div className={`flex-shrink-0 ${(formData.recipientType === RecipientType.INDIVIDUAL || formData.recipientType === RecipientType.BULK || formData.recipientType === RecipientType.CUSTOM_LIST) ? 'text-[#001C44]' : 'text-gray-600'}`}>
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                        </svg>
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className={`text-sm font-semibold ${(formData.recipientType === RecipientType.INDIVIDUAL || formData.recipientType === RecipientType.BULK || formData.recipientType === RecipientType.CUSTOM_LIST) ? 'text-[#001C44]' : 'text-gray-900'}`}>
+                                                Người dùng
+                                            </h3>
+                                            {(formData.recipientType === RecipientType.INDIVIDUAL || formData.recipientType === RecipientType.BULK || formData.recipientType === RecipientType.CUSTOM_LIST) && (
+                                                <span className="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#001C44] text-white text-xs">
+                                                    ✓
+                                                </span>
+                                            )}
+                                        </div>
+                                        {selectedUserIds.size > 0 && (
+                                            <div className="mt-2">
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                                    {selectedUserIds.size} người đã chọn
+                                                </span>
                                             </div>
-                                        ))
-                                    )}
-                                </div>
-                                {selectedStudentIds.size > 0 && (
-                                    <div className="text-sm text-gray-600">
-                                        Đã chọn: <strong>{selectedStudentIds.size}</strong> người
-                                        {formData.recipientType === RecipientType.INDIVIDUAL && selectedStudentIds.size >= 10 && (
-                                            <span className="text-orange-600 ml-2">(Đã đạt giới hạn)</span>
                                         )}
                                     </div>
-                                )}
-                            </div>
-                            {errors.recipientIds && (
-                                <p className="mt-1 text-sm text-red-600">{errors.recipientIds}</p>
-                            )}
+                                </div>
+                            </button>
+
+                            {/* Các card khác (bỏ INDIVIDUAL, BULK, CUSTOM_LIST) */}
+                            {Object.values(RecipientType)
+                                .filter(type => 
+                                    type !== RecipientType.INDIVIDUAL && 
+                                    type !== RecipientType.BULK && 
+                                    type !== RecipientType.CUSTOM_LIST
+                                )
+                                .map(type => (
+                                    <RecipientSelectorCard
+                                        key={type}
+                                        recipientType={type}
+                                        isSelected={formData.recipientType === type}
+                                        onSelect={handleRecipientTypeSelect}
+                                    />
+                                ))}
                         </div>
+                    </div>
+
+                    {/* Preview Card for Activity/Series/Class/Department */}
+                    {previewData && (
+                        <RecipientPreviewCard
+                            recipientType={formData.recipientType}
+                            totalCount={previewData.totalCount}
+                            previewList={previewData.previewList}
+                            isLoading={loadingPreview}
+                        />
                     )}
 
-                    {/* BULK: Multi-select with search, filter */}
-                    {formData.recipientType === RecipientType.BULK && (
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Chọn người nhận (có thể chọn nhiều) <span className="text-red-500">*</span>
+                    {/* Người dùng: Gộp INDIVIDUAL, BULK, CUSTOM_LIST thành một UI */}
+                    {(formData.recipientType === RecipientType.INDIVIDUAL || 
+                      formData.recipientType === RecipientType.BULK || 
+                      formData.recipientType === RecipientType.CUSTOM_LIST) && (
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                            <label className="block text-sm font-medium text-gray-700 mb-3">
+                                Chọn người nhận <span className="text-red-500">*</span>
                             </label>
-                            <div className="space-y-3">
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        placeholder="Tìm kiếm theo tên hoặc mã sinh viên..."
-                                        value={searchKeyword}
-                                        onChange={(e) => setSearchKeyword(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={handleSearch}
-                                        disabled={loadingStudents}
-                                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
-                                    >
-                                        🔍 Tìm
-                                    </button>
-                                </div>
-                                <div className="flex gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={handleSelectAll}
-                                        className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
-                                    >
-                                        Chọn tất cả
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={handleDeselectAll}
-                                        className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
-                                    >
-                                        Bỏ chọn tất cả
-                                    </button>
-                                </div>
-                                <div className="border border-gray-300 rounded-lg max-h-96 overflow-y-auto">
-                                    {loadingStudents ? (
-                                        <div className="p-4 text-center text-gray-500">Đang tải...</div>
-                                    ) : students.length === 0 ? (
-                                        <div className="p-4 text-center text-gray-500">Không tìm thấy sinh viên nào</div>
-                                    ) : (
-                                        students.map(student => (
-                                            <div
-                                                key={student.id}
-                                                onClick={() => handleStudentToggle(student.id)}
-                                                className={`p-3 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ${
-                                                    selectedStudentIds.has(student.id) ? 'bg-[#001C44] bg-opacity-10' : ''
-                                                }`}
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <div>
-                                                        <span className="font-medium">{student.studentCode}</span>
-                                                        <span className="ml-2 text-gray-600">{student.fullName}</span>
-                                                    </div>
-                                                    {selectedStudentIds.has(student.id) && (
-                                                        <span className="text-[#001C44]">✓</span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                                {students.length > 0 && students.length < totalStudents && (
-                                    <button
-                                        type="button"
-                                        onClick={handleLoadMore}
-                                        disabled={loadingStudents}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
-                                    >
-                                        {loadingStudents ? 'Đang tải...' : `Tải thêm (${totalStudents - students.length} còn lại)`}
-                                    </button>
-                                )}
-                                {selectedStudentIds.size > 0 && (
-                                    <div className="text-sm text-gray-600">
-                                        Đã chọn: <strong>{selectedStudentIds.size}</strong> người
-                                    </div>
-                                )}
-                            </div>
+                            <UserSelector
+                                users={users}
+                                selectedIds={selectedUserIds}
+                                onToggle={handleUserToggle}
+                                onSelectAll={handleSelectAll}
+                                onDeselectAll={handleDeselectAll}
+                                searchKeyword={searchKeyword}
+                                onSearchChange={setSearchKeyword}
+                                onSearch={handleSearch}
+                                onLoadMore={users.length < totalUsers ? handleLoadMore : undefined}
+                                isLoading={loadingUsers}
+                                hasMore={users.length < totalUsers}
+                                showCount={true}
+                                roleFilter={roleFilter}
+                                onRoleFilterChange={handleRoleFilterChange}
+                            />
                             {errors.recipientIds && (
-                                <p className="mt-1 text-sm text-red-600">{errors.recipientIds}</p>
-                            )}
-                        </div>
-                    )}
-
-                    {/* CUSTOM_LIST: Similar to BULK but with save/load functionality */}
-                    {formData.recipientType === RecipientType.CUSTOM_LIST && (
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Danh sách tùy chọn <span className="text-red-500">*</span>
-                            </label>
-                            <div className="space-y-3">
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        placeholder="Tìm kiếm theo tên hoặc mã sinh viên..."
-                                        value={searchKeyword}
-                                        onChange={(e) => setSearchKeyword(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={handleSearch}
-                                        disabled={loadingStudents}
-                                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
-                                    >
-                                        🔍 Tìm
-                                    </button>
-                                </div>
-                                <div className="flex gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={handleSelectAll}
-                                        className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
-                                    >
-                                        Chọn tất cả
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={handleDeselectAll}
-                                        className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
-                                    >
-                                        Bỏ chọn tất cả
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            toast.info('Tính năng lưu danh sách sẽ được thêm sau');
-                                        }}
-                                        className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
-                                    >
-                                        💾 Lưu danh sách
-                                    </button>
-                                </div>
-                                <div className="border border-gray-300 rounded-lg max-h-96 overflow-y-auto">
-                                    {loadingStudents ? (
-                                        <div className="p-4 text-center text-gray-500">Đang tải...</div>
-                                    ) : students.length === 0 ? (
-                                        <div className="p-4 text-center text-gray-500">Không tìm thấy sinh viên nào</div>
-                                    ) : (
-                                        students.map(student => (
-                                            <div
-                                                key={student.id}
-                                                onClick={() => handleStudentToggle(student.id)}
-                                                className={`p-3 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ${
-                                                    selectedStudentIds.has(student.id) ? 'bg-[#001C44] bg-opacity-10' : ''
-                                                }`}
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <div>
-                                                        <span className="font-medium">{student.studentCode}</span>
-                                                        <span className="ml-2 text-gray-600">{student.fullName}</span>
-                                                    </div>
-                                                    {selectedStudentIds.has(student.id) && (
-                                                        <span className="text-[#001C44]">✓</span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                                {students.length > 0 && students.length < totalStudents && (
-                                    <button
-                                        type="button"
-                                        onClick={handleLoadMore}
-                                        disabled={loadingStudents}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
-                                    >
-                                        {loadingStudents ? 'Đang tải...' : `Tải thêm (${totalStudents - students.length} còn lại)`}
-                                    </button>
-                                )}
-                                {selectedStudentIds.size > 0 && (
-                                    <div className="text-sm text-gray-600">
-                                        Đã chọn: <strong>{selectedStudentIds.size}</strong> người
-                                    </div>
-                                )}
-                            </div>
-                            {errors.recipientIds && (
-                                <p className="mt-1 text-sm text-red-600">{errors.recipientIds}</p>
+                                <p className="mt-2 text-sm text-red-600">{errors.recipientIds}</p>
                             )}
                         </div>
                     )}
 
                     {formData.recipientType === RecipientType.ACTIVITY_REGISTRATIONS && (
-                        <div>
+                        <div className="bg-gray-50 p-4 rounded-lg">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Chọn sự kiện <span className="text-red-500">*</span>
                             </label>
@@ -597,7 +587,7 @@ const SendNotification: React.FC = () => {
                                 name="activityId"
                                 value={formData.activityId || ''}
                                 onChange={(e) => handleNumberChange('activityId', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent bg-white"
                             >
                                 <option value="">-- Chọn sự kiện --</option>
                                 {activities.map(activity => (
@@ -613,7 +603,7 @@ const SendNotification: React.FC = () => {
                     )}
 
                     {formData.recipientType === RecipientType.SERIES_REGISTRATIONS && (
-                        <div>
+                        <div className="bg-gray-50 p-4 rounded-lg">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Chọn chuỗi sự kiện <span className="text-red-500">*</span>
                             </label>
@@ -621,7 +611,7 @@ const SendNotification: React.FC = () => {
                                 name="seriesId"
                                 value={formData.seriesId || ''}
                                 onChange={(e) => handleNumberChange('seriesId', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent bg-white"
                             >
                                 <option value="">-- Chọn chuỗi sự kiện --</option>
                                 {series.map(s => (
@@ -637,7 +627,7 @@ const SendNotification: React.FC = () => {
                     )}
 
                     {formData.recipientType === RecipientType.BY_CLASS && (
-                        <div>
+                        <div className="bg-gray-50 p-4 rounded-lg">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Chọn lớp <span className="text-red-500">*</span>
                             </label>
@@ -645,7 +635,7 @@ const SendNotification: React.FC = () => {
                                 name="classId"
                                 value={formData.classId || ''}
                                 onChange={(e) => handleNumberChange('classId', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent bg-white"
                             >
                                 <option value="">-- Chọn lớp --</option>
                                 {classes.map(cls => (
@@ -661,7 +651,7 @@ const SendNotification: React.FC = () => {
                     )}
 
                     {formData.recipientType === RecipientType.BY_DEPARTMENT && (
-                        <div>
+                        <div className="bg-gray-50 p-4 rounded-lg">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Chọn khoa <span className="text-red-500">*</span>
                             </label>
@@ -669,7 +659,7 @@ const SendNotification: React.FC = () => {
                                 name="departmentId"
                                 value={formData.departmentId || ''}
                                 onChange={(e) => handleNumberChange('departmentId', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent bg-white"
                             >
                                 <option value="">-- Chọn khoa --</option>
                                 {departments.map(dept => (
@@ -684,40 +674,86 @@ const SendNotification: React.FC = () => {
                         </div>
                     )}
 
-                    {/* Title */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Tiêu đề thông báo <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                            type="text"
-                            name="title"
-                            value={formData.title}
-                            onChange={handleChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
-                            placeholder="Nhập tiêu đề thông báo"
-                        />
-                        {errors.title && (
-                            <p className="mt-1 text-sm text-red-600">{errors.title}</p>
-                        )}
-                    </div>
+                    {/* Content Section */}
+                    <div className="border-t pt-6">
+                        <h2 className="text-lg font-semibold text-gray-900 mb-4">Nội dung Thông báo</h2>
+                        
+                        {/* Title */}
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Tiêu đề thông báo <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                name="title"
+                                value={formData.title}
+                                onChange={handleChange}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
+                                placeholder="Nhập tiêu đề thông báo"
+                            />
+                            {errors.title && (
+                                <p className="mt-1 text-sm text-red-600 flex items-center">
+                                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                    {errors.title}
+                                </p>
+                            )}
+                        </div>
 
-                    {/* Content */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Nội dung thông báo <span className="text-red-500">*</span>
-                        </label>
-                        <textarea
-                            name="content"
-                            value={formData.content}
-                            onChange={handleChange}
-                            rows={8}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
-                            placeholder="Nhập nội dung thông báo..."
-                        />
-                        {errors.content && (
-                            <p className="mt-1 text-sm text-red-600">{errors.content}</p>
-                        )}
+                        {/* Content */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Nội dung thông báo <span className="text-red-500">*</span>
+                            </label>
+                            <textarea
+                                name="content"
+                                value={formData.content}
+                                onChange={handleChange}
+                                rows={8}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
+                                placeholder="Nhập nội dung thông báo..."
+                            />
+                            <div className="mt-2 flex items-center justify-between">
+                                <p className="text-xs text-gray-500">
+                                    Sử dụng biến template: {'{{studentName}}'}, {'{{studentCode}}'}, {'{{email}}'}, etc.
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                    {formData.content.length} ký tự
+                                </p>
+                            </div>
+                            {errors.content && (
+                                <p className="mt-1 text-sm text-red-600 flex items-center">
+                                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                    {errors.content}
+                                </p>
+                            )}
+
+                            {/* Template helper */}
+                            <div className="mt-3 border border-dashed border-gray-200 rounded-lg p-3 bg-gray-50">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-800">Hướng dẫn biến template</p>
+                                        <p className="text-xs text-gray-500">Chèn vào nội dung thông báo để tự động thay thế</p>
+                                    </div>
+                                    <span className="text-[11px] px-2 py-1 bg-blue-100 text-blue-700 rounded-full">Tip</span>
+                                </div>
+                                <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-700">
+                                    <div className="space-y-1">
+                                        <p><span className="font-semibold">{'{{studentName}}'}</span> - Tên sinh viên</p>
+                                        <p><span className="font-semibold">{'{{studentCode}}'}</span> - Mã sinh viên</p>
+                                        <p><span className="font-semibold">{'{{activityName}}'}</span> - Tên sự kiện (nếu có)</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p><span className="font-semibold">{'{{seriesName}}'}</span> - Tên chuỗi sự kiện (nếu có)</p>
+                                        <p><span className="font-semibold">{'{{email}}'}</span> - Email người nhận</p>
+                                        <p className="text-gray-500">Các biến sẽ được thay thế tự động cho từng người nhận.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Type */}
@@ -747,19 +783,41 @@ const SendNotification: React.FC = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                             URL hành động (tùy chọn)
                         </label>
-                        <input
-                            type="text"
-                            name="actionUrl"
-                            value={formData.actionUrl || ''}
-                            onChange={handleChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
-                            placeholder="/activities/1"
-                        />
+                        <div className="space-y-2">
+                            <select
+                                value={actionUrlOption}
+                                onChange={(e) => {
+                                    setActionUrlOption(e.target.value);
+                                    if (!e.target.value) {
+                                        setActionUrlParam('');
+                                    }
+                                }}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
+                            >
+                                {ACTION_URL_OPTIONS.map(option => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
+                            {ACTION_URL_OPTIONS.find(o => o.value === actionUrlOption)?.requiresId && (
+                                <input
+                                    type="text"
+                                    value={actionUrlParam}
+                                    onChange={(e) => setActionUrlParam(e.target.value)}
+                                    placeholder={ACTION_URL_OPTIONS.find(o => o.value === actionUrlOption)?.placeholder || 'Nhập ID'}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
+                                />
+                            )}
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">
+                            URL sẽ được tự động build từ lựa chọn trên. Ví dụ: chọn "Chi tiết sự kiện" và nhập ID "10" → "/activities/10"
+                        </p>
                     </div>
                 </div>
 
                 {/* Form Actions */}
-                <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3">
+                <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
                     <button
                         type="button"
                         onClick={() => navigate('/manager/emails/history')}
@@ -771,9 +829,24 @@ const SendNotification: React.FC = () => {
                     <button
                         type="submit"
                         disabled={sending || loadingDropdowns}
-                        className="px-6 py-2 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-6 py-2 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                     >
-                        {sending ? 'Đang gửi...' : 'Gửi Thông báo'}
+                        {sending ? (
+                            <>
+                                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span>Đang gửi...</span>
+                            </>
+                        ) : (
+                            <>
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                </svg>
+                                <span>Gửi Thông báo</span>
+                            </>
+                        )}
                     </button>
                 </div>
             </form>

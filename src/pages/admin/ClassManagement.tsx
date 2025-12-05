@@ -18,6 +18,7 @@ const ClassManagement: React.FC = () => {
         page: 0,
         size: 10,
     });
+    const [searchInput, setSearchInput] = useState('');
     const [pagination, setPagination] = useState({
         totalElements: 0,
         totalPages: 0,
@@ -104,6 +105,15 @@ const ClassManagement: React.FC = () => {
         setFilters(prev => ({ ...prev, ...newFilters, page: 0 }));
     };
 
+    // Debounce search input
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            handleFilterChange({ search: searchInput || undefined });
+        }, 300); // 300ms delay
+
+        return () => clearTimeout(timer);
+    }, [searchInput]);
+
     const handlePageChange = (page: number) => {
         setFilters(prev => ({ ...prev, page }));
     };
@@ -124,15 +134,18 @@ const ClassManagement: React.FC = () => {
             {/* Header Actions */}
             <div className="mb-6 flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-[#001C44]">Quản lý lớp học</h1>
-                    <p className="text-gray-600 mt-1">Quản lý các lớp học trong hệ thống</p>
+                    <h1 className="text-3xl font-bold text-[#001C44] flex items-center">
+                        <span className="mr-3 text-4xl">🏫</span>
+                        Quản lý lớp học
+                    </h1>
+                    <p className="text-gray-600 mt-2">Quản lý các lớp học trong hệ thống</p>
                 </div>
                 <button
                     onClick={() => {
                         setEditingClass(null);
                         setShowForm(true);
                     }}
-                    className="px-4 py-2 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66] focus:outline-none focus:ring-2 focus:ring-[#001C44] transition-colors"
+                    className="px-6 py-3 bg-gradient-to-r from-[#001C44] to-[#002A66] text-white rounded-xl hover:from-[#002A66] hover:to-[#001C44] focus:outline-none focus:ring-2 focus:ring-[#001C44] transition-all shadow-lg hover:shadow-xl font-semibold"
                 >
                     + Thêm lớp mới
                 </button>
@@ -140,18 +153,18 @@ const ClassManagement: React.FC = () => {
 
             <div>
                 {/* Filters */}
-                <div className="bg-white rounded-lg shadow p-6 mb-6">
+                <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 mb-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Khoa
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                🏛️ Khoa
                             </label>
                             <select
                                 value={filters.departmentId || ''}
                                 onChange={(e) => handleFilterChange({
                                     departmentId: e.target.value ? parseInt(e.target.value) : undefined
                                 })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
                             >
                                 <option value="">Tất cả khoa</option>
                                 {departments && departments.map(dept => (
@@ -162,162 +175,160 @@ const ClassManagement: React.FC = () => {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Tìm kiếm
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                🔍 Tìm kiếm
                             </label>
                             <input
                                 type="text"
-                                value={filters.search || ''}
-                                onChange={(e) => handleFilterChange({ search: e.target.value })}
+                                value={searchInput}
+                                onChange={(e) => setSearchInput(e.target.value)}
                                 placeholder="Tìm theo tên lớp..."
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
                             />
                         </div>
                         <div className="flex items-end">
                             <button
-                                onClick={() => setFilters({ page: 0, size: 10 })}
-                                className="w-full px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+                                onClick={() => {
+                                    setFilters({ page: 0, size: 10 });
+                                    setSearchInput('');
+                                }}
+                                className="w-full px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 border-2 border-gray-300 font-semibold transition-all"
                             >
-                                Xóa bộ lọc
+                                🔄 Xóa bộ lọc
                             </button>
                         </div>
                     </div>
                 </div>
 
-                {/* Classes Table */}
-                <div className="bg-white rounded-lg shadow overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Tên lớp
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Mô tả
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Khoa
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Số sinh viên
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Thao tác
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {classes && classes.map((classItem) => {
-                                    console.log('Rendering class item:', classItem);
-                                    console.log('🔍 Class item studentCount:', classItem.studentCount);
-                                    return (
-                                        <tr key={classItem.id} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm font-medium text-gray-900">
-                                                    {classItem.className}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-500">
-                                                    {classItem.description || 'Không có mô tả'}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">
-                                                    {classItem.department.name}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">
-                                                    {classItem.studentCount || (classItem.students ? classItem.students.length : 0)}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                <div className="flex space-x-2">
-                                                    <button
-                                                        onClick={() => handleViewStudents(classItem)}
-                                                        className="text-blue-600 hover:text-blue-900"
-                                                    >
-                                                        Xem sinh viên
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            setEditingClass(classItem);
-                                                            setShowForm(true);
-                                                        }}
-                                                        className="text-indigo-600 hover:text-indigo-900"
-                                                    >
-                                                        Sửa
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDeleteClass(classItem.id)}
-                                                        className="text-red-600 hover:text-red-900"
-                                                    >
-                                                        Xóa
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                {/* Classes Grid */}
+                {classes.length === 0 ? (
+                    <div className="bg-white rounded-xl shadow-lg border-2 border-dashed border-gray-300 p-12 text-center">
+                        <div className="text-gray-400 text-6xl mb-4">🏫</div>
+                        <p className="text-gray-600 text-lg font-medium">Chưa có lớp học nào</p>
+                        <p className="text-gray-500 text-sm mt-2">Bắt đầu bằng cách tạo lớp học đầu tiên</p>
                     </div>
-
-                    {/* Pagination */}
-                    {pagination.totalPages > 1 && (
-                        <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-                            <div className="flex-1 flex justify-between sm:hidden">
-                                <button
-                                    onClick={() => handlePageChange(pagination.currentPage - 1)}
-                                    disabled={pagination.currentPage === 0}
-                                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {classes.map((classItem) => {
+                            const studentCount = classItem.studentCount || (classItem.students ? classItem.students.length : 0);
+                            return (
+                                <div
+                                    key={classItem.id}
+                                    className="bg-white rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 overflow-hidden group"
                                 >
-                                    Trước
-                                </button>
-                                <button
-                                    onClick={() => handlePageChange(pagination.currentPage + 1)}
-                                    disabled={pagination.currentPage === pagination.totalPages - 1}
-                                    className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-                                >
-                                    Sau
-                                </button>
-                            </div>
-                            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                                <div>
-                                    <p className="text-sm text-gray-700">
-                                        Hiển thị{' '}
-                                        <span className="font-medium">{pagination.currentPage * 10 + 1}</span>
-                                        {' '}đến{' '}
-                                        <span className="font-medium">
-                                            {Math.min((pagination.currentPage + 1) * 10, pagination.totalElements)}
-                                        </span>
-                                        {' '}trong{' '}
-                                        <span className="font-medium">{pagination.totalElements}</span>
-                                        {' '}kết quả
-                                    </p>
-                                </div>
-                                <div>
-                                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                                        {Array.from({ length: pagination.totalPages }, (_, i) => (
+                                    <div className="p-6">
+                                        <div className="flex items-start justify-between mb-4">
+                                            <div className="flex-1">
+                                                <div className="flex items-center space-x-2 mb-2">
+                                                    <div className="w-12 h-12 bg-gradient-to-br from-[#001C44] to-[#002A66] rounded-lg flex items-center justify-center text-white font-bold text-lg">
+                                                        {classItem.className.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <h4 className="text-lg font-bold text-[#001C44] truncate">
+                                                            {classItem.className}
+                                                        </h4>
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold mt-1 bg-blue-50 text-blue-700 border border-blue-200">
+                                                            🏛️ {classItem.department.name}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                {classItem.description && (
+                                                    <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                                                        {classItem.description}
+                                                    </p>
+                                                )}
+                                                <div className="flex items-center space-x-4 text-sm">
+                                                    <div className="flex items-center text-gray-600">
+                                                        <span className="mr-2">👥</span>
+                                                        <span className="font-semibold">{studentCount}</span>
+                                                        <span className="ml-1">sinh viên</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2 pt-4 border-t border-gray-200">
                                             <button
-                                                key={i}
-                                                onClick={() => handlePageChange(i)}
-                                                className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${i === pagination.currentPage
-                                                    ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                                                    : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                                                    }`}
+                                                onClick={() => handleViewStudents(classItem)}
+                                                className="flex-1 px-4 py-2 text-sm font-semibold bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 border border-blue-200 transition-all"
                                             >
-                                                {i + 1}
+                                                👥 Xem SV
                                             </button>
-                                        ))}
-                                    </nav>
+                                            <button
+                                                onClick={() => {
+                                                    setEditingClass(classItem);
+                                                    setShowForm(true);
+                                                }}
+                                                className="flex-1 px-4 py-2 text-sm font-semibold bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 border border-emerald-200 transition-all"
+                                            >
+                                                ✏️ Sửa
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteClass(classItem.id)}
+                                                className="px-4 py-2 text-sm font-semibold bg-rose-50 text-rose-700 rounded-lg hover:bg-rose-100 border border-rose-200 transition-all"
+                                            >
+                                                🗑️
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
+                            );
+                        })}
+                    </div>
+                )}
+
+                {/* Pagination */}
+                {pagination.totalPages > 1 && (
+                    <div className="mt-6 bg-white rounded-xl shadow-lg border border-gray-100 px-6 py-4 flex items-center justify-between">
+                        <div className="flex-1 flex justify-between sm:hidden">
+                            <button
+                                onClick={() => handlePageChange(pagination.currentPage - 1)}
+                                disabled={pagination.currentPage === 0}
+                                className="relative inline-flex items-center px-4 py-2 border-2 border-gray-300 text-sm font-semibold rounded-lg text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                            >
+                                ← Trước
+                            </button>
+                            <button
+                                onClick={() => handlePageChange(pagination.currentPage + 1)}
+                                disabled={pagination.currentPage === pagination.totalPages - 1}
+                                className="ml-3 relative inline-flex items-center px-4 py-2 border-2 border-gray-300 text-sm font-semibold rounded-lg text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                            >
+                                Sau →
+                            </button>
+                        </div>
+                        <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                            <div>
+                                <p className="text-sm text-gray-700 font-medium">
+                                    Hiển thị{' '}
+                                    <span className="font-bold text-[#001C44]">{pagination.currentPage * 10 + 1}</span>
+                                    {' '}đến{' '}
+                                    <span className="font-bold text-[#001C44]">
+                                        {Math.min((pagination.currentPage + 1) * 10, pagination.totalElements)}
+                                    </span>
+                                    {' '}trong{' '}
+                                    <span className="font-bold text-[#001C44]">{pagination.totalElements}</span>
+                                    {' '}kết quả
+                                </p>
+                            </div>
+                            <div>
+                                <nav className="relative z-0 inline-flex rounded-lg shadow-sm -space-x-px">
+                                    {Array.from({ length: pagination.totalPages }, (_, i) => (
+                                        <button
+                                            key={i}
+                                            onClick={() => handlePageChange(i)}
+                                            className={`relative inline-flex items-center px-4 py-2 border-2 text-sm font-semibold transition-all ${
+                                                i === pagination.currentPage
+                                                    ? 'z-10 bg-gradient-to-r from-[#001C44] to-[#002A66] border-[#001C44] text-white shadow-md'
+                                                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                                            }`}
+                                        >
+                                            {i + 1}
+                                        </button>
+                                    ))}
+                                </nav>
                             </div>
                         </div>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
 
             {/* Class Form Modal */}

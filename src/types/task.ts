@@ -120,13 +120,15 @@ export interface TaskAssignmentResponse {
     id: number;
     taskName: string;
     taskId: number;
-    activityId: number; // Add activityId
+    activityId?: number; // ID của sự kiện chứa nhiệm vụ này
+    activityName?: string; // Tên sự kiện
     studentId: number;
     studentCode: string;
     studentName: string;
     status: TaskStatus;
     assignedAt: string;
     updatedAt: string;
+    createdAt?: string;
     requiresSubmission?: boolean; // Add this field
     submissionDeadline?: string; // LocalDateTime
 }
