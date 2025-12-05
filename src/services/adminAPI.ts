@@ -416,7 +416,7 @@ export const criteriaItemAPI = {
 
 // User Management API
 export const userAPI = {
-    getUsers: async (role?: 'ADMIN' | 'MANAGER'): Promise<Response<UserResponse[]>> => {
+    getUsers: async (role?: 'ADMIN' | 'MANAGER' | 'STUDENT'): Promise<Response<UserResponse[]>> => {
         try {
             const url = role ? `/api/admin/users?role=${role}` : '/api/admin/users';
             const response = await api.get(url);
@@ -428,6 +428,84 @@ export const userAPI = {
         } catch (error: any) {
             console.error('User API: getUsers failed:', error);
             return { status: false, message: error.response?.data?.message || 'Failed to fetch users', data: [] };
+        }
+    },
+
+    getUsersPaginated: async (params?: {
+        role?: 'ADMIN' | 'MANAGER' | 'STUDENT';
+        page?: number;
+        size?: number;
+        keyword?: string;
+        includeStudents?: boolean;
+    }): Promise<Response<{ content: UserResponse[]; totalElements: number; totalPages?: number; size?: number; number?: number }>> => {
+        const { role, page, size, keyword, includeStudents } = params || {};
+        try {
+            const response = await api.get('/api/admin/users', {
+                params: {
+                    role,
+                    page,
+                    size,
+                    keyword,
+                    includeStudents: includeStudents !== undefined ? includeStudents : true // Default include students
+                }
+            });
+
+            const data = response.data.body || response.data.data || response.data;
+
+            // Pagination shape
+            if (data?.content) {
+                return {
+                    status: response.data.status !== false,
+                    message: response.data.message || 'Lấy danh sách user thành công',
+                    data: {
+                        content: data.content,
+                        totalElements: data.totalElements ?? data.content.length ?? 0,
+                        totalPages: data.totalPages ?? 1,
+                        size: data.size ?? size ?? data.content.length ?? 0,
+                        number: data.number ?? page ?? 0
+                    }
+                };
+            }
+
+            // Array shape
+            if (Array.isArray(data)) {
+                return {
+                    status: response.data.status !== false,
+                    message: response.data.message || 'Lấy danh sách user thành công',
+                    data: {
+                        content: data,
+                        totalElements: data.length,
+                        totalPages: 1,
+                        size: size ?? data.length,
+                        number: page ?? 0
+                    }
+                };
+            }
+
+            return {
+                status: response.data.status !== false,
+                message: response.data.message || 'Lấy danh sách user thành công',
+                data: {
+                    content: [],
+                    totalElements: 0,
+                    totalPages: 0,
+                    size: size ?? 0,
+                    number: page ?? 0
+                }
+            };
+        } catch (error: any) {
+            console.error('User API: getUsersPaginated failed:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Failed to fetch users',
+                data: {
+                    content: [],
+                    totalElements: 0,
+                    totalPages: 0,
+                    size: size ?? 0,
+                    number: page ?? 0
+                }
+            };
         }
     },
 

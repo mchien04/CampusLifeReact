@@ -64,11 +64,14 @@ const DepartmentForm: React.FC<DepartmentFormProps> = ({
 
     return (
         <div className="max-w-2xl mx-auto">
-            <div className="bg-white shadow rounded-lg">
-                <div className="px-4 py-5 sm:p-6">
-                    <h3 className="text-lg leading-6 font-medium text-gray-900 mb-6">
+            <div className="bg-white shadow-xl rounded-xl border border-gray-200 overflow-hidden">
+                <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] px-6 py-5">
+                    <h3 className="text-xl font-bold text-white flex items-center">
+                        <span className="mr-3 text-2xl">🏢</span>
                         {title}
                     </h3>
+                </div>
+                <div className="px-6 py-6">
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {/* Name */}
@@ -81,7 +84,7 @@ const DepartmentForm: React.FC<DepartmentFormProps> = ({
                                 id="name"
                                 name="name"
                                 required
-                                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                                className="mt-1 block w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
                                 placeholder="Nhập tên khoa/phòng ban"
                                 value={formData.name}
                                 onChange={handleChange}
@@ -100,7 +103,7 @@ const DepartmentForm: React.FC<DepartmentFormProps> = ({
                                 id="type"
                                 name="type"
                                 required
-                                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                                className="mt-1 block w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
                                 value={formData.type}
                                 onChange={handleChange}
                             >
@@ -121,7 +124,7 @@ const DepartmentForm: React.FC<DepartmentFormProps> = ({
                                 id="description"
                                 name="description"
                                 rows={3}
-                                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                                className="mt-1 block w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors resize-none"
                                 placeholder="Nhập mô tả (tùy chọn)"
                                 value={formData.description}
                                 onChange={handleChange}
@@ -129,12 +132,12 @@ const DepartmentForm: React.FC<DepartmentFormProps> = ({
                         </div>
 
                         {/* Form Actions */}
-                        <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                        <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
                             {onCancel && (
                                 <button
                                     type="button"
                                     onClick={onCancel}
-                                    className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                    className="px-6 py-2.5 border-2 border-gray-300 rounded-lg text-gray-700 bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400 font-semibold transition-all"
                                 >
                                     Hủy
                                 </button>
@@ -142,7 +145,7 @@ const DepartmentForm: React.FC<DepartmentFormProps> = ({
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="px-6 py-2.5 bg-gradient-to-r from-[#001C44] to-[#002A66] text-white rounded-lg hover:from-[#002A66] hover:to-[#001C44] focus:outline-none focus:ring-2 focus:ring-[#001C44] disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg hover:shadow-xl transition-all"
                             >
                                 {loading ? 'Đang xử lý...' : (initialData.id ? 'Cập nhật' : 'Tạo mới')}
                             </button>

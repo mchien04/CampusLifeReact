@@ -10,15 +10,46 @@ import {
 } from '../types/email';
 import { studentAPI } from './studentAPI';
 import { classAPI } from './classAPI';
-import { departmentAPI } from './adminAPI';
+import { departmentAPI, userAPI } from './adminAPI';
 import { eventAPI } from './eventAPI';
 import { seriesAPI } from './seriesAPI';
 import { registrationAPI } from './registrationAPI';
 import { StudentResponse } from '../types/student';
+import { UserResponse } from '../types/auth';
 
 export const emailAPI = {
     /**
-     * Gửi email với attachments
+     * Gửi email với JSON (không có attachments)
+     * POST /api/emails/send-json
+     * Content-Type: application/json
+     */
+    sendEmailJson: async (
+        request: SendEmailRequest
+    ): Promise<ApiResponse<EmailSendResult>> => {
+        try {
+            const response = await api.post('/api/emails/send-json', request, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                body: response.data.data || response.data.body || null
+            };
+        } catch (error: any) {
+            console.error('Error sending email (JSON):', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Có lỗi xảy ra khi gửi email',
+                body: null
+            };
+        }
+    },
+
+    /**
+     * Gửi email với attachments (multipart/form-data)
      * POST /api/emails/send
      * Content-Type: multipart/form-data
      */
@@ -29,8 +60,11 @@ export const emailAPI = {
         try {
             const formData = new FormData();
             
-            // Convert request to JSON string
-            formData.append('request', JSON.stringify(request));
+            // QUAN TRỌNG: Phải dùng Blob với Content-Type application/json
+            const requestBlob = new Blob([JSON.stringify(request)], { 
+                type: 'application/json' 
+            });
+            formData.append('request', requestBlob);
             
             // Add attachments if any
             if (attachments && attachments.length > 0) {
@@ -39,11 +73,9 @@ export const emailAPI = {
                 });
             }
             
-            const response = await api.post('/api/emails/send', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
+            // QUAN TRỌNG: Interceptor trong api.ts sẽ tự động xóa Content-Type khi detect FormData
+            // Browser sẽ tự động set Content-Type với boundary cho FormData
+            const response = await api.post('/api/emails/send', formData);
             
             return {
                 status: response.data.status,
@@ -216,6 +248,55 @@ export const emailAPI = {
  */
 export const recipientService = {
     /**
+     * Lấy tất cả users (có phân trang và search)
+     */
+    getAllUsers: async (
+        page: number = 0,
+        size: number = 20,
+        keyword?: string,
+        role?: 'ADMIN' | 'MANAGER' | 'STUDENT'
+    ): Promise<{ content: UserResponse[]; totalElements: number }> => {
+        try {
+            const response = await userAPI.getUsersPaginated({
+                page,
+                size,
+                keyword,
+                role,
+                includeStudents: true // Luôn bao gồm students
+            });
+
+            console.log('🔍 recipientService.getAllUsers - response:', response);
+            console.log('🔍 recipientService.getAllUsers - response.status:', response.status);
+            console.log('🔍 recipientService.getAllUsers - response.data:', response.data);
+
+            if (response.status && response.data) {
+                // Handle both pagination format and array format
+                if (response.data.content && Array.isArray(response.data.content)) {
+                    console.log('🔍 recipientService.getAllUsers - Found content array, length:', response.data.content.length);
+                    return {
+                        content: response.data.content,
+                        totalElements: response.data.totalElements ?? response.data.content.length ?? 0
+                    };
+                }
+                // If data is directly an array
+                if (Array.isArray(response.data)) {
+                    console.log('🔍 recipientService.getAllUsers - Data is array, length:', response.data.length);
+                    return {
+                        content: response.data,
+                        totalElements: response.data.length
+                    };
+                }
+            }
+            
+            console.warn('🔍 recipientService.getAllUsers - No valid data found, returning empty');
+            return { content: [], totalElements: 0 };
+        } catch (error) {
+            console.error('Error fetching users:', error);
+            return { content: [], totalElements: 0 };
+        }
+    },
+
+    /**
      * Lấy tất cả students (có phân trang và search)
      */
     getAllStudents: async (
@@ -285,12 +366,14 @@ export const recipientService = {
 
     /**
      * Lấy students đã đăng ký activity
+     * Lưu ý: Lấy TẤT CẢ registrations, không filter theo status (PENDING, APPROVED, REJECTED, CANCELLED)
+     * Logic: Gửi cho tất cả đã đăng ký, dù chưa duyệt hay đã duyệt
      */
     getActivityRegistrations: async (activityId: number): Promise<number[]> => {
         try {
             const registrations = await registrationAPI.getActivityRegistrations(activityId);
             if (Array.isArray(registrations)) {
-                // Extract userIds from registrations
+                // Extract userIds from registrations (không filter theo status)
                 return registrations
                     .map((reg: any) => reg.student?.userId || reg.userId)
                     .filter((id: number) => id != null);
@@ -304,10 +387,35 @@ export const recipientService = {
 
     /**
      * Lấy students đã đăng ký series
+     * Lưu ý: Lấy TẤT CẢ registrations, không filter theo status (PENDING, APPROVED, REJECTED, CANCELLED)
+     * Logic: Gửi cho tất cả đã đăng ký, dù chưa duyệt hay đã duyệt
      */
     getSeriesRegistrations: async (seriesId: number): Promise<number[]> => {
         try {
-            // Get all activities in series
+            // Try to get series registrations from API if available
+            try {
+                const response = await api.get(`/api/registrations/series/${seriesId}`);
+                // Response structure: { status, message, body: [...] }
+                const registrations = response.data.body || response.data.data || [];
+                if (response.data.status && Array.isArray(registrations)) {
+                    const uniqueUserIds = new Set<number>();
+                    registrations.forEach((reg: any) => {
+                        const studentId = reg.studentId;
+                        if (studentId) {
+                            // Try to get userId from student object or use studentId directly
+                            const userId = reg.student?.userId || reg.userId || studentId;
+                            if (userId) {
+                                uniqueUserIds.add(userId);
+                            }
+                        }
+                    });
+                    return Array.from(uniqueUserIds);
+                }
+            } catch (apiError) {
+                console.log('Series registrations API not available, using fallback', apiError);
+            }
+
+            // Fallback: Get all activities in series
             const seriesRes = await seriesAPI.getSeriesById(seriesId);
             if (!seriesRes.status || !seriesRes.data) {
                 return [];
@@ -326,6 +434,164 @@ export const recipientService = {
         } catch (error) {
             console.error('Error fetching series registrations:', error);
             return [];
+        }
+    },
+
+    /**
+     * Preview recipients cho activity (lấy danh sách students đã đăng ký)
+     * Lưu ý: Lấy TẤT CẢ registrations, không filter theo status (PENDING, APPROVED, REJECTED, CANCELLED)
+     * Logic: Gửi cho tất cả đã đăng ký, dù chưa duyệt hay đã duyệt
+     */
+    previewActivityRecipients: async (
+        activityId: number
+    ): Promise<{ totalCount: number; previewList: Array<{ id: number; name: string; code?: string; email?: string }> }> => {
+        try {
+            const registrations = await registrationAPI.getActivityRegistrations(activityId);
+            if (!Array.isArray(registrations)) {
+                return { totalCount: 0, previewList: [] };
+            }
+
+            // Lấy TẤT CẢ registrations, không filter theo status
+            // Bao gồm: PENDING, APPROVED, REJECTED, CANCELLED
+            const previewList = registrations.slice(0, 10).map((reg: any) => ({
+                id: reg.studentId || reg.id,
+                name: reg.studentName || reg.student?.fullName || 'N/A',
+                code: reg.studentCode || reg.student?.studentCode,
+                email: reg.student?.email || reg.email
+            }));
+
+            return {
+                totalCount: registrations.length,
+                previewList
+            };
+        } catch (error) {
+            console.error('Error previewing activity recipients:', error);
+            return { totalCount: 0, previewList: [] };
+        }
+    },
+
+    /**
+     * Preview recipients cho series (lấy danh sách unique students đã đăng ký)
+     * Lưu ý: Lấy TẤT CẢ registrations, không filter theo status (PENDING, APPROVED, REJECTED, CANCELLED)
+     * Logic: Gửi cho tất cả đã đăng ký, dù chưa duyệt hay đã duyệt
+     */
+    previewSeriesRecipients: async (
+        seriesId: number
+    ): Promise<{ totalCount: number; previewList: Array<{ id: number; name: string; code?: string; email?: string }> }> => {
+        try {
+            // Try to get series registrations from API if available
+            try {
+                const response = await api.get(`/api/registrations/series/${seriesId}`);
+                // Response structure: { status, message, body: [...] }
+                const registrations = response.data.body || response.data.data || [];
+                if (response.data.status && Array.isArray(registrations)) {
+                    const uniqueStudents = new Map<number, any>();
+                    
+                    registrations.forEach((reg: any) => {
+                        const studentId = reg.studentId;
+                        if (studentId && !uniqueStudents.has(studentId)) {
+                            uniqueStudents.set(studentId, {
+                                id: studentId,
+                                name: reg.studentName || 'N/A',
+                                code: reg.studentCode,
+                                email: reg.student?.email
+                            });
+                        }
+                    });
+
+                    const previewList = Array.from(uniqueStudents.values()).slice(0, 10);
+                    return {
+                        totalCount: uniqueStudents.size,
+                        previewList
+                    };
+                }
+            } catch (apiError) {
+                // Fallback to getting from activities
+                console.log('Series registrations API not available, using fallback', apiError);
+            }
+
+            // Fallback: Get from activities in series
+            const seriesRes = await seriesAPI.getSeriesById(seriesId);
+            if (!seriesRes.status || !seriesRes.data) {
+                return { totalCount: 0, previewList: [] };
+            }
+
+            const activities = seriesRes.data.activities || [];
+            const uniqueStudents = new Map<number, any>();
+
+            for (const activity of activities) {
+                const registrations = await registrationAPI.getActivityRegistrations(activity.id);
+                registrations.forEach((reg: any) => {
+                    const studentId = reg.studentId;
+                    if (studentId && !uniqueStudents.has(studentId)) {
+                        uniqueStudents.set(studentId, {
+                            id: studentId,
+                            name: reg.studentName || reg.student?.fullName || 'N/A',
+                            code: reg.studentCode || reg.student?.studentCode,
+                            email: reg.student?.email
+                        });
+                    }
+                });
+            }
+
+            const previewList = Array.from(uniqueStudents.values()).slice(0, 10);
+            return {
+                totalCount: uniqueStudents.size,
+                previewList
+            };
+        } catch (error) {
+            console.error('Error previewing series recipients:', error);
+            return { totalCount: 0, previewList: [] };
+        }
+    },
+
+    /**
+     * Preview recipients cho class
+     */
+    previewClassRecipients: async (
+        classId: number
+    ): Promise<{ totalCount: number; previewList: Array<{ id: number; name: string; code?: string; email?: string }> }> => {
+        try {
+            const students = await recipientService.getStudentsInClass(classId);
+            const previewList = students.slice(0, 10).map((student) => ({
+                id: student.id,
+                name: student.fullName || 'N/A',
+                code: student.studentCode,
+                email: student.email
+            }));
+
+            return {
+                totalCount: students.length,
+                previewList
+            };
+        } catch (error) {
+            console.error('Error previewing class recipients:', error);
+            return { totalCount: 0, previewList: [] };
+        }
+    },
+
+    /**
+     * Preview recipients cho department
+     */
+    previewDepartmentRecipients: async (
+        departmentId: number
+    ): Promise<{ totalCount: number; previewList: Array<{ id: number; name: string; code?: string; email?: string }> }> => {
+        try {
+            const result = await recipientService.getStudentsByDepartment(departmentId, 0, 10);
+            const previewList = result.content.map((student) => ({
+                id: student.id,
+                name: student.fullName || 'N/A',
+                code: student.studentCode,
+                email: student.email
+            }));
+
+            return {
+                totalCount: result.totalElements,
+                previewList
+            };
+        } catch (error) {
+            console.error('Error previewing department recipients:', error);
+            return { totalCount: 0, previewList: [] };
         }
     }
 };
