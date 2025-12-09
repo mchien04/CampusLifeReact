@@ -7,15 +7,14 @@ import {
     StudentStatisticsResponse,
     ScoreStatisticsResponse,
     SeriesStatisticsResponse,
-    MinigameStatisticsResponse,
-    TimelineStatisticsResponse
+    MinigameStatisticsResponse
 } from '../../types/statistics';
 import {
     LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 
 const Statistics: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'activities' | 'students' | 'scores' | 'series' | 'minigames' | 'timeline'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'activities' | 'students' | 'scores' | 'series' | 'minigames'>('dashboard');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -64,13 +63,6 @@ const Statistics: React.FC = () => {
         endDate: ''
     });
 
-    // Timeline data
-    const [timelineData, setTimelineData] = useState<TimelineStatisticsResponse | null>(null);
-    const [timelineFilters, setTimelineFilters] = useState({
-        startDate: '',
-        endDate: '',
-        groupBy: 'day' as 'day' | 'week' | 'month' | 'quarter' | 'year'
-    });
 
     useEffect(() => {
         loadDashboardData();
@@ -89,8 +81,6 @@ const Statistics: React.FC = () => {
             loadSeriesData();
         } else if (activeTab === 'minigames') {
             loadMinigameData();
-        } else if (activeTab === 'timeline') {
-            loadTimelineData();
         }
     }, [activeTab]);
 
@@ -229,28 +219,6 @@ const Statistics: React.FC = () => {
         }
     };
 
-    const loadTimelineData = async () => {
-        setLoading(true);
-        setError('');
-        try {
-            const params: any = {};
-            if (timelineFilters.startDate) params.startDate = timelineFilters.startDate;
-            if (timelineFilters.endDate) params.endDate = timelineFilters.endDate;
-            if (timelineFilters.groupBy) params.groupBy = timelineFilters.groupBy;
-
-            const response = await statisticsAPI.getTimelineStatistics(params);
-            if (response.status && response.data) {
-                setTimelineData(response.data);
-            } else {
-                setError(response.message || 'Không thể tải dữ liệu timeline');
-            }
-        } catch (err) {
-            console.error('Error loading timeline data:', err);
-            setError('Có lỗi xảy ra khi tải dữ liệu timeline');
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const formatNumber = (num: number) => {
         return new Intl.NumberFormat('vi-VN').format(num);
@@ -269,7 +237,6 @@ const Statistics: React.FC = () => {
         { id: 'scores', label: 'Điểm số', icon: '⭐' },
         { id: 'series', label: 'Chuỗi sự kiện', icon: '📋' },
         { id: 'minigames', label: 'Mini Game', icon: '🎮' },
-        { id: 'timeline', label: 'Theo thời gian', icon: '📈' }
     ];
 
     return (
@@ -383,17 +350,6 @@ const Statistics: React.FC = () => {
                                 />
                             )}
 
-                            {/* Timeline Tab */}
-                            {activeTab === 'timeline' && (
-                                <TimelineTab
-                                    data={timelineData}
-                                    filters={timelineFilters}
-                                    setFilters={setTimelineFilters}
-                                    onApplyFilters={loadTimelineData}
-                                    formatNumber={formatNumber}
-                                    COLORS={COLORS}
-                                />
-                            )}
                         </>
                     )}
                 </div>
@@ -1247,152 +1203,6 @@ const MinigamesTab: React.FC<{
     );
 };
 
-// Timeline Tab Component
-const TimelineTab: React.FC<{
-    data: TimelineStatisticsResponse | null;
-    filters: any;
-    setFilters: any;
-    onApplyFilters: () => void;
-    formatNumber: (num: number) => string;
-    COLORS: string[];
-}> = ({ data, filters, setFilters, onApplyFilters, formatNumber, COLORS }) => {
-    if (!data) {
-        return (
-            <div className="text-center py-12">
-                <p className="text-gray-500">Chưa có dữ liệu. Vui lòng áp dụng bộ lọc để xem thống kê.</p>
-            </div>
-        );
-    }
-
-    const registrationsData = (data.registrationsOverTime || []).map(item => ({
-        period: item.period,
-        value: item.count || 0
-    }));
-
-    const participationsData = (data.participationsOverTime || []).map(item => ({
-        period: item.period,
-        value: item.count || 0
-    }));
-
-    const scoresData = (data.scoresOverTime || []).map(item => ({
-        period: item.period,
-        value: item.value || 0
-    }));
-
-    const peakHoursData = Object.entries(data.peakHours || {}).map(([hour, count]) => ({
-        hour: `${hour}:00`,
-        count: Number(count)
-    }));
-
-    return (
-        <div className="space-y-6">
-            {/* Filters */}
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Bộ lọc</h3>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Từ ngày</label>
-                        <input
-                            type="date"
-                            value={filters.startDate}
-                            onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Đến ngày</label>
-                        <input
-                            type="date"
-                            value={filters.endDate}
-                            onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Nhóm theo</label>
-                        <select
-                            value={filters.groupBy}
-                            onChange={(e) => setFilters({ ...filters, groupBy: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                        >
-                            <option value="day">Ngày</option>
-                            <option value="week">Tuần</option>
-                            <option value="month">Tháng</option>
-                            <option value="quarter">Quý</option>
-                            <option value="year">Năm</option>
-                        </select>
-                    </div>
-                    <div className="flex items-end">
-                        <button
-                            onClick={onApplyFilters}
-                            className="w-full bg-[#001C44] text-white px-4 py-2 rounded-md hover:bg-[#002A66] transition-colors"
-                        >
-                            Áp dụng bộ lọc
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Charts */}
-            <div className="grid grid-cols-1 gap-6">
-                <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Đăng ký theo thời gian</h3>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={registrationsData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="period" />
-                            <YAxis />
-                            <Tooltip />
-                            <Legend />
-                            <Line type="monotone" dataKey="value" stroke={COLORS[0]} strokeWidth={2} />
-                        </LineChart>
-                    </ResponsiveContainer>
-                </div>
-
-                <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Tham gia theo thời gian</h3>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={participationsData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="period" />
-                            <YAxis />
-                            <Tooltip />
-                            <Legend />
-                            <Line type="monotone" dataKey="value" stroke={COLORS[1]} strokeWidth={2} />
-                        </LineChart>
-                    </ResponsiveContainer>
-                </div>
-
-                <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Điểm số theo thời gian</h3>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={scoresData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="period" />
-                            <YAxis />
-                            <Tooltip />
-                            <Legend />
-                            <Line type="monotone" dataKey="value" stroke={COLORS[2]} strokeWidth={2} />
-                        </LineChart>
-                    </ResponsiveContainer>
-                </div>
-
-                <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Giờ cao điểm</h3>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={peakHoursData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="hour" />
-                            <YAxis />
-                            <Tooltip />
-                            <Bar dataKey="count" fill={COLORS[3]} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
-            </div>
-        </div>
-    );
-};
 
 export default Statistics;
 

@@ -172,7 +172,7 @@ const UserManagement: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="flex items-center justify-center min-h-[400px]">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#001C44] mx-auto"></div>
                     <p className="mt-4 text-gray-600">Đang tải dữ liệu...</p>
@@ -183,46 +183,58 @@ const UserManagement: React.FC = () => {
 
     if (error) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="text-red-500 text-6xl mb-4">❌</div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Lỗi</h3>
-                    <p className="text-gray-600 mb-4">{error}</p>
-                    <button
-                        onClick={loadUsers}
-                        className="bg-[#001C44] hover:bg-[#002A66] text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-                    >
-                        Thử lại
-                    </button>
+            <div className="space-y-6">
+                <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white">
+                    <div className="flex items-center">
+                        <span className="mr-3 text-4xl">👥</span>
+                        <div>
+                            <h1 className="text-3xl font-bold mb-2">Quản lý tài khoản</h1>
+                            <p className="text-gray-200 text-lg">Quản lý tài khoản ADMIN và MANAGER trong hệ thống</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="flex items-center justify-center min-h-[400px]">
+                    <div className="text-center">
+                        <div className="text-red-500 text-6xl mb-4">❌</div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">Lỗi</h3>
+                        <p className="text-gray-600 mb-4">{error}</p>
+                        <button
+                            onClick={loadUsers}
+                            className="bg-gradient-to-r from-[#001C44] to-[#002A66] hover:from-[#002A66] hover:to-[#001C44] text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-all shadow-lg"
+                        >
+                            Thử lại
+                        </button>
+                    </div>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="space-y-6">
             {/* Header */}
-            <div className="bg-white shadow-sm border-b border-gray-200">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center py-6">
-                        <div>
-                            <h1 className="text-2xl font-bold text-[#001C44]">Quản lý tài khoản</h1>
-                            <p className="text-gray-600 mt-1">Quản lý tài khoản ADMIN và MANAGER trong hệ thống</p>
-                        </div>
-                        <button
-                            onClick={() => {
-                                setEditingUser(null);
-                                setShowCreateModal(true);
-                            }}
-                            className="px-4 py-2 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66] transition-colors text-sm font-medium shadow-sm hover:shadow-md"
-                        >
-                            + Tạo tài khoản mới
-                        </button>
+            <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-3xl font-bold mb-2 flex items-center">
+                            <span className="mr-3 text-4xl">👥</span>
+                            Quản lý tài khoản
+                        </h1>
+                        <p className="text-gray-200 text-lg">Quản lý tài khoản ADMIN và MANAGER trong hệ thống</p>
                     </div>
+                    <button
+                        onClick={() => {
+                            setEditingUser(null);
+                            setShowCreateModal(true);
+                        }}
+                        className="px-5 py-2.5 bg-[#FFD66D] text-[#001C44] rounded-lg hover:bg-[#FFC947] font-semibold shadow-lg hover:shadow-xl transition-all"
+                    >
+                        + Tạo tài khoản mới
+                    </button>
                 </div>
             </div>
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div>
                 {/* Filters */}
                 <div className="bg-white rounded-lg shadow-lg p-6 mb-6 border border-gray-100">
                     <h3 className="text-lg font-semibold text-[#001C44] mb-4">Bộ lọc</h3>

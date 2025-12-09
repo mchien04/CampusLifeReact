@@ -11,15 +11,17 @@ interface SeriesActivityFormProps {
     initialData?: Partial<CreateActivityInSeriesRequest>;
     title?: string;
     onCancel?: () => void;
+    isMinigame?: boolean;
 }
 
-const renderSeriesActivityFields = (props: RenderFieldsProps) => {
+const renderSeriesActivityFields = (props: RenderFieldsProps & { isMinigame?: boolean }) => {
     const {
         formData,
         errors,
         handleChange,
         handleOrganizerChange,
-        originalBannerUrl
+        originalBannerUrl,
+        isMinigame
     } = props;
 
     const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,6 +52,11 @@ const renderSeriesActivityFields = (props: RenderFieldsProps) => {
                         <p className="text-sm text-[#001C44] font-medium">
                             <strong>Lưu ý:</strong> Sự kiện trong chuỗi sẽ tự động lấy các thông tin đăng ký, 
                             điểm số và số lượng vé từ chuỗi sự kiện. Bạn chỉ cần điền thông tin cơ bản bên dưới.
+                            {props.isMinigame && (
+                                <span className="block mt-2 text-[#FFD66D] font-semibold">
+                                    🎮 Bạn đang tạo minigame. Sau khi tạo activity, bạn sẽ tiếp tục tạo quiz.
+                                </span>
+                            )}
                         </p>
                     </div>
                 </div>
@@ -300,7 +307,8 @@ const SeriesActivityForm: React.FC<SeriesActivityFormProps> = ({
     loading = false,
     initialData = {},
     title = "Tạo sự kiện trong chuỗi",
-    onCancel
+    onCancel,
+    isMinigame = false
 }) => {
     const handleSubmit = (data: CreateActivityRequest) => {
         // BaseEventForm already handles banner upload, so bannerUrl is already set
@@ -317,7 +325,9 @@ const SeriesActivityForm: React.FC<SeriesActivityFormProps> = ({
             benefits: data.benefits || undefined,
             requirements: data.requirements || undefined,
             contactInfo: data.contactInfo || undefined,
-            organizerIds: data.organizerIds && data.organizerIds.length > 0 ? data.organizerIds : undefined
+            organizerIds: data.organizerIds && data.organizerIds.length > 0 ? data.organizerIds : undefined,
+            // If creating minigame, add type field
+            ...(isMinigame && { type: ActivityType.MINIGAME })
         };
         onSubmit(seriesActivityData);
     };
@@ -354,7 +364,7 @@ const SeriesActivityForm: React.FC<SeriesActivityFormProps> = ({
             initialData={processedInitialData}
             title={title}
             onCancel={onCancel}
-            renderFields={renderSeriesActivityFields}
+            renderFields={(props) => renderSeriesActivityFields({ ...props, isMinigame })}
             inline={!title}
         />
     );

@@ -114,10 +114,10 @@ const Departments: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="flex items-center justify-center min-h-[400px]">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Đang tải dữ liệu...</p>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#001C44] mx-auto"></div>
+                    <p className="mt-4 text-gray-600 font-medium">Đang tải dữ liệu...</p>
                 </div>
             </div>
         );
@@ -125,14 +125,14 @@ const Departments: React.FC = () => {
 
     if (error) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="flex items-center justify-center min-h-[400px]">
                 <div className="text-center">
                     <div className="text-red-500 text-6xl mb-4">❌</div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Lỗi</h3>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">Lỗi</h3>
                     <p className="text-gray-600 mb-4">{error}</p>
                     <button
                         onClick={loadDepartments}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                        className="px-5 py-2.5 bg-gradient-to-r from-[#001C44] to-[#002A66] text-white rounded-lg hover:from-[#002A66] hover:to-[#001C44] font-semibold shadow-md hover:shadow-lg transition-all"
                     >
                         Thử lại
                     </button>
@@ -142,22 +142,27 @@ const Departments: React.FC = () => {
     }
 
     return (
-        <div>
+        <div className="space-y-6">
             {/* Header */}
-            <div className="mb-6 flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold text-[#001C44]">Quản lý phòng ban</h1>
-                    <p className="text-gray-600 mt-1">Quản lý các khoa và phòng ban trong hệ thống</p>
+            <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-3xl font-bold mb-2 flex items-center">
+                            <span className="mr-3 text-4xl">🏢</span>
+                            Quản lý phòng ban
+                        </h1>
+                        <p className="text-gray-200 text-lg">Quản lý các khoa và phòng ban trong hệ thống</p>
+                    </div>
+                    <button
+                        onClick={() => {
+                            setEditingDepartment(null);
+                            setShowForm(true);
+                        }}
+                        className="px-5 py-2.5 bg-[#FFD66D] text-[#001C44] rounded-lg hover:bg-[#FFC947] font-semibold shadow-lg hover:shadow-xl transition-all"
+                    >
+                        + Tạo phòng ban
+                    </button>
                 </div>
-                <button
-                    onClick={() => {
-                        setEditingDepartment(null);
-                        setShowForm(true);
-                    }}
-                    className="px-4 py-2 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66] focus:outline-none focus:ring-2 focus:ring-[#001C44] transition-colors"
-                >
-                    + Tạo phòng ban
-                </button>
             </div>
 
             {/* Filters */}

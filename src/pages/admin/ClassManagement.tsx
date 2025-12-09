@@ -130,25 +130,27 @@ const ClassManagement: React.FC = () => {
     }
 
     return (
-        <div>
-            {/* Header Actions */}
-            <div className="mb-6 flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-[#001C44] flex items-center">
-                        <span className="mr-3 text-4xl">🏫</span>
-                        Quản lý lớp học
-                    </h1>
-                    <p className="text-gray-600 mt-2">Quản lý các lớp học trong hệ thống</p>
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-3xl font-bold mb-2 flex items-center">
+                            <span className="mr-3 text-4xl">🏫</span>
+                            Quản lý lớp học
+                        </h1>
+                        <p className="text-gray-200 text-lg">Quản lý các lớp học trong hệ thống</p>
+                    </div>
+                    <button
+                        onClick={() => {
+                            setEditingClass(null);
+                            setShowForm(true);
+                        }}
+                        className="px-5 py-2.5 bg-[#FFD66D] text-[#001C44] rounded-lg hover:bg-[#FFC947] font-semibold shadow-lg hover:shadow-xl transition-all"
+                    >
+                        + Thêm lớp mới
+                    </button>
                 </div>
-                <button
-                    onClick={() => {
-                        setEditingClass(null);
-                        setShowForm(true);
-                    }}
-                    className="px-6 py-3 bg-gradient-to-r from-[#001C44] to-[#002A66] text-white rounded-xl hover:from-[#002A66] hover:to-[#001C44] focus:outline-none focus:ring-2 focus:ring-[#001C44] transition-all shadow-lg hover:shadow-xl font-semibold"
-                >
-                    + Thêm lớp mới
-                </button>
             </div>
 
             <div>

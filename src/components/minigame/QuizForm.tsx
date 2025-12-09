@@ -11,6 +11,7 @@ interface QuizFormProps {
     initialData?: Partial<CreateMiniGameRequest | UpdateMiniGameRequest>;
     title?: string;
     onCancel?: () => void;
+    isInSeries?: boolean;
 }
 
 const QuizForm: React.FC<QuizFormProps> = ({
@@ -19,7 +20,8 @@ const QuizForm: React.FC<QuizFormProps> = ({
     loading = false,
     initialData = {},
     title = 'Tạo Quiz',
-    onCancel
+    onCancel,
+    isInSeries = false
 }) => {
     const [formData, setFormData] = useState<CreateMiniGameRequest>(() => {
         const defaultData: CreateMiniGameRequest = {
@@ -51,6 +53,10 @@ const QuizForm: React.FC<QuizFormProps> = ({
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number | null>(null);
     const [uploadingImages, setUploadingImages] = useState<Record<number, boolean>>({});
+    const [unlimitedAttempts, setUnlimitedAttempts] = useState<boolean>(() => {
+        // Initialize based on initialData or default to true (unlimited)
+        return initialData?.maxAttempts === null || initialData?.maxAttempts === undefined;
+    });
     
     // Convert seconds to MM:SS format
     const secondsToTimeString = (seconds?: number): string => {
@@ -114,6 +120,11 @@ const QuizForm: React.FC<QuizFormProps> = ({
                 
                 return updated;
             });
+            
+            // Update unlimitedAttempts toggle based on maxAttempts
+            if ('maxAttempts' in initialData) {
+                setUnlimitedAttempts(initialData.maxAttempts === null || initialData.maxAttempts === undefined);
+            }
             
             // Also update timeLimitDisplay
             if (initialData.timeLimit !== undefined) {
@@ -411,26 +422,72 @@ const QuizForm: React.FC<QuizFormProps> = ({
                             />
                         </div>
 
-                        <div>
-                            <label htmlFor="rewardPoints" className="block text-sm font-medium text-gray-700 mb-2">
-                                Điểm thưởng
-                            </label>
-                            <input
-                                type="number"
-                                id="rewardPoints"
-                                name="rewardPoints"
-                                min="0"
-                                step="0.1"
-                                value={formData.rewardPoints || ''}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
-                            />
-                        </div>
+                        {/* Reward Points - Only show if not in series */}
+                        {!isInSeries && (
+                            <div>
+                                <label htmlFor="rewardPoints" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Điểm thưởng
+                                </label>
+                                <input
+                                    type="number"
+                                    id="rewardPoints"
+                                    name="rewardPoints"
+                                    min="0"
+                                    step="0.1"
+                                    value={formData.rewardPoints || ''}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
+                                />
+                            </div>
+                        )}
+
+                        {/* Info notice for series activities */}
+                        {isInSeries && (
+                            <div className="md:col-span-2 bg-gradient-to-r from-yellow-50 to-amber-50 border-l-4 border-[#FFD66D] p-4 rounded-lg">
+                                <div className="flex">
+                                    <div className="flex-shrink-0">
+                                        <svg className="h-5 w-5 text-[#FFD66D]" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    <div className="ml-3">
+                                        <p className="text-sm text-[#001C44] font-medium">
+                                            <strong>Lưu ý:</strong> Quiz trong series sẽ tính điểm từ milestone của series. 
+                                            Không cần nhập điểm thưởng riêng.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         <div>
-                            <label htmlFor="maxAttempts" className="block text-sm font-medium text-gray-700 mb-2">
-                                Số lần làm tối đa
-                            </label>
+                            <div className="flex items-center justify-between mb-2">
+                                <label htmlFor="maxAttempts" className="block text-sm font-medium text-gray-700">
+                                    Số lần làm tối đa
+                                </label>
+                                <div className="flex items-center space-x-2">
+                                    <span className="text-sm text-gray-600">Không giới hạn</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const newValue = !unlimitedAttempts;
+                                            setUnlimitedAttempts(newValue);
+                                            if (newValue) {
+                                                setFormData(prev => ({ ...prev, maxAttempts: null }));
+                                            }
+                                        }}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:ring-offset-2 ${
+                                            unlimitedAttempts ? 'bg-[#001C44]' : 'bg-gray-300'
+                                        }`}
+                                    >
+                                        <span
+                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                unlimitedAttempts ? 'translate-x-6' : 'translate-x-1'
+                                            }`}
+                                        />
+                                    </button>
+                                </div>
+                            </div>
                             <input
                                 type="number"
                                 id="maxAttempts"
@@ -444,10 +501,15 @@ const QuizForm: React.FC<QuizFormProps> = ({
                                         maxAttempts: value ? parseInt(value) : null
                                     }));
                                 }}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
-                                placeholder="Không giới hạn (để trống)"
+                                disabled={unlimitedAttempts}
+                                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44] ${
+                                    unlimitedAttempts ? 'bg-gray-100 cursor-not-allowed text-gray-500' : ''
+                                }`}
+                                placeholder={unlimitedAttempts ? "Không giới hạn" : "Nhập số lần làm tối đa"}
                             />
-                            <p className="text-xs text-gray-500 mt-1">Để trống nếu không giới hạn số lần làm</p>
+                            {unlimitedAttempts && (
+                                <p className="text-xs text-gray-500 mt-1">Sinh viên có thể làm quiz không giới hạn số lần</p>
+                            )}
                         </div>
                     </div>
 
@@ -457,13 +519,6 @@ const QuizForm: React.FC<QuizFormProps> = ({
                             <h3 className="text-lg font-semibold text-gray-900">
                                 Câu hỏi ({formData.questions.length})
                             </h3>
-                            <button
-                                type="button"
-                                onClick={addQuestion}
-                                className="btn-primary px-4 py-2 rounded-lg text-sm font-medium"
-                            >
-                                + Thêm câu hỏi
-                            </button>
                         </div>
 
                         {errors.questions && (
@@ -608,6 +663,17 @@ const QuizForm: React.FC<QuizFormProps> = ({
                                     </div>
                                 </div>
                             ))}
+                        </div>
+
+                        {/* Add Question Button at the end */}
+                        <div className="mt-6 flex justify-center">
+                            <button
+                                type="button"
+                                onClick={addQuestion}
+                                className="btn-primary px-6 py-3 rounded-lg text-sm font-medium"
+                            >
+                                + Thêm câu hỏi
+                            </button>
                         </div>
                     </div>
 

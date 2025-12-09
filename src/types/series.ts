@@ -70,6 +70,7 @@ export interface CreateActivityInSeriesRequest {
     requirements?: string;
     contactInfo?: string;
     organizerIds?: number[]; // Danh sách ID các khoa/ban tổ chức
+    type?: "MINIGAME"; // Optional, chỉ set khi tạo minigame
 }
 
 export interface AddActivityToSeriesRequest {

@@ -6,8 +6,7 @@ import {
     StudentStatisticsResponse,
     ScoreStatisticsResponse,
     SeriesStatisticsResponse,
-    MinigameStatisticsResponse,
-    TimelineStatisticsResponse
+    MinigameStatisticsResponse
 } from '../types/statistics';
 
 export interface ActivityStatisticsParams {
@@ -42,11 +41,6 @@ export interface MinigameStatisticsParams {
     endDate?: string; // ISO 8601 format
 }
 
-export interface TimelineStatisticsParams {
-    startDate?: string; // ISO 8601 format
-    endDate?: string; // ISO 8601 format
-    groupBy?: 'day' | 'week' | 'month' | 'quarter' | 'year';
-}
 
 export const statisticsAPI = {
     getDashboardStatistics: async (): Promise<Response<DashboardStatisticsResponse>> => {
@@ -189,28 +183,5 @@ export const statisticsAPI = {
         }
     },
 
-    getTimelineStatistics: async (params?: TimelineStatisticsParams): Promise<Response<TimelineStatisticsResponse>> => {
-        try {
-            const queryParams = new URLSearchParams();
-            if (params?.startDate) queryParams.append('startDate', params.startDate);
-            if (params?.endDate) queryParams.append('endDate', params.endDate);
-            if (params?.groupBy) queryParams.append('groupBy', params.groupBy);
-
-            const url = `/api/statistics/timeline${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-            const response = await api.get(url);
-            return {
-                status: response.data.status,
-                message: response.data.message,
-                data: response.data.data || response.data.body
-            };
-        } catch (error: any) {
-            console.error('Error fetching timeline statistics:', error);
-            return {
-                status: false,
-                message: error.response?.data?.message || 'Failed to fetch timeline statistics',
-                data: undefined
-            };
-        }
-    }
 };
 
