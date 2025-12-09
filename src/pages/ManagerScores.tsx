@@ -193,14 +193,19 @@ const ManagerScores: React.FC = () => {
     };
 
     return (
-        <div>
-            <div className="max-w-7xl mx-auto">
-                {/* Header */}
-                <div className="mb-6">
-                    <h1 className="text-3xl font-bold text-[#001C44] mb-2">Xếp hạng điểm sinh viên</h1>
-                    <p className="text-gray-600">Xem, lọc và sắp xếp điểm theo học kỳ</p>
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white">
+                <div>
+                    <h1 className="text-3xl font-bold mb-2 flex items-center">
+                        <span className="mr-3 text-4xl">📊</span>
+                        Xếp hạng điểm sinh viên
+                    </h1>
+                    <p className="text-gray-200 text-lg">Xem, lọc và sắp xếp điểm theo học kỳ</p>
                 </div>
+            </div>
 
+            <div>
                 {/* Filters */}
                 <div className="bg-white shadow-lg rounded-lg p-6 mb-4 border border-gray-100">
                     <h3 className="text-lg font-semibold text-[#001C44] mb-4 flex items-center">

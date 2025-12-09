@@ -111,11 +111,16 @@ const EditQuiz: React.FC = () => {
     };
 
     const handleSubmit = async (data: UpdateMiniGameRequest) => {
-        if (!miniGameId) return;
+        if (!miniGameId || !activity) return;
 
         setSaving(true);
         try {
-            const response = await minigameAPI.updateMiniGame(parseInt(miniGameId), data);
+            // If activity is in series, don't send rewardPoints
+            const updateData: UpdateMiniGameRequest = activity.seriesId 
+                ? { ...data, rewardPoints: undefined }
+                : data;
+            
+            const response = await minigameAPI.updateMiniGame(parseInt(miniGameId), updateData);
             if (response.status && response.data) {
                 toast.success('Cập nhật quiz thành công!');
                 navigate('/manager/minigames');
@@ -219,6 +224,7 @@ const EditQuiz: React.FC = () => {
                 initialData={initialData as any}
                 title="Chỉnh sửa Quiz"
                 onCancel={handleCancel}
+                isInSeries={!!activity.seriesId}
             />
         </div>
     );

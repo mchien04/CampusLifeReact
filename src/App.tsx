@@ -23,6 +23,7 @@ import CreateMinigame from './pages/admin/CreateMinigame';
 import CreateMinigameWizard from './pages/admin/CreateMinigameWizard';
 import EditQuiz from './pages/admin/EditQuiz';
 import AcademicYears from './pages/admin/AcademicYears';
+import SemesterManagement from './pages/admin/SemesterManagement';
 import Departments from './pages/admin/Departments';
 import Statistics from './pages/admin/Statistics';
 import UserManagement from './pages/admin/UserManagement';
@@ -184,6 +185,16 @@ function App() {
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
                     <ManagerLayout>
                       <AcademicYears />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/semesters/*"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
+                    <ManagerLayout>
+                      <SemesterManagement />
                     </ManagerLayout>
                   </ProtectedRoute>
                 }

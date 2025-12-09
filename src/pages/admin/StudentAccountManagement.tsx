@@ -311,18 +311,19 @@ const StudentAccountManagement: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
-                {/* Header */}
-                <div className="bg-white shadow-sm border-b border-gray-200">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="py-6">
-                            <h1 className="text-2xl font-bold text-[#001C44]">Quản lý tài khoản sinh viên</h1>
-                            <p className="text-gray-600 mt-1">Upload Excel, tạo tài khoản hàng loạt và quản lý tài khoản sinh viên</p>
-                        </div>
-                    </div>
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white">
+                <div>
+                    <h1 className="text-3xl font-bold mb-2 flex items-center">
+                        <span className="mr-3 text-4xl">🎓</span>
+                        Quản lý tài khoản sinh viên
+                    </h1>
+                    <p className="text-gray-200 text-lg">Upload Excel, tạo tài khoản hàng loạt và quản lý tài khoản sinh viên</p>
                 </div>
+            </div>
 
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div>
                     {/* Tabs */}
                     <div className="bg-white rounded-lg shadow-lg mb-6 border border-gray-100">
                         <div className="border-b border-gray-200">

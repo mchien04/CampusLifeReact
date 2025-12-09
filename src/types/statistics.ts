@@ -159,18 +159,4 @@ export interface MinigameStatisticsResponse {
     averageCorrectAnswersByMiniGame: Record<string, number>;
 }
 
-// Timeline Statistics Types
-export interface TimeSeriesData {
-    period: string;
-    count: number | null;
-    value: number | null;
-}
-
-export interface TimelineStatisticsResponse {
-    registrationsOverTime: TimeSeriesData[];
-    participationsOverTime: TimeSeriesData[];
-    scoresOverTime: TimeSeriesData[];
-    peakHours: Record<string, number>;
-    groupBy: string;
-}
 
