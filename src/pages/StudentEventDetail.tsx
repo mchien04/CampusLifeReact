@@ -524,6 +524,7 @@ const StudentEventDetail: React.FC = () => {
                                                 className="hover:underline font-medium"
                                             >
                                                 Thuộc chuỗi sự kiện
+                                                {event.seriesOrder && ` (Thứ tự: ${event.seriesOrder})`}
                                             </Link>
                                         </div>
                                     )}

@@ -72,9 +72,9 @@ const SeriesDetail: React.FC = () => {
 
         try {
             setIsCreating(true);
-            // If creating minigame, add type field
+            // If creating minigame, ensure type field is set to MINIGAME
             const requestData: CreateActivityInSeriesRequest = activityType === 'minigame' 
-                ? { ...data, type: "MINIGAME" }
+                ? { ...data, type: "MINIGAME" as const }
                 : data;
             
             const response = await seriesAPI.createActivityInSeries(parseInt(id), requestData);

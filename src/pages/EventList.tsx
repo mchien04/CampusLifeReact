@@ -25,7 +25,9 @@ const EventList: React.FC = () => {
 
                 if (response.status && response.data) {
                     console.log('🔍 EventList: API successful, setting events:', response.data);
-                    setEvents(response.data);
+                    // Filter out activities that belong to a series (they're shown in series pages)
+                    const standaloneEvents = response.data.filter(event => !event.seriesId);
+                    setEvents(standaloneEvents);
                 } else {
                     console.warn('🔍 EventList: API failed, no data available');
                     setEvents([]);
@@ -377,10 +379,12 @@ const EventList: React.FC = () => {
                             <span className="w-5 h-5 mr-2.5 text-blue-600">📍</span>
                             <span className="truncate font-medium text-gray-800">{event.location}</span>
                         </div>
-                        <div className="flex items-center">
-                            <span className="w-5 h-5 mr-2.5 text-purple-600">👥</span>
-                            <span className="truncate font-medium text-gray-800">{event.participantCount || 0} người tham gia</span>
-                        </div>
+                        {event.participantCount && event.participantCount > 0 && (
+                            <div className="flex items-center">
+                                <span className="w-5 h-5 mr-2.5 text-purple-600">👥</span>
+                                <span className="truncate font-medium text-gray-800">{event.participantCount} người tham gia</span>
+                            </div>
+                        )}
                         {event.maxPoints && parseFloat(event.maxPoints) > 0 && (
                             <div className="flex items-center">
                                 <span className="w-5 h-5 mr-2.5 text-[#FFD66D]">🏆</span>

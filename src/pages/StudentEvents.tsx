@@ -29,8 +29,10 @@ const StudentEvents: React.FC = () => {
             setLoading(true);
             const response = await eventAPI.getEvents();
             if (response.status) {
-                setEvents(response.data || []);
-                await loadRegistrationStatuses(response.data || []);
+                // Filter out activities that belong to a series (they're shown in series pages)
+                const standaloneEvents = (response.data || []).filter(event => !event.seriesId);
+                setEvents(standaloneEvents);
+                await loadRegistrationStatuses(standaloneEvents);
             } else {
                 setError(response.message || 'Không thể tải danh sách sự kiện');
             }
@@ -323,10 +325,12 @@ const StudentEvents: React.FC = () => {
                             <span className="w-5 h-5 mr-2.5 text-blue-600">📍</span>
                             <span className="truncate font-medium text-gray-800">{event.location}</span>
                         </div>
-                        <div className="flex items-center">
-                            <span className="w-5 h-5 mr-2.5 text-purple-600">👥</span>
-                            <span className="truncate font-medium text-gray-800">{event.participantCount || 0} người tham gia</span>
-                        </div>
+                        {event.participantCount && event.participantCount > 0 && (
+                            <div className="flex items-center">
+                                <span className="w-5 h-5 mr-2.5 text-purple-600">👥</span>
+                                <span className="truncate font-medium text-gray-800">{event.participantCount} người tham gia</span>
+                            </div>
+                        )}
                         {event.maxPoints && parseFloat(event.maxPoints) > 0 && (
                             <div className="flex items-center">
                                 <span className="w-5 h-5 mr-2.5 text-[#FFD66D]">🏆</span>
