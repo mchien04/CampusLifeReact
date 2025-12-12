@@ -731,6 +731,15 @@ const EventDetail: React.FC = () => {
                                     <span className="text-sm text-gray-500 font-mono">
                                         ID: {event.id}
                                     </span>
+                                    {event.seriesId && (
+                                        <Link
+                                            to={`/manager/series/${event.seriesId}`}
+                                            className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-full bg-yellow-100 text-yellow-800 border border-yellow-300 hover:bg-yellow-200 transition-colors"
+                                        >
+                                            📋 Thuộc chuỗi sự kiện
+                                            {event.seriesOrder && ` (Thứ tự: ${event.seriesOrder})`}
+                                        </Link>
+                                    )}
                                 </div>
                             </div>
                             <div className="flex items-center space-x-2">

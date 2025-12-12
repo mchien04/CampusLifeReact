@@ -39,9 +39,12 @@ const TaskManagement: React.FC = () => {
                 eventAPI.getEvents()
             ]);
 
+            // Filter out activities that belong to a series (they're shown in series pages)
+            const standaloneActivities = (activitiesResponse.data || []).filter(act => !act.seriesId);
+
             // Build a quick lookup for requiresSubmission from activities
             const activityIdToRequires: Record<number, boolean> = {};
-            (activitiesResponse.data || []).forEach((act) => {
+            standaloneActivities.forEach((act) => {
                 activityIdToRequires[act.id] = !!act.requiresSubmission;
             });
 
@@ -56,7 +59,7 @@ const TaskManagement: React.FC = () => {
                 totalPages: tasksResponse.totalPages,
                 currentPage: tasksResponse.number,
             });
-            setActivities(activitiesResponse.data || []);
+            setActivities(standaloneActivities);
         } catch (error) {
             console.error('Error loading data:', error);
             setError('Có lỗi xảy ra khi tải dữ liệu');

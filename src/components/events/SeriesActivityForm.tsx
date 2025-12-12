@@ -327,7 +327,7 @@ const SeriesActivityForm: React.FC<SeriesActivityFormProps> = ({
             contactInfo: data.contactInfo || undefined,
             organizerIds: data.organizerIds && data.organizerIds.length > 0 ? data.organizerIds : undefined,
             // If creating minigame, add type field
-            ...(isMinigame && { type: ActivityType.MINIGAME })
+            ...(isMinigame && { type: "MINIGAME" as const })
         };
         onSubmit(seriesActivityData);
     };

@@ -23,9 +23,11 @@ const TaskManagement: React.FC = () => {
         try {
             const response = await eventAPI.getEvents();
             if (response.status && response.data) {
-                setEvents(response.data);
-                if (response.data.length > 0) {
-                    setSelectedEvent(response.data[0]);
+                // Filter out activities that belong to a series (they're shown in series pages)
+                const standaloneEvents = response.data.filter(event => !event.seriesId);
+                setEvents(standaloneEvents);
+                if (standaloneEvents.length > 0) {
+                    setSelectedEvent(standaloneEvents[0]);
                 }
             } else {
                 setError(response.message || 'Có lỗi xảy ra khi tải danh sách hoạt động');
