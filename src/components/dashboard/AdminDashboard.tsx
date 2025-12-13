@@ -59,80 +59,113 @@ const AdminDashboard: React.FC = () => {
     }
 
     return (
-        <div>
+        <div className="space-y-6">
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
-                <div className="mb-8">
+                <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white mb-6">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h1 className="text-4xl font-bold text-[#001C44] mb-2 flex items-center">
-                                <span className="mr-4 text-5xl">📊</span>
+                            <h1 className="text-3xl font-bold mb-2 flex items-center">
+                                <span className="mr-3 text-4xl">📊</span>
                                 Thống kê tổng quan
                             </h1>
-                            <p className="text-gray-600 text-lg">Xem tổng quan các số liệu thống kê của hệ thống</p>
+                            <p className="text-gray-200 text-lg">Xem tổng quan các số liệu thống kê của hệ thống</p>
+                        </div>
+                        <div className="hidden md:flex items-center space-x-2">
+                            <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                            <span className="text-sm text-gray-200">Hệ thống hoạt động</span>
                         </div>
                     </div>
                 </div>
 
                 {error && (
-                    <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-                        {error}
+                    <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg text-red-700 shadow-md">
+                        <div className="flex items-center">
+                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            {error}
+                        </div>
                     </div>
                 )}
 
                 {/* Main Stats Cards */}
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-                    {stats.map((stat) => (
-                        <div 
-                            key={stat.name} 
-                            className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 overflow-hidden group"
-                        >
-                            <div className="flex items-center justify-between">
-                                <div className="flex-1">
-                                    <p className="text-sm font-medium text-gray-600 mb-2">{stat.name}</p>
-                                    <p className="text-3xl font-bold text-[#001C44]">{stat.value}</p>
+                    {stats.map((stat, index) => {
+                        // Sử dụng theme colors: xanh đậm và vàng, với các tone khác nhau
+                        const iconVariants = [
+                            'from-[#001C44] to-[#002A66]', // Xanh đậm chính
+                            'from-[#002A66] to-[#003A88]', // Xanh đậm nhạt hơn
+                            'from-[#001C44] to-[#002A66]', // Xanh đậm chính
+                            'from-[#FFD66D] to-[#FFC947]', // Vàng theme
+                        ];
+                        const iconBg = iconVariants[index % iconVariants.length];
+
+                        return (
+                            <div
+                                key={stat.name}
+                                className="bg-gray-50 rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl hover:bg-gray-100 transition-all duration-300 overflow-hidden group relative"
+                            >
+                                {/* Subtle gradient overlay on hover */}
+                                <div className="absolute inset-0 bg-gradient-to-br from-[#001C44] to-[#002A66] opacity-0 group-hover:opacity-3 transition-opacity duration-300"></div>
+
+                                <div className="flex items-center justify-between relative z-10">
+                                    <div className="flex-1">
+                                        <p className="text-sm font-medium text-gray-600 mb-2">{stat.name}</p>
+                                        <p className="text-3xl font-bold text-[#001C44] group-hover:text-[#002A66] transition-colors duration-300">
+                                            {stat.value}
+                                        </p>
+                                    </div>
+                                    <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${iconBg} flex items-center justify-center text-3xl shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all duration-300`}>
+                                        {stat.icon}
+                                    </div>
                                 </div>
-                                <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-[#001C44] to-[#002A66] flex items-center justify-center text-3xl shadow-lg group-hover:scale-110 transition-transform">
-                                    {stat.icon}
-                                </div>
+
+                                {/* Subtle decorative line */}
+                                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#001C44] to-[#002A66] transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
 
 
                 {/* Statistics Overview */}
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 mb-8">
                     {/* Monthly Statistics */}
-                    <div className="lg:col-span-2 bg-white shadow-lg rounded-xl p-6 border border-gray-100">
-                        <h3 className="text-2xl font-bold text-[#001C44] mb-6 flex items-center">
-                            <span className="mr-3 text-3xl">📊</span>
-                            Thống kê tháng này
-                        </h3>
+                    <div className="lg:col-span-2 bg-white shadow-lg rounded-xl p-6 border border-gray-100 hover:shadow-xl transition-all duration-300">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-2xl font-bold text-[#001C44] flex items-center">
+                                <span className="mr-3 text-3xl">📊</span>
+                                Thống kê tháng này
+                            </h3>
+                            <div className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                                {new Date().toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' })}
+                            </div>
+                        </div>
                         {dashboardData ? (
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="bg-gray-50 rounded-xl p-5 border-2 border-gray-200 hover:shadow-lg transition-all">
+                                <div className="bg-gray-50 rounded-xl p-5 border-l-4 border-[#001C44] hover:shadow-lg hover:bg-gray-100 transition-all group">
                                     <div className="flex items-center mb-3">
-                                        <div className="w-12 h-12 bg-gradient-to-br from-[#001C44] to-[#002A66] rounded-xl flex items-center justify-center mr-3 shadow-md">
+                                        <div className="w-12 h-12 bg-gradient-to-br from-[#001C44] to-[#002A66] rounded-xl flex items-center justify-center mr-3 shadow-md group-hover:scale-105 transition-transform">
                                             <span className="text-2xl text-white">📝</span>
                                         </div>
                                         <p className="text-sm font-semibold text-gray-700">Đăng ký mới</p>
                                     </div>
                                     <p className="text-3xl font-bold text-[#001C44]">{formatNumber(dashboardData.monthlyRegistrations)}</p>
                                 </div>
-                                <div className="bg-gray-50 rounded-xl p-5 border-2 border-gray-200 hover:shadow-lg transition-all">
+                                <div className="bg-gray-50 rounded-xl p-5 border-l-4 border-[#002A66] hover:shadow-lg hover:bg-gray-100 transition-all group">
                                     <div className="flex items-center mb-3">
-                                        <div className="w-12 h-12 bg-gradient-to-br from-[#001C44] to-[#002A66] rounded-xl flex items-center justify-center mr-3 shadow-md">
+                                        <div className="w-12 h-12 bg-gradient-to-br from-[#002A66] to-[#003A88] rounded-xl flex items-center justify-center mr-3 shadow-md group-hover:scale-105 transition-transform">
                                             <span className="text-2xl text-white">✅</span>
                                         </div>
                                         <p className="text-sm font-semibold text-gray-700">Tham gia</p>
                                     </div>
-                                    <p className="text-3xl font-bold text-[#001C44]">{formatNumber(dashboardData.monthlyParticipations)}</p>
+                                    <p className="text-3xl font-bold text-[#002A66]">{formatNumber(dashboardData.monthlyParticipations)}</p>
                                 </div>
-                                <div className="bg-gray-50 rounded-xl p-5 border-2 border-gray-200 hover:shadow-lg transition-all">
+                                <div className="bg-gray-50 rounded-xl p-5 border-l-4 border-[#FFD66D] hover:shadow-lg hover:bg-gray-100 transition-all group">
                                     <div className="flex items-center mb-3">
-                                        <div className="w-12 h-12 bg-gradient-to-br from-[#001C44] to-[#002A66] rounded-xl flex items-center justify-center mr-3 shadow-md">
-                                            <span className="text-2xl text-white">📈</span>
+                                        <div className="w-12 h-12 bg-gradient-to-br from-[#FFD66D] to-[#FFC947] rounded-xl flex items-center justify-center mr-3 shadow-md group-hover:scale-105 transition-transform">
+                                            <span className="text-2xl text-[#001C44]">📈</span>
                                         </div>
                                         <p className="text-sm font-semibold text-gray-700">Tỷ lệ tham gia</p>
                                     </div>
@@ -140,36 +173,47 @@ const AdminDashboard: React.FC = () => {
                                 </div>
                             </div>
                         ) : (
-                            <div className="text-center py-8 text-gray-500">Đang tải dữ liệu...</div>
+                            <div className="text-center py-8 text-gray-500">
+                                <LoadingSpinner />
+                            </div>
                         )}
                     </div>
 
                     {/* Quick Info */}
-                    <div className="bg-gradient-to-br from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white">
+                    <div className="bg-gradient-to-br from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white hover:shadow-xl transition-all duration-300">
                         <h3 className="text-2xl font-bold mb-6 flex items-center">
                             <span className="mr-3 text-3xl">ℹ️</span>
                             Thông tin hệ thống
                         </h3>
                         <div className="space-y-4">
-                            <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-4 border border-white border-opacity-20">
+                            <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-4 border border-white border-opacity-20 hover:bg-opacity-20 transition-all">
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm font-medium text-gray-200">Trạng thái</span>
-                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-500 text-white">
-                                        ✓ Hoạt động
+                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-500 text-white shadow-md">
+                                        <span className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></span>
+                                        Hoạt động
                                     </span>
                                 </div>
                             </div>
-                            <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-4 border border-white border-opacity-20">
+                            <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-4 border border-white border-opacity-20 hover:bg-opacity-20 transition-all">
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm font-medium text-gray-200">Người dùng</span>
-                                    <span className="text-sm font-bold text-[#FFD66D]">{username || 'Admin'}</span>
+                                    <span className="text-sm font-bold text-[#FFD66D] flex items-center">
+                                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg>
+                                        {username || 'Admin'}
+                                    </span>
                                 </div>
                             </div>
                             <Link
                                 to="/admin/statistics"
-                                className="block w-full mt-6 px-4 py-3 bg-[#FFD66D] text-[#001C44] rounded-xl hover:bg-[#FFC947] transition-all text-center font-bold shadow-lg hover:shadow-xl"
+                                className="block w-full mt-6 px-4 py-3 bg-[#FFD66D] text-[#001C44] rounded-xl hover:bg-[#FFC947] transition-all text-center font-bold shadow-lg hover:shadow-xl hover:scale-105 transform duration-300 flex items-center justify-center"
                             >
-                                Xem thống kê chi tiết →
+                                <span>Xem thống kê chi tiết</span>
+                                <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
                             </Link>
                         </div>
                     </div>
@@ -180,88 +224,141 @@ const AdminDashboard: React.FC = () => {
                     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                         {/* Top Activities */}
                         {dashboardData.topActivities.length > 0 && (
-                            <div className="bg-white shadow-lg rounded-xl border border-gray-100 overflow-hidden">
+                            <div className="bg-white shadow-lg rounded-xl border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300">
                                 <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] px-6 py-5">
                                     <h3 className="text-2xl font-bold text-white flex items-center">
                                         <span className="mr-3 text-3xl">🏆</span>
                                         Top hoạt động phổ biến
                                     </h3>
+                                    <p className="text-sm text-gray-300 mt-1">5 hoạt động được đăng ký nhiều nhất</p>
                                 </div>
                                 <div className="p-6">
                                     {/* Chart */}
-                                    <div className="mb-6" style={{ height: '300px' }}>
+                                    <div className="mb-6 bg-gray-50 rounded-lg p-4 h-80">
                                         <ResponsiveContainer width="100%" height="100%">
                                             <BarChart
                                                 data={dashboardData.topActivities.slice(0, 5).map((activity, index) => ({
-                                                    name: activity.activityName.length > 15 
-                                                        ? activity.activityName.substring(0, 15) + '...' 
+                                                    name: activity.activityName.length > 15
+                                                        ? activity.activityName.substring(0, 15) + '...'
                                                         : activity.activityName,
                                                     fullName: activity.activityName,
                                                     'Đăng ký': activity.registrationCount,
                                                     'Tham gia': activity.participationCount,
                                                 }))}
-                                                margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                                                margin={{ top: 10, right: 20, left: 10, bottom: 70 }}
                                             >
-                                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                                                <XAxis 
-                                                    dataKey="name" 
+                                                <defs>
+                                                    <linearGradient id="colorDangKy" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="0%" stopColor="#001C44" stopOpacity={1} />
+                                                        <stop offset="100%" stopColor="#002A66" stopOpacity={0.8} />
+                                                    </linearGradient>
+                                                    <linearGradient id="colorThamGia" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="0%" stopColor="#FFD66D" stopOpacity={1} />
+                                                        <stop offset="100%" stopColor="#FFC947" stopOpacity={0.8} />
+                                                    </linearGradient>
+                                                </defs>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" strokeOpacity={0.5} vertical={false} />
+                                                <XAxis
+                                                    dataKey="name"
                                                     angle={-45}
                                                     textAnchor="end"
                                                     height={80}
-                                                    tick={{ fontSize: 12 }}
+                                                    tick={{ fontSize: 11, fill: '#6B7280' }}
+                                                    stroke="#9CA3AF"
+                                                    strokeWidth={0.5}
                                                 />
-                                                <YAxis tick={{ fontSize: 12 }} />
-                                                <Tooltip 
-                                                    contentStyle={{ 
-                                                        backgroundColor: '#fff', 
-                                                        border: '1px solid #e5e7eb',
-                                                        borderRadius: '8px',
-                                                        padding: '10px'
+                                                <YAxis
+                                                    tick={{ fontSize: 11, fill: '#6B7280' }}
+                                                    stroke="#9CA3AF"
+                                                    strokeWidth={0.5}
+                                                />
+                                                <Tooltip
+                                                    contentStyle={{
+                                                        backgroundColor: '#fff',
+                                                        border: '2px solid #001C44',
+                                                        borderRadius: '12px',
+                                                        padding: '12px 16px',
+                                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
                                                     }}
+                                                    cursor={{ fill: 'rgba(0, 28, 68, 0.05)' }}
                                                     formatter={(value: number) => formatNumber(value)}
                                                     labelFormatter={(label) => {
-                                                        const item = dashboardData.topActivities.find(a => 
-                                                            a.activityName.length > 15 
+                                                        const item = dashboardData.topActivities.find(a =>
+                                                            a.activityName.length > 15
                                                                 ? a.activityName.substring(0, 15) + '...' === label
                                                                 : a.activityName === label
                                                         );
-                                                        return item?.activityName || label;
+                                                        return (
+                                                            <div style={{ fontWeight: 'bold', color: '#001C44', marginBottom: '4px' }}>
+                                                                {item?.activityName || label}
+                                                            </div>
+                                                        );
                                                     }}
                                                 />
-                                                <Legend />
-                                                <Bar dataKey="Đăng ký" fill="#001C44" radius={[8, 8, 0, 0]}>
-                                                    {dashboardData.topActivities.slice(0, 5).map((_, index) => {
-                                                        const shades = ['#001C44', '#002A66', '#003A88', '#004AAA', '#005ACC'];
-                                                        return <Cell key={`cell-${index}`} fill={shades[index]} />;
-                                                    })}
-                                                </Bar>
-                                                <Bar dataKey="Tham gia" fill="#FFD66D" radius={[8, 8, 0, 0]}>
-                                                    {dashboardData.topActivities.slice(0, 5).map((_, index) => {
-                                                        const shades = ['#FFD66D', '#FFC947', '#FFB82E', '#FFA715', '#FF9600'];
-                                                        return <Cell key={`cell-p-${index}`} fill={shades[index]} />;
-                                                    })}
-                                                </Bar>
+                                                <Legend
+                                                    wrapperStyle={{ paddingTop: '20px' }}
+                                                    iconType="rect"
+                                                    formatter={(value) => (
+                                                        <span style={{ color: '#374151', fontSize: '13px', fontWeight: '500' }}>{value}</span>
+                                                    )}
+                                                />
+                                                <Bar
+                                                    dataKey="Đăng ký"
+                                                    fill="url(#colorDangKy)"
+                                                    radius={[8, 8, 0, 0]}
+                                                    animationDuration={800}
+                                                    animationBegin={0}
+                                                />
+                                                <Bar
+                                                    dataKey="Tham gia"
+                                                    fill="url(#colorThamGia)"
+                                                    radius={[8, 8, 0, 0]}
+                                                    animationDuration={800}
+                                                    animationBegin={100}
+                                                />
                                             </BarChart>
                                         </ResponsiveContainer>
                                     </div>
                                     {/* List */}
                                     <div className="space-y-2">
-                                        {dashboardData.topActivities.slice(0, 5).map((activity, index) => (
-                                            <div key={activity.activityId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
-                                                <div className="flex items-center flex-1">
-                                                    <div className="w-8 h-8 bg-gradient-to-br from-[#001C44] to-[#002A66] rounded-lg flex items-center justify-center mr-3 font-bold text-white text-sm shadow-md">
-                                                        {index + 1}
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-semibold text-gray-900 truncate">{activity.activityName}</p>
-                                                        <p className="text-xs text-gray-500 mt-0.5">
-                                                            ĐK: <span className="font-semibold">{formatNumber(activity.registrationCount)}</span> | 
-                                                            TG: <span className="font-semibold">{formatNumber(activity.participationCount)}</span>
-                                                        </p>
+                                        {dashboardData.topActivities.slice(0, 5).map((activity, index) => {
+                                            // Sử dụng theme colors với các tone khác nhau
+                                            const badgeColors = [
+                                                'from-[#FFD66D] to-[#FFC947]', // Vàng cho top 1
+                                                'from-gray-300 to-gray-400', // Xám cho top 2
+                                                'from-[#002A66] to-[#003A88]', // Xanh nhạt cho top 3
+                                                'from-[#001C44] to-[#002A66]', // Xanh đậm cho các vị trí khác
+                                                'from-[#001C44] to-[#002A66]',
+                                            ];
+                                            const badgeColor = badgeColors[index] || 'from-[#001C44] to-[#002A66]';
+
+                                            return (
+                                                <div key={activity.activityId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 hover:shadow-md transition-all group">
+                                                    <div className="flex items-center flex-1">
+                                                        <div className={`w-10 h-10 bg-gradient-to-br ${badgeColor} rounded-lg flex items-center justify-center mr-3 font-bold ${index < 3 ? 'text-[#001C44]' : 'text-white'} text-sm shadow-md group-hover:scale-105 transition-transform`}>
+                                                            {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : index + 1}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm font-semibold text-gray-900 truncate group-hover:text-[#001C44] transition-colors">{activity.activityName}</p>
+                                                            <div className="flex items-center gap-3 mt-1">
+                                                                <span className="text-xs text-gray-500 flex items-center">
+                                                                    <svg className="w-3 h-3 mr-1 text-[#001C44]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                                                    </svg>
+                                                                    <span className="font-semibold text-[#001C44]">{formatNumber(activity.registrationCount)}</span>
+                                                                </span>
+                                                                <span className="text-xs text-gray-500 flex items-center">
+                                                                    <svg className="w-3 h-3 mr-1 text-[#002A66]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                    </svg>
+                                                                    <span className="font-semibold text-[#002A66]">{formatNumber(activity.participationCount)}</span>
+                                                                </span>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>
@@ -269,80 +366,126 @@ const AdminDashboard: React.FC = () => {
 
                         {/* Top Students */}
                         {dashboardData.topStudents.length > 0 && (
-                            <div className="bg-white shadow-lg rounded-xl border border-gray-100 overflow-hidden">
+                            <div className="bg-white shadow-lg rounded-xl border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300">
                                 <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] px-6 py-5">
                                     <h3 className="text-2xl font-bold text-white flex items-center">
                                         <span className="mr-3 text-3xl">⭐</span>
                                         Top sinh viên tích cực
                                     </h3>
+                                    <p className="text-sm text-gray-300 mt-1">5 sinh viên tham gia nhiều nhất</p>
                                 </div>
                                 <div className="p-6">
                                     {/* Chart */}
-                                    <div className="mb-6" style={{ height: '300px' }}>
+                                    <div className="mb-6 bg-gray-50 rounded-lg p-4 h-80">
                                         <ResponsiveContainer width="100%" height="100%">
                                             <BarChart
-                                                data={dashboardData.topStudents.slice(0, 5).map((student) => ({
-                                                    name: student.studentName.length > 12 
-                                                        ? student.studentName.substring(0, 12) + '...' 
+                                                data={dashboardData.topStudents.slice(0, 5).map((student, index) => ({
+                                                    name: student.studentName.length > 12
+                                                        ? student.studentName.substring(0, 12) + '...'
                                                         : student.studentName,
                                                     fullName: student.studentName,
+                                                    studentCode: student.studentCode,
                                                     'Số lần tham gia': student.participationCount,
                                                 }))}
-                                                margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                                                margin={{ top: 10, right: 20, left: 10, bottom: 70 }}
                                             >
-                                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                                                <XAxis 
-                                                    dataKey="name" 
+                                                <defs>
+                                                    <linearGradient id="colorThamGiaStudent" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="0%" stopColor="#001C44" stopOpacity={1} />
+                                                        <stop offset="100%" stopColor="#002A66" stopOpacity={0.8} />
+                                                    </linearGradient>
+                                                </defs>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" strokeOpacity={0.5} vertical={false} />
+                                                <XAxis
+                                                    dataKey="name"
                                                     angle={-45}
                                                     textAnchor="end"
                                                     height={80}
-                                                    tick={{ fontSize: 12 }}
+                                                    tick={{ fontSize: 11, fill: '#6B7280' }}
+                                                    stroke="#9CA3AF"
+                                                    strokeWidth={0.5}
                                                 />
-                                                <YAxis tick={{ fontSize: 12 }} />
-                                                <Tooltip 
-                                                    contentStyle={{ 
-                                                        backgroundColor: '#fff', 
-                                                        border: '1px solid #e5e7eb',
-                                                        borderRadius: '8px',
-                                                        padding: '10px'
+                                                <YAxis
+                                                    tick={{ fontSize: 11, fill: '#6B7280' }}
+                                                    stroke="#9CA3AF"
+                                                    strokeWidth={0.5}
+                                                />
+                                                <Tooltip
+                                                    contentStyle={{
+                                                        backgroundColor: '#fff',
+                                                        border: '2px solid #001C44',
+                                                        borderRadius: '12px',
+                                                        padding: '12px 16px',
+                                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
                                                     }}
+                                                    cursor={{ fill: 'rgba(0, 28, 68, 0.05)' }}
                                                     formatter={(value: number) => formatNumber(value)}
-                                                    labelFormatter={(label) => {
-                                                        const item = dashboardData.topStudents.find(s => 
-                                                            s.studentName.length > 12 
-                                                                ? s.studentName.substring(0, 12) + '...' === label
-                                                                : s.studentName === label
-                                                        );
-                                                        return item ? `${item.studentName} (${item.studentCode})` : label;
+                                                    labelFormatter={(label, payload) => {
+                                                        const item = payload && payload[0]?.payload;
+                                                        if (item) {
+                                                            return (
+                                                                <div style={{ fontWeight: 'bold', color: '#001C44', marginBottom: '4px' }}>
+                                                                    {item.fullName}
+                                                                    <div style={{ fontSize: '11px', color: '#6B7280', fontWeight: 'normal', marginTop: '2px' }}>
+                                                                        {item.studentCode}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        }
+                                                        return label;
                                                     }}
                                                 />
-                                                <Bar dataKey="Số lần tham gia" fill="#001C44" radius={[8, 8, 0, 0]}>
-                                                    {dashboardData.topStudents.slice(0, 5).map((_, index) => {
-                                                        const shades = ['#001C44', '#002A66', '#003A88', '#004AAA', '#005ACC'];
-                                                        return <Cell key={`cell-${index}`} fill={shades[index]} />;
-                                                    })}
-                                                </Bar>
+                                                <Bar
+                                                    dataKey="Số lần tham gia"
+                                                    fill="url(#colorThamGiaStudent)"
+                                                    radius={[8, 8, 0, 0]}
+                                                    animationDuration={800}
+                                                    animationBegin={0}
+                                                />
                                             </BarChart>
                                         </ResponsiveContainer>
                                     </div>
                                     {/* List */}
                                     <div className="space-y-2">
-                                        {dashboardData.topStudents.slice(0, 5).map((student, index) => (
-                                            <div key={student.studentId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
-                                                <div className="flex items-center flex-1">
-                                                    <div className="w-8 h-8 bg-gradient-to-br from-[#001C44] to-[#002A66] rounded-lg flex items-center justify-center mr-3 font-bold text-white text-sm shadow-md">
-                                                        {index + 1}
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-semibold text-gray-900 truncate">{student.studentName}</p>
-                                                        <p className="text-xs text-gray-500 mt-0.5">
-                                                            {student.studentCode} | 
-                                                            TG: <span className="font-semibold">{formatNumber(student.participationCount)}</span> hoạt động
-                                                        </p>
+                                        {dashboardData.topStudents.slice(0, 5).map((student, index) => {
+                                            // Sử dụng theme colors với các tone khác nhau
+                                            const badgeColors = [
+                                                'from-[#FFD66D] to-[#FFC947]', // Vàng cho top 1
+                                                'from-gray-300 to-gray-400', // Xám cho top 2
+                                                'from-[#002A66] to-[#003A88]', // Xanh nhạt cho top 3
+                                                'from-[#001C44] to-[#002A66]', // Xanh đậm cho các vị trí khác
+                                                'from-[#001C44] to-[#002A66]',
+                                            ];
+                                            const badgeColor = badgeColors[index] || 'from-[#001C44] to-[#002A66]';
+
+                                            return (
+                                                <div key={student.studentId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 hover:shadow-md transition-all group">
+                                                    <div className="flex items-center flex-1">
+                                                        <div className={`w-10 h-10 bg-gradient-to-br ${badgeColor} rounded-lg flex items-center justify-center mr-3 font-bold ${index < 3 ? 'text-[#001C44]' : 'text-white'} text-sm shadow-md group-hover:scale-105 transition-transform`}>
+                                                            {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : index + 1}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm font-semibold text-gray-900 truncate group-hover:text-[#001C44] transition-colors">{student.studentName}</p>
+                                                            <div className="flex items-center gap-3 mt-1">
+                                                                <span className="text-xs text-gray-500 flex items-center">
+                                                                    <svg className="w-3 h-3 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                                                                    </svg>
+                                                                    <span className="font-medium">{student.studentCode}</span>
+                                                                </span>
+                                                                <span className="text-xs text-gray-500 flex items-center">
+                                                                    <svg className="w-3 h-3 mr-1 text-[#002A66]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                    </svg>
+                                                                    <span className="font-semibold text-[#002A66]">{formatNumber(student.participationCount)}</span>
+                                                                    <span className="ml-1">hoạt động</span>
+                                                                </span>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>

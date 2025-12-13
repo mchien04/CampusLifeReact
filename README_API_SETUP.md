@@ -53,7 +53,43 @@
 
 ---
 
-### 3. FE Railway → BE Railway (Production)
+### 3. FE Vercel → BE Railway (Production)
+
+**Khi nào dùng:** Khi deploy FE lên Vercel và BE lên Railway
+
+**Cách setup:**
+
+#### Bước 1: Deploy backend lên Railway
+1. Deploy backend lên Railway và lấy URL: `https://campuslife-production.up.railway.app`
+
+#### Bước 2: Cấu hình Environment Variables trong Vercel Dashboard
+**QUAN TRỌNG:** Vercel không tự đọc file `.env.production` từ git. Bạn **PHẢI** cấu hình trong Vercel Dashboard:
+
+1. Vào [Vercel Dashboard](https://vercel.com/dashboard)
+2. Chọn project của bạn
+3. Vào **Settings** → **Environment Variables**
+4. Thêm biến môi trường:
+   - **Name:** `REACT_APP_API_BASE_URL`
+   - **Value:** `https://campuslife-production.up.railway.app`
+   - **Environment:** Chọn tất cả (Production, Preview, Development)
+5. Click **Save**
+
+#### Bước 3: Redeploy
+- Sau khi thêm environment variable, Vercel sẽ tự động trigger một deployment mới
+- Hoặc bạn có thể vào **Deployments** → Click **Redeploy** trên deployment mới nhất
+
+#### Bước 4: Kiểm tra
+- Sau khi deploy xong, truy cập link Vercel
+- Frontend sẽ gọi: `https://campuslife-production.up.railway.app/api/...`
+
+**Lưu ý:**
+- File `.env.production` trong git chỉ là backup/reference
+- Vercel **KHÔNG** đọc file `.env.production` tự động
+- **PHẢI** cấu hình trong Vercel Dashboard mới hoạt động
+
+---
+
+### 4. FE Railway → BE Railway (Production)
 
 **Khi nào dùng:** Khi deploy cả FE và BE lên Railway
 
@@ -122,7 +158,19 @@ npm start  # Chạy ở port 3000
 # → Gọi https://campuslife-production.up.railway.app/api/...
 ```
 
-### Scenario 3: Production trên Railway
+### Scenario 3: Production trên Vercel
+```
+# Bước 1: Cấu hình trong Vercel Dashboard
+# Settings → Environment Variables
+# Name: REACT_APP_API_BASE_URL
+# Value: https://campuslife-production.up.railway.app
+# Environment: Production, Preview, Development
+
+# Bước 2: Vercel tự động build và deploy
+# → Frontend deploy sẽ gọi https://campuslife-production.up.railway.app/api/...
+```
+
+### Scenario 4: Production trên Railway
 ```bash
 # .env.production (commit vào git)
 REACT_APP_API_BASE_URL=https://campuslife-production.up.railway.app
@@ -174,9 +222,27 @@ public class CorsConfig {
 ## Checklist
 
 - [ ] Tạo `.env.local` cho development
-- [ ] Tạo `.env.production` cho production
+- [ ] Tạo `.env.production` cho production (backup/reference)
+- [ ] **Nếu dùng Vercel:** Cấu hình `REACT_APP_API_BASE_URL` trong Vercel Dashboard
 - [ ] Cấu hình CORS ở backend nếu cần
 - [ ] Test FE local → BE local
 - [ ] Test FE local → BE Railway (nếu cần)
-- [ ] Deploy và test FE Railway → BE Railway
+- [ ] Deploy và test FE Vercel → BE Railway (hoặc FE Railway → BE Railway)
+
+## Troubleshooting
+
+### Vấn đề: Vercel vẫn gọi localhost:8080
+
+**Nguyên nhân:** Chưa cấu hình Environment Variable trong Vercel Dashboard
+
+**Giải pháp:**
+1. Vào Vercel Dashboard → Project → Settings → Environment Variables
+2. Thêm `REACT_APP_API_BASE_URL` = `https://campuslife-production.up.railway.app`
+3. Chọn tất cả environments (Production, Preview, Development)
+4. Save và Redeploy
+
+**Lưu ý:** 
+- File `.env.production` trong git **KHÔNG** được Vercel đọc tự động
+- **PHẢI** cấu hình trong Dashboard
+- Sau khi thêm env variable, cần redeploy để áp dụng
 

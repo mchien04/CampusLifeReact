@@ -122,3 +122,76 @@ export const formatMilestonePoints = (points: Record<number, number>): string =>
     return JSON.stringify(points);
 };
 
+// Series Overview Response (Admin/Manager)
+export interface MilestoneProgressItem {
+    milestoneKey: string; // "3", "4", "5"
+    milestoneCount: number; // Số activity cần để đạt milestone này
+    milestonePoints: number; // Điểm thưởng
+    studentCount: number; // Số SV đã đạt milestone này
+    percentage: number; // % so với tổng số SV đã đăng ký
+}
+
+export interface ActivityStatItem {
+    activityId: number;
+    activityName: string;
+    order?: number; // Thứ tự trong series
+    registrationCount: number; // Số đăng ký
+    participationCount: number; // Số tham gia (COMPLETED)
+    participationRate: number; // Tỷ lệ tham gia (0.0 - 1.0)
+}
+
+export interface SeriesOverviewResponse {
+    seriesId: number;
+    seriesName: string;
+    description?: string;
+    scoreType: ScoreType;
+    milestonePoints: string; // JSON string
+    milestonePointsMap: Record<string, number>; // Parsed milestone points
+    registrationStartDate?: string;
+    registrationDeadline?: string;
+    requiresApproval: boolean;
+    ticketQuantity?: number;
+    createdAt: string;
+    
+    // Statistics
+    totalActivities: number;
+    totalRegisteredStudents: number;
+    totalCompletedStudents: number; // Hoàn thành tất cả activities
+    completionRate: number; // completedStudents / registeredStudents (0.0 - 1.0)
+    totalMilestonePointsAwarded: string; // BigDecimal as string
+    
+    // Progress distribution by milestone
+    milestoneProgress: MilestoneProgressItem[];
+    
+    // Activity statistics
+    activityStats: ActivityStatItem[];
+}
+
+// Series Progress List Response (Admin/Manager)
+export interface SeriesProgressItemResponse {
+    studentId: number;
+    studentCode: string;
+    studentName: string;
+    className?: string; // optional, từ student.studentClass
+    departmentName?: string; // optional, từ student.department
+    completedCount: number;
+    totalActivities: number;
+    pointsEarned: string; // BigDecimal as string
+    currentMilestone?: string | null; // optional, key của milestone hiện tại (ví dụ: "3")
+    completedActivityIds: number[];
+    lastUpdated: string;
+    isRegistered: boolean; // có đăng ký series chưa
+}
+
+export interface SeriesProgressListResponse {
+    seriesId: number;
+    seriesName: string;
+    totalActivities: number;
+    totalRegistered: number; // tổng số SV đã đăng ký
+    progressList: SeriesProgressItemResponse[];
+    page: number;
+    size: number;
+    totalPages: number;
+    totalElements: number;
+}
+
