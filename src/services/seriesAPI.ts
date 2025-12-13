@@ -9,7 +9,9 @@ import {
     AddActivityToSeriesRequest,
     SeriesRegistrationResponse,
     StudentSeriesProgress,
-    SeriesRegistrationStatus
+    SeriesRegistrationStatus,
+    SeriesOverviewResponse,
+    SeriesProgressListResponse
 } from '../types/series';
 import { ActivityResponse } from '../types/activity';
 
@@ -312,6 +314,74 @@ export const seriesAPI = {
             return {
                 status: false,
                 message: error.response?.data?.message || 'Có lỗi xảy ra khi xóa chuỗi sự kiện',
+                data: undefined
+            };
+        }
+    },
+
+    /**
+     * Get series overview (Admin/Manager)
+     * Endpoint: GET /api/series/{seriesId}/overview
+     * 
+     * Returns statistics and overview of the series including:
+     * - Total activities, registered students, completed students
+     * - Completion rate
+     * - Milestone progress distribution
+     * - Activity statistics
+     */
+    getSeriesOverview: async (seriesId: number): Promise<Response<SeriesOverviewResponse>> => {
+        try {
+            const response = await api.get(`/api/series/${seriesId}/overview`);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Error fetching series overview:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Không thể tải tổng quan chuỗi sự kiện',
+                data: undefined
+            };
+        }
+    },
+
+    /**
+     * Get series progress list (Admin/Manager)
+     * Endpoint: GET /api/series/{seriesId}/progress?page={page}&size={size}&keyword={keyword}
+     * 
+     * Returns paginated list of student progress in the series
+     * 
+     * @param seriesId - ID of the series
+     * @param params - Query parameters: page (0-based), size (default 20), keyword (search by name or code)
+     */
+    getSeriesProgress: async (
+        seriesId: number,
+        params?: {
+            page?: number;
+            size?: number;
+            keyword?: string;
+        }
+    ): Promise<Response<SeriesProgressListResponse>> => {
+        try {
+            const queryParams = new URLSearchParams();
+            if (params?.page !== undefined) queryParams.append('page', params.page.toString());
+            if (params?.size !== undefined) queryParams.append('size', params.size.toString());
+            if (params?.keyword) queryParams.append('keyword', params.keyword);
+
+            const url = `/api/series/${seriesId}/progress${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+            const response = await api.get(url);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Error fetching series progress:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Không thể tải tiến độ tham gia',
                 data: undefined
             };
         }
