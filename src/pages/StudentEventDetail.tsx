@@ -291,11 +291,11 @@ const StudentEventDetail: React.FC = () => {
                 return false; // Đã đăng ký rồi (bao gồm cả ATTENDED)
             }
         }
-        
+
         const now = new Date();
         const registrationStartDate = event.registrationStartDate ? new Date(event.registrationStartDate) : null;
         const registrationDeadline = event.registrationDeadline ? new Date(event.registrationDeadline) : null;
-        
+
         // Kiểm tra thời gian đăng ký
         if (registrationStartDate && now < registrationStartDate) {
             return false; // Chưa đến thời gian mở đăng ký
@@ -303,7 +303,7 @@ const StudentEventDetail: React.FC = () => {
         if (registrationDeadline && now > registrationDeadline) {
             return false; // Đã hết hạn đăng ký
         }
-        
+
         // Kiểm tra sự kiện chưa kết thúc
         const eventStatus = getEventStatus();
         return eventStatus === 'UPCOMING' || eventStatus === 'ONGOING';
@@ -314,7 +314,7 @@ const StudentEventDetail: React.FC = () => {
         // Chỉ cho làm quiz nếu đã đăng ký sự kiện
         // Với MINIGAME, ATTENDED cũng được coi là đã đăng ký (cho phép làm quiz lại)
         if (!registration) return false;
-        
+
         const allowedStatuses = [
             RegistrationStatus.APPROVED,
             RegistrationStatus.PENDING,
@@ -690,11 +690,10 @@ const StudentEventDetail: React.FC = () => {
                                                         type="button"
                                                         disabled={!canStartQuiz()}
                                                         onClick={() => navigate(`/student/minigames/${event.id}/play`)}
-                                                        className={`btn-yellow px-6 py-2 rounded-lg text-sm font-medium ${
-                                                            !canStartQuiz()
+                                                        className={`btn-yellow px-6 py-2 rounded-lg text-sm font-medium ${!canStartQuiz()
                                                                 ? 'opacity-60 cursor-not-allowed'
                                                                 : ''
-                                                        }`}
+                                                            }`}
                                                     >
                                                         Làm quiz
                                                     </button>
