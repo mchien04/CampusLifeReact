@@ -2,7 +2,7 @@
  * Utility functions for handling image URLs
  */
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8080';
+const BACKEND_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080';
 
 /**
  * Convert relative image path to full backend URL
