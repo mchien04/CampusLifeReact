@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CreateMiniGameRequest, UpdateMiniGameRequest, CreateQuestionRequest, CreateOptionRequest } from '../../types/minigame';
 import { ActivityResponse } from '../../types/activity';
 import { uploadAPI } from '../../services/uploadAPI';
@@ -41,23 +41,26 @@ const QuizForm: React.FC<QuizFormProps> = ({
             ...initialData,
             activityId: activity.id
         };
-        
+
         // Ensure maxAttempts is properly set (can be null, undefined, or number)
         if (initialData && 'maxAttempts' in initialData) {
             merged.maxAttempts = initialData.maxAttempts ?? null;
         }
-        
+
         return merged;
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number | null>(null);
     const [uploadingImages, setUploadingImages] = useState<Record<number, boolean>>({});
+    // Lưu preview URLs (object URLs) cho file mới chọn
+    const [imagePreviews, setImagePreviews] = useState<Record<number, string>>({});
+    const previewUrlsRef = useRef<Record<number, string>>({});
     const [unlimitedAttempts, setUnlimitedAttempts] = useState<boolean>(() => {
         // Initialize based on initialData or default to true (unlimited)
         return initialData?.maxAttempts === null || initialData?.maxAttempts === undefined;
     });
-    
+
     // Convert seconds to MM:SS format
     const secondsToTimeString = (seconds?: number): string => {
         if (!seconds || seconds === 0) return '';
@@ -65,7 +68,7 @@ const QuizForm: React.FC<QuizFormProps> = ({
         const secs = seconds % 60;
         return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
-    
+
     // Convert MM:SS format to seconds
     const timeStringToSeconds = (timeString: string): number | undefined => {
         if (!timeString || timeString.trim() === '') return undefined;
@@ -77,7 +80,7 @@ const QuizForm: React.FC<QuizFormProps> = ({
         }
         return undefined;
     };
-    
+
     // Initialize timeLimit display value
     const [timeLimitDisplay, setTimeLimitDisplay] = useState<string>(() => {
         const timeLimit = initialData?.timeLimit;
@@ -86,14 +89,14 @@ const QuizForm: React.FC<QuizFormProps> = ({
         }
         return '';
     });
-    
+
     // Update timeLimitDisplay when initialData changes (for edit mode)
     useEffect(() => {
         if (initialData?.timeLimit !== undefined) {
             setTimeLimitDisplay(secondsToTimeString(initialData.timeLimit));
         }
     }, [initialData?.timeLimit]);
-    
+
     // Sync formData when initialData changes (for edit mode when data loads asynchronously)
     useEffect(() => {
         if (initialData && Object.keys(initialData).length > 0) {
@@ -101,7 +104,7 @@ const QuizForm: React.FC<QuizFormProps> = ({
                 'initialData.maxAttempts': initialData.maxAttempts,
                 'initialData keys': Object.keys(initialData)
             });
-            
+
             setFormData(prev => {
                 const updated = {
                     ...prev,
@@ -112,26 +115,37 @@ const QuizForm: React.FC<QuizFormProps> = ({
                 if ('maxAttempts' in initialData) {
                     updated.maxAttempts = initialData.maxAttempts !== undefined ? initialData.maxAttempts : null;
                 }
-                
+
                 console.log('QuizForm - Updated formData:', {
                     'updated.maxAttempts': updated.maxAttempts,
                     'type': typeof updated.maxAttempts
                 });
-                
+
                 return updated;
             });
-            
+
             // Update unlimitedAttempts toggle based on maxAttempts
             if ('maxAttempts' in initialData) {
                 setUnlimitedAttempts(initialData.maxAttempts === null || initialData.maxAttempts === undefined);
             }
-            
+
             // Also update timeLimitDisplay
             if (initialData.timeLimit !== undefined) {
                 setTimeLimitDisplay(secondsToTimeString(initialData.timeLimit));
             }
         }
     }, [initialData, activity.id]);
+
+    // Cleanup preview URLs on unmount
+    useEffect(() => {
+        return () => {
+            // Cleanup all created object URLs when component unmounts
+            Object.values(previewUrlsRef.current).forEach(url => {
+                URL.revokeObjectURL(url);
+            });
+            previewUrlsRef.current = {};
+        };
+    }, []);
 
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -173,25 +187,55 @@ const QuizForm: React.FC<QuizFormProps> = ({
     };
 
     const handleImageUpload = async (questionIndex: number, file: File) => {
+        console.log('🔍 QuizForm: handleImageUpload called', { questionIndex, fileName: file.name, fileSize: file.size });
         setUploadingImages(prev => ({ ...prev, [questionIndex]: true }));
         try {
+            console.log('🔍 QuizForm: Calling uploadAPI.uploadImage...');
             const uploadResponse = await uploadAPI.uploadImage(file);
+            console.log('🔍 QuizForm: uploadResponse received', uploadResponse);
+
             if (uploadResponse.status && uploadResponse.data) {
+                console.log('🔍 QuizForm: Upload successful, imageUrl:', uploadResponse.data.bannerUrl);
                 const question = formData.questions[questionIndex];
                 updateQuestion(questionIndex, {
                     ...question,
                     imageUrl: uploadResponse.data.bannerUrl
                 });
+                // Giữ preview cho đến khi ảnh từ server load thành công
+                // Preview sẽ được xóa trong onLoad handler của img tag
             } else {
+                console.error('🔍 QuizForm: Upload failed', uploadResponse.message);
+                // Remove preview on error
+                if (previewUrlsRef.current[questionIndex]) {
+                    URL.revokeObjectURL(previewUrlsRef.current[questionIndex]);
+                    delete previewUrlsRef.current[questionIndex];
+                }
+                setImagePreviews(prev => {
+                    const newPreviews = { ...prev };
+                    delete newPreviews[questionIndex];
+                    return newPreviews;
+                });
                 setErrors(prev => ({
                     ...prev,
                     [`question_${questionIndex}_image`]: uploadResponse.message || 'Upload ảnh thất bại'
                 }));
             }
-        } catch (error) {
+        } catch (error: any) {
+            console.error('🔍 QuizForm: Upload error caught', error);
+            console.error('🔍 QuizForm: Error response', error.response?.data);
+            // Remove preview on error
+            if (previewUrlsRef.current[questionIndex]) {
+                URL.revokeObjectURL(previewUrlsRef.current[questionIndex]);
+                delete previewUrlsRef.current[questionIndex];
+            }
+            setImagePreviews(prev => {
+                const newPreviews = { ...prev };
+                delete newPreviews[questionIndex];
+                return newPreviews;
+            });
             setErrors(prev => ({
                 ...prev,
-                [`question_${questionIndex}_image`]: 'Có lỗi xảy ra khi upload ảnh'
+                [`question_${questionIndex}_image`]: error.response?.data?.message || 'Có lỗi xảy ra khi upload ảnh'
             }));
         } finally {
             setUploadingImages(prev => ({ ...prev, [questionIndex]: false }));
@@ -204,6 +248,17 @@ const QuizForm: React.FC<QuizFormProps> = ({
             ...question,
             imageUrl: null
         });
+        // Xóa preview
+        setImagePreviews(prev => {
+            const newPreviews = { ...prev };
+            delete newPreviews[questionIndex];
+            return newPreviews;
+        });
+        // Cleanup object URLs
+        if (previewUrlsRef.current[questionIndex]) {
+            URL.revokeObjectURL(previewUrlsRef.current[questionIndex]);
+            delete previewUrlsRef.current[questionIndex];
+        }
     };
 
     const updateQuestion = (index: number, question: CreateQuestionRequest) => {
@@ -309,9 +364,8 @@ const QuizForm: React.FC<QuizFormProps> = ({
                                 name="title"
                                 value={formData.title}
                                 onChange={handleChange}
-                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44] ${
-                                    errors.title ? 'border-red-500' : 'border-gray-300'
-                                }`}
+                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44] ${errors.title ? 'border-red-500' : 'border-gray-300'
+                                    }`}
                             />
                             {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title}</p>}
                         </div>
@@ -343,7 +397,7 @@ const QuizForm: React.FC<QuizFormProps> = ({
                                     const value = e.target.value;
                                     // Allow only digits and colon
                                     const cleaned = value.replace(/[^\d:]/g, '');
-                                    
+
                                     // Format as MM:SS
                                     let formatted = cleaned;
                                     if (cleaned.length > 0 && !cleaned.includes(':')) {
@@ -369,9 +423,9 @@ const QuizForm: React.FC<QuizFormProps> = ({
                                             formatted = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
                                         }
                                     }
-                                    
+
                                     setTimeLimitDisplay(formatted);
-                                    
+
                                     // Convert to seconds and update formData
                                     const seconds = timeStringToSeconds(formatted);
                                     setFormData(prev => ({
@@ -452,7 +506,7 @@ const QuizForm: React.FC<QuizFormProps> = ({
                                     </div>
                                     <div className="ml-3">
                                         <p className="text-sm text-[#001C44] font-medium">
-                                            <strong>Lưu ý:</strong> Quiz trong series sẽ tính điểm từ milestone của series. 
+                                            <strong>Lưu ý:</strong> Quiz trong series sẽ tính điểm từ milestone của series.
                                             Không cần nhập điểm thưởng riêng.
                                         </p>
                                     </div>
@@ -476,14 +530,12 @@ const QuizForm: React.FC<QuizFormProps> = ({
                                                 setFormData(prev => ({ ...prev, maxAttempts: null }));
                                             }
                                         }}
-                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:ring-offset-2 ${
-                                            unlimitedAttempts ? 'bg-[#001C44]' : 'bg-gray-300'
-                                        }`}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:ring-offset-2 ${unlimitedAttempts ? 'bg-[#001C44]' : 'bg-gray-300'
+                                            }`}
                                     >
                                         <span
-                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                                unlimitedAttempts ? 'translate-x-6' : 'translate-x-1'
-                                            }`}
+                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${unlimitedAttempts ? 'translate-x-6' : 'translate-x-1'
+                                                }`}
                                         />
                                     </button>
                                 </div>
@@ -502,9 +554,8 @@ const QuizForm: React.FC<QuizFormProps> = ({
                                     }));
                                 }}
                                 disabled={unlimitedAttempts}
-                                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44] ${
-                                    unlimitedAttempts ? 'bg-gray-100 cursor-not-allowed text-gray-500' : ''
-                                }`}
+                                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44] ${unlimitedAttempts ? 'bg-gray-100 cursor-not-allowed text-gray-500' : ''
+                                    }`}
                                 placeholder={unlimitedAttempts ? "Không giới hạn" : "Nhập số lần làm tối đa"}
                             />
                             {unlimitedAttempts && (
@@ -554,9 +605,8 @@ const QuizForm: React.FC<QuizFormProps> = ({
                                                 })
                                             }
                                             rows={2}
-                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44] ${
-                                                errors[`question_${qIndex}`] ? 'border-red-500' : 'border-gray-300'
-                                            }`}
+                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44] ${errors[`question_${qIndex}`] ? 'border-red-500' : 'border-gray-300'
+                                                }`}
                                             placeholder="Nhập nội dung câu hỏi..."
                                         />
                                         {errors[`question_${qIndex}`] && (
@@ -576,17 +626,42 @@ const QuizForm: React.FC<QuizFormProps> = ({
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
                                             Ảnh minh họa (tùy chọn)
                                         </label>
-                                        {question.imageUrl ? (
+                                        {question.imageUrl || imagePreviews[qIndex] ? (
                                             <div className="space-y-2">
                                                 <div className="relative inline-block">
                                                     <img
-                                                        src={getImageUrl(question.imageUrl) || ''}
+                                                        src={imagePreviews[qIndex] || (question.imageUrl ? getImageUrl(question.imageUrl) : '') || ''}
                                                         alt="Question illustration"
                                                         className="max-w-full h-auto max-h-48 rounded-lg border border-gray-300"
+                                                        onLoad={() => {
+                                                            // Once server image loads successfully, clean up preview
+                                                            if (imagePreviews[qIndex] && question.imageUrl) {
+                                                                if (previewUrlsRef.current[qIndex]) {
+                                                                    URL.revokeObjectURL(previewUrlsRef.current[qIndex]);
+                                                                    delete previewUrlsRef.current[qIndex];
+                                                                }
+                                                                setImagePreviews(prev => {
+                                                                    const newPreviews = { ...prev };
+                                                                    delete newPreviews[qIndex];
+                                                                    return newPreviews;
+                                                                });
+                                                            }
+                                                        }}
                                                         onError={(e) => {
-                                                            (e.target as HTMLImageElement).style.display = 'none';
+                                                            // If server image fails to load, keep preview
+                                                            const img = e.target as HTMLImageElement;
+                                                            if (imagePreviews[qIndex]) {
+                                                                img.src = imagePreviews[qIndex];
+                                                            } else {
+                                                                img.style.display = 'none';
+                                                            }
                                                         }}
                                                     />
+                                                    {uploadingImages[qIndex] && (
+                                                        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg">
+                                                            <div className="text-white text-sm font-medium">Đang upload...</div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <button
                                                     type="button"
@@ -604,15 +679,48 @@ const QuizForm: React.FC<QuizFormProps> = ({
                                                     onChange={(e) => {
                                                         const file = e.target.files?.[0];
                                                         if (file) {
+                                                            // Validate file size (5MB)
+                                                            if (file.size > 5 * 1024 * 1024) {
+                                                                setErrors(prev => ({
+                                                                    ...prev,
+                                                                    [`question_${qIndex}_image`]: 'File quá lớn. Kích thước tối đa là 5MB'
+                                                                }));
+                                                                e.target.value = '';
+                                                                return;
+                                                            }
+
+                                                            // Validate file type
+                                                            if (!file.type.startsWith('image/')) {
+                                                                setErrors(prev => ({
+                                                                    ...prev,
+                                                                    [`question_${qIndex}_image`]: 'Chỉ chấp nhận file ảnh (JPG, PNG, GIF)'
+                                                                }));
+                                                                e.target.value = '';
+                                                                return;
+                                                            }
+
+                                                            // Clear previous errors
+                                                            setErrors(prev => {
+                                                                const newErrors = { ...prev };
+                                                                delete newErrors[`question_${qIndex}_image`];
+                                                                return newErrors;
+                                                            });
+
+                                                            // Tạo preview URL ngay lập tức
+                                                            const previewUrl = URL.createObjectURL(file);
+                                                            previewUrlsRef.current[qIndex] = previewUrl;
+                                                            setImagePreviews(prev => ({ ...prev, [qIndex]: previewUrl }));
+                                                            console.log('🔍 QuizForm: Preview created', { qIndex, previewUrl });
+
+                                                            // Start upload
                                                             handleImageUpload(qIndex, file);
                                                         }
+                                                        // Reset input to allow selecting the same file again
+                                                        e.target.value = '';
                                                     }}
                                                     disabled={uploadingImages[qIndex]}
                                                     className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#001C44] file:text-white hover:file:bg-[#002A66] disabled:opacity-50"
                                                 />
-                                                {uploadingImages[qIndex] && (
-                                                    <p className="text-sm text-gray-500 mt-1">Đang upload...</p>
-                                                )}
                                                 {errors[`question_${qIndex}_image`] && (
                                                     <p className="text-red-500 text-sm mt-1">
                                                         {errors[`question_${qIndex}_image`]}
@@ -648,11 +756,10 @@ const QuizForm: React.FC<QuizFormProps> = ({
                                                             text: e.target.value
                                                         })
                                                     }
-                                                    className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44] ${
-                                                        errors[`question_${qIndex}_option_${oIndex}`]
-                                                            ? 'border-red-500'
-                                                            : 'border-gray-300'
-                                                    }`}
+                                                    className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44] ${errors[`question_${qIndex}_option_${oIndex}`]
+                                                        ? 'border-red-500'
+                                                        : 'border-gray-300'
+                                                        }`}
                                                     placeholder={`Lựa chọn ${oIndex + 1}`}
                                                 />
                                                 {option.isCorrect && (

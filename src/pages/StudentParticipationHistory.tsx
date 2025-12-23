@@ -139,18 +139,78 @@ const StudentParticipationHistory: React.FC = () => {
     return (
         <StudentLayout>
             <div className="space-y-6">
-                {/* Header Actions */}
-                <div className="flex justify-end mb-4">
-                    <Link
-                        to="/student/events"
-                        className="btn-primary px-4 py-2 text-sm font-medium"
-                    >
-                        Xem sự kiện
-                    </Link>
+                {/* Header */}
+                <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white mb-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h1 className="text-3xl font-bold mb-2 flex items-center">
+                                <span className="mr-3 text-4xl">📋</span>
+                                Lịch sử tham gia
+                            </h1>
+                            <p className="text-gray-200">Xem và quản lý lịch sử đăng ký tham gia các sự kiện</p>
+                        </div>
+                        <Link
+                            to="/student/events"
+                            className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-colors"
+                        >
+                            Xem sự kiện →
+                        </Link>
+                    </div>
                 </div>
 
+                {/* Summary Stats */}
+                {registrations.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div className="bg-gray-50 rounded-xl p-5 border-l-4 border-[#001C44] shadow-md hover:shadow-xl hover:bg-gray-100 transition-all group">
+                            <div className="flex items-center mb-3">
+                                <div className="w-12 h-12 bg-gradient-to-br from-[#001C44] to-[#002A66] rounded-xl flex items-center justify-center mr-3 shadow-md group-hover:scale-105 transition-transform">
+                                    <span className="text-2xl text-white">📅</span>
+                                </div>
+                                <p className="text-sm font-semibold text-gray-700">Tổng đăng ký</p>
+                            </div>
+                            <p className="text-3xl font-bold text-[#001C44]">{registrations.length}</p>
+                        </div>
+
+                        <div className="bg-gray-50 rounded-xl p-5 border-l-4 border-green-500 shadow-md hover:shadow-xl hover:bg-gray-100 transition-all group">
+                            <div className="flex items-center mb-3">
+                                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mr-3 shadow-md group-hover:scale-105 transition-transform">
+                                    <span className="text-2xl text-white">✅</span>
+                                </div>
+                                <p className="text-sm font-semibold text-gray-700">Đã duyệt</p>
+                            </div>
+                            <p className="text-3xl font-bold text-[#001C44]">
+                                {registrations.filter(r => r.status === 'APPROVED').length}
+                            </p>
+                        </div>
+
+                        <div className="bg-gray-50 rounded-xl p-5 border-l-4 border-yellow-500 shadow-md hover:shadow-xl hover:bg-gray-100 transition-all group">
+                            <div className="flex items-center mb-3">
+                                <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl flex items-center justify-center mr-3 shadow-md group-hover:scale-105 transition-transform">
+                                    <span className="text-2xl text-[#001C44]">⏳</span>
+                                </div>
+                                <p className="text-sm font-semibold text-gray-700">Chờ duyệt</p>
+                            </div>
+                            <p className="text-3xl font-bold text-[#001C44]">
+                                {registrations.filter(r => r.status === 'PENDING').length}
+                            </p>
+                        </div>
+
+                        <div className="bg-gray-50 rounded-xl p-5 border-l-4 border-red-500 shadow-md hover:shadow-xl hover:bg-gray-100 transition-all group">
+                            <div className="flex items-center mb-3">
+                                <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center mr-3 shadow-md group-hover:scale-105 transition-transform">
+                                    <span className="text-2xl text-white">❌</span>
+                                </div>
+                                <p className="text-sm font-semibold text-gray-700">Từ chối</p>
+                            </div>
+                            <p className="text-3xl font-bold text-[#001C44]">
+                                {registrations.filter(r => r.status === 'REJECTED').length}
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 {/* Filters */}
-                <div className="card p-6">
+                <div className="bg-white shadow-lg rounded-xl border border-gray-100 p-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -187,7 +247,7 @@ const StudentParticipationHistory: React.FC = () => {
                 </div>
 
                 {/* Registrations List */}
-                <div className="card overflow-hidden">
+                <div className="bg-white shadow-lg rounded-xl border border-gray-100 overflow-hidden">
                     {registrations.length === 0 ? (
                         <div className="text-center py-12">
                             <div className="text-gray-400 text-6xl mb-4">📅</div>
@@ -195,7 +255,7 @@ const StudentParticipationHistory: React.FC = () => {
                             <p className="text-gray-600 mb-4">Bạn chưa đăng ký tham gia sự kiện nào.</p>
                             <Link
                                 to="/student/events"
-                                className="btn-primary inline-flex items-center px-4 py-2"
+                                className="inline-flex items-center px-4 py-2 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66] transition-colors font-medium"
                             >
                                 Xem sự kiện
                             </Link>
@@ -203,21 +263,21 @@ const StudentParticipationHistory: React.FC = () => {
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
+                                <thead className="bg-gradient-to-r from-[#001C44] to-[#002A66]">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
                                             Tên sự kiện
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
                                             Ngày đăng ký
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
                                             Trạng thái
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
                                             Ngày sự kiện
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
                                             Thao tác
                                         </th>
                                     </tr>
@@ -225,13 +285,15 @@ const StudentParticipationHistory: React.FC = () => {
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {registrations.map((registration) => (
                                         <tr key={registration.id} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm font-medium text-gray-900">
+                                            <td className="px-6 py-4">
+                                                <div className="text-sm font-semibold text-gray-900">
                                                     {registration.activityName}
                                                 </div>
-                                                <div className="text-sm text-gray-500">
-                                                    {registration.activityDescription}
-                                                </div>
+                                                {registration.activityDescription && (
+                                                    <div className="text-sm text-gray-500 mt-1 line-clamp-2">
+                                                        {registration.activityDescription}
+                                                    </div>
+                                                )}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm text-gray-900">
@@ -276,73 +338,6 @@ const StudentParticipationHistory: React.FC = () => {
                         </div>
                     )}
                 </div>
-
-                {/* Summary Stats */}
-                {registrations.length > 0 && (
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div className="card p-6">
-                            <div className="flex items-center">
-                                <div className="flex-shrink-0">
-                                    <div className="w-10 h-10 bg-gradient-to-br from-[#001C44] to-[#002A66] rounded-full flex items-center justify-center">
-                                        <span className="text-[#FFD66D] text-lg">📅</span>
-                                    </div>
-                                </div>
-                                <div className="ml-4">
-                                    <p className="text-sm font-medium text-gray-500">Tổng đăng ký</p>
-                                    <p className="text-2xl font-semibold text-[#001C44]">{registrations.length}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="card p-6">
-                            <div className="flex items-center">
-                                <div className="flex-shrink-0">
-                                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                                        <span className="text-green-600 text-lg">✅</span>
-                                    </div>
-                                </div>
-                                <div className="ml-4">
-                                    <p className="text-sm font-medium text-gray-500">Đã duyệt</p>
-                                    <p className="text-2xl font-semibold text-[#001C44]">
-                                        {registrations.filter(r => r.status === 'APPROVED').length}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="card p-6">
-                            <div className="flex items-center">
-                                <div className="flex-shrink-0">
-                                    <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
-                                        <span className="text-yellow-600 text-lg">⏳</span>
-                                    </div>
-                                </div>
-                                <div className="ml-4">
-                                    <p className="text-sm font-medium text-gray-500">Chờ duyệt</p>
-                                    <p className="text-2xl font-semibold text-[#001C44]">
-                                        {registrations.filter(r => r.status === 'PENDING').length}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="card p-6">
-                            <div className="flex items-center">
-                                <div className="flex-shrink-0">
-                                    <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                                        <span className="text-red-600 text-lg">❌</span>
-                                    </div>
-                                </div>
-                                <div className="ml-4">
-                                    <p className="text-sm font-medium text-gray-500">Từ chối</p>
-                                    <p className="text-2xl font-semibold text-[#001C44]">
-                                        {registrations.filter(r => r.status === 'REJECTED').length}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
             </div>
         </StudentLayout>
     );

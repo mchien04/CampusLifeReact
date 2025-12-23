@@ -43,6 +43,8 @@ import SendEmail from './pages/admin/SendEmail';
 import SendNotification from './pages/admin/SendNotification';
 import EmailHistory from './pages/admin/EmailHistory';
 import EmailDetail from './pages/admin/EmailDetail';
+import NotificationList from './pages/NotificationList';
+import NotificationDetail from './pages/NotificationDetail';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -302,6 +304,26 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/manager/notifications"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <ManagerLayout>
+                      <NotificationList />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/notifications/:id"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <ManagerLayout>
+                      <NotificationDetail />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Student Routes */}
               <Route
@@ -406,6 +428,22 @@ function App() {
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
                     <StudentProfile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/notifications"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
+                    <NotificationList />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/notifications/:id"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
+                    <NotificationDetail />
                   </ProtectedRoute>
                 }
               />

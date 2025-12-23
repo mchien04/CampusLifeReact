@@ -181,6 +181,7 @@ const renderMinigameFields = (props: RenderFieldsProps) => {
                     Banner Mini Game
                 </label>
                 <div className="space-y-2">
+                    {/* File Upload */}
                     <div>
                         <input
                             type="file"
@@ -189,29 +190,93 @@ const renderMinigameFields = (props: RenderFieldsProps) => {
                             onChange={(e) => {
                                 const file = e.target.files?.[0];
                                 if (file) {
+                                    // Validate file size (5MB)
                                     if (file.size > 5 * 1024 * 1024) {
                                         return;
                                     }
+                                    // Validate file type
                                     if (!file.type.startsWith('image/')) {
                                         return;
                                     }
-                                    // This will be handled by BaseEventForm
+                                    // Lưu file vào formData để BaseEventForm có thể upload
+                                    handleChange({
+                                        ...e,
+                                        target: {
+                                            ...e.target,
+                                            name: 'bannerFile',
+                                            value: file
+                                        } as any
+                                    });
+                                    // Clear URL if file is selected
+                                    handleChange({
+                                        ...e,
+                                        target: {
+                                            ...e.target,
+                                            name: 'bannerUrl',
+                                            value: ''
+                                        } as any
+                                    });
                                 }
                             }}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
                         />
                         <p className="text-xs text-gray-500 mt-1">Chọn ảnh từ máy tính (JPG, PNG, GIF - tối đa 5MB)</p>
                     </div>
-                    {(formData.bannerUrl || originalBannerUrl) && (
+                    {/* Or URL Input */}
+                    <div className="flex items-center">
+                        <span className="text-sm text-gray-500 mr-2">hoặc</span>
+                        <input
+                            type="url"
+                            id="bannerUrl"
+                            name="bannerUrl"
+                            value={formData.bannerUrl}
+                            onChange={(e) => {
+                                handleChange(e);
+                                // Clear file if URL is entered
+                                if (e.target.value) {
+                                    handleChange({
+                                        ...e,
+                                        target: {
+                                            ...e.target,
+                                            name: 'bannerFile',
+                                            value: undefined
+                                        } as any
+                                    });
+                                }
+                            }}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
+                            placeholder="Nhập URL ảnh"
+                        />
+                    </div>
+                    {/* Preview */}
+                    {(formData.bannerUrl || (formData as any).bannerFile || originalBannerUrl) && (
                         <div className="mt-4">
-                            <label className="block text-sm font-medium text-[#001C44] mb-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Ảnh hiện tại:
                             </label>
-                            <img
-                                src={getImageUrl(formData.bannerUrl || originalBannerUrl) || ''}
-                                alt="Banner preview"
-                                className="w-32 h-20 object-cover rounded-lg border"
-                            />
+                            <div className="flex items-center space-x-4">
+                                {(formData as any).bannerFile && (
+                                    <img
+                                        src={URL.createObjectURL((formData as any).bannerFile)}
+                                        alt="New banner preview"
+                                        className="w-32 h-20 object-cover rounded-lg border"
+                                    />
+                                )}
+                                {formData.bannerUrl && !(formData as any).bannerFile && (
+                                    <img
+                                        src={getImageUrl(formData.bannerUrl) || ''}
+                                        alt="Banner preview"
+                                        className="w-32 h-20 object-cover rounded-lg border"
+                                    />
+                                )}
+                                {!formData.bannerUrl && !(formData as any).bannerFile && originalBannerUrl && (
+                                    <img
+                                        src={getImageUrl(originalBannerUrl) || ''}
+                                        alt="Current banner"
+                                        className="w-32 h-20 object-cover rounded-lg border"
+                                    />
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>

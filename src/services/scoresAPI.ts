@@ -94,6 +94,14 @@ export const scoresAPI = {
         return normalize<ScoreHistoryViewResponse>(res.data);
     },
 
+    getTotalScore: async (
+        studentId: number,
+        semesterId: number
+    ): Promise<{ status: boolean; message: string; data?: number }> => {
+        const res = await api.get(`/api/scores/student/${studentId}/semester/${semesterId}/total`);
+        return normalize<number>(res.data);
+    },
+
     // Mocked list for manager view (deprecated - use getStudentRanking instead)
     listSemesterScores: async (params: {
         semesterId: number;
