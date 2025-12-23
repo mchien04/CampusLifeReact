@@ -1,6 +1,7 @@
 import api from './api';
 import {
     Notification,
+    NotificationDetail,
     NotificationFilters,
     NotificationListResponse,
     UnreadCountResponse
@@ -23,6 +24,9 @@ export const notificationAPI = {
         }
         if (filters?.status) {
             params.append('status', filters.status);
+        }
+        if (filters?.sort) {
+            params.append('sort', filters.sort);
         }
 
         const response = await api.get(`/api/notifications?${params.toString()}`);
@@ -101,5 +105,12 @@ export const notificationAPI = {
     // Lưu trữ thông báo
     archiveNotification: async (notificationId: number): Promise<void> => {
         await api.put(`/api/notifications/${notificationId}/archive`);
+    },
+
+    // Lấy chi tiết thông báo (với metadata đã parse)
+    getNotificationDetail: async (notificationId: number): Promise<NotificationDetail> => {
+        const response = await api.get(`/api/notifications/${notificationId}`);
+        const responseData = response.data.body || response.data.data || response.data;
+        return responseData;
     },
 };

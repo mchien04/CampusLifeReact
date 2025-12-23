@@ -204,19 +204,25 @@ const SendEmail: React.FC = () => {
             if (checked && !actionUrlOption) {
                 setActionUrlOption('/notifications');
             }
-            setFormData(prev => ({
-                ...prev,
-                createNotification: checked,
-                ...(checked
-                    ? {
-                        notificationActionUrl: buildActionUrl(actionUrlOption || '/notifications', actionUrlParam) || undefined
-                    }
-                    : {
-                        notificationTitle: undefined,
-                        notificationType: undefined,
-                        notificationActionUrl: undefined
-                    })
-            }));
+            setFormData(prev => {
+                // Nếu có activityId hoặc seriesId, không set notificationActionUrl (backend tự tạo)
+                const hasActivityOrSeries = prev.activityId || prev.seriesId;
+                return {
+                    ...prev,
+                    createNotification: checked,
+                    ...(checked
+                        ? {
+                            notificationActionUrl: hasActivityOrSeries 
+                                ? undefined 
+                                : (buildActionUrl(actionUrlOption || '/notifications', actionUrlParam) || undefined)
+                        }
+                        : {
+                            notificationTitle: undefined,
+                            notificationType: undefined,
+                            notificationActionUrl: undefined
+                        })
+                };
+            });
             if (!checked) {
                 setActionUrlParam('');
             }
@@ -255,7 +261,14 @@ const SendEmail: React.FC = () => {
 
     const handleNumberChange = (name: string, value: string) => {
         const numValue = value === '' ? undefined : parseInt(value, 10);
-        setFormData(prev => ({ ...prev, [name]: numValue }));
+        setFormData(prev => {
+            const updated = { ...prev, [name]: numValue };
+            // Nếu chọn activityId hoặc seriesId, clear notificationActionUrl (backend tự tạo)
+            if ((name === 'activityId' || name === 'seriesId') && formData.createNotification) {
+                updated.notificationActionUrl = undefined;
+            }
+            return updated;
+        });
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
@@ -355,8 +368,13 @@ const SendEmail: React.FC = () => {
 
     const handleActionOptionChange = (value: string) => {
         setActionUrlOption(value);
-        const url = buildActionUrl(value, actionUrlParam);
-        setFormData(prev => ({ ...prev, notificationActionUrl: url || undefined }));
+        // Nếu có activityId hoặc seriesId, không set notificationActionUrl (backend tự tạo)
+        if (formData.activityId || formData.seriesId) {
+            setFormData(prev => ({ ...prev, notificationActionUrl: undefined }));
+        } else {
+            const url = buildActionUrl(value, actionUrlParam);
+            setFormData(prev => ({ ...prev, notificationActionUrl: url || undefined }));
+        }
         if (errors.notificationActionUrl) {
             setErrors(prev => ({ ...prev, notificationActionUrl: '' }));
         }
@@ -364,8 +382,13 @@ const SendEmail: React.FC = () => {
 
     const handleActionParamChange = (value: string) => {
         setActionUrlParam(value);
-        const url = buildActionUrl(actionUrlOption, value);
-        setFormData(prev => ({ ...prev, notificationActionUrl: url || undefined }));
+        // Nếu có activityId hoặc seriesId, không set notificationActionUrl (backend tự tạo)
+        if (formData.activityId || formData.seriesId) {
+            setFormData(prev => ({ ...prev, notificationActionUrl: undefined }));
+        } else {
+            const url = buildActionUrl(actionUrlOption, value);
+            setFormData(prev => ({ ...prev, notificationActionUrl: url || undefined }));
+        }
         if (errors.notificationActionUrl) {
             setErrors(prev => ({ ...prev, notificationActionUrl: '' }));
         }
@@ -452,9 +475,12 @@ const SendEmail: React.FC = () => {
             if (!formData.notificationType) {
                 newErrors.notificationType = 'Loại thông báo là bắt buộc';
             }
-            const selectedAction = ACTION_URL_OPTIONS.find(o => o.value === actionUrlOption);
-            if (selectedAction?.requiresId && !actionUrlParam.trim()) {
-                newErrors.notificationActionUrl = 'Vui lòng nhập ID cho URL hành động';
+            // Chỉ validate actionUrl nếu không có activityId/seriesId (backend tự tạo URL khi có activityId/seriesId)
+            if (!formData.activityId && !formData.seriesId) {
+                const selectedAction = ACTION_URL_OPTIONS.find(o => o.value === actionUrlOption);
+                if (selectedAction?.requiresId && !actionUrlParam.trim()) {
+                    newErrors.notificationActionUrl = 'Vui lòng nhập ID cho URL hành động';
+                }
             }
         }
 
@@ -491,6 +517,11 @@ const SendEmail: React.FC = () => {
                 }, {} as Record<string, string>)
                 : undefined
         };
+
+        // Nếu có activityId hoặc seriesId, không gửi notificationActionUrl (backend tự tạo)
+        if (request.activityId || request.seriesId) {
+            delete request.notificationActionUrl;
+        }
 
         // Remove undefined fields
         Object.keys(request).forEach(key => {
@@ -998,40 +1029,62 @@ const SendEmail: React.FC = () => {
                                     )}
                                 </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        URL hành động (chọn sẵn)
-                                    </label>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        <select
-                                            value={actionUrlOption}
-                                            onChange={(e) => handleActionOptionChange(e.target.value)}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent bg-white"
-                                        >
-                                            {ACTION_URL_OPTIONS.map(opt => (
-                                                <option key={opt.value || 'none'} value={opt.value}>
-                                                    {opt.label}
-                                                </option>
-                                            ))}
-                                        </select>
+                                {/* Action URL - Chỉ hiển thị khi không có activityId/seriesId */}
+                                {!formData.activityId && !formData.seriesId ? (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            URL hành động (chọn sẵn)
+                                        </label>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <select
+                                                value={actionUrlOption}
+                                                onChange={(e) => handleActionOptionChange(e.target.value)}
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent bg-white"
+                                            >
+                                                {ACTION_URL_OPTIONS.map(opt => (
+                                                    <option key={opt.value || 'none'} value={opt.value}>
+                                                        {opt.label}
+                                                    </option>
+                                                ))}
+                                            </select>
 
-                                        {ACTION_URL_OPTIONS.find(o => o.value === actionUrlOption)?.requiresId && (
-                                            <input
-                                                type="text"
-                                                value={actionUrlParam}
-                                                onChange={(e) => handleActionParamChange(e.target.value)}
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
-                                                placeholder={ACTION_URL_OPTIONS.find(o => o.value === actionUrlOption)?.placeholder || 'Nhập ID'}
-                                            />
+                                            {ACTION_URL_OPTIONS.find(o => o.value === actionUrlOption)?.requiresId && (
+                                                <input
+                                                    type="text"
+                                                    value={actionUrlParam}
+                                                    onChange={(e) => handleActionParamChange(e.target.value)}
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
+                                                    placeholder={ACTION_URL_OPTIONS.find(o => o.value === actionUrlOption)?.placeholder || 'Nhập ID'}
+                                                />
+                                            )}
+                                        </div>
+                                        {errors.notificationActionUrl && (
+                                            <p className="mt-1 text-sm text-red-600">{errors.notificationActionUrl}</p>
                                         )}
+                                        <p className="mt-1 text-xs text-gray-500">
+                                            Hệ thống sẽ tự build URL, không cần nhập tay.
+                                        </p>
                                     </div>
-                                    {errors.notificationActionUrl && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.notificationActionUrl}</p>
-                                    )}
-                                    <p className="mt-1 text-xs text-gray-500">
-                                        Hệ thống sẽ tự build URL, không cần nhập tay.
-                                    </p>
-                                </div>
+                                ) : (
+                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                        <div className="flex items-start">
+                                            <svg className="w-5 h-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            <div>
+                                                <p className="text-sm font-medium text-blue-900">
+                                                    URL hành động sẽ được tự động tạo
+                                                </p>
+                                                <p className="text-xs text-blue-700 mt-1">
+                                                    {formData.activityId 
+                                                        ? `URL sẽ trỏ đến chi tiết sự kiện #${formData.activityId}`
+                                                        : `URL sẽ trỏ đến chi tiết chuỗi sự kiện #${formData.seriesId}`
+                                                    }
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

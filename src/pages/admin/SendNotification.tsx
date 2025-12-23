@@ -408,10 +408,16 @@ const SendNotification: React.FC = () => {
         
         request.recipientType = backendRecipientType; // Convert sang BULK nếu là INDIVIDUAL hoặc CUSTOM_LIST
 
-        // Build action URL from dropdown
-        const finalActionUrl = buildActionUrl(actionUrlOption, actionUrlParam);
-        if (finalActionUrl) {
-            request.actionUrl = finalActionUrl;
+        // Nếu có activityId hoặc seriesId, backend sẽ tự động tạo actionUrl
+        // Chỉ set actionUrl thủ công nếu không có activityId/seriesId
+        if (!request.activityId && !request.seriesId) {
+            const finalActionUrl = buildActionUrl(actionUrlOption, actionUrlParam);
+            if (finalActionUrl) {
+                request.actionUrl = finalActionUrl;
+            }
+        } else {
+            // Nếu có activityId hoặc seriesId, không gửi actionUrl (backend tự tạo)
+            delete request.actionUrl;
         }
 
         // Remove undefined fields
@@ -778,42 +784,66 @@ const SendNotification: React.FC = () => {
                         )}
                     </div>
 
-                    {/* Action URL */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            URL hành động (tùy chọn)
-                        </label>
-                        <div className="space-y-2">
-                            <select
-                                value={actionUrlOption}
-                                onChange={(e) => {
-                                    setActionUrlOption(e.target.value);
-                                    if (!e.target.value) {
-                                        setActionUrlParam('');
-                                    }
-                                }}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
-                            >
-                                {ACTION_URL_OPTIONS.map(option => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
-                            {ACTION_URL_OPTIONS.find(o => o.value === actionUrlOption)?.requiresId && (
-                                <input
-                                    type="text"
-                                    value={actionUrlParam}
-                                    onChange={(e) => setActionUrlParam(e.target.value)}
-                                    placeholder={ACTION_URL_OPTIONS.find(o => o.value === actionUrlOption)?.placeholder || 'Nhập ID'}
+                    {/* Action URL - Chỉ hiển thị khi không có activityId/seriesId */}
+                    {!formData.activityId && !formData.seriesId && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                URL hành động (tùy chọn)
+                            </label>
+                            <div className="space-y-2">
+                                <select
+                                    value={actionUrlOption}
+                                    onChange={(e) => {
+                                        setActionUrlOption(e.target.value);
+                                        if (!e.target.value) {
+                                            setActionUrlParam('');
+                                        }
+                                    }}
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
-                                />
-                            )}
+                                >
+                                    {ACTION_URL_OPTIONS.map(option => (
+                                        <option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
+                                {ACTION_URL_OPTIONS.find(o => o.value === actionUrlOption)?.requiresId && (
+                                    <input
+                                        type="text"
+                                        value={actionUrlParam}
+                                        onChange={(e) => setActionUrlParam(e.target.value)}
+                                        placeholder={ACTION_URL_OPTIONS.find(o => o.value === actionUrlOption)?.placeholder || 'Nhập ID'}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
+                                    />
+                                )}
+                            </div>
+                            <p className="mt-1 text-xs text-gray-500">
+                                URL sẽ được tự động build từ lựa chọn trên. Ví dụ: chọn "Chi tiết sự kiện" và nhập ID "10" → "/activities/10"
+                            </p>
                         </div>
-                        <p className="mt-1 text-xs text-gray-500">
-                            URL sẽ được tự động build từ lựa chọn trên. Ví dụ: chọn "Chi tiết sự kiện" và nhập ID "10" → "/activities/10"
-                        </p>
-                    </div>
+                    )}
+                    
+                    {/* Thông báo khi đã chọn activity/series */}
+                    {(formData.activityId || formData.seriesId) && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div className="flex items-start">
+                                <svg className="w-5 h-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <div>
+                                    <p className="text-sm font-medium text-blue-900">
+                                        URL hành động sẽ được tự động tạo
+                                    </p>
+                                    <p className="text-xs text-blue-700 mt-1">
+                                        {formData.activityId 
+                                            ? `URL sẽ trỏ đến chi tiết sự kiện #${formData.activityId}`
+                                            : `URL sẽ trỏ đến chi tiết chuỗi sự kiện #${formData.seriesId}`
+                                        }
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Form Actions */}
