@@ -66,12 +66,12 @@ const SeriesActivityList: React.FC<SeriesActivityListProps> = ({
                                 key={activity.id}
                                 className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                             >
-                                <div className="flex items-center space-x-4 flex-1">
+                                <div className="flex items-center space-x-4 flex-1 min-w-0">
                                     <div className="flex-shrink-0 w-10 h-10 bg-[#001C44] text-white rounded-full flex items-center justify-center font-bold">
                                         {activity.seriesOrder || 0}
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className="text-sm font-semibold text-gray-900 truncate">
+                                    <div className="flex-1 min-w-0 overflow-hidden">
+                                        <h4 className="text-sm font-semibold text-gray-900 truncate" title={activity.name}>
                                             {activity.name}
                                         </h4>
                                         <div className="flex items-center space-x-2 mt-1">

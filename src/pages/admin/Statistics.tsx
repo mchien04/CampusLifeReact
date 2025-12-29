@@ -20,7 +20,7 @@ const Statistics: React.FC = () => {
 
     // Dashboard data
     const [dashboardData, setDashboardData] = useState<DashboardStatisticsResponse | null>(null);
-    
+
     // Activities data
     const [activityData, setActivityData] = useState<ActivityStatisticsResponse | null>(null);
     const [activityFilters, setActivityFilters] = useState({
@@ -242,9 +242,14 @@ const Statistics: React.FC = () => {
     return (
         <div className="space-y-6">
             {/* Page Header */}
-            <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl p-6 text-white mb-6">
-                <h1 className="text-3xl font-bold mb-2">Thống kê hệ thống</h1>
-                <p className="text-gray-200">Xem và phân tích dữ liệu thống kê chi tiết</p>
+            <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white mb-6">
+                <div className="flex items-center">
+                    <span className="mr-3 text-4xl">📊</span>
+                    <div>
+                        <h1 className="text-3xl font-bold mb-2">Thống kê hệ thống</h1>
+                        <p className="text-gray-200 text-lg">Xem và phân tích dữ liệu thống kê chi tiết</p>
+                    </div>
+                </div>
             </div>
 
             {/* Tabs */}
@@ -255,11 +260,10 @@ const Statistics: React.FC = () => {
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as any)}
-                                className={`px-4 py-3 text-sm font-medium rounded-t-lg transition-colors ${
-                                    activeTab === tab.id
-                                        ? 'bg-[#001C44] text-white'
+                                className={`px-4 py-3 text-sm font-medium rounded-t-lg transition-all duration-200 ${activeTab === tab.id
+                                        ? 'bg-[#001C44] text-white shadow-sm'
                                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                                }`}
+                                    }`}
                             >
                                 <span className="mr-2">{tab.icon}</span>
                                 {tab.label}
@@ -269,7 +273,7 @@ const Statistics: React.FC = () => {
                 </div>
 
                 {/* Tab Content */}
-                <div className="p-6">
+                <div className="p-6 transition-all duration-300">
                     {error && (
                         <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
                             {error}
@@ -366,13 +370,13 @@ const DashboardTab: React.FC<{
     COLORS: string[];
 }> = ({ data, formatNumber, formatPercentage, COLORS }) => {
     const statsCards = [
-        { name: 'Tổng hoạt động', value: data.totalActivities, icon: '📅', color: 'bg-blue-500' },
-        { name: 'Tổng sinh viên', value: data.totalStudents, icon: '👥', color: 'bg-green-500' },
-        { name: 'Chuỗi sự kiện', value: data.totalSeries, icon: '📋', color: 'bg-purple-500' },
-        { name: 'Mini Games', value: data.totalMiniGames, icon: '🎮', color: 'bg-yellow-500' },
-        { name: 'Đăng ký tháng này', value: data.monthlyRegistrations, icon: '📝', color: 'bg-indigo-500' },
-        { name: 'Tham gia tháng này', value: data.monthlyParticipations, icon: '✅', color: 'bg-teal-500' },
-        { name: 'Tỷ lệ tham gia', value: formatPercentage(data.averageParticipationRate), icon: '📊', color: 'bg-orange-500' }
+        { name: 'Tổng hoạt động', value: data.totalActivities, icon: '📅', gradient: 'from-blue-500 to-blue-600', borderColor: 'border-blue-200' },
+        { name: 'Tổng sinh viên', value: data.totalStudents, icon: '👥', gradient: 'from-green-500 to-green-600', borderColor: 'border-green-200' },
+        { name: 'Chuỗi sự kiện', value: data.totalSeries, icon: '📋', gradient: 'from-purple-500 to-purple-600', borderColor: 'border-purple-200' },
+        { name: 'Mini Games', value: data.totalMiniGames, icon: '🎮', gradient: 'from-yellow-500 to-yellow-600', borderColor: 'border-yellow-200' },
+        { name: 'Đăng ký tháng này', value: data.monthlyRegistrations, icon: '📝', gradient: 'from-indigo-500 to-indigo-600', borderColor: 'border-indigo-200' },
+        { name: 'Tham gia tháng này', value: data.monthlyParticipations, icon: '✅', gradient: 'from-teal-500 to-teal-600', borderColor: 'border-teal-200' },
+        { name: 'Tỷ lệ tham gia', value: formatPercentage(data.averageParticipationRate), icon: '📊', gradient: 'from-orange-500 to-orange-600', borderColor: 'border-orange-200' }
     ];
 
     const topActivitiesChartData = data.topActivities.slice(0, 10).map(activity => ({
@@ -391,13 +395,16 @@ const DashboardTab: React.FC<{
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {statsCards.map((stat, index) => (
-                    <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                    <div
+                        key={index}
+                        className={`bg-white border-2 ${stat.borderColor} rounded-lg p-5 shadow-md hover:shadow-xl transition-all duration-200 transform hover:scale-105`}
+                    >
                         <div className="flex items-center">
-                            <div className={`${stat.color} w-12 h-12 rounded-lg flex items-center justify-center text-white text-xl mr-4`}>
+                            <div className={`bg-gradient-to-br ${stat.gradient} w-14 h-14 rounded-lg flex items-center justify-center text-white text-2xl mr-4 shadow-md`}>
                                 {stat.icon}
                             </div>
-                            <div>
-                                <p className="text-sm text-gray-600">{stat.name}</p>
+                            <div className="flex-1">
+                                <p className="text-sm text-gray-600 mb-1">{stat.name}</p>
                                 <p className="text-2xl font-bold text-gray-900">{typeof stat.value === 'number' ? formatNumber(stat.value) : stat.value}</p>
                             </div>
                         </div>
@@ -408,31 +415,45 @@ const DashboardTab: React.FC<{
             {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Top Activities Chart */}
-                <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Top hoạt động</h3>
+                <div className="bg-white border border-gray-100 rounded-lg p-6 shadow-lg hover:shadow-xl transition-shadow duration-200">
+                    <h3 className="text-lg font-semibold text-[#001C44] mb-4">Top hoạt động</h3>
                     <ResponsiveContainer width="100%" height={300}>
                         <BarChart data={topActivitiesChartData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-                            <YAxis />
-                            <Tooltip />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                            <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} stroke="#6b7280" />
+                            <YAxis stroke="#6b7280" />
+                            <Tooltip
+                                contentStyle={{
+                                    backgroundColor: '#fff',
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: '8px',
+                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                }}
+                            />
                             <Legend />
-                            <Bar dataKey="đăngKý" fill={COLORS[0]} />
-                            <Bar dataKey="thamGia" fill={COLORS[1]} />
+                            <Bar dataKey="đăngKý" fill={COLORS[0]} radius={[8, 8, 0, 0]} />
+                            <Bar dataKey="thamGia" fill={COLORS[1]} radius={[8, 8, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
 
                 {/* Top Students Chart */}
-                <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Top sinh viên</h3>
+                <div className="bg-white border border-gray-100 rounded-lg p-6 shadow-lg hover:shadow-xl transition-shadow duration-200">
+                    <h3 className="text-lg font-semibold text-[#001C44] mb-4">Top sinh viên</h3>
                     <ResponsiveContainer width="100%" height={300}>
                         <BarChart data={topStudentsChartData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-                            <YAxis />
-                            <Tooltip />
-                            <Bar dataKey="thamGia" fill={COLORS[2]} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                            <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} stroke="#6b7280" />
+                            <YAxis stroke="#6b7280" />
+                            <Tooltip
+                                contentStyle={{
+                                    backgroundColor: '#fff',
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: '8px',
+                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                }}
+                            />
+                            <Bar dataKey="thamGia" fill={COLORS[2]} radius={[8, 8, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
@@ -441,22 +462,22 @@ const DashboardTab: React.FC<{
             {/* Tables */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Top Activities Table */}
-                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                    <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                        <h3 className="text-lg font-semibold text-gray-900">Top hoạt động</h3>
+                <div className="bg-white border border-gray-100 rounded-lg overflow-hidden shadow-lg">
+                    <div className="px-6 py-4 bg-gradient-to-r from-[#001C44] to-[#002A66] border-b border-gray-200">
+                        <h3 className="text-lg font-semibold text-white">Top hoạt động</h3>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên hoạt động</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Đăng ký</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tham gia</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Tên hoạt động</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Đăng ký</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Tham gia</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {data.topActivities.slice(0, 10).map((activity) => (
-                                    <tr key={activity.activityId}>
+                                    <tr key={activity.activityId} className="hover:bg-blue-50 transition-colors duration-150">
                                         <td className="px-4 py-3 text-sm text-gray-900">{activity.activityName}</td>
                                         <td className="px-4 py-3 text-sm text-gray-600">{formatNumber(activity.registrationCount)}</td>
                                         <td className="px-4 py-3 text-sm text-gray-600">{formatNumber(activity.participationCount)}</td>
@@ -468,22 +489,22 @@ const DashboardTab: React.FC<{
                 </div>
 
                 {/* Top Students Table */}
-                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                    <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                        <h3 className="text-lg font-semibold text-gray-900">Top sinh viên</h3>
+                <div className="bg-white border border-gray-100 rounded-lg overflow-hidden shadow-lg">
+                    <div className="px-6 py-4 bg-gradient-to-r from-[#001C44] to-[#002A66] border-b border-gray-200">
+                        <h3 className="text-lg font-semibold text-white">Top sinh viên</h3>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên sinh viên</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã SV</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tham gia</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Tên sinh viên</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Mã SV</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Tham gia</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {data.topStudents.slice(0, 10).map((student) => (
-                                    <tr key={student.studentId}>
+                                    <tr key={student.studentId} className="hover:bg-blue-50 transition-colors duration-150">
                                         <td className="px-4 py-3 text-sm text-gray-900">{student.studentName}</td>
                                         <td className="px-4 py-3 text-sm text-gray-600">{student.studentCode}</td>
                                         <td className="px-4 py-3 text-sm text-gray-600">{formatNumber(student.participationCount)}</td>
@@ -522,15 +543,15 @@ const ActivitiesTab: React.FC<{
     return (
         <div className="space-y-6">
             {/* Filters */}
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Bộ lọc</h3>
+            <div className="bg-white rounded-lg p-6 border border-gray-100 shadow-md">
+                <h3 className="text-lg font-semibold text-[#001C44] mb-4">Bộ lọc</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Loại hoạt động</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Loại hoạt động</label>
                         <select
                             value={filters.activityType}
                             onChange={(e) => setFilters({ ...filters, activityType: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all"
                         >
                             <option value="">Tất cả</option>
                             <option value="SUKIEN">Sự kiện</option>
@@ -540,11 +561,11 @@ const ActivitiesTab: React.FC<{
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Loại điểm</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Loại điểm</label>
                         <select
                             value={filters.scoreType}
                             onChange={(e) => setFilters({ ...filters, scoreType: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all"
                         >
                             <option value="">Tất cả</option>
                             <option value="REN_LUYEN">Rèn luyện</option>
@@ -555,7 +576,7 @@ const ActivitiesTab: React.FC<{
                     <div className="flex items-end">
                         <button
                             onClick={onApplyFilters}
-                            className="w-full bg-[#001C44] text-white px-4 py-2 rounded-md hover:bg-[#002A66] transition-colors"
+                            className="w-full bg-[#001C44] text-white px-4 py-2 rounded-lg hover:bg-[#002A66] transition-all duration-200 shadow-md hover:shadow-lg font-medium"
                         >
                             Áp dụng bộ lọc
                         </button>
@@ -565,24 +586,39 @@ const ActivitiesTab: React.FC<{
 
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                    <p className="text-sm text-gray-600">Tổng hoạt động</p>
-                    <p className="text-2xl font-bold text-gray-900">{formatNumber(data.totalActivities)}</p>
+                <div className="bg-white border-2 border-blue-200 rounded-lg p-5 shadow-md hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+                    <div className="flex items-center mb-2">
+                        <div className="bg-gradient-to-br from-blue-500 to-blue-600 w-10 h-10 rounded-lg flex items-center justify-center text-white text-xl mr-3 shadow-md">
+                            📅
+                        </div>
+                        <p className="text-sm text-gray-600 font-medium">Tổng hoạt động</p>
+                    </div>
+                    <p className="text-3xl font-bold text-gray-900">{formatNumber(data.totalActivities)}</p>
                 </div>
-                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                    <p className="text-sm text-gray-600">Trong chuỗi</p>
-                    <p className="text-2xl font-bold text-gray-900">{formatNumber(data.activitiesInSeries)}</p>
+                <div className="bg-white border-2 border-purple-200 rounded-lg p-5 shadow-md hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+                    <div className="flex items-center mb-2">
+                        <div className="bg-gradient-to-br from-purple-500 to-purple-600 w-10 h-10 rounded-lg flex items-center justify-center text-white text-xl mr-3 shadow-md">
+                            📋
+                        </div>
+                        <p className="text-sm text-gray-600 font-medium">Trong chuỗi</p>
+                    </div>
+                    <p className="text-3xl font-bold text-gray-900">{formatNumber(data.activitiesInSeries)}</p>
                 </div>
-                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                    <p className="text-sm text-gray-600">Độc lập</p>
-                    <p className="text-2xl font-bold text-gray-900">{formatNumber(data.standaloneActivities)}</p>
+                <div className="bg-white border-2 border-indigo-200 rounded-lg p-5 shadow-md hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+                    <div className="flex items-center mb-2">
+                        <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 w-10 h-10 rounded-lg flex items-center justify-center text-white text-xl mr-3 shadow-md">
+                            🎯
+                        </div>
+                        <p className="text-sm text-gray-600 font-medium">Độc lập</p>
+                    </div>
+                    <p className="text-3xl font-bold text-gray-900">{formatNumber(data.standaloneActivities)}</p>
                 </div>
             </div>
 
             {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Phân bố theo loại</h3>
+                <div className="bg-white border border-gray-100 rounded-lg p-6 shadow-lg hover:shadow-xl transition-shadow duration-200">
+                    <h3 className="text-lg font-semibold text-[#001C44] mb-4">Phân bố theo loại</h3>
                     <ResponsiveContainer width="100%" height={300}>
                         <PieChart>
                             <Pie
@@ -599,43 +635,57 @@ const ActivitiesTab: React.FC<{
                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                 ))}
                             </Pie>
-                            <Tooltip />
+                            <Tooltip
+                                contentStyle={{
+                                    backgroundColor: '#fff',
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: '8px',
+                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                }}
+                            />
                         </PieChart>
                     </ResponsiveContainer>
                 </div>
 
-                <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Phân bố theo trạng thái</h3>
+                <div className="bg-white border border-gray-100 rounded-lg p-6 shadow-lg hover:shadow-xl transition-shadow duration-200">
+                    <h3 className="text-lg font-semibold text-[#001C44] mb-4">Phân bố theo trạng thái</h3>
                     <ResponsiveContainer width="100%" height={300}>
                         <BarChart data={countByStatusData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip />
-                            <Bar dataKey="value" fill={COLORS[0]} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                            <XAxis dataKey="name" stroke="#6b7280" />
+                            <YAxis stroke="#6b7280" />
+                            <Tooltip
+                                contentStyle={{
+                                    backgroundColor: '#fff',
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: '8px',
+                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                }}
+                            />
+                            <Bar dataKey="value" fill={COLORS[0]} radius={[8, 8, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
             </div>
 
             {/* Top Activities Table */}
-            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-900">Top hoạt động theo đăng ký</h3>
+            <div className="bg-white border border-gray-100 rounded-lg overflow-hidden shadow-lg">
+                <div className="px-6 py-4 bg-gradient-to-r from-[#001C44] to-[#002A66] border-b border-gray-200">
+                    <h3 className="text-lg font-semibold text-white">Top hoạt động theo đăng ký</h3>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên hoạt động</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Đăng ký</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tham gia</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tỷ lệ</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Tên hoạt động</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Đăng ký</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Tham gia</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Tỷ lệ</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {data.topActivitiesByRegistrations.slice(0, 10).map((activity) => (
-                                <tr key={activity.activityId}>
+                                <tr key={activity.activityId} className="hover:bg-blue-50 transition-colors duration-150">
                                     <td className="px-4 py-3 text-sm text-gray-900">{activity.activityName}</td>
                                     <td className="px-4 py-3 text-sm text-gray-600">{formatNumber(activity.registrationCount)}</td>
                                     <td className="px-4 py-3 text-sm text-gray-600">{formatNumber(activity.participationCount)}</td>
@@ -663,8 +713,10 @@ const StudentsTab: React.FC<{
 }> = ({ data, filters, setFilters, onApplyFilters, formatNumber, COLORS }) => {
     if (!data) {
         return (
-            <div className="text-center py-12">
-                <p className="text-gray-500">Chưa có dữ liệu. Vui lòng áp dụng bộ lọc để xem thống kê.</p>
+            <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="text-6xl mb-4">👥</div>
+                <p className="text-gray-600 text-lg font-medium">Chưa có dữ liệu</p>
+                <p className="text-gray-500 mt-2">Vui lòng áp dụng bộ lọc để xem thống kê.</p>
             </div>
         );
     }
@@ -674,33 +726,33 @@ const StudentsTab: React.FC<{
     return (
         <div className="space-y-6">
             {/* Filters */}
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Bộ lọc</h3>
+            <div className="bg-white rounded-lg p-6 border border-gray-100 shadow-md">
+                <h3 className="text-lg font-semibold text-[#001C44] mb-4">Bộ lọc</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Khoa</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Khoa</label>
                         <input
                             type="text"
                             value={filters.departmentId}
                             onChange={(e) => setFilters({ ...filters, departmentId: e.target.value })}
                             placeholder="ID khoa"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Lớp</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Lớp</label>
                         <input
                             type="text"
                             value={filters.classId}
                             onChange={(e) => setFilters({ ...filters, classId: e.target.value })}
                             placeholder="ID lớp"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all"
                         />
                     </div>
                     <div className="flex items-end">
                         <button
                             onClick={onApplyFilters}
-                            className="w-full bg-[#001C44] text-white px-4 py-2 rounded-md hover:bg-[#002A66] transition-colors"
+                            className="w-full bg-[#001C44] text-white px-4 py-2 rounded-lg hover:bg-[#002A66] transition-all duration-200 shadow-md hover:shadow-lg font-medium"
                         >
                             Áp dụng bộ lọc
                         </button>
@@ -709,21 +761,35 @@ const StudentsTab: React.FC<{
             </div>
 
             {/* Stats */}
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-                <p className="text-sm text-gray-600">Tổng sinh viên</p>
-                <p className="text-3xl font-bold text-gray-900">{formatNumber(data.totalStudents)}</p>
+            <div className="bg-white border-2 border-green-200 rounded-lg p-6 shadow-md hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+                <div className="flex items-center mb-3">
+                    <div className="bg-gradient-to-br from-green-500 to-green-600 w-14 h-14 rounded-lg flex items-center justify-center text-white text-2xl mr-4 shadow-md">
+                        👥
+                    </div>
+                    <div>
+                        <p className="text-sm text-gray-600 font-medium">Tổng sinh viên</p>
+                        <p className="text-3xl font-bold text-gray-900">{formatNumber(data.totalStudents)}</p>
+                    </div>
+                </div>
             </div>
 
             {/* Charts */}
-            <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Phân bố theo khoa</h3>
+            <div className="bg-white border border-gray-100 rounded-lg p-6 shadow-lg hover:shadow-xl transition-shadow duration-200">
+                <h3 className="text-lg font-semibold text-[#001C44] mb-4">Phân bố theo khoa</h3>
                 <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={countByDepartmentData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis />
-                        <Tooltip />
-                        <Bar dataKey="value" fill={COLORS[0]} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                        <XAxis dataKey="name" stroke="#6b7280" />
+                        <YAxis stroke="#6b7280" />
+                        <Tooltip
+                            contentStyle={{
+                                backgroundColor: '#fff',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '8px',
+                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                            }}
+                        />
+                        <Bar dataKey="value" fill={COLORS[0]} radius={[8, 8, 0, 0]} />
                     </BarChart>
                 </ResponsiveContainer>
             </div>
@@ -731,22 +797,22 @@ const StudentsTab: React.FC<{
             {/* Tables */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Top Participants */}
-                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                    <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                        <h3 className="text-lg font-semibold text-gray-900">Top tham gia</h3>
+                <div className="bg-white border border-gray-100 rounded-lg overflow-hidden shadow-lg">
+                    <div className="px-6 py-4 bg-gradient-to-r from-[#001C44] to-[#002A66] border-b border-gray-200">
+                        <h3 className="text-lg font-semibold text-white">Top tham gia</h3>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã SV</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tham gia</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Tên</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Mã SV</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Tham gia</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {data.topParticipants.slice(0, 10).map((student) => (
-                                    <tr key={student.studentId}>
+                                    <tr key={student.studentId} className="hover:bg-blue-50 transition-colors duration-150">
                                         <td className="px-4 py-3 text-sm text-gray-900">{student.studentName}</td>
                                         <td className="px-4 py-3 text-sm text-gray-600">{student.studentCode}</td>
                                         <td className="px-4 py-3 text-sm text-gray-600">{formatNumber(student.participationCount)}</td>
@@ -758,21 +824,21 @@ const StudentsTab: React.FC<{
                 </div>
 
                 {/* Inactive Students */}
-                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                    <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                        <h3 className="text-lg font-semibold text-gray-900">Sinh viên không hoạt động</h3>
+                <div className="bg-white border border-gray-100 rounded-lg overflow-hidden shadow-lg">
+                    <div className="px-6 py-4 bg-gradient-to-r from-[#001C44] to-[#002A66] border-b border-gray-200">
+                        <h3 className="text-lg font-semibold text-white">Sinh viên không hoạt động</h3>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã SV</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Tên</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Mã SV</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {data.inactiveStudents.slice(0, 10).map((student) => (
-                                    <tr key={student.studentId}>
+                                    <tr key={student.studentId} className="hover:bg-blue-50 transition-colors duration-150">
                                         <td className="px-4 py-3 text-sm text-gray-900">{student.studentName}</td>
                                         <td className="px-4 py-3 text-sm text-gray-600">{student.studentCode}</td>
                                     </tr>
@@ -797,8 +863,10 @@ const ScoresTab: React.FC<{
 }> = ({ data, filters, setFilters, onApplyFilters, formatNumber, COLORS }) => {
     if (!data) {
         return (
-            <div className="text-center py-12">
-                <p className="text-gray-500">Chưa có dữ liệu. Vui lòng áp dụng bộ lọc để xem thống kê.</p>
+            <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="text-6xl mb-4">⭐</div>
+                <p className="text-gray-600 text-lg font-medium">Chưa có dữ liệu</p>
+                <p className="text-gray-500 mt-2">Vui lòng áp dụng bộ lọc để xem thống kê.</p>
             </div>
         );
     }
@@ -816,15 +884,15 @@ const ScoresTab: React.FC<{
     return (
         <div className="space-y-6">
             {/* Filters */}
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Bộ lọc</h3>
+            <div className="bg-white rounded-lg p-6 border border-gray-100 shadow-md">
+                <h3 className="text-lg font-semibold text-[#001C44] mb-4">Bộ lọc</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Loại điểm</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Loại điểm</label>
                         <select
                             value={filters.scoreType}
                             onChange={(e) => setFilters({ ...filters, scoreType: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all"
                         >
                             <option value="">Tất cả</option>
                             <option value="REN_LUYEN">Rèn luyện</option>
@@ -833,19 +901,19 @@ const ScoresTab: React.FC<{
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Khoa</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Khoa</label>
                         <input
                             type="text"
                             value={filters.departmentId}
                             onChange={(e) => setFilters({ ...filters, departmentId: e.target.value })}
                             placeholder="ID khoa"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all"
                         />
                     </div>
                     <div className="flex items-end">
                         <button
                             onClick={onApplyFilters}
-                            className="w-full bg-[#001C44] text-white px-4 py-2 rounded-md hover:bg-[#002A66] transition-colors"
+                            className="w-full bg-[#001C44] text-white px-4 py-2 rounded-lg hover:bg-[#002A66] transition-all duration-200 shadow-md hover:shadow-lg font-medium"
                         >
                             Áp dụng bộ lọc
                         </button>
@@ -855,66 +923,89 @@ const ScoresTab: React.FC<{
 
             {/* Stats by Type */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {Object.entries(data.statisticsByType).map(([type, stats]) => (
-                    <div key={type} className="bg-white border border-gray-200 rounded-lg p-4">
-                        <p className="text-sm text-gray-600">{type}</p>
-                        <p className="text-xl font-bold text-gray-900">TB: {stats.averageScore.toFixed(1)}</p>
-                        <p className="text-sm text-gray-500">Max: {stats.maxScore} | Min: {stats.minScore}</p>
-                    </div>
-                ))}
+                {Object.entries(data.statisticsByType).map(([type, stats], index) => {
+                    const gradients = ['from-blue-500 to-blue-600', 'from-green-500 to-green-600', 'from-purple-500 to-purple-600'];
+                    const borders = ['border-blue-200', 'border-green-200', 'border-purple-200'];
+                    return (
+                        <div key={type} className={`bg-white border-2 ${borders[index % borders.length]} rounded-lg p-5 shadow-md hover:shadow-xl transition-all duration-200 transform hover:scale-105`}>
+                            <div className="flex items-center mb-2">
+                                <div className={`bg-gradient-to-br ${gradients[index % gradients.length]} w-10 h-10 rounded-lg flex items-center justify-center text-white text-xl mr-3 shadow-md`}>
+                                    ⭐
+                                </div>
+                                <p className="text-sm text-gray-600 font-medium">{type}</p>
+                            </div>
+                            <p className="text-2xl font-bold text-gray-900">TB: {stats.averageScore.toFixed(1)}</p>
+                            <p className="text-sm text-gray-500 mt-1">Max: {stats.maxScore} | Min: {stats.minScore}</p>
+                        </div>
+                    );
+                })}
             </div>
 
             {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Phân bố điểm</h3>
+                <div className="bg-white border border-gray-100 rounded-lg p-6 shadow-lg hover:shadow-xl transition-shadow duration-200">
+                    <h3 className="text-lg font-semibold text-[#001C44] mb-4">Phân bố điểm</h3>
                     <ResponsiveContainer width="100%" height={300}>
                         <BarChart data={scoreDistributionData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="range" />
-                            <YAxis />
-                            <Tooltip />
-                            <Bar dataKey="count" fill={COLORS[0]} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                            <XAxis dataKey="range" stroke="#6b7280" />
+                            <YAxis stroke="#6b7280" />
+                            <Tooltip
+                                contentStyle={{
+                                    backgroundColor: '#fff',
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: '8px',
+                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                }}
+                            />
+                            <Bar dataKey="count" fill={COLORS[0]} radius={[8, 8, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
 
-                <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Điểm TB theo khoa</h3>
+                <div className="bg-white border border-gray-100 rounded-lg p-6 shadow-lg hover:shadow-xl transition-shadow duration-200">
+                    <h3 className="text-lg font-semibold text-[#001C44] mb-4">Điểm TB theo khoa</h3>
                     <ResponsiveContainer width="100%" height={300}>
                         <BarChart data={averageByDepartmentData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip />
-                            <Bar dataKey="value" fill={COLORS[1]} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                            <XAxis dataKey="name" stroke="#6b7280" />
+                            <YAxis stroke="#6b7280" />
+                            <Tooltip
+                                contentStyle={{
+                                    backgroundColor: '#fff',
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: '8px',
+                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                }}
+                            />
+                            <Bar dataKey="value" fill={COLORS[1]} radius={[8, 8, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
             </div>
 
             {/* Top Students Table */}
-            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-900">Top sinh viên</h3>
+            <div className="bg-white border border-gray-100 rounded-lg overflow-hidden shadow-lg">
+                <div className="px-6 py-4 bg-gradient-to-r from-[#001C44] to-[#002A66] border-b border-gray-200">
+                    <h3 className="text-lg font-semibold text-white">Top sinh viên</h3>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã SV</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Loại điểm</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Điểm</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Tên</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Mã SV</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Loại điểm</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Điểm</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {data.topStudents.slice(0, 10).map((student, index) => (
-                                <tr key={`${student.studentId}-${index}`}>
+                                <tr key={`${student.studentId}-${index}`} className="hover:bg-blue-50 transition-colors duration-150">
                                     <td className="px-4 py-3 text-sm text-gray-900">{student.studentName}</td>
                                     <td className="px-4 py-3 text-sm text-gray-600">{student.studentCode}</td>
                                     <td className="px-4 py-3 text-sm text-gray-600">{student.scoreType}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-600">{student.score.toFixed(1)}</td>
+                                    <td className="px-4 py-3 text-sm text-gray-600 font-semibold">{student.score.toFixed(1)}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -937,8 +1028,10 @@ const SeriesTab: React.FC<{
 }> = ({ data, filters, setFilters, onApplyFilters, formatNumber, formatPercentage, COLORS }) => {
     if (!data) {
         return (
-            <div className="text-center py-12">
-                <p className="text-gray-500">Chưa có dữ liệu. Vui lòng áp dụng bộ lọc để xem thống kê.</p>
+            <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="text-6xl mb-4">📋</div>
+                <p className="text-gray-600 text-lg font-medium">Chưa có dữ liệu</p>
+                <p className="text-gray-500 mt-2">Vui lòng áp dụng bộ lọc để xem thống kê.</p>
             </div>
         );
     }
@@ -956,33 +1049,33 @@ const SeriesTab: React.FC<{
     return (
         <div className="space-y-6">
             {/* Filters */}
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Bộ lọc</h3>
+            <div className="bg-white rounded-lg p-6 border border-gray-100 shadow-md">
+                <h3 className="text-lg font-semibold text-[#001C44] mb-4">Bộ lọc</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Series ID</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Series ID</label>
                         <input
                             type="text"
                             value={filters.seriesId}
                             onChange={(e) => setFilters({ ...filters, seriesId: e.target.value })}
                             placeholder="ID series"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Học kỳ</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Học kỳ</label>
                         <input
                             type="text"
                             value={filters.semesterId}
                             onChange={(e) => setFilters({ ...filters, semesterId: e.target.value })}
                             placeholder="ID học kỳ"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all"
                         />
                     </div>
                     <div className="flex items-end">
                         <button
                             onClick={onApplyFilters}
-                            className="w-full bg-[#001C44] text-white px-4 py-2 rounded-md hover:bg-[#002A66] transition-colors"
+                            className="w-full bg-[#001C44] text-white px-4 py-2 rounded-lg hover:bg-[#002A66] transition-all duration-200 shadow-md hover:shadow-lg font-medium"
                         >
                             Áp dụng bộ lọc
                         </button>
@@ -991,64 +1084,85 @@ const SeriesTab: React.FC<{
             </div>
 
             {/* Stats */}
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-                <p className="text-sm text-gray-600">Tổng chuỗi sự kiện</p>
-                <p className="text-3xl font-bold text-gray-900">{formatNumber(data.totalSeries)}</p>
+            <div className="bg-white border-2 border-purple-200 rounded-lg p-6 shadow-md hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+                <div className="flex items-center">
+                    <div className="bg-gradient-to-br from-purple-500 to-purple-600 w-14 h-14 rounded-lg flex items-center justify-center text-white text-2xl mr-4 shadow-md">
+                        📋
+                    </div>
+                    <div>
+                        <p className="text-sm text-gray-600 font-medium">Tổng chuỗi sự kiện</p>
+                        <p className="text-3xl font-bold text-gray-900">{formatNumber(data.totalSeries)}</p>
+                    </div>
+                </div>
             </div>
 
             {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Sinh viên theo series</h3>
+                <div className="bg-white border border-gray-100 rounded-lg p-6 shadow-lg hover:shadow-xl transition-shadow duration-200">
+                    <h3 className="text-lg font-semibold text-[#001C44] mb-4">Sinh viên theo series</h3>
                     <ResponsiveContainer width="100%" height={300}>
                         <BarChart data={studentsPerSeriesData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip />
-                            <Bar dataKey="value" fill={COLORS[0]} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                            <XAxis dataKey="name" stroke="#6b7280" />
+                            <YAxis stroke="#6b7280" />
+                            <Tooltip
+                                contentStyle={{
+                                    backgroundColor: '#fff',
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: '8px',
+                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                }}
+                            />
+                            <Bar dataKey="value" fill={COLORS[0]} radius={[8, 8, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
 
-                <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Tỷ lệ hoàn thành</h3>
+                <div className="bg-white border border-gray-100 rounded-lg p-6 shadow-lg hover:shadow-xl transition-shadow duration-200">
+                    <h3 className="text-lg font-semibold text-[#001C44] mb-4">Tỷ lệ hoàn thành</h3>
                     <ResponsiveContainer width="100%" height={300}>
                         <BarChart data={completionRatesData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-                            <YAxis />
-                            <Tooltip />
-                            <Bar dataKey="value" fill={COLORS[1]} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                            <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} stroke="#6b7280" />
+                            <YAxis stroke="#6b7280" />
+                            <Tooltip
+                                contentStyle={{
+                                    backgroundColor: '#fff',
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: '8px',
+                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                }}
+                            />
+                            <Bar dataKey="value" fill={COLORS[1]} radius={[8, 8, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
             </div>
 
             {/* Series Details Table */}
-            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-900">Chi tiết series</h3>
+            <div className="bg-white border border-gray-100 rounded-lg overflow-hidden shadow-lg">
+                <div className="px-6 py-4 bg-gradient-to-r from-[#001C44] to-[#002A66] border-b border-gray-200">
+                    <h3 className="text-lg font-semibold text-white">Chi tiết series</h3>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên series</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hoạt động</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Đăng ký</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hoàn thành</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tỷ lệ</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Tên series</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Hoạt động</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Đăng ký</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Hoàn thành</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Tỷ lệ</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {data.seriesDetails.map((series) => (
-                                <tr key={series.seriesId}>
+                                <tr key={series.seriesId} className="hover:bg-blue-50 transition-colors duration-150">
                                     <td className="px-4 py-3 text-sm text-gray-900">{series.seriesName}</td>
                                     <td className="px-4 py-3 text-sm text-gray-600">{formatNumber(series.totalActivities)}</td>
                                     <td className="px-4 py-3 text-sm text-gray-600">{formatNumber(series.registeredStudents)}</td>
                                     <td className="px-4 py-3 text-sm text-gray-600">{formatNumber(series.completedStudents)}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-600">{formatPercentage(series.completionRate)}</td>
+                                    <td className="px-4 py-3 text-sm text-gray-600 font-semibold">{formatPercentage(series.completionRate)}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -1071,8 +1185,10 @@ const MinigamesTab: React.FC<{
 }> = ({ data, filters, setFilters, onApplyFilters, formatNumber, formatPercentage, COLORS }) => {
     if (!data) {
         return (
-            <div className="text-center py-12">
-                <p className="text-gray-500">Chưa có dữ liệu. Vui lòng áp dụng bộ lọc để xem thống kê.</p>
+            <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="text-6xl mb-4">🎮</div>
+                <p className="text-gray-600 text-lg font-medium">Chưa có dữ liệu</p>
+                <p className="text-gray-500 mt-2">Vui lòng áp dụng bộ lọc để xem thống kê.</p>
             </div>
         );
     }
@@ -1090,23 +1206,23 @@ const MinigamesTab: React.FC<{
     return (
         <div className="space-y-6">
             {/* Filters */}
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Bộ lọc</h3>
+            <div className="bg-white rounded-lg p-6 border border-gray-100 shadow-md">
+                <h3 className="text-lg font-semibold text-[#001C44] mb-4">Bộ lọc</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Mini Game ID</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Mini Game ID</label>
                         <input
                             type="text"
                             value={filters.miniGameId}
                             onChange={(e) => setFilters({ ...filters, miniGameId: e.target.value })}
                             placeholder="ID minigame"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all"
                         />
                     </div>
                     <div className="flex items-end">
                         <button
                             onClick={onApplyFilters}
-                            className="w-full bg-[#001C44] text-white px-4 py-2 rounded-md hover:bg-[#002A66] transition-colors"
+                            className="w-full bg-[#001C44] text-white px-4 py-2 rounded-lg hover:bg-[#002A66] transition-all duration-200 shadow-md hover:shadow-lg font-medium"
                         >
                             Áp dụng bộ lọc
                         </button>
@@ -1116,28 +1232,48 @@ const MinigamesTab: React.FC<{
 
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                    <p className="text-sm text-gray-600">Tổng Mini Games</p>
+                <div className="bg-white border-2 border-yellow-200 rounded-lg p-5 shadow-md hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+                    <div className="flex items-center mb-2">
+                        <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 w-10 h-10 rounded-lg flex items-center justify-center text-white text-xl mr-3 shadow-md">
+                            🎮
+                        </div>
+                        <p className="text-sm text-gray-600 font-medium">Tổng Mini Games</p>
+                    </div>
                     <p className="text-2xl font-bold text-gray-900">{formatNumber(data.totalMiniGames)}</p>
                 </div>
-                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                    <p className="text-sm text-gray-600">Tổng lượt thử</p>
+                <div className="bg-white border-2 border-blue-200 rounded-lg p-5 shadow-md hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+                    <div className="flex items-center mb-2">
+                        <div className="bg-gradient-to-br from-blue-500 to-blue-600 w-10 h-10 rounded-lg flex items-center justify-center text-white text-xl mr-3 shadow-md">
+                            🔄
+                        </div>
+                        <p className="text-sm text-gray-600 font-medium">Tổng lượt thử</p>
+                    </div>
                     <p className="text-2xl font-bold text-gray-900">{formatNumber(data.totalAttempts)}</p>
                 </div>
-                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                    <p className="text-sm text-gray-600">Đạt</p>
+                <div className="bg-white border-2 border-green-200 rounded-lg p-5 shadow-md hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+                    <div className="flex items-center mb-2">
+                        <div className="bg-gradient-to-br from-green-500 to-green-600 w-10 h-10 rounded-lg flex items-center justify-center text-white text-xl mr-3 shadow-md">
+                            ✅
+                        </div>
+                        <p className="text-sm text-gray-600 font-medium">Đạt</p>
+                    </div>
                     <p className="text-2xl font-bold text-green-600">{formatNumber(data.passedAttempts)}</p>
                 </div>
-                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                    <p className="text-sm text-gray-600">Tỷ lệ đạt</p>
+                <div className="bg-white border-2 border-indigo-200 rounded-lg p-5 shadow-md hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+                    <div className="flex items-center mb-2">
+                        <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 w-10 h-10 rounded-lg flex items-center justify-center text-white text-xl mr-3 shadow-md">
+                            📊
+                        </div>
+                        <p className="text-sm text-gray-600 font-medium">Tỷ lệ đạt</p>
+                    </div>
                     <p className="text-2xl font-bold text-blue-600">{formatPercentage(data.passRate)}</p>
                 </div>
             </div>
 
             {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Tỷ lệ đạt/không đạt</h3>
+                <div className="bg-white border border-gray-100 rounded-lg p-6 shadow-lg hover:shadow-xl transition-shadow duration-200">
+                    <h3 className="text-lg font-semibold text-[#001C44] mb-4">Tỷ lệ đạt/không đạt</h3>
                     <ResponsiveContainer width="100%" height={300}>
                         <PieChart>
                             <Pie
@@ -1154,42 +1290,56 @@ const MinigamesTab: React.FC<{
                                     <Cell key={`cell-${index}`} fill={index === 0 ? COLORS[2] : COLORS[5]} />
                                 ))}
                             </Pie>
-                            <Tooltip />
+                            <Tooltip
+                                contentStyle={{
+                                    backgroundColor: '#fff',
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: '8px',
+                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                }}
+                            />
                         </PieChart>
                     </ResponsiveContainer>
                 </div>
 
-                <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Điểm TB theo minigame</h3>
+                <div className="bg-white border border-gray-100 rounded-lg p-6 shadow-lg hover:shadow-xl transition-shadow duration-200">
+                    <h3 className="text-lg font-semibold text-[#001C44] mb-4">Điểm TB theo minigame</h3>
                     <ResponsiveContainer width="100%" height={300}>
                         <BarChart data={averageScoreData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip />
-                            <Bar dataKey="value" fill={COLORS[0]} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                            <XAxis dataKey="name" stroke="#6b7280" />
+                            <YAxis stroke="#6b7280" />
+                            <Tooltip
+                                contentStyle={{
+                                    backgroundColor: '#fff',
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: '8px',
+                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                }}
+                            />
+                            <Bar dataKey="value" fill={COLORS[0]} radius={[8, 8, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
             </div>
 
             {/* Popular Minigames Table */}
-            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-900">Mini Game phổ biến</h3>
+            <div className="bg-white border border-gray-100 rounded-lg overflow-hidden shadow-lg">
+                <div className="px-6 py-4 bg-gradient-to-r from-[#001C44] to-[#002A66] border-b border-gray-200">
+                    <h3 className="text-lg font-semibold text-white">Mini Game phổ biến</h3>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lượt thử</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sinh viên</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Tên</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Lượt thử</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Sinh viên</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {data.popularMiniGames.slice(0, 10).map((game) => (
-                                <tr key={game.miniGameId}>
+                                <tr key={game.miniGameId} className="hover:bg-blue-50 transition-colors duration-150">
                                     <td className="px-4 py-3 text-sm text-gray-900">{game.title}</td>
                                     <td className="px-4 py-3 text-sm text-gray-600">{formatNumber(game.attemptCount)}</td>
                                     <td className="px-4 py-3 text-sm text-gray-600">{formatNumber(game.uniqueStudentCount)}</td>

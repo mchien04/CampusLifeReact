@@ -78,11 +78,11 @@ const SeriesProgress: React.FC<SeriesProgressProps> = ({ series, progress }) => 
                                                     : 'bg-gray-50 border border-gray-200'
                                             }`}
                                         >
-                                            <div className="flex items-center space-x-3">
-                                                <span className="text-sm font-medium text-gray-500">
+                                            <div className="flex items-center space-x-3 flex-1 min-w-0">
+                                                <span className="text-sm font-medium text-gray-500 flex-shrink-0">
                                                     #{activity.seriesOrder || 0}
                                                 </span>
-                                                <span className="text-sm font-medium text-gray-900">
+                                                <span className="text-sm font-medium text-gray-900 truncate">
                                                     {activity.name}
                                                 </span>
                                             </div>
