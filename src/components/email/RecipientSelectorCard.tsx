@@ -75,44 +75,56 @@ const RecipientSelectorCard: React.FC<RecipientSelectorCardProps> = ({
         }
     };
 
-    const getColorClass = () => {
-        if (isSelected) {
-            return 'border-[#001C44] bg-[#001C44] bg-opacity-5';
-        }
-        return 'border-gray-200 hover:border-[#001C44] hover:bg-gray-50';
-    };
-
     return (
         <button
             type="button"
             onClick={() => onSelect(recipientType)}
             className={`
-                relative w-full p-4 rounded-lg border-2 transition-all duration-200
-                ${getColorClass()}
+                relative w-full p-5 rounded-lg border-2 transition-all duration-200 shadow-md hover:shadow-xl transform hover:scale-105
+                ${isSelected
+                    ? 'border-[#001C44] bg-gradient-to-br from-[#001C44] to-[#002A66] shadow-lg'
+                    : 'border-gray-200 hover:border-[#001C44] hover:bg-gray-50'
+                }
                 focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:ring-offset-2
             `}
         >
             <div className="flex items-start space-x-3">
-                <div className={`flex-shrink-0 ${isSelected ? 'text-[#001C44]' : 'text-gray-600'}`}>
-                    {getIcon()}
+                <div className="flex-shrink-0">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        isSelected 
+                            ? 'bg-white bg-opacity-20 text-white shadow-md' 
+                            : 'bg-gray-100 text-gray-600'
+                    }`}>
+                        {getIcon()}
+                    </div>
                 </div>
                 <div className="flex-1 text-left">
                     <div className="flex items-center justify-between">
-                        <h3 className={`text-sm font-semibold ${isSelected ? 'text-[#001C44]' : 'text-gray-900'}`}>
+                        <h3 className={`text-sm font-semibold ${
+                            isSelected ? 'text-white' : 'text-gray-900'
+                        }`}>
                             {getRecipientTypeLabel(recipientType)}
                         </h3>
                         {isSelected && (
-                            <span className="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#001C44] text-white text-xs">
+                            <span className="ml-2 inline-flex items-center justify-center w-6 h-6 rounded-full bg-white bg-opacity-30 text-white text-xs shadow-md">
                                 ✓
                             </span>
                         )}
                     </div>
                     {description && (
-                        <p className="mt-1 text-xs text-gray-500">{description}</p>
+                        <p className={`mt-1 text-xs ${
+                            isSelected ? 'text-white text-opacity-90' : 'text-gray-500'
+                        }`}>
+                            {description}
+                        </p>
                     )}
                     {selectedCount !== undefined && selectedCount > 0 && (
                         <div className="mt-2">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium shadow-sm ${
+                                isSelected 
+                                    ? 'bg-white bg-opacity-30 text-white' 
+                                    : 'bg-blue-100 text-blue-800'
+                            }`}>
                                 {selectedCount} người đã chọn
                             </span>
                         </div>

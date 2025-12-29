@@ -24,7 +24,8 @@ export interface StudentAccountResponse {
     fullName: string;
     password: string | null; // Plain password (chỉ hiển thị khi chưa gửi email)
     isActivated: boolean;
-    emailSent: boolean; // Đã gửi email chưa
+    emailSent: boolean; // Đã gửi email credentials chưa (chỉ chính xác trong bulkCreate, không chính xác trong getPendingAccounts)
+    lastLogin: string | null; // Thời gian đăng nhập lần cuối (null nếu chưa đăng nhập)
     createdAt: string; // LocalDateTime in Java
 }
 

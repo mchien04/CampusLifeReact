@@ -26,6 +26,7 @@ const ACTION_URL_OPTIONS: Array<{
     value: string;
     label: string;
     requiresId?: boolean;
+    isExternal?: boolean;
     idLabel?: string;
     placeholder?: string;
 }> = [
@@ -35,7 +36,8 @@ const ACTION_URL_OPTIONS: Array<{
         { value: '/series', label: 'Danh sách chuỗi sự kiện' },
         { value: '/notifications', label: 'Trung tâm thông báo' },
         { value: '/activities/:id', label: 'Chi tiết sự kiện (nhập ID)', requiresId: true, idLabel: 'Activity ID', placeholder: 'VD: 10' },
-        { value: '/series/:id', label: 'Chi tiết chuỗi sự kiện (nhập ID)', requiresId: true, idLabel: 'Series ID', placeholder: 'VD: 5' }
+        { value: '/series/:id', label: 'Chi tiết chuỗi sự kiện (nhập ID)', requiresId: true, idLabel: 'Series ID', placeholder: 'VD: 5' },
+        { value: 'EXTERNAL', label: 'Link ngoài (External URL)', isExternal: true }
     ];
 
 const SendEmail: React.FC = () => {
@@ -75,8 +77,26 @@ const SendEmail: React.FC = () => {
     const [templateVars, setTemplateVars] = useState<Array<{ key: string; value: string }>>([]);
     const [actionUrlOption, setActionUrlOption] = useState<string>('');
     const [actionUrlParam, setActionUrlParam] = useState<string>('');
+    const [externalUrl, setExternalUrl] = useState<string>('');
 
-    const buildActionUrl = (optionValue: string, param: string) => {
+    const isValidUrl = (url: string): boolean => {
+        if (!url.trim()) return false;
+        // Relative path (bắt đầu bằng /)
+        if (url.startsWith('/')) return true;
+        // External URL (bắt đầu bằng http:// hoặc https://)
+        try {
+            const urlObj = new URL(url);
+            return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+        } catch {
+            return false;
+        }
+    };
+
+    const buildActionUrl = (optionValue: string, param: string, external?: string) => {
+        // Nếu là external URL
+        if (optionValue === 'EXTERNAL' && external) {
+            return external.trim();
+        }
         const option = ACTION_URL_OPTIONS.find(o => o.value === optionValue);
         if (!option) return '';
         if (option.requiresId) {
@@ -214,7 +234,7 @@ const SendEmail: React.FC = () => {
                         ? {
                             notificationActionUrl: hasActivityOrSeries 
                                 ? undefined 
-                                : (buildActionUrl(actionUrlOption || '/notifications', actionUrlParam) || undefined)
+                                : (buildActionUrl(actionUrlOption || '/notifications', actionUrlParam, externalUrl) || undefined)
                         }
                         : {
                             notificationTitle: undefined,
@@ -368,15 +388,25 @@ const SendEmail: React.FC = () => {
 
     const handleActionOptionChange = (value: string) => {
         setActionUrlOption(value);
+        if (!value) {
+            setActionUrlParam('');
+            setExternalUrl('');
+        }
         // Nếu có activityId hoặc seriesId, không set notificationActionUrl (backend tự tạo)
         if (formData.activityId || formData.seriesId) {
             setFormData(prev => ({ ...prev, notificationActionUrl: undefined }));
         } else {
-            const url = buildActionUrl(value, actionUrlParam);
+            const url = buildActionUrl(value, actionUrlParam, externalUrl);
             setFormData(prev => ({ ...prev, notificationActionUrl: url || undefined }));
         }
         if (errors.notificationActionUrl) {
             setErrors(prev => ({ ...prev, notificationActionUrl: '' }));
+        }
+        if (errors.externalUrl) {
+            setErrors(prev => ({ ...prev, externalUrl: '' }));
+        }
+        if (errors.actionUrlParam) {
+            setErrors(prev => ({ ...prev, actionUrlParam: '' }));
         }
     };
 
@@ -386,11 +416,31 @@ const SendEmail: React.FC = () => {
         if (formData.activityId || formData.seriesId) {
             setFormData(prev => ({ ...prev, notificationActionUrl: undefined }));
         } else {
-            const url = buildActionUrl(actionUrlOption, value);
+            const url = buildActionUrl(actionUrlOption, value, externalUrl);
             setFormData(prev => ({ ...prev, notificationActionUrl: url || undefined }));
         }
         if (errors.notificationActionUrl) {
             setErrors(prev => ({ ...prev, notificationActionUrl: '' }));
+        }
+        if (errors.actionUrlParam) {
+            setErrors(prev => ({ ...prev, actionUrlParam: '' }));
+        }
+    };
+
+    const handleExternalUrlChange = (value: string) => {
+        setExternalUrl(value);
+        // Nếu có activityId hoặc seriesId, không set notificationActionUrl (backend tự tạo)
+        if (formData.activityId || formData.seriesId) {
+            setFormData(prev => ({ ...prev, notificationActionUrl: undefined }));
+        } else {
+            const url = buildActionUrl(actionUrlOption, actionUrlParam, value);
+            setFormData(prev => ({ ...prev, notificationActionUrl: url || undefined }));
+        }
+        if (errors.notificationActionUrl) {
+            setErrors(prev => ({ ...prev, notificationActionUrl: '' }));
+        }
+        if (errors.externalUrl) {
+            setErrors(prev => ({ ...prev, externalUrl: '' }));
         }
     };
 
@@ -476,10 +526,18 @@ const SendEmail: React.FC = () => {
                 newErrors.notificationType = 'Loại thông báo là bắt buộc';
             }
             // Chỉ validate actionUrl nếu không có activityId/seriesId (backend tự tạo URL khi có activityId/seriesId)
-            if (!formData.activityId && !formData.seriesId) {
-                const selectedAction = ACTION_URL_OPTIONS.find(o => o.value === actionUrlOption);
-                if (selectedAction?.requiresId && !actionUrlParam.trim()) {
-                    newErrors.notificationActionUrl = 'Vui lòng nhập ID cho URL hành động';
+            if (!formData.activityId && !formData.seriesId && actionUrlOption) {
+                if (actionUrlOption === 'EXTERNAL') {
+                    if (!externalUrl.trim()) {
+                        newErrors.externalUrl = 'Vui lòng nhập URL';
+                    } else if (!isValidUrl(externalUrl)) {
+                        newErrors.externalUrl = 'URL không hợp lệ. Vui lòng nhập URL đầy đủ (http:// hoặc https://) hoặc đường dẫn tương đối (bắt đầu bằng /)';
+                    }
+                } else {
+                    const selectedAction = ACTION_URL_OPTIONS.find(o => o.value === actionUrlOption);
+                    if (selectedAction?.requiresId && !actionUrlParam.trim()) {
+                        newErrors.actionUrlParam = 'Vui lòng nhập ID cho URL hành động';
+                    }
                 }
             }
         }
@@ -563,6 +621,7 @@ const SendEmail: React.FC = () => {
                 setSelectedUserIds(new Set());
                 setActionUrlOption('');
                 setActionUrlParam('');
+                setExternalUrl('');
                 setPreviewData(null);
 
                 // Navigate to history after delay
@@ -581,53 +640,73 @@ const SendEmail: React.FC = () => {
     };
 
     return (
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold text-[#001C44]">Gửi Email</h1>
-                <p className="text-gray-600 mt-1">Gửi email cho người dùng với nhiều tùy chọn người nhận</p>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white">
+                <div className="flex items-center">
+                    <span className="mr-3 text-4xl">📧</span>
+                    <div>
+                        <h1 className="text-3xl font-bold mb-2">Gửi Email</h1>
+                        <p className="text-gray-200 text-lg">Gửi email cho người dùng với nhiều tùy chọn người nhận</p>
+                    </div>
+                </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="bg-white shadow-lg rounded-lg overflow-hidden">
+            <form onSubmit={handleSubmit} className="bg-white shadow-lg rounded-lg border border-gray-100 overflow-hidden">
                 <div className="p-6 space-y-6">
                     {/* Recipient Type - Card Selection */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                        <label className="block text-sm font-medium text-gray-700 mb-4">
                             Loại người nhận <span className="text-red-500">*</span>
                         </label>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             {/* Card "Người dùng" - Gộp INDIVIDUAL và BULK */}
                             <button
                                 type="button"
                                 onClick={() => handleRecipientTypeSelect(RecipientType.BULK)}
                                 className={`
-                                    relative w-full p-4 rounded-lg border-2 transition-all duration-200
+                                    relative w-full p-5 rounded-lg border-2 transition-all duration-200 shadow-md hover:shadow-xl transform hover:scale-105
                                     ${(formData.recipientType === RecipientType.INDIVIDUAL || formData.recipientType === RecipientType.BULK || formData.recipientType === RecipientType.CUSTOM_LIST)
-                                        ? 'border-[#001C44] bg-[#001C44] bg-opacity-5'
+                                        ? 'border-[#001C44] bg-gradient-to-br from-[#001C44] to-[#002A66] shadow-lg'
                                         : 'border-gray-200 hover:border-[#001C44] hover:bg-gray-50'
                                     }
                                     focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:ring-offset-2
                                 `}
                             >
                                 <div className="flex items-start space-x-3">
-                                    <div className={`flex-shrink-0 ${(formData.recipientType === RecipientType.INDIVIDUAL || formData.recipientType === RecipientType.BULK || formData.recipientType === RecipientType.CUSTOM_LIST) ? 'text-[#001C44]' : 'text-gray-600'}`}>
-                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                                        </svg>
+                                    <div className="flex-shrink-0">
+                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                                            (formData.recipientType === RecipientType.INDIVIDUAL || formData.recipientType === RecipientType.BULK || formData.recipientType === RecipientType.CUSTOM_LIST)
+                                                ? 'bg-white bg-opacity-20 text-white shadow-md'
+                                                : 'bg-gray-100 text-gray-600'
+                                        }`}>
+                                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                            </svg>
+                                        </div>
                                     </div>
                                     <div className="flex-1 text-left">
                                         <div className="flex items-center justify-between">
-                                            <h3 className={`text-sm font-semibold ${(formData.recipientType === RecipientType.INDIVIDUAL || formData.recipientType === RecipientType.BULK || formData.recipientType === RecipientType.CUSTOM_LIST) ? 'text-[#001C44]' : 'text-gray-900'}`}>
+                                            <h3 className={`text-sm font-semibold ${
+                                                (formData.recipientType === RecipientType.INDIVIDUAL || formData.recipientType === RecipientType.BULK || formData.recipientType === RecipientType.CUSTOM_LIST)
+                                                    ? 'text-white'
+                                                    : 'text-gray-900'
+                                            }`}>
                                                 Người dùng
                                             </h3>
                                             {(formData.recipientType === RecipientType.INDIVIDUAL || formData.recipientType === RecipientType.BULK || formData.recipientType === RecipientType.CUSTOM_LIST) && (
-                                                <span className="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#001C44] text-white text-xs">
+                                                <span className="ml-2 inline-flex items-center justify-center w-6 h-6 rounded-full bg-white bg-opacity-30 text-white text-xs shadow-md">
                                                     ✓
                                                 </span>
                                             )}
                                         </div>
                                         {selectedUserIds.size > 0 && (
                                             <div className="mt-2">
-                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium shadow-sm ${
+                                                    (formData.recipientType === RecipientType.INDIVIDUAL || formData.recipientType === RecipientType.BULK || formData.recipientType === RecipientType.CUSTOM_LIST)
+                                                        ? 'bg-white bg-opacity-30 text-white'
+                                                        : 'bg-blue-100 text-blue-800'
+                                                }`}>
                                                     {selectedUserIds.size} người đã chọn
                                                 </span>
                                             </div>
@@ -668,7 +747,7 @@ const SendEmail: React.FC = () => {
                     {(formData.recipientType === RecipientType.INDIVIDUAL ||
                         formData.recipientType === RecipientType.BULK ||
                         formData.recipientType === RecipientType.CUSTOM_LIST) && (
-                            <div className="bg-gray-50 p-4 rounded-lg">
+                            <div className="bg-white border border-gray-100 p-5 rounded-lg shadow-md">
                                 <label className="block text-sm font-medium text-gray-700 mb-3">
                                     Chọn người nhận <span className="text-red-500">*</span>
                                 </label>
@@ -695,15 +774,15 @@ const SendEmail: React.FC = () => {
                         )}
 
                     {formData.recipientType === RecipientType.ACTIVITY_REGISTRATIONS && (
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <div className="bg-white border border-gray-100 p-5 rounded-lg shadow-md">
+                            <label className="block text-sm font-medium text-gray-700 mb-3">
                                 Chọn sự kiện <span className="text-red-500">*</span>
                             </label>
                             <select
                                 name="activityId"
                                 value={formData.activityId || ''}
                                 onChange={(e) => handleNumberChange('activityId', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent bg-white"
+                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] bg-white transition-all"
                             >
                                 <option value="">-- Chọn sự kiện --</option>
                                 {activities.map(activity => (
@@ -719,15 +798,15 @@ const SendEmail: React.FC = () => {
                     )}
 
                     {formData.recipientType === RecipientType.SERIES_REGISTRATIONS && (
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <div className="bg-white border border-gray-100 p-5 rounded-lg shadow-md">
+                            <label className="block text-sm font-medium text-gray-700 mb-3">
                                 Chọn chuỗi sự kiện <span className="text-red-500">*</span>
                             </label>
                             <select
                                 name="seriesId"
                                 value={formData.seriesId || ''}
                                 onChange={(e) => handleNumberChange('seriesId', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent bg-white"
+                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] bg-white transition-all"
                             >
                                 <option value="">-- Chọn chuỗi sự kiện --</option>
                                 {series.map(s => (
@@ -743,15 +822,15 @@ const SendEmail: React.FC = () => {
                     )}
 
                     {formData.recipientType === RecipientType.BY_CLASS && (
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <div className="bg-white border border-gray-100 p-5 rounded-lg shadow-md">
+                            <label className="block text-sm font-medium text-gray-700 mb-3">
                                 Chọn lớp <span className="text-red-500">*</span>
                             </label>
                             <select
                                 name="classId"
                                 value={formData.classId || ''}
                                 onChange={(e) => handleNumberChange('classId', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent bg-white"
+                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] bg-white transition-all"
                             >
                                 <option value="">-- Chọn lớp --</option>
                                 {classes.map(cls => (
@@ -767,15 +846,15 @@ const SendEmail: React.FC = () => {
                     )}
 
                     {formData.recipientType === RecipientType.BY_DEPARTMENT && (
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <div className="bg-white border border-gray-100 p-5 rounded-lg shadow-md">
+                            <label className="block text-sm font-medium text-gray-700 mb-3">
                                 Chọn khoa <span className="text-red-500">*</span>
                             </label>
                             <select
                                 name="departmentId"
                                 value={formData.departmentId || ''}
                                 onChange={(e) => handleNumberChange('departmentId', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent bg-white"
+                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] bg-white transition-all"
                             >
                                 <option value="">-- Chọn khoa --</option>
                                 {departments.map(dept => (
@@ -791,8 +870,11 @@ const SendEmail: React.FC = () => {
                     )}
 
                     {/* Content Section */}
-                    <div className="border-t pt-6">
-                        <h2 className="text-lg font-semibold text-gray-900 mb-4">Nội dung Email</h2>
+                    <div className="border-t border-gray-200 pt-6">
+                        <h2 className="text-xl font-semibold text-[#001C44] mb-5 flex items-center">
+                            <span className="mr-2 text-2xl">✉️</span>
+                            Nội dung Email
+                        </h2>
 
                         {/* Subject */}
                         <div className="mb-4">
@@ -804,7 +886,7 @@ const SendEmail: React.FC = () => {
                                 name="subject"
                                 value={formData.subject}
                                 onChange={handleChange}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
+                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all"
                                 placeholder="Nhập tiêu đề email"
                             />
                             {errors.subject && (
@@ -827,7 +909,7 @@ const SendEmail: React.FC = () => {
                                 value={formData.content}
                                 onChange={handleChange}
                                 rows={10}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent font-mono text-sm"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] font-mono text-sm transition-all"
                                 placeholder="Nhập nội dung email..."
                             />
                             <div className="mt-2 flex items-center justify-between">
@@ -848,13 +930,13 @@ const SendEmail: React.FC = () => {
                             )}
 
                             {/* Template helper */}
-                            <div className="mt-3 border border-dashed border-gray-200 rounded-lg p-3 bg-gray-50">
-                                <div className="flex items-center justify-between">
+                            <div className="mt-3 border-2 border-dashed border-blue-200 rounded-lg p-4 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-sm">
+                                <div className="flex items-center justify-between mb-3">
                                     <div>
-                                        <p className="text-sm font-medium text-gray-800">Hướng dẫn biến template</p>
-                                        <p className="text-xs text-gray-500">Chèn vào nội dung email để tự động thay thế</p>
+                                        <p className="text-sm font-semibold text-gray-800">Hướng dẫn biến template</p>
+                                        <p className="text-xs text-gray-600 mt-1">Chèn vào nội dung email để tự động thay thế</p>
                                     </div>
-                                    <span className="text-[11px] px-2 py-1 bg-blue-100 text-blue-700 rounded-full">Tip</span>
+                                    <span className="text-xs px-3 py-1 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-full font-medium shadow-sm">💡 Tip</span>
                                 </div>
                                 <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-700">
                                     <div className="space-y-1">
@@ -873,8 +955,11 @@ const SendEmail: React.FC = () => {
                     </div>
 
                     {/* Options Section */}
-                    <div className="border-t pt-6">
-                        <h2 className="text-lg font-semibold text-gray-900 mb-4">Tùy chọn</h2>
+                    <div className="border-t border-gray-200 pt-6">
+                        <h2 className="text-xl font-semibold text-[#001C44] mb-5 flex items-center">
+                            <span className="mr-2 text-2xl">⚙️</span>
+                            Tùy chọn
+                        </h2>
 
                         {/* HTML Toggle */}
                         <div className="flex items-center mb-4">
@@ -892,38 +977,38 @@ const SendEmail: React.FC = () => {
 
                         {/* Template Variables */}
                         <div className="mb-4">
-                            <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center justify-between mb-3">
                                 <label className="block text-sm font-medium text-gray-700">
                                     Biến template (tùy chọn)
                                 </label>
                                 <button
                                     type="button"
                                     onClick={handleAddTemplateVar}
-                                    className="text-sm text-[#001C44] hover:text-[#002A66] font-medium"
+                                    className="text-sm text-[#001C44] hover:text-[#002A66] font-medium px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors"
                                 >
                                     + Thêm biến
                                 </button>
                             </div>
                             {templateVars.map((item, index) => (
-                                <div key={index} className="flex gap-2 mb-2">
+                                <div key={index} className="flex gap-2 mb-3">
                                     <input
                                         type="text"
                                         placeholder="Tên biến"
                                         value={item.key}
                                         onChange={(e) => handleTemplateVarChange(index, 'key', e.target.value)}
-                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all"
                                     />
                                     <input
                                         type="text"
                                         placeholder="Giá trị"
                                         value={item.value}
                                         onChange={(e) => handleTemplateVarChange(index, 'value', e.target.value)}
-                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all"
                                     />
                                     <button
                                         type="button"
                                         onClick={() => handleRemoveTemplateVar(index)}
-                                        className="px-3 py-2 text-red-600 hover:text-red-800"
+                                        className="px-3 py-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
                                     >
                                         ✕
                                     </button>
@@ -933,10 +1018,10 @@ const SendEmail: React.FC = () => {
 
                         {/* Attachments */}
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-3">
                                 File đính kèm (tối đa 10MB mỗi file)
                             </label>
-                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-[#001C44] transition-colors">
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-[#001C44] hover:bg-gray-50 transition-all duration-200">
                                 <input
                                     type="file"
                                     multiple
@@ -945,9 +1030,9 @@ const SendEmail: React.FC = () => {
                                 />
                             </div>
                             {attachments.length > 0 && (
-                                <div className="mt-3 space-y-2">
+                                <div className="mt-4 space-y-2">
                                     {attachments.map((file, index) => (
-                                        <div key={index} className="flex items-center justify-between bg-gray-50 px-4 py-2.5 rounded-lg border border-gray-200">
+                                        <div key={index} className="flex items-center justify-between bg-white px-4 py-3 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
                                             <div className="flex items-center space-x-2">
                                                 <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -974,22 +1059,26 @@ const SendEmail: React.FC = () => {
                     </div>
 
                     {/* Create Notification */}
-                    <div className="border-t pt-4">
-                        <div className="flex items-center mb-4">
+                    <div className="border-t border-gray-200 pt-6">
+                        <h2 className="text-xl font-semibold text-[#001C44] mb-4 flex items-center">
+                            <span className="mr-2 text-2xl">🔔</span>
+                            Tạo thông báo hệ thống
+                        </h2>
+                        <div className="flex items-center mb-5">
                             <input
                                 type="checkbox"
                                 name="createNotification"
                                 checked={formData.createNotification || false}
                                 onChange={handleChange}
-                                className="h-4 w-4 text-[#001C44] focus:ring-[#001C44] border-gray-300 rounded"
+                                className="h-5 w-5 text-[#001C44] focus:ring-[#001C44] border-gray-300 rounded"
                             />
-                            <label className="ml-2 text-sm font-medium text-gray-700">
+                            <label className="ml-3 text-sm font-medium text-gray-700">
                                 Tạo thông báo hệ thống khi gửi email
                             </label>
                         </div>
 
                         {formData.createNotification && (
-                            <div className="ml-6 space-y-4 bg-gray-50 p-4 rounded-lg">
+                            <div className="ml-6 space-y-4 bg-gradient-to-br from-blue-50 to-indigo-50 p-5 rounded-lg border border-blue-100 shadow-sm">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Tiêu đề thông báo <span className="text-red-500">*</span>
@@ -999,7 +1088,7 @@ const SendEmail: React.FC = () => {
                                         name="notificationTitle"
                                         value={formData.notificationTitle || ''}
                                         onChange={handleChange}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
+                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] bg-white transition-all"
                                         placeholder="Nhập tiêu đề thông báo"
                                     />
                                     {errors.notificationTitle && (
@@ -1015,7 +1104,7 @@ const SendEmail: React.FC = () => {
                                         name="notificationType"
                                         value={formData.notificationType || ''}
                                         onChange={handleChange}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
+                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] bg-white transition-all"
                                     >
                                         <option value="">-- Chọn loại --</option>
                                         {Object.values(NotificationType).map(type => (
@@ -1035,11 +1124,11 @@ const SendEmail: React.FC = () => {
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
                                             URL hành động (chọn sẵn)
                                         </label>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div className="space-y-2">
                                             <select
                                                 value={actionUrlOption}
                                                 onChange={(e) => handleActionOptionChange(e.target.value)}
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent bg-white"
+                                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] bg-white transition-all"
                                             >
                                                 {ACTION_URL_OPTIONS.map(opt => (
                                                     <option key={opt.value || 'none'} value={opt.value}>
@@ -1053,26 +1142,53 @@ const SendEmail: React.FC = () => {
                                                     type="text"
                                                     value={actionUrlParam}
                                                     onChange={(e) => handleActionParamChange(e.target.value)}
-                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-transparent"
+                                                    className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all ${
+                                                        errors.actionUrlParam ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white'
+                                                    }`}
                                                     placeholder={ACTION_URL_OPTIONS.find(o => o.value === actionUrlOption)?.placeholder || 'Nhập ID'}
                                                 />
                                             )}
+
+                                            {ACTION_URL_OPTIONS.find(o => o.value === actionUrlOption)?.isExternal && (
+                                                <div>
+                                                    <input
+                                                        type="text"
+                                                        value={externalUrl}
+                                                        onChange={(e) => handleExternalUrlChange(e.target.value)}
+                                                        placeholder="VD: https://example.com hoặc /student/events/123"
+                                                        className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all ${
+                                                            errors.externalUrl ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white'
+                                                        }`}
+                                                    />
+                                                    {errors.externalUrl && (
+                                                        <p className="mt-1 text-sm text-red-600">{errors.externalUrl}</p>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
+                                        {errors.actionUrlParam && (
+                                            <p className="mt-1 text-sm text-red-600">{errors.actionUrlParam}</p>
+                                        )}
                                         {errors.notificationActionUrl && (
                                             <p className="mt-1 text-sm text-red-600">{errors.notificationActionUrl}</p>
                                         )}
                                         <p className="mt-1 text-xs text-gray-500">
-                                            Hệ thống sẽ tự build URL, không cần nhập tay.
+                                            {actionUrlOption === 'EXTERNAL' 
+                                                ? 'Nhập URL đầy đủ (http:// hoặc https://) hoặc đường dẫn tương đối (bắt đầu bằng /). Ví dụ: https://example.com hoặc /student/events/123'
+                                                : 'Hệ thống sẽ tự build URL, không cần nhập tay.'
+                                            }
                                         </p>
                                     </div>
                                 ) : (
-                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg p-4 shadow-sm">
                                         <div className="flex items-start">
-                                            <svg className="w-5 h-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
+                                            <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center mr-3 shadow-sm">
+                                                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            </div>
                                             <div>
-                                                <p className="text-sm font-medium text-blue-900">
+                                                <p className="text-sm font-semibold text-blue-900">
                                                     URL hành động sẽ được tự động tạo
                                                 </p>
                                                 <p className="text-xs text-blue-700 mt-1">
@@ -1091,11 +1207,11 @@ const SendEmail: React.FC = () => {
                 </div>
 
                 {/* Form Actions */}
-                <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
+                <div className="px-6 py-5 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
                     <button
                         type="button"
                         onClick={() => navigate('/manager/emails/history')}
-                        className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                        className="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-white hover:shadow-md transition-all duration-200 font-medium"
                         disabled={sending}
                     >
                         Hủy
@@ -1103,7 +1219,7 @@ const SendEmail: React.FC = () => {
                     <button
                         type="submit"
                         disabled={sending || loadingDropdowns}
-                        className="px-6 py-2 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                        className="px-6 py-2.5 bg-gradient-to-r from-[#001C44] to-[#002A66] text-white rounded-lg hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 font-medium shadow-md"
                     >
                         {sending ? (
                             <>
