@@ -56,7 +56,7 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
             isDraft: true,
             bannerUrl: '',
             location: '',
-            ticketQuantity: mode === 'series' ? undefined : 0,
+            ticketQuantity: mode === 'series' ? undefined : (mode === 'minigame' ? 0 : 0),
             benefits: '',
             requirements: '',
             contactInfo: '',
@@ -143,6 +143,15 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
         // Only validate organizerIds for normal and minigame modes
         if (mode !== 'series' && (!formData.organizerIds || formData.organizerIds.length === 0)) {
             newErrors.organizerIds = 'Phải chọn ít nhất một đơn vị tổ chức';
+        }
+
+        // Validate ticketQuantity for minigame mode (must be set if not unlimited)
+        // Note: undefined/null means unlimited (no validation needed)
+        // This validation will be skipped if isInSeries=true (ticketQuantity will be undefined, unlimitedTickets will be true)
+        if (mode === 'minigame' && !unlimitedTickets) {
+            if (formData.ticketQuantity === undefined || formData.ticketQuantity === null || formData.ticketQuantity <= 0) {
+                newErrors.ticketQuantity = 'Phải nhập số lượng slot để cho phép đăng ký';
+            }
         }
 
         setErrors(newErrors);
