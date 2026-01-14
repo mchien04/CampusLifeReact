@@ -10,9 +10,10 @@ interface MinigameActivityFormProps {
     initialData?: Partial<CreateActivityRequest>;
     title?: string;
     onCancel?: () => void;
+    isInSeries?: boolean; // Nếu true, không hiển thị field slot (mặc định null)
 }
 
-const renderMinigameFields = (props: RenderFieldsProps) => {
+const renderMinigameFields = (props: RenderFieldsProps & { isInSeries?: boolean }) => {
     const {
         formData,
         errors,
@@ -20,7 +21,8 @@ const renderMinigameFields = (props: RenderFieldsProps) => {
         handleOrganizerChange,
         unlimitedTickets,
         handleUnlimitedChange,
-        originalBannerUrl
+        originalBannerUrl,
+        isInSeries = false
     } = props;
 
     return (
@@ -290,6 +292,69 @@ const renderMinigameFields = (props: RenderFieldsProps) => {
                 required={true}
             />
 
+            {/* Slot/Ticket Quantity - Chỉ hiển thị khi không phải trong series */}
+            {!isInSeries && (
+                <div className="border-t pt-6">
+                    <h3 className="text-lg font-semibold text-[#001C44] mb-4">Số lượng slot</h3>
+                    <div className="space-y-4">
+                        <div className="flex items-center">
+                            <input
+                                type="checkbox"
+                                id="unlimitedSlots"
+                                checked={unlimitedTickets}
+                                onChange={handleUnlimitedChange}
+                                className="h-4 w-4 text-[#001C44] focus:ring-[#001C44] border-gray-300 rounded"
+                            />
+                            <label htmlFor="unlimitedSlots" className="ml-2 block text-sm text-gray-900">
+                                Không giới hạn số lượng slot
+                            </label>
+                        </div>
+
+                        {!unlimitedTickets && (
+                            <div>
+                                <label htmlFor="ticketQuantity" className="block text-sm font-medium text-[#001C44] mb-2">
+                                    Số lượng slot *
+                                </label>
+                                <input
+                                    type="number"
+                                    id="ticketQuantity"
+                                    name="ticketQuantity"
+                                    min="1"
+                                    value={formData.ticketQuantity ?? ''}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        const numValue = value ? parseInt(value) : undefined;
+                                        handleChange({
+                                            ...e,
+                                            target: {
+                                                ...e.target,
+                                                name: 'ticketQuantity',
+                                                value: numValue !== undefined && numValue > 0 ? numValue : (value === '' ? undefined : 1)
+                                            } as any
+                                        });
+                                    }}
+                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44] ${
+                                        errors.ticketQuantity ? 'border-red-500' : 'border-gray-300'
+                                    }`}
+                                    placeholder="Nhập số lượng slot"
+                                />
+                                {errors.ticketQuantity && (
+                                    <p className="text-red-500 text-sm mt-1">{errors.ticketQuantity}</p>
+                                )}
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Số lượng slot tối đa cho phép đăng ký. Phải nhập số lượng slot để cho phép đăng ký.
+                                </p>
+                            </div>
+                        )}
+                        {unlimitedTickets && (
+                            <p className="text-xs text-gray-500">
+                                Không giới hạn số lượng đăng ký (null = không giới hạn)
+                            </p>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* Checkboxes */}
             <div className="space-y-4">
                 <div className="flex items-center">
@@ -329,14 +394,17 @@ const MinigameActivityForm: React.FC<MinigameActivityFormProps> = ({
     loading = false,
     initialData = {},
     title = "Tạo Mini Game",
-    onCancel
+    onCancel,
+    isInSeries = false
 }) => {
     // Ensure type is MINIGAME
+    // Nếu trong series, ticketQuantity mặc định là undefined (null = không giới hạn)
     const processedInitialData = {
         ...initialData,
         type: ActivityType.MINIGAME,
         maxPoints: undefined,
         penaltyPointsIncomplete: undefined,
+        ticketQuantity: isInSeries ? undefined : (initialData.ticketQuantity ?? 0),
     };
 
     return (
@@ -347,7 +415,7 @@ const MinigameActivityForm: React.FC<MinigameActivityFormProps> = ({
             initialData={processedInitialData}
             title={title}
             onCancel={onCancel}
-            renderFields={renderMinigameFields}
+            renderFields={(props) => renderMinigameFields({ ...props, isInSeries })}
         />
     );
 };
