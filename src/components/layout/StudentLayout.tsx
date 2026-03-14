@@ -70,6 +70,20 @@ const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
             ),
         },
         {
+            name: 'Công tác chuẩn bị',
+            href: '/student/preparation',
+            icon: (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-3-3v6m9-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                </svg>
+            ),
+        },
+        {
             name: 'Điểm số',
             href: '/student/scores',
             icon: (

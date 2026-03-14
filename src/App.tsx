@@ -13,6 +13,8 @@ import StudentSeriesDetail from './pages/StudentSeriesDetail';
 import StudentMinigame from './pages/StudentMinigame';
 import StudentMinigamePlay from './pages/StudentMinigamePlay';
 import StudentMinigameHistory from './pages/StudentMinigameHistory';
+import StudentPreparation from './pages/StudentPreparation';
+import StudentPreparationDetail from './pages/StudentPreparationDetail';
 import QRCodeCheckIn from './pages/QRCodeCheckIn';
 import SeriesManagement from './pages/admin/SeriesManagement';
 import CreateSeries from './pages/admin/CreateSeries';
@@ -31,6 +33,8 @@ import StudentAccountManagement from './pages/admin/StudentAccountManagement';
 import EventRegistrations from './pages/admin/EventRegistrations';
 import ClassManagement from './pages/admin/ClassManagement';
 import TaskManagement from './pages/admin/TaskManagement';
+import PreparationManagement from './pages/admin/PreparationManagement';
+import PreparationDetail from './pages/admin/PreparationDetail';
 import StudentRegistrations from './pages/StudentRegistrations';
 import ManagerRegistrations from './pages/ManagerRegistrations';
 import StudentTasks from './pages/StudentTasks';
@@ -175,6 +179,26 @@ function App() {
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
                     <ManagerLayout>
                       <EditEvent />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/preparation"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <ManagerLayout>
+                      <PreparationManagement />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/preparation/:activityId"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <ManagerLayout>
+                      <PreparationDetail />
                     </ManagerLayout>
                   </ProtectedRoute>
                 }
@@ -363,6 +387,22 @@ function App() {
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
                     <StudentMinigame />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/student/preparation"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
+                    <StudentPreparation />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/student/preparation/:activityId"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
+                    <StudentPreparationDetail />
                   </ProtectedRoute>
                 }
               />

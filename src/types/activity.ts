@@ -81,6 +81,7 @@ export interface ActivityResponse {
     requiresApproval: boolean;
     mandatoryForFacultyStudents: boolean;
     organizerIds: number[];
+    hasPreparation?: boolean;
     status?: string;
     participantCount?: number;
     createdAt: string;
@@ -113,4 +114,3 @@ export interface ActivityPhotoResponse {
     uploadedBy: string;
     createdAt: string;
 }
-
