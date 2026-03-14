@@ -41,6 +41,7 @@ const ManagerLayout: React.FC<ManagerLayoutProps> = ({ children }) => {
             if (path.includes('/create')) return 'Tạo Mini Game';
             return 'Mini Game';
         }
+        if (path.includes('/manager/preparation')) return 'Preparation';
         if (path.includes('/manager/registrations')) return 'Quản lý đăng ký';
         if (path.includes('/manager/scores')) return 'Quản lý điểm số';
         if (path.includes('/manager/emails')) {
@@ -76,6 +77,20 @@ const ManagerLayout: React.FC<ManagerLayoutProps> = ({ children }) => {
             icon: (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+            ),
+        },
+        {
+            name: 'Chuẩn bị sự kiện',
+            href: '/manager/preparation',
+            icon: (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-3-3v6m9-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
                 </svg>
             ),
         },

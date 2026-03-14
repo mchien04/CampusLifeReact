@@ -13,6 +13,7 @@ export { scoresAPI } from './scoresAPI';
 export { seriesAPI } from './seriesAPI';
 export { minigameAPI } from './minigameAPI';
 export { statisticsAPI } from './statisticsAPI';
+export { preparationAPI } from './preparationAPI';
 export {
     departmentAPI as adminDepartmentAPI,
     academicYearAPI,

@@ -13,4 +13,5 @@ export * from './constants';
 export * from './validation';
 export * from './series';
 export * from './minigame';
+export * from './preparation';
 export * from '../services/uploadAPI';
