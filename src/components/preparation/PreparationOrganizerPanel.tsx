@@ -2,10 +2,11 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import { preparationAPI, studentAPI } from '../../services';
 import {
-    ExpenseApprovalState,
+    BudgetCategoryDto,
     ExpenseDto,
+    ExpenseStatus,
     ExpenseStatusFilter,
-    mapApproval,
+    FinancialReportDto,
     PreparationDashboardDto,
     PreparationTaskDto,
     PreparationTaskStatus,
@@ -23,10 +24,18 @@ function formatMoney(amount: string) {
     return amount;
 }
 
-function statusBadgeClass(state: ExpenseApprovalState) {
-    if (state === 'APPROVED') return 'bg-green-50 text-green-700 border border-green-200';
-    if (state === 'REJECTED') return 'bg-red-50 text-red-700 border border-red-200';
+function statusBadgeClass(status: ExpenseStatus) {
+    if (status === 'APPROVED') return 'bg-green-50 text-green-700 border border-green-200';
+    if (status === 'REJECTED') return 'bg-red-50 text-red-700 border border-red-200';
+    if (status === 'PENDING_ADMIN') return 'bg-blue-50 text-blue-700 border border-blue-200';
     return 'bg-yellow-50 text-yellow-700 border border-yellow-200';
+}
+
+function expenseStatusLabel(status: ExpenseStatus) {
+    if (status === 'PENDING_LEADER') return 'Chờ leader duyệt';
+    if (status === 'PENDING_ADMIN') return 'Chờ admin duyệt';
+    if (status === 'APPROVED') return 'Đã duyệt';
+    return 'Từ chối';
 }
 
 function taskStatusLabel(s: PreparationTaskStatus) {
@@ -52,6 +61,13 @@ export const PreparationOrganizerPanel: React.FC<{ activityId: number }> = ({ ac
     const [loadingExpenses, setLoadingExpenses] = useState(false);
     const [expenseFilter, setExpenseFilter] = useState<ExpenseStatusFilter>('ALL');
 
+    const [report, setReport] = useState<FinancialReportDto | null>(null);
+    const [loadingReport, setLoadingReport] = useState(false);
+
+    const [onlyMine, setOnlyMine] = useState(true);
+    const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
+    const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+
     const [showAddExpense, setShowAddExpense] = useState(false);
     const [amount, setAmount] = useState('');
     const [description, setDescription] = useState('');
@@ -61,16 +77,23 @@ export const PreparationOrganizerPanel: React.FC<{ activityId: number }> = ({ ac
 
     const [imageModalUrl, setImageModalUrl] = useState<string | null>(null);
 
-    const hasBudget = Boolean(dashboard?.budget);
+    const financialTasks = useMemo(() => {
+        return (dashboard?.tasks ?? []).filter((t) => Boolean(t.isFinancial));
+    }, [dashboard?.tasks]);
 
-    const budgetSummary = useMemo(() => {
-        if (!dashboard?.budget) return null;
-        return {
-            total: dashboard.budget.totalAmount,
-            spent: dashboard.budget.spentAmount,
-            remaining: dashboard.budget.remainingAmount,
-        };
-    }, [dashboard]);
+    const selectedTask = useMemo(() => {
+        if (!selectedTaskId) return null;
+        return (dashboard?.tasks ?? []).find((t) => t.id === selectedTaskId) ?? null;
+    }, [dashboard?.tasks, selectedTaskId]);
+
+    const categories = useMemo<BudgetCategoryDto[]>(() => {
+        return report?.categories ?? [];
+    }, [report]);
+
+    const isLeaderOfSelectedTask = useMemo(() => {
+        if (!selectedTask || !studentId) return false;
+        return selectedTask.ownerId === studentId;
+    }, [selectedTask, studentId]);
 
     useEffect(() => {
         let mounted = true;
@@ -97,6 +120,30 @@ export const PreparationOrganizerPanel: React.FC<{ activityId: number }> = ({ ac
         };
     }, [activityId]);
 
+    useEffect(() => {
+        if (!dashboard?.hasPreparation) return;
+        if (selectedTaskId) return;
+        const first = (dashboard.tasks ?? []).find((t) => t.isFinancial);
+        if (first) setSelectedTaskId(first.id);
+    }, [dashboard?.hasPreparation, dashboard?.tasks, selectedTaskId]);
+
+    const loadReport = useCallback(async () => {
+        try {
+            setLoadingReport(true);
+            const rep = await preparationAPI.getFinancialReport(activityId);
+            setReport(rep);
+        } catch {
+            setReport(null);
+        } finally {
+            setLoadingReport(false);
+        }
+    }, [activityId]);
+
+    useEffect(() => {
+        if (!dashboard?.hasPreparation) return;
+        loadReport();
+    }, [dashboard?.hasPreparation, loadReport]);
+
     const loadExpenses = useCallback(
         async (status: ExpenseStatusFilter) => {
             try {
@@ -114,9 +161,10 @@ export const PreparationOrganizerPanel: React.FC<{ activityId: number }> = ({ ac
     );
 
     useEffect(() => {
-        if (!dashboard?.budget) return;
+        if (!dashboard?.hasPreparation) return;
+        if (tab !== 'FINANCE') return;
         loadExpenses(expenseFilter);
-    }, [dashboard?.budget?.id, expenseFilter, loadExpenses, dashboard?.budget]);
+    }, [dashboard?.hasPreparation, expenseFilter, loadExpenses, tab]);
 
     const updateTaskStatus = async (task: PreparationTaskDto, next: PreparationTaskStatus) => {
         try {
@@ -152,7 +200,14 @@ export const PreparationOrganizerPanel: React.FC<{ activityId: number }> = ({ ac
     };
 
     const submitExpense = async () => {
-        if (!dashboard?.budget) return;
+        if (!selectedTaskId) {
+            toast.warning('Vui lòng chọn task tài chính');
+            return;
+        }
+        if (!selectedCategoryId) {
+            toast.warning('Vui lòng chọn hạng mục');
+            return;
+        }
         if (!amount.trim()) {
             toast.warning('Vui lòng nhập số tiền');
             return;
@@ -162,21 +217,21 @@ export const PreparationOrganizerPanel: React.FC<{ activityId: number }> = ({ ac
             setSubmitting(true);
             let evidenceUrl: string | undefined;
             if (evidenceFile) {
-                evidenceUrl = await preparationAPI.uploadEvidence(activityId, evidenceFile);
+                evidenceUrl = await preparationAPI.uploadEvidence(selectedTaskId, evidenceFile);
             }
-            await preparationAPI.createExpense(activityId, {
+            await preparationAPI.createExpense(selectedTaskId, {
+                categoryId: selectedCategoryId,
                 amount: amount.trim(),
-                description: description.trim() || undefined,
+                description: description.trim() || null,
                 evidenceUrl,
             });
-            toast.success('Đã gửi chi phí (chờ duyệt)');
+            toast.success('Đã gửi chi phí (chờ leader duyệt)');
             setShowAddExpense(false);
             setAmount('');
             setDescription('');
             clearEvidence();
             await loadExpenses(expenseFilter);
-            const dash = await preparationAPI.getDashboard(activityId);
-            setDashboard(dash);
+            await loadReport();
         } catch (e: any) {
             toast.error(e?.response?.data?.message || e?.message || 'Không thể tạo chi phí');
         } finally {
@@ -184,9 +239,15 @@ export const PreparationOrganizerPanel: React.FC<{ activityId: number }> = ({ ac
         }
     };
 
-    useEffect(() => {
-        if (!hasBudget && tab === 'FINANCE') setTab('TASKS');
-    }, [hasBudget, tab]);
+    const decideLeader = async (expenseId: number, approved: boolean) => {
+        try {
+            await preparationAPI.leaderDecision(expenseId, approved);
+            toast.success(approved ? 'Đã duyệt cấp leader' : 'Đã từ chối');
+            await loadExpenses(expenseFilter);
+        } catch (e: any) {
+            toast.error(e?.response?.data?.message || e?.message || 'Không thể xử lý duyệt');
+        }
+    };
 
     if (loading) return null;
     if (!dashboard || !dashboard.hasPreparation) return null;
@@ -212,18 +273,16 @@ export const PreparationOrganizerPanel: React.FC<{ activityId: number }> = ({ ac
                     >
                         Nhiệm vụ
                     </button>
-                    {hasBudget && (
-                        <button
-                            type="button"
-                            onClick={() => setTab('FINANCE')}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${tab === 'FINANCE'
-                                ? 'bg-gradient-to-r from-[#001C44] to-[#002A66] text-white border-transparent'
-                                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-                                }`}
-                        >
-                            Tài chính
-                        </button>
-                    )}
+                    <button
+                        type="button"
+                        onClick={() => setTab('FINANCE')}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${tab === 'FINANCE'
+                            ? 'bg-gradient-to-r from-[#001C44] to-[#002A66] text-white border-transparent'
+                            : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                            }`}
+                    >
+                        Tài chính
+                    </button>
                 </div>
 
                 {tab === 'TASKS' && (
@@ -232,7 +291,9 @@ export const PreparationOrganizerPanel: React.FC<{ activityId: number }> = ({ ac
                             <div className="text-sm text-gray-500">Chưa có nhiệm vụ chuẩn bị.</div>
                         ) : (
                             dashboard.tasks.map((t) => {
-                                const mine = studentId != null && t.assigneeId === studentId;
+                                const mine =
+                                    studentId != null &&
+                                    (typeof t.assigneeId !== 'number' || t.assigneeId === studentId);
                                 return (
                                     <div key={t.id} className="border border-gray-200 rounded-xl p-4">
                                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
@@ -248,7 +309,9 @@ export const PreparationOrganizerPanel: React.FC<{ activityId: number }> = ({ ac
                                                     </span>
                                                 </div>
                                                 <div className="text-xs text-gray-500 mt-1">
-                                                    <span>{t.assigneeName ? `Phụ trách: ${t.assigneeName}` : `Phụ trách: #${t.assigneeId}`}</span>
+                                                    <span>
+                                                        {t.ownerName ? `Leader: ${t.ownerName}` : `Leader: #${t.ownerId}`}
+                                                    </span>
                                                     {t.deadline && (
                                                         <span className="ml-3">Hạn: {new Date(t.deadline).toLocaleString('vi-VN')}</span>
                                                     )}
@@ -281,44 +344,200 @@ export const PreparationOrganizerPanel: React.FC<{ activityId: number }> = ({ ac
                     </div>
                 )}
 
-                {tab === 'FINANCE' && dashboard.budget && budgetSummary && (
+                {tab === 'FINANCE' && (
                     <div className="space-y-5">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <div className="border border-gray-200 rounded-xl p-4 bg-white">
-                                <div className="text-xs text-gray-500">Tổng ngân sách</div>
-                                <div className="text-lg font-bold text-[#001C44] mt-1">{formatMoney(budgetSummary.total)}</div>
+                        <div className="border border-gray-200 rounded-xl overflow-hidden">
+                            <div className="bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700 flex items-center justify-between">
+                                <span>Ngân sách theo hạng mục</span>
+                                {loadingReport && <span className="text-xs text-gray-500">Đang tải...</span>}
                             </div>
+                            {!report ? (
+                                <div className="p-4 text-sm text-gray-500">{dashboard.financeMessage || 'Chưa khởi tạo ngân sách.'}</div>
+                            ) : report.categories.length === 0 ? (
+                                <div className="p-4 text-sm text-gray-500">Chưa có hạng mục ngân sách.</div>
+                            ) : (
+                                <div className="divide-y divide-gray-200">
+                                    {report.categories.map((c) => (
+                                        <div key={c.id} className="p-4 bg-white">
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <div className="text-sm font-semibold text-gray-900 truncate">{c.name}</div>
+                                                    <div className="text-xs text-gray-500 mt-1">
+                                                        Đã dùng: {formatMoney(c.usedAmount)} / {formatMoney(c.allocatedAmount)}
+                                                    </div>
+                                                </div>
+                                                <div className="shrink-0 text-right">
+                                                    <div className="text-sm font-semibold text-[#001C44]">{formatMoney(c.remainingAmount)}</div>
+                                                    <div className="text-xs text-gray-500">Còn lại</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                             <div className="border border-gray-200 rounded-xl p-4 bg-white">
-                                <div className="text-xs text-gray-500">Đã chi (APPROVED)</div>
-                                <div className="text-lg font-bold text-[#001C44] mt-1">{formatMoney(budgetSummary.spent)}</div>
+                                <div className="text-xs text-gray-500">Task tài chính</div>
+                                <select
+                                    className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
+                                    value={selectedTaskId ?? ''}
+                                    onChange={(e) => {
+                                        const v = Number(e.target.value);
+                                        setSelectedTaskId(Number.isFinite(v) && v > 0 ? v : null);
+                                    }}
+                                >
+                                    <option value="">Chọn task...</option>
+                                    {financialTasks.map((t) => (
+                                        <option key={t.id} value={t.id}>
+                                            {t.title}
+                                        </option>
+                                    ))}
+                                </select>
+                                {selectedTask && (
+                                    <div className="text-xs text-gray-500 mt-2">
+                                        <span>{selectedTask.ownerName ? `Leader: ${selectedTask.ownerName}` : `Leader: #${selectedTask.ownerId}`}</span>
+                                        <span className="ml-3">Allocated: {formatMoney(selectedTask.allocatedAmount)}</span>
+                                    </div>
+                                )}
                             </div>
+
                             <div className="border border-gray-200 rounded-xl p-4 bg-white">
-                                <div className="text-xs text-gray-500">Còn lại</div>
-                                <div className="text-lg font-bold text-[#001C44] mt-1">{formatMoney(budgetSummary.remaining)}</div>
+                                <div className="text-xs text-gray-500">Hạng mục</div>
+                                <select
+                                    className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
+                                    value={selectedCategoryId ?? ''}
+                                    onChange={(e) => {
+                                        const v = Number(e.target.value);
+                                        setSelectedCategoryId(Number.isFinite(v) && v > 0 ? v : null);
+                                    }}
+                                    disabled={!categories.length}
+                                >
+                                    <option value="">Chọn hạng mục...</option>
+                                    {categories.map((c) => (
+                                        <option key={c.id} value={c.id}>
+                                            {c.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                {!categories.length && (
+                                    <div className="text-xs text-gray-500 mt-2">Chưa có hạng mục ngân sách.</div>
+                                )}
+                            </div>
+
+                            <div className="border border-gray-200 rounded-xl p-4 bg-white flex flex-col justify-between">
+                                <div>
+                                    <div className="text-xs text-gray-500">Hiển thị</div>
+                                    <label className="mt-2 inline-flex items-center gap-2 text-sm text-gray-700">
+                                        <input
+                                            type="checkbox"
+                                            checked={onlyMine}
+                                            onChange={(e) => setOnlyMine(e.target.checked)}
+                                            className="h-4 w-4"
+                                        />
+                                        Chỉ chi phí của tôi
+                                    </label>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAddExpense(true)}
+                                    className="btn-yellow px-6 py-2 rounded-lg text-sm font-medium mt-4"
+                                    disabled={!selectedTaskId || !selectedCategoryId}
+                                >
+                                    + Tạo chi phí
+                                </button>
                             </div>
                         </div>
 
+                        {isLeaderOfSelectedTask && (
+                            <div className="border border-gray-200 rounded-xl overflow-hidden">
+                                <div className="bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">Duyệt cấp 1 (Leader)</div>
+                                <div className="p-4 bg-white text-sm text-gray-600">
+                                    Chỉ hiển thị các khoản chi đang chờ leader duyệt thuộc task đã chọn.
+                                </div>
+                                <div className="divide-y divide-gray-200">
+                                    {expenses
+                                        .filter((ex) => ex.status === 'PENDING_LEADER')
+                                        .filter((ex) => ex.taskId != null && selectedTaskId != null && ex.taskId === selectedTaskId)
+                                        .map((ex) => {
+                                            const imgUrl = getImageUrl(ex.evidenceUrl);
+                                            return (
+                                                <div key={ex.id} className="p-4 bg-white">
+                                                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                                                        <div className="min-w-0">
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <div className="text-sm font-semibold text-gray-900">{formatMoney(ex.amount)}</div>
+                                                                <span
+                                                                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusBadgeClass(
+                                                                        ex.status
+                                                                    )}`}
+                                                                >
+                                                                    {expenseStatusLabel(ex.status)}
+                                                                </span>
+                                                            </div>
+                                                            <div className="text-xs text-gray-500 mt-1">
+                                                                <span>
+                                                                    {ex.createdByName ? `Người gửi: ${ex.createdByName}` : `Người gửi: #${ex.createdById ?? ''}`}
+                                                                </span>
+                                                                <span className="ml-3">{new Date(ex.createdAt).toLocaleString('vi-VN')}</span>
+                                                                {ex.categoryName && <span className="ml-3">Hạng mục: {ex.categoryName}</span>}
+                                                            </div>
+                                                            {ex.description && <div className="text-sm text-gray-600 mt-2">{ex.description}</div>}
+                                                        </div>
+                                                        <div className="shrink-0 flex items-center gap-2">
+                                                            {imgUrl && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setImageModalUrl(imgUrl)}
+                                                                    className="px-3 py-2 text-sm font-medium border border-gray-200 rounded-lg hover:bg-gray-50"
+                                                                >
+                                                                    Minh chứng
+                                                                </button>
+                                                            )}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => decideLeader(ex.id, true)}
+                                                                className="px-3 py-2 text-sm font-semibold text-white bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-lg"
+                                                            >
+                                                                Duyệt
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => decideLeader(ex.id, false)}
+                                                                className="px-3 py-2 text-sm font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg"
+                                                            >
+                                                                Từ chối
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    {expenses.filter((ex) => ex.status === 'PENDING_LEADER' && ex.taskId === selectedTaskId).length === 0 && (
+                                        <div className="p-4 text-sm text-gray-500">Không có khoản chi nào chờ duyệt.</div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                             <div className="flex items-center gap-2">
-                                <label className="text-sm font-medium text-gray-700">Trạng thái</label>
+                                <label htmlFor="prep-org-expense-filter" className="text-sm font-medium text-gray-700">Trạng thái</label>
                                 <select
+                                    id="prep-org-expense-filter"
+                                    name="prepOrgExpenseFilter"
                                     className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
                                     value={expenseFilter}
                                     onChange={(e) => setExpenseFilter(e.target.value as ExpenseStatusFilter)}
                                 >
-                                    <option value="ALL">ALL</option>
-                                    <option value="PENDING">PENDING</option>
+                                    <option value="ALL">Tất cả</option>
+                                    <option value="PENDING_LEADER">PENDING_LEADER</option>
+                                    <option value="PENDING_ADMIN">PENDING_ADMIN</option>
                                     <option value="APPROVED">APPROVED</option>
                                     <option value="REJECTED">REJECTED</option>
                                 </select>
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => setShowAddExpense(true)}
-                                className="btn-yellow px-6 py-2 rounded-lg text-sm font-medium"
-                            >
-                                + Thêm chi phí
-                            </button>
                         </div>
 
                         <div className="border border-gray-200 rounded-xl overflow-hidden">
@@ -329,46 +548,54 @@ export const PreparationOrganizerPanel: React.FC<{ activityId: number }> = ({ ac
                                 <div className="p-4 text-sm text-gray-500">Chưa có khoản chi nào.</div>
                             ) : (
                                 <div className="divide-y divide-gray-200">
-                                    {expenses.map((ex) => {
-                                        const state = mapApproval(ex.approved);
-                                        const imgUrl = getImageUrl(ex.evidenceUrl);
-                                        return (
-                                            <div key={ex.id} className="p-4 bg-white">
-                                                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                                                    <div className="min-w-0">
-                                                        <div className="flex flex-wrap items-center gap-2">
-                                                            <div className="text-sm font-semibold text-gray-900">{formatMoney(ex.amount)}</div>
-                                                            <span
-                                                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusBadgeClass(
-                                                                    state
-                                                                )}`}
-                                                            >
-                                                                {state}
-                                                            </span>
+                                    {expenses
+                                        .filter((ex) => {
+                                            if (!onlyMine) return true;
+                                            if (!studentId) return true;
+                                            return ex.createdById === studentId;
+                                        })
+                                        .map((ex) => {
+                                            const imgUrl = getImageUrl(ex.evidenceUrl);
+                                            return (
+                                                <div key={ex.id} className="p-4 bg-white">
+                                                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                                                        <div className="min-w-0">
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <div className="text-sm font-semibold text-gray-900">{formatMoney(ex.amount)}</div>
+                                                                <span
+                                                                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusBadgeClass(
+                                                                        ex.status
+                                                                    )}`}
+                                                                >
+                                                                    {expenseStatusLabel(ex.status)}
+                                                                </span>
+                                                            </div>
+                                                            <div className="text-xs text-gray-500 mt-1">
+                                                                <span>
+                                                                    {ex.createdByName ? `Người gửi: ${ex.createdByName}` : `Người gửi: #${ex.createdById ?? ''}`}
+                                                                </span>
+                                                                <span className="ml-3">{new Date(ex.createdAt).toLocaleString('vi-VN')}</span>
+                                                                {ex.categoryName && <span className="ml-3">Hạng mục: {ex.categoryName}</span>}
+                                                            </div>
+                                                            {ex.description && <div className="text-sm text-gray-600 mt-2">{ex.description}</div>}
                                                         </div>
-                                                        <div className="text-xs text-gray-500 mt-1">
-                                                            <span>{ex.reportedByName ? `Báo cáo: ${ex.reportedByName}` : `Báo cáo: #${ex.reportedById}`}</span>
-                                                            <span className="ml-3">{new Date(ex.createdAt).toLocaleString('vi-VN')}</span>
+                                                        <div className="shrink-0">
+                                                            {imgUrl ? (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setImageModalUrl(imgUrl)}
+                                                                    className="px-3 py-2 text-sm font-medium border border-gray-200 rounded-lg hover:bg-gray-50"
+                                                                >
+                                                                    Minh chứng
+                                                                </button>
+                                                            ) : (
+                                                                <div className="text-xs text-gray-400 mt-1">Không có minh chứng</div>
+                                                            )}
                                                         </div>
-                                                        {ex.description && <div className="text-sm text-gray-600 mt-2">{ex.description}</div>}
-                                                    </div>
-                                                    <div className="shrink-0">
-                                                        {imgUrl ? (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setImageModalUrl(imgUrl)}
-                                                                className="px-3 py-2 text-sm font-medium border border-gray-200 rounded-lg hover:bg-gray-50"
-                                                            >
-                                                                Minh chứng
-                                                            </button>
-                                                        ) : (
-                                                            <div className="text-xs text-gray-400 mt-1">Không có minh chứng</div>
-                                                        )}
                                                     </div>
                                                 </div>
-                                            </div>
-                                        );
-                                    })}
+                                            );
+                                        })}
                                 </div>
                             )}
                         </div>
@@ -403,8 +630,51 @@ export const PreparationOrganizerPanel: React.FC<{ activityId: number }> = ({ ac
 
                         <div className="p-6 space-y-4">
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Số tiền</label>
+                                <label htmlFor="prep-org-expense-task" className="block text-sm font-semibold text-gray-700 mb-2">Task tài chính</label>
+                                <select
+                                    id="prep-org-expense-task"
+                                    name="prepOrgExpenseTask"
+                                    value={selectedTaskId ?? ''}
+                                    onChange={(e) => {
+                                        const v = Number(e.target.value);
+                                        setSelectedTaskId(Number.isFinite(v) && v > 0 ? v : null);
+                                    }}
+                                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
+                                >
+                                    <option value="">Chọn task...</option>
+                                    {financialTasks.map((t) => (
+                                        <option key={t.id} value={t.id}>
+                                            {t.title}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label htmlFor="prep-org-expense-category" className="block text-sm font-semibold text-gray-700 mb-2">Hạng mục ngân sách</label>
+                                <select
+                                    id="prep-org-expense-category"
+                                    name="prepOrgExpenseCategory"
+                                    value={selectedCategoryId ?? ''}
+                                    onChange={(e) => {
+                                        const v = Number(e.target.value);
+                                        setSelectedCategoryId(Number.isFinite(v) && v > 0 ? v : null);
+                                    }}
+                                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
+                                    disabled={!categories.length}
+                                >
+                                    <option value="">Chọn hạng mục...</option>
+                                    {categories.map((c) => (
+                                        <option key={c.id} value={c.id}>
+                                            {c.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label htmlFor="prep-org-expense-amount" className="block text-sm font-semibold text-gray-700 mb-2">Số tiền</label>
                                 <input
+                                    id="prep-org-expense-amount"
+                                    name="prepOrgExpenseAmount"
                                     type="text"
                                     value={amount}
                                     onChange={(e) => setAmount(e.target.value)}
@@ -413,8 +683,10 @@ export const PreparationOrganizerPanel: React.FC<{ activityId: number }> = ({ ac
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Nội dung</label>
+                                <label htmlFor="prep-org-expense-desc" className="block text-sm font-semibold text-gray-700 mb-2">Nội dung</label>
                                 <textarea
+                                    id="prep-org-expense-desc"
+                                    name="prepOrgExpenseDesc"
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
                                     rows={3}
@@ -423,8 +695,10 @@ export const PreparationOrganizerPanel: React.FC<{ activityId: number }> = ({ ac
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Chụp ảnh hóa đơn</label>
+                                <label htmlFor="prep-org-expense-evidence" className="block text-sm font-semibold text-gray-700 mb-2">Chụp ảnh hóa đơn</label>
                                 <input
+                                    id="prep-org-expense-evidence"
+                                    name="prepOrgExpenseEvidence"
                                     type="file"
                                     accept="image/*"
                                     capture="environment"

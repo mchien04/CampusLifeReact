@@ -58,9 +58,12 @@ export default function PreparationManagement() {
                         }
 
                         const pendingTasks = (dash.tasks || []).filter((t) => t.status === 'PENDING').length;
-                        const waiting = await preparationAPI.listExpenses(activityId, 'PENDING');
+                        const waiting = await preparationAPI.listExpenses(activityId, 'PENDING_ADMIN');
                         const waitingExpenses = waiting.length;
-                        const remainingAmount = dash.budget ? dash.budget.remainingAmount : null;
+                        const report = await preparationAPI.getFinancialReport(activityId).catch(() => null);
+                        const remainingAmount = report
+                            ? String(report.categories.reduce((acc, c) => acc + (Number(c.remainingAmount) || 0), 0))
+                            : null;
                         return [activityId, { enabled: true, pendingTasks, waitingExpenses, remainingAmount }] as const;
                     } catch {
                         return [
