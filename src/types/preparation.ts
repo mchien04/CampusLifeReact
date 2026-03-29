@@ -1,4 +1,24 @@
-export type PreparationTaskStatus = 'PENDING' | 'ACCEPTED' | 'COMPLETED';
+/* ====================================================================
+  ENUMS & STATUS TYPES
+  ==================================================================== */
+
+export type PreparationTaskStatus = 'PENDING' | 'ACCEPTED' | 'COMPLETION_REQUESTED' | 'COMPLETED';
+
+export type PreparationTaskMemberRole = 'LEADER' | 'MEMBER';
+
+export type ExpenseStatus = 'PENDING_LEADER' | 'PENDING_ADMIN' | 'APPROVED' | 'REJECTED';
+
+export type FundAdvanceStatus = 'REQUESTED' | 'HOLDING' | 'SETTLED' | 'REJECTED';
+
+export type AllocationAdjustmentStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export type WorkloadWarningType = 'OVERLOADED' | 'UNASSIGNED';
+
+export type ExpenseStatusFilter = 'ALL' | ExpenseStatus;
+
+/* ====================================================================
+  DTO TYPES - Tasks & Workflow
+  ==================================================================== */
 
 export type PreparationTaskDto = {
   id: number;
@@ -8,7 +28,6 @@ export type PreparationTaskDto = {
   title: string;
   description: string | null;
   deadline: string | null;
-  budgetLimit: string | null;
   allocatedAmount: string;
   isFinancial: boolean;
   status: PreparationTaskStatus;
@@ -16,15 +35,56 @@ export type PreparationTaskDto = {
   assigneeName?: string | null;
 };
 
+export type PreparationTaskMemberDto = {
+  studentId: number;
+  studentName: string | null;
+  role: PreparationTaskMemberRole;
+};
+
 export type PreparationDashboardDto = {
   activityId: number;
   hasPreparation: boolean;
   tasks: PreparationTaskDto[];
-  budget: null;
+  budget: ActivityBudgetDto | null;
   financeMessage: string | null;
 };
 
-export type ExpenseStatus = 'PENDING_LEADER' | 'PENDING_ADMIN' | 'APPROVED' | 'REJECTED';
+/* ====================================================================
+  DTO TYPES - Organizer & Member Management
+  ==================================================================== */
+
+export type OrganizerDto = {
+  studentId: number;
+  fullName: string;
+};
+
+/* ====================================================================
+  DTO TYPES - Budget & Categories
+  ==================================================================== */
+
+export type BudgetCategoryDto = {
+  id: number;
+  name: string;
+  allocatedAmount: string;
+  allocatedToTasksAmount: string;
+  availableToAllocateAmount: string;
+  cashOutsideAmount: string;
+  cashAvailableAmount: string;
+  usedAmount: string;
+  remainingAmount: string;
+  usedPercent: number;
+};
+
+export type ActivityBudgetDto = {
+  id: number;
+  activityId: number;
+  totalAmount: string;
+  categories: BudgetCategoryDto[];
+};
+
+/* ====================================================================
+  DTO TYPES - Expense
+  ==================================================================== */
 
 export type ExpenseDto = {
   id: number;
@@ -41,43 +101,87 @@ export type ExpenseDto = {
   createdAt: string;
 };
 
-export type BudgetCategoryDto = {
-  id: number;
-  name: string;
-  allocatedAmount: string;
-  usedAmount: string;
-  remainingAmount: string;
-  usedPercent: number;
+export type OverBudgetInfoDto = {
+  taskId: number;
+  requiredAdditionalAmount: string;
+  currentAllocatedAmount: string;
+  committedAmount: string;
+  suggestedSources: AllocationSourceSuggestionDto[];
 };
 
-export type ActivityBudgetDto = {
-  id: number;
-  activityId: number;
-  totalAmount: string;
-  categories: BudgetCategoryDto[];
-};
-
-export type FundAdvanceStatus = 'HOLDING' | 'SETTLED';
+/* ====================================================================
+  DTO TYPES - Fund Advance & Allocation
+  ==================================================================== */
 
 export type FundAdvanceDto = {
   id: number;
   taskId: number;
+  categoryId: number;
+  categoryName: string;
   studentId: number;
   studentName: string | null;
+  requestedById: number;
+  requestedByName: string | null;
   amount: string;
   remainingAmount: string;
   status: FundAdvanceStatus;
   createdAt: string;
+  decidedAt: string | null;
 };
+
+export type FundAdvanceSourceSuggestionDto = {
+  categoryId: number;
+  categoryName: string;
+  allocationRemainingAmount: string;
+  cashAvailableAmount: string;
+  maxAdvanceAmount: string;
+};
+
+export type FundAdvanceDebtDto = {
+  studentId: number;
+  studentName: string | null;
+  holdingAmount: string;
+};
+
+export type AllocationAdjustmentRequestDto = {
+  id: number;
+  taskId: number;
+  taskTitle: string;
+  amount: string;
+  status: AllocationAdjustmentStatus;
+  requestedById: number;
+  requestedByName: string | null;
+  preferredCategoryId: number | null;
+  preferredCategoryName: string | null;
+  decidedById: number | null;
+  decidedByName: string | null;
+  decidedCategoryId: number | null;
+  decidedCategoryName: string | null;
+  decidedAt: string | null;
+  createdAt: string;
+};
+
+export type AllocationSourceSuggestionDto = {
+  categoryId: number;
+  categoryName: string;
+  availableToAllocateAmount: string;
+};
+
+/* ====================================================================
+  DTO TYPES - Reports & Warnings
+  ==================================================================== */
 
 export type TaskOverBudgetDto = {
   taskId: number;
   title: string;
-  budgetLimit: string | null;
   allocatedAmount: string;
   approvedSpent: string;
 };
 
+/**
+ * Old financial report (used by existing components)
+ * @deprecated Use FinanceOverviewReportDto in Phase 6
+ */
 export type FinancialReportDto = {
   activityId: number;
   totalBudget: string;
@@ -85,14 +189,72 @@ export type FinancialReportDto = {
   overBudgetTasks: TaskOverBudgetDto[];
 };
 
-export type OrganizerDto = {
-  studentId: number;
-  fullName: string;
+export type TaskSpendStatusDto = {
+  taskId: number;
+  taskTitle: string;
+  allocatedAmount: string;
+  committedAmount: string;
+  approvedSpent: string;
+  usedPercent: number;
 };
+
+export type InvoiceStatusSummaryDto = {
+  status: ExpenseStatus;
+  count: number;
+  totalAmount: string;
+};
+
+export type FinanceOverviewReportDto = {
+  activityId: number;
+  totalBudget: string;
+  totalAllocatedToTasks: string;
+  totalApprovedSpent: string;
+  varianceAllocatedVsApproved: string;
+  wallets: BudgetCategoryDto[];
+  tasks: TaskSpendStatusDto[];
+};
+
+export type CashFlowReportDto = {
+  activityId: number;
+  totalBudget: string;
+  approvedSpent: string;
+  cashOutsideWallet: string;
+  cashInsideWallet: string;
+  advanceDebts: FundAdvanceDebtDto[];
+  invoiceStatusSummary: InvoiceStatusSummaryDto[];
+};
+
+export type WorkloadWarningDto = {
+  studentId: number;
+  studentName: string | null;
+  taskCount: number;
+  type: WorkloadWarningType;
+};
+
+/* ====================================================================
+  REQUEST/RESPONSE TYPES - Misc
+  ==================================================================== */
 
 export type UploadResultDto = { url: string };
 
+/* ====================================================================
+  REQUEST TYPES - Expense
+  ==================================================================== */
+
+export type CreateExpenseRequest = {
+  categoryId: number;
+  amount: string;
+  description?: string | null;
+  evidenceUrl?: string | null;
+};
+
 export type ApproveExpenseRequest = { approved: boolean };
+
+export type AdminDecideExpenseRequest = { approved: boolean };
+
+/* ====================================================================
+  REQUEST TYPES - Budget & Allocation
+  ==================================================================== */
 
 export type UpsertBudgetCategoryRequest = {
   name: string;
@@ -104,21 +266,55 @@ export type UpsertActivityBudgetRequest = {
   categories: UpsertBudgetCategoryRequest[];
 };
 
-export type AllocateTaskAmountRequest = {
+/**
+ * Allocate task amount - Phase 3 (without category selection)
+ * @deprecated Use AllocateTaskAmountRequest in Phase 4+ with categoryId
+ */
+export type AllocateTaskAmountRequestV1 = {
   allocatedAmount: string;
 };
 
-export type CreateFundAdvanceRequest = {
+/**
+ * Allocate task amount - Phase 4+ (with category/source selection)
+ */
+export type AllocateTaskAmountRequest = {
+  categoryId: number;
+  allocatedAmount: string;
+};
+
+export type CreateAllocationAdjustmentRequest = {
+  amount: string;
+  preferredCategoryId?: number | null;
+};
+
+export type AdminDecisionAllocationAdjustmentRequest = {
+  approved: boolean;
+  categoryId?: number | null;
+};
+
+/* ====================================================================
+  REQUEST TYPES - Fund Advance
+  ==================================================================== */
+
+/**
+ * Old fund advance request (Phases 1-4, admin only)
+ * @deprecated Use CreateFundAdvanceRequest in Phase 5 with categoryId
+ */
+export type CreateFundAdvanceRequestV1 = {
   studentId: number;
   amount: string;
 };
 
-export type CreateExpenseRequest = {
+/**
+ * New fund advance request (Phase 5+, with category/source selection)
+ */
+export type CreateFundAdvanceRequest = {
+  studentId: number;
   categoryId: number;
   amount: string;
-  description?: string | null;
-  evidenceUrl?: string | null;
 };
 
-export type ExpenseStatusFilter = 'ALL' | ExpenseStatus;
+export type ApproveFundAdvanceRequest = { approved: boolean };
+
+export type AdminDecideFundAdvanceRequest = { approved: boolean };
 
