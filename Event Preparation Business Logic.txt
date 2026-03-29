@@ -1,0 +1,103 @@
+Mô tả nghiệp vụ chuẩn bị sự kiện.
+1. thành viên ban tổ chức (organizer)
+- admin thêm các sinh viên thông qua mssv.
+- sinh viên được thêm mới thấy được phần chuẩn bị sự kiện này.
+- cho phép thêm 1 hoặc nhiều sinh viên vào ban tổ chức 1 lần.
+2. ngân sách
+- tổng ngân sách của sự kiện (coi như là 1 ví lớn).(nếu không nhập các hạng mục thì coi như sự kiện chỉ có 1 ví này).
+- các hạng mục ngân sách nhỏ (coi như là 1 ví nhỏ trực thuộc ví lớn).(nếu nhập các hạng mục thì khi phân chia task sẽ dùng các ví này thay vì 1 ví lớn).
+- ví dụ:
++ tổng ngân sách 5000000
++ bàn ghế: 2000000
++ hoa: 1500000
++khác: 1500000 (phần này phải tự động được trừ ra sau khi nhập các hạng mục mà tổng tiền trừ ra vẫn còn dư)
+3. task (nhiệm vụ)
+- Một sự kiện có thể có nhiều task. Việc phân chia người vào task sẽ được thực hiện sau khi tạo các task. 
+- một task có thể có nhiều người tham gia.
+- trong những người tham gia, có thể gán quyền leader cho một/vài người nhất định (người chịu trách nhiệm).
+- có thể xem thành viên đã được giao task nào chưa để tránh thiếu sót hoặc người làm nhiều task (vẫn cho phép, chỉ là dấu hiệu).
+- task được chia thành 2 loại là task tài chính (mua hoa, thuê bàn)/ task không tài chính (xếp bàn ghế, quét dọn).
+3.1. task tài chính
+- budgetlimit trong PreparationTask là dư thừa với logic mới, xóa đi.
+- bắt buộc phải có ít nhất một "Leader" (người chịu trách nhiệm chính) để báo cáo tiến độ và quản lý dòng tiền (đối với task tài chính).
+-Cấp ngân sách cho task (Allocate)
+•	Khi tạo task tài chính, người có quyền (admin) phải thực hiện allocate: xác định số tiền tối đa mà task được phép chi.
+•	Nguồn cấp:
+o	Nếu sự kiện có hạng mục nhỏ, allocate được chọn từ một hạng mục cụ thể (ví dụ: cấp 1.500.000 từ hạng mục “hoa” cho task “Mua hoa”).
+o	Nếu sự kiện chỉ có ví lớn, allocate lấy từ ví lớn.
+•	Ảnh hưởng đến số dư: Khi allocate, số dư của ví (hạng mục hoặc ví lớn) giảm tương ứng.
+•	Mục đích: Việc allocate coi như đã “ứng” tiền cho task (dưới dạng phân bổ ngân sách), không phải ứng cho cá nhân.
+-Ứng tiền cho cá nhân (Fund Advance)
+•	Khác với allocate: Fund advance là việc ứng trước tiền mặt cho một thành viên cụ thể để họ chi tiêu thay cho task.
+•	Đối tượng thực hiện: Leader, ứng tiền cho thành viên vụ thể, có thể tự ứng cho bản thân.
+•	Mỗi lần ứng, hệ thống ghi nhận: ai ứng, số tiền, thuộc task nào, ngày ứng.
+•	Số tiền ứng không làm giảm ngân sách đã allocate mà chỉ là dòng tiền tạm thời. Khi thành viên nhập khoản chi, hệ thống sẽ đối soát với số đã ứng.
+•	Quản trị dòng tiền: Người quản lý có thể xem tổng số đã ứng, số còn lại của từng task, tránh tình trạng ứng vượt quá allocate.
+// Quy trình thực hiện Tạm ứng (FundAdvance)
+Bước 1: Khởi tạo yêu cầu (Request)
+•	Đối tượng: Chỉ Leader của Task tài mới có quyền tạo phiếu ứng tiền.
+•	Điều kiện kiểm tra (Validation):
+o	Số tiền yêu cầu phải Số dư hạn mức còn lại của Task
+o	Người yêu cầu không được có khoản tạm ứng nào quá hạn chưa quyết toán (Nguyên tắc: "Dứt điểm kỳ trước mới cho ứng kỳ sau").
+Bước 2: Phê duyệt (Approval)
+•	Thẩm quyền: sau khi leader tạo ứng tiền
+o	Ghi nợ cá nhân: Tăng khoản nợ (Debt) của sinh viên đó trong hệ thống.
+o	Trừ tiền mặt: Số dư tiền mặt thực tế của Ví (Hạng mục/Tổng) giảm xuống, nhưng hạn mức Allocate của Task không đổi (vì tiền đã được "giữ chỗ" từ trước).
+2. Logic nhập chi phí và Quyết toán (Reconciliation)
+Khi thành viên đi mua đồ và có hóa đơn, họ nhập khoản chi vào Task:
+•	Nếu chi tiêu bằng tiền tạm ứng: Hệ thống đối trừ vào khoản nợ của người đã nhận FundAdvance.
+•	Nếu chi tiêu bằng tiền cá nhân: Hệ thống ghi nhận đây là khoản "Nợ thành viên" để hoàn trả sau.
+//
+-Nhập khoản chi và đăng hóa đơn
+•	Khi thành viên (trong task) thực hiện chi tiêu, họ nhập khoản chi với các thông tin:
+o	Task liên quan (nếu thành viên thuộc nhiều task, hệ thống hiển thị danh sách để chọn).
+o	Số tiền chi thực tế.
+o	Hóa đơn (tải file ảnh, PDF).
+o	Chọn ứng trước để khấu trừ: nếu đã có fund advance, hệ thống tự động khấu trừ vào số tiền ứng.
+•	Cập nhật số dư task: Sau khi nhập chi, số dư của task (ngân sách allocate – tổng chi) được tính toán lại. Nếu chi vượt quá allocate, hệ thống cảnh báo và yêu cầu xử lý.
+-Kiểm soát vượt ngân sách
+Trường hợp tổng chi của task vượt quá số tiền đã allocate, hệ thống hỗ trợ xử lý như sau:
++Cảnh báo ngay: Khi nhập khoản chi làm vượt mức, hệ thống hiển thị cảnh báo rõ ràng, không tự động cho phép vượt.
++Đề xuất nguồn bổ sung:
+o	Nếu sự kiện có các hạng mục nhỏ, hệ thống liệt kê các hạng mục còn dư (bao gồm cả mục “Khác”) để người dùng chọn bổ sung.
+o	Nếu sự kiện chỉ có ví lớn, hệ thống kiểm tra số dư ví lớn còn lại.
++Phê duyệt điều chỉnh: Việc bổ sung ngân sách cho task phải được admin phê duyệt. Sau khi phê duyệt:
+o	Thực hiện allocate bổ sung từ nguồn tương ứng (giảm số dư ví đó).
+o	Cập nhật lại ngân sách allocate của task.
++Nếu không có nguồn dự phòng: Hệ thống yêu cầu họp ban tổ chức để xem xét cắt giảm chi phí hoặc huy động thêm ngân sách từ bên ngoài (ghi nhận bằng quy trình đặc biệt).
+Xử lý các Tình huống Chi lố thực tế
+Trong trường hợp thành viên đã tự ý chi lố (sử dụng tiền cá nhân hoặc tiền tạm ứng lớn hơn hạn mức task), quy trình xử lý bao gồm việc rà soát tính hợp lý của chứng từ. Nếu khoản chi là cần thiết cho sự kiện, BTC sẽ thực hiện thanh toán thêm (hoàn trả cho sinh viên). Nếu khoản chi không hợp lý hoặc vượt quá khả năng phê duyệt, cá nhân đó có thể phải tự chịu trách nhiệm về phần chênh lệch theo quy định tài chính nội bộ.
+3.2. task không tài chính.
+- Tạo task không tài chính
+•	Người có quyền (admin) tạo task, chọn loại Không tài chính
+•	Các trường liên quan đến ngân sách (budgetLimit, allocatedAmount) không hiển thị hoặc bị vô hiệu hóa.
+•	Thông tin task bao gồm: tên, mô tả, hạn hoàn thành (deadline), người chịu trách nhiệm (leader).
+- Phân công thành viên
+•	Một thành viên có thể tham gia nhiều task (cả tài chính và không tài chính).
+•	Hệ thống hỗ trợ cảnh báo nếu thành viên đã tham gia quá nhiều task.
+3.3. quản lý trạng thái.
+-Khi giao nhiệm vụ sẽ là pending.
+- thành viên nhận đổi thành accept.
+- hoàn thành công việc thành viên gửi yêu cầu complete, admin duyệt thì đổi complete, từ chối vẫn là accept.
+
+4. các chức năng bổ trợ
+- Báo cáo Tổng quan Tài chính (Budget vs. Actual)
+Đây là báo cáo quan trọng nhất để Admin nắm bắt "sức khỏe" tài chính của sự kiện.
+•	Biểu đồ Cân đối Ngân sách: So sánh giữa Tổng ngân sách (Budget) và Tổng chi thực tế (Actual Spend) theo thời gian thực.
+•	Chỉ số Variance (Biến động): Hiển thị chênh lệch giữa số tiền đã phân bổ (Allocate) và số tiền thực chi trên hóa đơn.
+•	Trạng thái các Ví: Hiển thị số dư hiện tại của từng Ví hạng mục và đặc biệt là Ví "Khác" (Residual Budget) để biết nguồn dự phòng còn lại bao nhiêu.
+•	Cảnh báo Ngưỡng chi tiêu: Tự động đổi màu cảnh báo khi một task đã tiêu dùng hết 80%, 90% hoặc vượt 100% hạn mức Allocate.
+- Báo cáo Quản trị Dòng tiền và Tạm ứng (Cash Flow & Advance)
+Nhóm báo cáo này giúp kiểm soát tiền mặt đang nằm trong tay ai và trạng thái đối soát.
+•	Tiền trong ví vs. Tiền ngoài ví: Biểu đồ tròn thể hiện tỷ lệ tiền còn nằm trong tài khoản BTC so với số tiền đang được tạm ứng (FundAdvance) cho các thành viên đi mua sắm.
+•	Danh sách "Nợ" Tạm ứng: Liệt kê các thành viên đang giữ tiền tạm ứng nhưng chưa nộp hóa đơn quyết toán.
+•	Tỷ lệ Hóa đơn chờ duyệt: Theo dõi khối lượng chứng từ đang chờ kế toán hoặc Admin phê duyệt để biết tiến độ quyết toán thực tế.
+3. Báo cáo Hiệu suất Task và Nhân sự (Operation & Personnel)
+Báo cáo này giúp tối ưu hóa nguồn lực sinh viên dựa trên định danh MSSV.
+•	Tiến độ thực hiện Task: Biểu đồ thanh (Gantt Chart) hiển thị tỷ lệ hoàn thành của các Task tài chính và phi tài chính.
+•	Phân bổ nguồn lực (Workload): Báo cáo thống kê số lượng task trên mỗi sinh viên. Hệ thống cần chỉ ra các MSSV đang đảm nhận > 3 task (nguy cơ quá tải) hoặc 0 task (lãng phí nhân sự).
+
+
+
+
+

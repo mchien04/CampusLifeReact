@@ -3,13 +3,26 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import StudentLayout from '../components/layout/StudentLayout';
 import { eventAPI, preparationAPI } from '../services';
-import { ActivityResponse, PreparationDashboardDto } from '../types';
+import { ActivityResponse, FinancialReportDto, PreparationDashboardDto } from '../types';
 import { getImageUrl } from '../utils/imageUtils';
 
 type PreparationItem = {
   activity: ActivityResponse;
   dashboard: PreparationDashboardDto;
+  report: FinancialReportDto | null;
 };
+
+const currencyFormatter = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' });
+
+function formatMoney(amount: string) {
+  const n = Number(amount);
+  if (Number.isFinite(n)) return currencyFormatter.format(n);
+  return amount;
+}
+
+function sumMoney(values: string[]) {
+  return values.reduce((acc, v) => acc + (Number(v) || 0), 0);
+}
 
 function toEventStatus(event: ActivityResponse) {
   const now = new Date();
@@ -23,7 +36,6 @@ function toEventStatus(event: ActivityResponse) {
 
 export default function StudentPreparation() {
   const navigate = useNavigate();
-  const [events, setEvents] = useState<ActivityResponse[]>([]);
   const [items, setItems] = useState<PreparationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingPrep, setLoadingPrep] = useState(false);
@@ -34,52 +46,58 @@ export default function StudentPreparation() {
     return items.filter((it) => toEventStatus(it.activity) === statusFilter);
   }, [items, statusFilter]);
 
-  const fetchEvents = useCallback(async () => {
+  const loadMyPreparationItems = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await eventAPI.getEvents();
-      if (!res.status) {
-        setEvents([]);
-        toast.error(res.message || 'Không thể tải danh sách sự kiện');
+      setLoadingPrep(true);
+
+      const activityIds = await preparationAPI.getMyActivityIds();
+      if (!activityIds.length) {
+        setItems([]);
         return;
       }
-      const standalone = (res.data || []).filter((e) => !e.seriesId);
-      setEvents(standalone);
+
+      const settled = await Promise.allSettled(
+        activityIds.map(async (activityId) => {
+          const [dash, evRes] = await Promise.all([
+            preparationAPI.getDashboard(activityId),
+            eventAPI.getEvent(activityId),
+          ]);
+
+          const rep = await preparationAPI.getFinancialReport(activityId).catch(() => null);
+
+          if (!evRes.status || !evRes.data) return null;
+
+          return {
+            activity: evRes.data,
+            dashboard: dash,
+            report: rep,
+          } as PreparationItem;
+        })
+      );
+
+      const results = settled.flatMap((s) => {
+        if (s.status !== 'fulfilled') return [];
+        if (!s.value) return [];
+        return [s.value];
+      });
+
+      results.sort(
+        (a, b) => new Date(b.activity.startDate).getTime() - new Date(a.activity.startDate).getTime()
+      );
+      setItems(results);
     } catch (e: any) {
-      setEvents([]);
-      toast.error(e?.message || 'Không thể tải danh sách sự kiện');
+      setItems([]);
+      toast.error(e?.response?.data?.message || e?.message || 'Không thể tải danh sách công tác chuẩn bị');
     } finally {
       setLoading(false);
+      setLoadingPrep(false);
     }
   }, []);
 
-  const fetchPreparationItems = useCallback(async (allEvents: ActivityResponse[]) => {
-    const results: PreparationItem[] = [];
-    setLoadingPrep(true);
-    for (const ev of allEvents) {
-      try {
-        const dash = await preparationAPI.getDashboard(ev.id);
-        if (dash?.hasPreparation) {
-          results.push({ activity: ev, dashboard: dash });
-        }
-      } catch {
-      }
-    }
-    setItems(results);
-    setLoadingPrep(false);
-  }, []);
-
   useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
-
-  useEffect(() => {
-    if (events.length === 0) {
-      setItems([]);
-      return;
-    }
-    fetchPreparationItems(events);
-  }, [events, fetchPreparationItems]);
+    loadMyPreparationItems();
+  }, [loadMyPreparationItems]);
 
   return (
     <StudentLayout>
@@ -116,7 +134,7 @@ export default function StudentPreparation() {
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-[#001C44]">Sự kiện của bạn</h2>
-                {loadingPrep && <span className="text-xs text-gray-500">Đang kiểm tra quyền BTC...</span>}
+                {loadingPrep && <span className="text-xs text-gray-500">Đang tải danh sách BTC...</span>}
               </div>
 
               {filteredItems.length === 0 ? (
@@ -125,7 +143,7 @@ export default function StudentPreparation() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {filteredItems.map(({ activity, dashboard }) => {
+                  {filteredItems.map(({ activity, dashboard, report }) => {
                     const banner = getImageUrl(activity.bannerUrl);
                     const pendingTasks = (dashboard.tasks || []).filter((t) => t.status === 'PENDING').length;
                     return (
@@ -164,13 +182,18 @@ export default function StudentPreparation() {
                               )}
                             </div>
                             <div className="text-xs text-gray-600 text-right">
-                              {dashboard.budget ? (
-                                <span>
-                                  Còn lại: <span className="font-semibold text-[#001C44]">{dashboard.budget.remainingAmount}</span>
-                                </span>
-                              ) : (
-                                <span>{dashboard.financeMessage || 'Chưa có ngân sách'}</span>
-                              )}
+                              <span>
+                                {report?.categories?.length
+                                  ? (() => {
+                                    const remaining = sumMoney(report.categories.map((c) => c.remainingAmount));
+                                    return (
+                                      <>
+                                        Còn lại: <span className="font-semibold text-[#001C44]">{formatMoney(String(remaining))}</span>
+                                      </>
+                                    );
+                                  })()
+                                  : dashboard.financeMessage || 'Tài chính v2'}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -186,4 +209,3 @@ export default function StudentPreparation() {
     </StudentLayout>
   );
 }
-
