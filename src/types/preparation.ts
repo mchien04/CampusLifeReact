@@ -35,6 +35,20 @@ export type PreparationTaskDto = {
   assigneeName?: string | null;
 };
 
+export type MyPreparationTaskDto = {
+  id: number;
+  activityId: number;
+  ownerId: number;
+  ownerName: string | null;
+  title: string;
+  description: string | null;
+  deadline: string | null;
+  allocatedAmount: string;
+  isFinancial: boolean;
+  status: PreparationTaskStatus;
+  myRole: PreparationTaskMemberRole;
+};
+
 export type PreparationTaskMemberDto = {
   studentId: number;
   studentName: string | null;
@@ -101,12 +115,13 @@ export type ExpenseDto = {
   createdAt: string;
 };
 
-export type OverBudgetInfoDto = {
-  taskId: number;
-  requiredAdditionalAmount: string;
-  currentAllocatedAmount: string;
-  committedAmount: string;
-  suggestedSources: AllocationSourceSuggestionDto[];
+export type TaskAllocationSourceDto = {
+  categoryId: number;
+  categoryName: string;
+  allocatedAmount: string;
+  holdingAdvanceAmount: string;
+  approvedSpentAmount: string;
+  allocationRemainingAmount: string;
 };
 
 /* ====================================================================
@@ -145,26 +160,27 @@ export type FundAdvanceDebtDto = {
 
 export type AllocationAdjustmentRequestDto = {
   id: number;
+  activityId: number;
   taskId: number;
-  taskTitle: string;
   amount: string;
+  description: string | null;
   status: AllocationAdjustmentStatus;
   requestedById: number;
   requestedByName: string | null;
-  preferredCategoryId: number | null;
-  preferredCategoryName: string | null;
-  decidedById: number | null;
-  decidedByName: string | null;
-  decidedCategoryId: number | null;
-  decidedCategoryName: string | null;
   decidedAt: string | null;
+  decidedById: number | null;
   createdAt: string;
 };
 
-export type AllocationSourceSuggestionDto = {
+export type AllocationAdjustmentDecisionSourceRequest = {
+  categoryId: number;
+  amount: string;
+};
+
+export type AllocationAdjustmentSourcePlanItemDto = {
   categoryId: number;
   categoryName: string;
-  availableToAllocateAmount: string;
+  amount: string | number;
 };
 
 /* ====================================================================
@@ -284,12 +300,13 @@ export type AllocateTaskAmountRequest = {
 
 export type CreateAllocationAdjustmentRequest = {
   amount: string;
-  preferredCategoryId?: number | null;
+  description: string;
 };
 
 export type AdminDecisionAllocationAdjustmentRequest = {
   approved: boolean;
   categoryId?: number | null;
+  sources?: AllocationAdjustmentDecisionSourceRequest[];
 };
 
 /* ====================================================================
@@ -317,4 +334,3 @@ export type CreateFundAdvanceRequest = {
 export type ApproveFundAdvanceRequest = { approved: boolean };
 
 export type AdminDecideFundAdvanceRequest = { approved: boolean };
-

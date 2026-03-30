@@ -24,14 +24,14 @@ export default function LeaderExpenseReviewCard({
     <div className="card">
       <div className="p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-[#001C44]">Pending Leader Review</h3>
+          <h3 className="text-lg font-semibold text-[#001C44]">Chờ Trưởng Nhóm Duyệt</h3>
           <span className="text-xs font-medium px-2 py-1 rounded-full bg-yellow-100 text-yellow-700 border border-yellow-300">
             {expenses.length} chứng từ
           </span>
         </div>
 
         {expenses.length === 0 ? (
-          <div className="text-sm text-gray-500">Không có chi phí đang chờ leader duyệt.</div>
+          <div className="text-sm text-gray-500">Không có chi phí đang chờ trưởng nhóm duyệt.</div>
         ) : (
           <div className="space-y-3">
             {expenses.map((ex) => {

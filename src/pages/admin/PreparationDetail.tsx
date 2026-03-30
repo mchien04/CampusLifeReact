@@ -4,13 +4,16 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { eventAPI, preparationAPI, studentAPI } from '../../services';
 import LeaderExpenseReviewCard from '../../components/preparation/LeaderExpenseReviewCard';
+import AdminExpenseReviewCard from '../../components/preparation/AdminExpenseReviewCard';
 import TaskMemberManager from '../../components/preparation/TaskMemberManager';
 import BudgetSetupPanel from '../../components/preparation/BudgetSetupPanel';
 import FinanceReports from '../../components/preparation/FinanceReports';
 import {
     ActivityBudgetDto,
     ActivityResponse,
+    AllocationAdjustmentDecisionSourceRequest,
     AllocationAdjustmentRequestDto,
+    AllocationAdjustmentSourcePlanItemDto,
     CashFlowReportDto,
     ExpenseDto,
     ExpenseStatus,
@@ -19,7 +22,6 @@ import {
     FundAdvanceDebtDto,
     FundAdvanceDto,
     FundAdvanceSourceSuggestionDto,
-    OverBudgetInfoDto,
     OrganizerDto,
     PreparationDashboardDto,
     PreparationTaskDto,
@@ -37,6 +39,18 @@ function formatMoney(amount: string) {
     return amount;
 }
 
+function normalizeAmountInput(amount: string | number): string {
+    if (typeof amount === 'number') return String(amount);
+    return amount;
+}
+
+function parseAmountToNumber(amount: string | number): number {
+    if (typeof amount === 'number') return Number.isFinite(amount) ? amount : 0;
+    const normalized = String(amount).replace(/[^0-9.-]/g, '');
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function statusBadgeClass(status: ExpenseStatus) {
     if (status === 'APPROVED') return 'bg-green-50 text-green-700 border border-green-200';
     if (status === 'REJECTED') return 'bg-red-50 text-red-700 border border-red-200';
@@ -45,8 +59,8 @@ function statusBadgeClass(status: ExpenseStatus) {
 }
 
 function expenseStatusLabel(status: ExpenseStatus) {
-    if (status === 'PENDING_LEADER') return 'Chờ leader duyệt';
-    if (status === 'PENDING_ADMIN') return 'Chờ admin duyệt';
+    if (status === 'PENDING_LEADER') return 'Chờ trưởng nhóm duyệt';
+    if (status === 'PENDING_ADMIN') return 'Chờ quản trị duyệt';
     if (status === 'APPROVED') return 'Đã duyệt';
     return 'Từ chối';
 }
@@ -68,9 +82,9 @@ function taskStatusBadgeClass(status: PreparationTaskStatus) {
 type ManagerTabKey = 'overview' | 'task-center' | 'expenses';
 
 const managerTabs: Array<{ key: ManagerTabKey; label: string }> = [
-    { key: 'overview', label: 'Overview' },
-    { key: 'task-center', label: 'Task Center' },
-    { key: 'expenses', label: 'Expenses' },
+    { key: 'overview', label: 'Tổng quan' },
+    { key: 'task-center', label: 'Trung tâm nhiệm vụ' },
+    { key: 'expenses', label: 'Chi phí' },
 ];
 
 function parseManagerTab(value: string | null): ManagerTabKey {
@@ -138,16 +152,10 @@ export default function PreparationDetail() {
     const [adjustmentRequests, setAdjustmentRequests] = useState<AllocationAdjustmentRequestDto[]>([]);
     const [adjustmentFilter, setAdjustmentFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
     const [loadingAdjustments, setLoadingAdjustments] = useState(false);
-    const [decisionCategoryByRequest, setDecisionCategoryByRequest] = useState<Record<number, number | null>>({});
-
-    const [adjTaskId, setAdjTaskId] = useState<number | null>(null);
-    const [adjAmount, setAdjAmount] = useState('');
-    const [adjPreferredCategoryId, setAdjPreferredCategoryId] = useState<number | null>(null);
-    const [creatingAdjustment, setCreatingAdjustment] = useState(false);
-
-    const [overBudgetTaskId, setOverBudgetTaskId] = useState<number | null>(null);
-    const [overBudgetInfo, setOverBudgetInfo] = useState<OverBudgetInfoDto | null>(null);
-    const [loadingOverBudget, setLoadingOverBudget] = useState(false);
+    const [decisionSourcesByRequest, setDecisionSourcesByRequest] = useState<Record<number, AllocationAdjustmentDecisionSourceRequest[]>>({});
+    const [sourcePlanLoadedByRequest, setSourcePlanLoadedByRequest] = useState<Record<number, boolean>>({});
+    const [sourcePlanLoadingByRequest, setSourcePlanLoadingByRequest] = useState<Record<number, boolean>>({});
+    const [sourcePlanErrorByRequest, setSourcePlanErrorByRequest] = useState<Record<number, string | null>>({});
 
     const [showFundAdvanceModal, setShowFundAdvanceModal] = useState(false);
     const [faTaskId, setFaTaskId] = useState<number | null>(null);
@@ -188,6 +196,14 @@ export default function PreparationDetail() {
     const pendingLeaderExpenses = useMemo(() => {
         return expenses.filter((ex) => ex.status === 'PENDING_LEADER');
     }, [expenses]);
+
+    const debtByStudentId = useMemo(() => {
+        const map: Record<number, number> = {};
+        (fundAdvanceDebts ?? []).forEach((d) => {
+            map[d.studentId] = parseAmountToNumber(d.holdingAmount);
+        });
+        return map;
+    }, [fundAdvanceDebts]);
 
     const showTaskTable = managerTab === 'task-center';
     const showTaskMemberAndWorkload = managerTab === 'task-center';
@@ -496,7 +512,7 @@ export default function PreparationDetail() {
     const approveExpense = async (expenseId: number, approved: boolean) => {
         try {
             await preparationAPI.adminDecision(expenseId, approved);
-            toast.success(approved ? 'Đã duyệt cấp admin' : 'Đã từ chối');
+            toast.success(approved ? 'Đã duyệt cấp quản trị' : 'Đã từ chối cấp quản trị');
             await loadCore();
             await loadExpenses(expenseFilter);
             await loadReports();
@@ -508,11 +524,11 @@ export default function PreparationDetail() {
     const approveLeaderExpense = async (expenseId: number, approved: boolean) => {
         try {
             await preparationAPI.leaderDecision(expenseId, approved);
-            toast.success(approved ? 'Đã duyệt cấp leader' : 'Đã từ chối cấp leader');
+            toast.success(approved ? 'Đã duyệt cấp trưởng nhóm' : 'Đã từ chối cấp trưởng nhóm');
             await loadExpenses(expenseFilter);
             await loadReports();
         } catch (e: any) {
-            toast.error(e?.response?.data?.message || e?.message || 'Không thể duyệt cấp leader');
+            toast.error(e?.response?.data?.message || e?.message || 'Không thể duyệt cấp trưởng nhóm');
         }
     };
 
@@ -547,60 +563,141 @@ export default function PreparationDetail() {
         }
     };
 
-    const loadOverBudgetSuggestion = async () => {
-        if (!overBudgetTaskId) {
-            toast.warning('Vui lòng chọn task để kiểm tra over-budget');
-            return;
-        }
+    const loadSourcePlanForRequest = async (requestId: number) => {
         try {
-            setLoadingOverBudget(true);
-            const info = await preparationAPI.getOverBudgetInfo(overBudgetTaskId);
-            setOverBudgetInfo(info);
+            setSourcePlanLoadingByRequest((prev) => ({ ...prev, [requestId]: true }));
+            setSourcePlanErrorByRequest((prev) => ({ ...prev, [requestId]: null }));
+
+            const sourcePlan = await preparationAPI.getAllocationAdjustmentSourcePlan(requestId);
+            const normalized: AllocationAdjustmentDecisionSourceRequest[] = (sourcePlan ?? []).map(
+                (item: AllocationAdjustmentSourcePlanItemDto) => ({
+                    categoryId: item.categoryId,
+                    amount: normalizeAmountInput(item.amount),
+                })
+            );
+
+            setDecisionSourcesByRequest((prev) => ({ ...prev, [requestId]: normalized }));
+            setSourcePlanLoadedByRequest((prev) => ({ ...prev, [requestId]: true }));
         } catch (e: any) {
-            setOverBudgetInfo(null);
-            toast.error(e?.response?.data?.message || e?.message || 'Không thể lấy over-budget suggestion');
+            const message = e?.response?.data?.message || e?.message || 'Không thể lấy source-plan';
+            setSourcePlanLoadedByRequest((prev) => ({ ...prev, [requestId]: false }));
+            setSourcePlanErrorByRequest((prev) => ({ ...prev, [requestId]: message }));
+            toast.error(message);
         } finally {
-            setLoadingOverBudget(false);
+            setSourcePlanLoadingByRequest((prev) => ({ ...prev, [requestId]: false }));
         }
     };
 
-    const createAdjustmentRequest = async () => {
-        if (!adjTaskId) {
-            toast.warning('Vui lòng chọn task');
-            return;
-        }
-        if (!adjAmount.trim()) {
-            toast.warning('Vui lòng nhập số tiền cần bổ sung');
-            return;
+    const updateDecisionSource = (
+        requestId: number,
+        index: number,
+        patch: Partial<AllocationAdjustmentDecisionSourceRequest>
+    ) => {
+        setDecisionSourcesByRequest((prev) => {
+            const list = prev[requestId] ?? [];
+            if (!list[index]) return prev;
+            const next = [...list];
+            next[index] = { ...next[index], ...patch };
+            return { ...prev, [requestId]: next };
+        });
+    };
+
+    const addDecisionSource = (requestId: number) => {
+        setDecisionSourcesByRequest((prev) => {
+            const list = prev[requestId] ?? [];
+            return {
+                ...prev,
+                [requestId]: [...list, { categoryId: budgetCategories[0]?.id ?? 0, amount: '' }],
+            };
+        });
+    };
+
+    const removeDecisionSource = (requestId: number, index: number) => {
+        setDecisionSourcesByRequest((prev) => {
+            const list = prev[requestId] ?? [];
+            if (!list[index]) return prev;
+            const next = list.filter((_, i) => i !== index);
+            return { ...prev, [requestId]: next };
+        });
+    };
+
+    const getApproveBlockReason = (requestId: number, requestAmount: string): string | null => {
+        if (sourcePlanLoadingByRequest[requestId]) return 'Đang lấy source-plan...';
+        if (!sourcePlanLoadedByRequest[requestId]) return 'Cần lấy source-plan trước khi duyệt.';
+        if (sourcePlanErrorByRequest[requestId]) return sourcePlanErrorByRequest[requestId] || 'Source-plan không hợp lệ.';
+        const sources = decisionSourcesByRequest[requestId] ?? [];
+        if (sources.length === 0) return 'Source-plan rỗng. Không thể duyệt.';
+        if (!sources.every((s) => s.categoryId > 0 && Number(s.amount) > 0)) {
+            return 'Mỗi nguồn cần có ví và số tiền > 0.';
         }
 
-        try {
-            setCreatingAdjustment(true);
-            await preparationAPI.createAllocationAdjustmentRequest(adjTaskId, {
-                amount: adjAmount.trim(),
-                preferredCategoryId: adjPreferredCategoryId ?? undefined,
-            });
-            toast.success('Đã tạo adjustment request');
-            setAdjTaskId(null);
-            setAdjAmount('');
-            setAdjPreferredCategoryId(null);
-            await loadAdjustmentRequests();
-            await loadReports();
-        } catch (e: any) {
-            toast.error(e?.response?.data?.message || e?.message || 'Không thể tạo adjustment request');
-        } finally {
-            setCreatingAdjustment(false);
+        const requested = parseAmountToNumber(requestAmount);
+        const allocated = sources.reduce((sum, s) => sum + parseAmountToNumber(s.amount), 0);
+        if (Math.abs(allocated - requested) > 0.0001) {
+            return 'Tổng nguồn phải bằng số tiền request.';
         }
+
+        return null;
+    };
+
+    const canApproveAdjustment = (requestId: number) => {
+        const request = adjustmentRequests.find((item) => item.id === requestId);
+        if (!request) return false;
+        return getApproveBlockReason(requestId, request.amount) === null;
+    };
+
+    const clearDecisionStateForRequest = (requestId: number) => {
+        setDecisionSourcesByRequest((prev) => {
+            const next = { ...prev };
+            delete next[requestId];
+            return next;
+        });
+        setSourcePlanLoadedByRequest((prev) => {
+            const next = { ...prev };
+            delete next[requestId];
+            return next;
+        });
+        setSourcePlanLoadingByRequest((prev) => {
+            const next = { ...prev };
+            delete next[requestId];
+            return next;
+        });
+        setSourcePlanErrorByRequest((prev) => {
+            const next = { ...prev };
+            delete next[requestId];
+            return next;
+        });
     };
 
     const decideAdjustmentRequest = async (requestId: number, approved: boolean) => {
         try {
-            const categoryId = decisionCategoryByRequest[requestId] ?? undefined;
-            await preparationAPI.adminDecideAllocationAdjustment(requestId, {
-                approved,
-                categoryId: approved ? categoryId : undefined,
-            });
+            if (approved) {
+                if (!sourcePlanLoadedByRequest[requestId]) {
+                    toast.warning('Vui lòng lấy source-plan trước khi duyệt.');
+                    return;
+                }
+                const request = adjustmentRequests.find((item) => item.id === requestId);
+                const blockReason = request ? getApproveBlockReason(requestId, request.amount) : 'Không tìm thấy request.';
+                if (blockReason) {
+                    toast.warning(blockReason);
+                    return;
+                }
+
+                const normalizedSources = (decisionSourcesByRequest[requestId] ?? []).map((s) => ({
+                    categoryId: s.categoryId,
+                    amount: String(s.amount).trim(),
+                }));
+
+                await preparationAPI.adminDecideAllocationAdjustment(requestId, {
+                    approved: true,
+                    categoryId: normalizedSources.length === 1 ? normalizedSources[0].categoryId : undefined,
+                    sources: normalizedSources,
+                });
+            } else {
+                await preparationAPI.adminDecideAllocationAdjustment(requestId, { approved: false });
+            }
             toast.success(approved ? 'Đã duyệt adjustment request' : 'Đã từ chối adjustment request');
+            clearDecisionStateForRequest(requestId);
             await loadAdjustmentRequests();
             await loadCore();
             await loadReports();
@@ -677,7 +774,21 @@ export default function PreparationDetail() {
         }
     };
 
-    const decideFundAdvance = async (fundAdvanceId: number, approved: boolean) => {
+    const decideFundAdvance = async (
+        fundAdvanceId: number,
+        approved: boolean,
+        studentId?: number,
+        studentName?: string | null
+    ) => {
+        if (approved && studentId) {
+            const holding = debtByStudentId[studentId] ?? 0;
+            if (holding > 0) {
+                const ok = window.confirm(
+                    `${studentName || `#${studentId}`} đang giữ ${formatMoney(String(holding))}. Bạn vẫn muốn duyệt yêu cầu này?`
+                );
+                if (!ok) return;
+            }
+        }
         try {
             await preparationAPI.adminDecideFundAdvance(fundAdvanceId, approved);
             toast.success(approved ? 'Đã duyệt yêu cầu tạm ứng' : 'Đã từ chối yêu cầu tạm ứng');
@@ -725,7 +836,7 @@ export default function PreparationDetail() {
                 <div>
                     <h1 className="text-3xl font-bold text-[#001C44] flex items-center">
                         <span className="mr-3 text-4xl">🧩</span>
-                        Preparation Detail
+                        Chi tiết chuẩn bị
                     </h1>
                     <p className="mt-2 text-gray-600">{activity ? activity.name : `Activity #${id}`}</p>
                 </div>
@@ -745,7 +856,7 @@ export default function PreparationDetail() {
                             : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
                             }`}
                     >
-                        {hasPreparation ? 'Preparation: Bật' : 'Preparation: Tắt'}
+                        {hasPreparation ? 'Chuẩn bị: Bật' : 'Chuẩn bị: Tắt'}
                     </button>
                 </div>
             </div>
@@ -753,7 +864,7 @@ export default function PreparationDetail() {
             {!hasPreparation ? (
                 <div className="card">
                     <div className="p-6">
-                        <div className="text-sm text-gray-600">Preparation đang tắt cho activity này.</div>
+                        <div className="text-sm text-gray-600">Chức năng chuẩn bị đang tắt cho hoạt động này.</div>
                     </div>
                 </div>
             ) : (
@@ -897,125 +1008,8 @@ export default function PreparationDetail() {
 
                             {showAllocationSection && (
                                 <div className="mt-5 border border-gray-200 rounded-xl overflow-hidden">
-                                <div className="bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">Over-budget Suggestion</div>
-                                <div className="p-4 space-y-3">
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-2">Task</label>
-                                            <select
-                                                value={overBudgetTaskId ?? ''}
-                                                onChange={(e) => {
-                                                    const v = Number(e.target.value);
-                                                    setOverBudgetTaskId(Number.isFinite(v) && v > 0 ? v : null);
-                                                }}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#001C44]"
-                                            >
-                                                <option value="">Chọn task tài chính...</option>
-                                                {financialTasks.map((t) => (
-                                                    <option key={t.id} value={t.id}>{t.title}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div className="md:col-span-2 flex items-end">
-                                            <button
-                                                type="button"
-                                                onClick={loadOverBudgetSuggestion}
-                                                disabled={loadingOverBudget}
-                                                className="px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-lg disabled:opacity-50"
-                                            >
-                                                {loadingOverBudget ? 'Đang kiểm tra...' : 'Check Suggestion'}
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {!overBudgetInfo ? (
-                                        <div className="text-sm text-gray-500">Chưa có dữ liệu suggestion.</div>
-                                    ) : (
-                                        <div className="space-y-2">
-                                            <div className="allocation-info-box warning">
-                                                <div className="allocation-info-label">Required Additional Amount</div>
-                                                <div className="allocation-info-value">{formatMoney(overBudgetInfo.requiredAdditionalAmount)}</div>
-                                            </div>
-                                            <div className="border border-gray-200 rounded-lg overflow-hidden">
-                                                <div className="bg-gray-50 px-4 py-2 text-xs font-semibold text-gray-700">Suggested Sources</div>
-                                                {overBudgetInfo.suggestedSources.length === 0 ? (
-                                                    <div className="p-3 text-sm text-gray-500">Không có ví gợi ý.</div>
-                                                ) : (
-                                                    <div className="divide-y divide-gray-200">
-                                                        {overBudgetInfo.suggestedSources.map((s) => (
-                                                            <div key={s.categoryId} className="p-3 flex items-center justify-between gap-3">
-                                                                <div className="text-sm text-gray-700">{s.categoryName}</div>
-                                                                <div className="text-sm font-semibold text-[#001C44]">{formatMoney(s.availableToAllocateAmount)}</div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                            )}
-
-                            {showAllocationSection && (
-                                <div className="mt-5 border border-gray-200 rounded-xl overflow-hidden">
-                                <div className="bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">Allocation Adjustment Requests</div>
+                                <div className="bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">Yêu Cầu Bổ Sung Cấp Phát</div>
                                 <div className="p-4 space-y-4">
-                                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-2">Task</label>
-                                            <select
-                                                value={adjTaskId ?? ''}
-                                                onChange={(e) => {
-                                                    const v = Number(e.target.value);
-                                                    setAdjTaskId(Number.isFinite(v) && v > 0 ? v : null);
-                                                }}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#001C44]"
-                                            >
-                                                <option value="">Chọn task...</option>
-                                                {financialTasks.map((t) => (
-                                                    <option key={t.id} value={t.id}>{t.title}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-2">Amount</label>
-                                            <input
-                                                type="text"
-                                                value={adjAmount}
-                                                onChange={(e) => setAdjAmount(e.target.value)}
-                                                placeholder="Ví dụ: 500000"
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#001C44]"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-2">Preferred Source</label>
-                                            <select
-                                                value={adjPreferredCategoryId ?? ''}
-                                                onChange={(e) => {
-                                                    const v = Number(e.target.value);
-                                                    setAdjPreferredCategoryId(Number.isFinite(v) && v > 0 ? v : null);
-                                                }}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#001C44]"
-                                            >
-                                                <option value="">Không chọn</option>
-                                                {budgetCategories.map((c) => (
-                                                    <option key={c.id} value={c.id}>{c.name}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div className="flex items-end">
-                                            <button
-                                                type="button"
-                                                disabled={creatingAdjustment}
-                                                onClick={createAdjustmentRequest}
-                                                className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-lg disabled:opacity-50"
-                                            >
-                                                {creatingAdjustment ? 'Đang tạo...' : 'Create Request'}
-                                            </button>
-                                        </div>
-                                    </div>
-
                                     <div className="flex items-center gap-2">
                                         <label className="text-sm font-medium text-gray-700">Filter</label>
                                         <select
@@ -1023,10 +1017,10 @@ export default function PreparationDetail() {
                                             onChange={(e) => setAdjustmentFilter(e.target.value as 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED')}
                                             className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#001C44]"
                                         >
-                                            <option value="ALL">ALL</option>
-                                            <option value="PENDING">PENDING</option>
-                                            <option value="APPROVED">APPROVED</option>
-                                            <option value="REJECTED">REJECTED</option>
+                                            <option value="ALL">Tất cả</option>
+                                            <option value="PENDING">Chờ xử lý</option>
+                                            <option value="APPROVED">Đã duyệt</option>
+                                            <option value="REJECTED">Từ chối</option>
                                         </select>
                                     </div>
 
@@ -1039,67 +1033,146 @@ export default function PreparationDetail() {
                                             <table className="min-w-full divide-y divide-gray-200">
                                                 <thead className="bg-gray-50">
                                                     <tr>
-                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task</th>
-                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Preferred</th>
-                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Decision Source</th>
-                                                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nhiệm Vụ</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số Tiền</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lý Do / Mô Tả</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Người Yêu Cầu</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng Thái</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nguồn Duyệt</th>
+                                                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Thao Tác</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="bg-white divide-y divide-gray-200">
-                                                    {adjustmentRequests.map((r) => (
+                                                    {adjustmentRequests.map((r) => {
+                                                        const taskTitle = financialTasks.find((t) => t.id === r.taskId)?.title || `#${r.taskId}`;
+                                                        return (
                                                         <tr key={r.id}>
-                                                            <td className="px-4 py-3 text-sm text-gray-700">{r.taskTitle || `#${r.taskId}`}</td>
+                                                            <td className="px-4 py-3 text-sm text-gray-700">{taskTitle}</td>
                                                             <td className="px-4 py-3 text-sm font-semibold text-gray-900">{formatMoney(r.amount)}</td>
-                                                            <td className="px-4 py-3 text-sm text-gray-700">{r.preferredCategoryName || '-'}</td>
+                                                            <td className="px-4 py-3 text-sm text-gray-700 max-w-[200px] truncate" title={r.description || ''}>{r.description || '-'}</td>
+                                                            <td className="px-4 py-3 text-sm text-gray-700">{r.requestedByName || `#${r.requestedById}`}</td>
                                                             <td className="px-4 py-3 text-sm text-gray-700">{r.status}</td>
                                                             <td className="px-4 py-3 text-sm text-gray-700">
                                                                 {r.status === 'PENDING' ? (
-                                                                    <select
-                                                                        value={decisionCategoryByRequest[r.id] ?? ''}
-                                                                        onChange={(e) => {
-                                                                            const v = Number(e.target.value);
-                                                                            setDecisionCategoryByRequest((prev) => ({
-                                                                                ...prev,
-                                                                                [r.id]: Number.isFinite(v) && v > 0 ? v : null,
-                                                                            }));
-                                                                        }}
-                                                                        className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#001C44]"
-                                                                    >
-                                                                        <option value="">Chọn ví</option>
-                                                                        {budgetCategories.map((c) => (
-                                                                            <option key={c.id} value={c.id}>{c.name}</option>
-                                                                        ))}
-                                                                    </select>
+                                                                    <div className="space-y-2 min-w-[340px]">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => loadSourcePlanForRequest(r.id)}
+                                                                                disabled={sourcePlanLoadingByRequest[r.id]}
+                                                                                className="px-3 py-1.5 text-xs font-semibold border border-[#001C44] text-[#001C44] rounded-lg hover:bg-[#001C44] hover:text-white disabled:opacity-50"
+                                                                            >
+                                                                                {sourcePlanLoadingByRequest[r.id] ? 'Đang lấy plan...' : (sourcePlanLoadedByRequest[r.id] ? 'Lấy lại source-plan' : 'Lấy source-plan')}
+                                                                            </button>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => addDecisionSource(r.id)}
+                                                                                className="px-3 py-1.5 text-xs font-semibold border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                                                                            >
+                                                                                + Nguồn
+                                                                            </button>
+                                                                        </div>
+
+                                                                        {sourcePlanErrorByRequest[r.id] && (
+                                                                            <div className="text-xs text-red-600">{sourcePlanErrorByRequest[r.id]}</div>
+                                                                        )}
+
+                                                                        {(decisionSourcesByRequest[r.id] ?? []).length === 0 ? (
+                                                                            <div className="text-xs text-gray-500">Chưa có nguồn. Vui lòng lấy source-plan trước khi duyệt.</div>
+                                                                        ) : (
+                                                                            <div className="space-y-2">
+                                                                                {(decisionSourcesByRequest[r.id] ?? []).map((source, sourceIndex) => (
+                                                                                    <div key={`${r.id}-${sourceIndex}`} className="grid grid-cols-12 gap-2">
+                                                                                        <div className="col-span-6">
+                                                                                            <select
+                                                                                                value={source.categoryId || ''}
+                                                                                                onChange={(e) => {
+                                                                                                    const v = Number(e.target.value);
+                                                                                                    updateDecisionSource(r.id, sourceIndex, {
+                                                                                                        categoryId: Number.isFinite(v) && v > 0 ? v : 0,
+                                                                                                    });
+                                                                                                }}
+                                                                                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#001C44]"
+                                                                                            >
+                                                                                                <option value="">Chọn ví</option>
+                                                                                                {budgetCategories.map((c) => (
+                                                                                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                                                                                ))}
+                                                                                            </select>
+                                                                                        </div>
+                                                                                        <div className="col-span-4">
+                                                                                            <input
+                                                                                                type="text"
+                                                                                                value={source.amount}
+                                                                                                onChange={(e) => updateDecisionSource(r.id, sourceIndex, { amount: e.target.value })}
+                                                                                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#001C44]"
+                                                                                                placeholder="Số tiền"
+                                                                                            />
+                                                                                        </div>
+                                                                                        <div className="col-span-2 flex justify-end">
+                                                                                            <button
+                                                                                                type="button"
+                                                                                                onClick={() => removeDecisionSource(r.id, sourceIndex)}
+                                                                                                className="px-2 py-1 text-xs font-semibold text-red-700 border border-red-200 rounded hover:bg-red-50"
+                                                                                            >
+                                                                                                Xóa
+                                                                                            </button>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
+
+                                                                        {(() => {
+                                                                            const sources = decisionSourcesByRequest[r.id] ?? [];
+                                                                            const total = sources.reduce((sum, s) => sum + parseAmountToNumber(s.amount), 0);
+                                                                            const requested = parseAmountToNumber(r.amount);
+                                                                            const matched = Math.abs(total - requested) <= 0.0001;
+                                                                            return (
+                                                                                <div className={`rounded-lg border px-2.5 py-2 text-xs ${matched ? 'border-green-200 bg-green-50 text-green-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
+                                                                                    <div className="font-semibold">Tổng nguồn: {formatMoney(String(total))}</div>
+                                                                                    <div>Yêu cầu: {formatMoney(r.amount)} {matched ? '• Khớp' : '• Chưa khớp'}</div>
+                                                                                </div>
+                                                                            );
+                                                                        })()}
+                                                                    </div>
                                                                 ) : (
-                                                                    r.decidedCategoryName || '-'
+                                                                    <span className="text-sm text-gray-500">-</span>
                                                                 )}
                                                             </td>
                                                             <td className="px-4 py-3 text-right">
                                                                 {r.status === 'PENDING' ? (
-                                                                    <div className="flex items-center justify-end gap-2">
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => decideAdjustmentRequest(r.id, true)}
-                                                                            className="px-3 py-1.5 text-sm font-medium bg-green-50 text-green-700 rounded-lg border border-green-200 hover:bg-green-100"
-                                                                        >
-                                                                            Approve
-                                                                        </button>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => decideAdjustmentRequest(r.id, false)}
-                                                                            className="px-3 py-1.5 text-sm font-medium bg-red-50 text-red-700 rounded-lg border border-red-200 hover:bg-red-100"
-                                                                        >
-                                                                            Reject
-                                                                        </button>
+                                                                    <div className="flex flex-col items-end gap-1">
+                                                                        <div className="flex items-center justify-end gap-2">
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => decideAdjustmentRequest(r.id, true)}
+                                                                                disabled={!canApproveAdjustment(r.id)}
+                                                                                className="px-3 py-1.5 text-sm font-medium bg-green-50 text-green-700 rounded-lg border border-green-200 hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                            >
+                                                                                Duyệt
+                                                                            </button>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => decideAdjustmentRequest(r.id, false)}
+                                                                                className="px-3 py-1.5 text-sm font-medium bg-red-50 text-red-700 rounded-lg border border-red-200 hover:bg-red-100"
+                                                                            >
+                                                                                Từ chối
+                                                                            </button>
+                                                                        </div>
+                                                                        {!canApproveAdjustment(r.id) && (
+                                                                            <div className="text-[11px] text-gray-500 text-right max-w-[220px]">
+                                                                                {getApproveBlockReason(r.id, r.amount)}
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                 ) : (
                                                                     <span className="text-sm text-gray-500">-</span>
                                                                 )}
                                                             </td>
                                                         </tr>
-                                                    ))}
+                                                        );
+                                                    })}
                                                 </tbody>
                                             </table>
                                         </div>
@@ -1110,14 +1183,14 @@ export default function PreparationDetail() {
 
                             {showFundSection && (
                                 <div className="mt-5 border border-gray-200 rounded-xl overflow-hidden">
-                                <div className="bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">Fund Advance Requests (Phase 5)</div>
+                                <div className="bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">Yêu Cầu Tạm Ứng</div>
                                 <div className="p-4 space-y-4">
                                     {loadingFundAdvances ? (
-                                        <div className="text-sm text-gray-500">Đang tải fund advances...</div>
+                                        <div className="text-sm text-gray-500">Đang tải yêu cầu tạm ứng...</div>
                                     ) : (
                                         <>
                                             <div>
-                                                <div className="text-sm font-semibold text-gray-700 mb-2">REQUESTED (chờ admin duyệt)</div>
+                                                <div className="text-sm font-semibold text-gray-700 mb-2">Chờ duyệt (REQUESTED)</div>
                                                 {fundAdvances.filter((f) => f.status === 'REQUESTED').length === 0 ? (
                                                     <div className="text-sm text-gray-500">Không có yêu cầu REQUESTED.</div>
                                                 ) : (
@@ -1129,22 +1202,28 @@ export default function PreparationDetail() {
                                                                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
                                                                         <div>
                                                                             <div className="text-sm font-semibold text-gray-900">{f.studentName || `#${f.studentId}`} • {formatMoney(f.amount)}</div>
-                                                                            <div className="text-xs text-gray-500 mt-1">Task #{f.taskId} • Ví: {f.categoryName} • Requested by {f.requestedByName || `#${f.requestedById}`}</div>
+                                                                            <div className="text-xs text-gray-500 mt-1">Task #{f.taskId} • Ví: {f.categoryName} • Người tạo: {f.requestedByName || `#${f.requestedById}`}</div>
+                                                                            <div className="text-xs text-gray-500 mt-1">Tạo lúc: {new Date(f.createdAt).toLocaleString('vi-VN')}</div>
+                                                                            {(debtByStudentId[f.studentId] ?? 0) > 0 && (
+                                                                                <div className="text-xs text-amber-700 mt-1">
+                                                                                    Cảnh báo: đang có khoản HOLDING {formatMoney(String(debtByStudentId[f.studentId]))}.
+                                                                                </div>
+                                                                            )}
                                                                         </div>
                                                                         <div className="flex items-center gap-2">
                                                                             <button
                                                                                 type="button"
-                                                                                onClick={() => decideFundAdvance(f.id, true)}
+                                                                                onClick={() => decideFundAdvance(f.id, true, f.studentId, f.studentName)}
                                                                                 className="px-3 py-1.5 text-sm font-medium bg-green-50 text-green-700 rounded-lg border border-green-200 hover:bg-green-100"
                                                                             >
-                                                                                Approve
+                                                                                Duyệt
                                                                             </button>
                                                                             <button
                                                                                 type="button"
-                                                                                onClick={() => decideFundAdvance(f.id, false)}
+                                                                                onClick={() => decideFundAdvance(f.id, false, f.studentId, f.studentName)}
                                                                                 className="px-3 py-1.5 text-sm font-medium bg-red-50 text-red-700 rounded-lg border border-red-200 hover:bg-red-100"
                                                                             >
-                                                                                Reject
+                                                                                Từ chối
                                                                             </button>
                                                                         </div>
                                                                     </div>
@@ -1155,7 +1234,7 @@ export default function PreparationDetail() {
                                             </div>
 
                                             <div className="pt-3 border-t border-gray-200">
-                                                <div className="text-sm font-semibold text-gray-700 mb-2">HOLDING (đang nợ, có thể hoàn ứng)</div>
+                                                <div className="text-sm font-semibold text-gray-700 mb-2">Đang giữ tiền (HOLDING, có thể hoàn ứng)</div>
                                                 {fundAdvances.filter((f) => f.status === 'HOLDING').length === 0 ? (
                                                     <div className="text-sm text-gray-500">Không có khoản HOLDING.</div>
                                                 ) : (
@@ -1166,15 +1245,16 @@ export default function PreparationDetail() {
                                                                 <div key={f.id} className="expense-item pending-admin">
                                                                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
                                                                         <div>
-                                                                            <div className="text-sm font-semibold text-gray-900">{f.studentName || `#${f.studentId}`} • Remaining: {formatMoney(f.remainingAmount)}</div>
-                                                                            <div className="text-xs text-gray-500 mt-1">Task #{f.taskId} • Ví: {f.categoryName}</div>
+                                                                            <div className="text-sm font-semibold text-gray-900">{f.studentName || `#${f.studentId}`} • Còn giữ: {formatMoney(f.remainingAmount)}</div>
+                                                                            <div className="text-xs text-gray-500 mt-1">Task #{f.taskId} • Ví: {f.categoryName} • Duyệt lúc: {f.decidedAt ? new Date(f.decidedAt).toLocaleString('vi-VN') : '-'}</div>
                                                                         </div>
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => returnFundAdvance(f.id)}
                                                                             className="px-3 py-1.5 text-sm font-medium bg-[#001C44] bg-opacity-10 text-[#001C44] rounded-lg border border-[#001C44] border-opacity-20 hover:bg-opacity-20"
+                                                                            title="Xác nhận thành viên đã nộp lại tiền dư để tất toán khoản tạm ứng."
                                                                         >
-                                                                            Return / Settle
+                                                                            Hoàn ứng
                                                                         </button>
                                                                     </div>
                                                                 </div>
@@ -1190,7 +1270,7 @@ export default function PreparationDetail() {
 
                             {showFundSection && (
                                 <div className="mt-5 border border-gray-200 rounded-xl overflow-hidden">
-                                <div className="bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">Fund Advance Debts Report</div>
+                                <div className="bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">Báo Cáo Tiền Ngoài Ví (Nợ Tạm Ứng)</div>
                                 <div className="p-4">
                                     {loadingDebts ? (
                                         <div className="text-sm text-gray-500">Đang tải báo cáo nợ tạm ứng...</div>
@@ -1201,12 +1281,14 @@ export default function PreparationDetail() {
                                             <table className="min-w-full divide-y divide-gray-200">
                                                 <thead className="bg-gray-50">
                                                     <tr>
-                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
-                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Holding Amount</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sinh viên</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Đang giữ</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="bg-white divide-y divide-gray-200">
-                                                    {fundAdvanceDebts.map((d) => (
+                                                    {[...fundAdvanceDebts]
+                                                        .sort((a, b) => parseAmountToNumber(b.holdingAmount) - parseAmountToNumber(a.holdingAmount))
+                                                        .map((d) => (
                                                         <tr key={d.studentId}>
                                                             <td className="px-4 py-3 text-sm text-gray-700">{d.studentName || `#${d.studentId}`}</td>
                                                             <td className="px-4 py-3 text-sm font-semibold text-[#001C44]">{formatMoney(d.holdingAmount)}</td>
@@ -1224,131 +1306,17 @@ export default function PreparationDetail() {
                     )}
 
                     {managerTab === 'expenses' && (
-                        <>
-                            <LeaderExpenseReviewCard
-                                expenses={pendingLeaderExpenses}
-                                onDecision={approveLeaderExpense}
-                                onViewEvidence={(url) => setImageModalUrl(getImageUrl(url))}
-                            />
-
-                            <div className="card">
-                        <div className="p-6">
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                                <h2 className="text-lg font-semibold text-[#001C44]">Chi phí</h2>
-                                <div className="flex items-center gap-2">
-                                    <label htmlFor="prep-expense-filter" className="text-sm font-medium text-gray-700">Filter</label>
-                                    <select
-                                        id="prep-expense-filter"
-                                        name="prepExpenseFilter"
-                                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
-                                        value={expenseFilter}
-                                        onChange={(e) => setExpenseFilter(e.target.value as ExpenseStatusFilter)}
-                                    >
-                                        <option value="ALL">ALL</option>
-                                        <option value="PENDING_LEADER">PENDING_LEADER</option>
-                                        <option value="PENDING_ADMIN">PENDING_ADMIN</option>
-                                        <option value="APPROVED">APPROVED</option>
-                                        <option value="REJECTED">REJECTED</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            {loadingExpenses ? (
-                                <div className="text-sm text-gray-500">Đang tải...</div>
-                            ) : expenses.length === 0 ? (
-                                <div className="text-sm text-gray-500">Chưa có chi phí.</div>
-                            ) : (
-                                <div className="overflow-x-auto border border-gray-200 rounded-xl">
-                                    <table className="min-w-full divide-y divide-gray-200">
-                                        <thead className="bg-gray-50">
-                                            <tr>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CreatedBy</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CreatedAt</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Evidence</th>
-                                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
-                                            {expenses.map((ex) => {
-                                                const imgUrl = getImageUrl(ex.evidenceUrl);
-                                                return (
-                                                    <tr key={ex.id}>
-                                                        <td className="px-4 py-3 text-sm text-gray-900 font-semibold">{formatMoney(ex.amount)}</td>
-                                                        <td className="px-4 py-3 text-sm text-gray-700">{ex.description || '-'}</td>
-                                                        <td className="px-4 py-3 text-sm text-gray-700">{ex.categoryName || '-'}</td>
-                                                        <td className="px-4 py-3 text-sm text-gray-700">{ex.createdByName || `#${ex.createdById ?? ''}`}</td>
-                                                        <td className="px-4 py-3 text-sm text-gray-700">{new Date(ex.createdAt).toLocaleString('vi-VN')}</td>
-                                                        <td className="px-4 py-3">
-                                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusBadgeClass(ex.status)}`}>
-                                                                {expenseStatusLabel(ex.status)}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-4 py-3">
-                                                            {imgUrl ? (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setImageModalUrl(imgUrl)}
-                                                                    className="px-3 py-1.5 text-sm font-medium border border-gray-200 rounded-lg hover:bg-gray-50"
-                                                                >
-                                                                    Xem
-                                                                </button>
-                                                            ) : (
-                                                                <span className="text-sm text-gray-500">-</span>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-right">
-                                                            {ex.status === 'PENDING_LEADER' ? (
-                                                                <div className="flex items-center justify-end gap-2">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => approveLeaderExpense(ex.id, true)}
-                                                                        className="px-3 py-1.5 text-sm font-medium bg-yellow-50 text-yellow-700 rounded-lg border border-yellow-200 hover:bg-yellow-100"
-                                                                    >
-                                                                        Leader duyệt
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => approveLeaderExpense(ex.id, false)}
-                                                                        className="px-3 py-1.5 text-sm font-medium bg-red-50 text-red-700 rounded-lg border border-red-200 hover:bg-red-100"
-                                                                    >
-                                                                        Leader từ chối
-                                                                    </button>
-                                                                </div>
-                                                            ) : ex.status === 'PENDING_ADMIN' ? (
-                                                                <div className="flex items-center justify-end gap-2">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => approveExpense(ex.id, true)}
-                                                                        className="px-3 py-1.5 text-sm font-medium bg-green-50 text-green-700 rounded-lg border border-green-200 hover:bg-green-100"
-                                                                    >
-                                                                        Duyệt
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => approveExpense(ex.id, false)}
-                                                                        className="px-3 py-1.5 text-sm font-medium bg-red-50 text-red-700 rounded-lg border border-red-200 hover:bg-red-100"
-                                                                    >
-                                                                        Từ chối
-                                                                    </button>
-                                                                </div>
-                                                            ) : (
-                                                                <span className="text-sm text-gray-500">-</span>
-                                                            )}
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                        </>
+                        <AdminExpenseReviewCard
+                            expenses={expenses}
+                            loading={loadingExpenses}
+                            statusFilter={expenseFilter}
+                            onStatusFilterChange={(status) => {
+                                setExpenseFilter(status);
+                                loadExpenses(status);
+                            }}
+                            onDecision={approveExpense}
+                            onViewEvidence={(url) => setImageModalUrl(url)}
+                        />
                     )}
                 </>
             )}
@@ -1360,10 +1328,10 @@ export default function PreparationDetail() {
                             <div className="flex items-center justify-between">
                                 <div className="min-w-0">
                                     <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/10 text-xs font-semibold text-[#FFD66D] border border-white/20 mb-2">
-                                        Task Center
+                                        Trung tâm nhiệm vụ
                                     </div>
                                     <h3 className="text-xl font-bold text-white">Chi tiết nhiệm vụ</h3>
-                                    <p className="text-xs text-gray-200 mt-0.5">Task #{selectedTaskId} • Theo dõi thông tin và quản lý thành viên</p>
+                                    <p className="text-xs text-gray-200 mt-0.5">Nhiệm vụ #{selectedTaskId} • Theo dõi thông tin và quản lý thành viên</p>
                                 </div>
                                 <button
                                     type="button"
@@ -1384,9 +1352,9 @@ export default function PreparationDetail() {
 
                         <div className="p-6 space-y-5">
                             {loadingTaskDetail ? (
-                                <div className="text-sm text-gray-500">Đang tải chi tiết task...</div>
+                                <div className="text-sm text-gray-500">Đang tải chi tiết nhiệm vụ...</div>
                             ) : !taskForMembers ? (
-                                <div className="text-sm text-gray-500">Không có dữ liệu task.</div>
+                                <div className="text-sm text-gray-500">Không có dữ liệu nhiệm vụ.</div>
                             ) : (
                                 <>
                                     <div className="card overflow-hidden">
@@ -1400,7 +1368,7 @@ export default function PreparationDetail() {
                                             </div>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                 <div className="rounded-lg border border-gray-200 p-3 bg-gray-50/70">
-                                                    <div className="text-sm font-semibold text-gray-700">Leader</div>
+                                                    <div className="text-sm font-semibold text-gray-700">Trưởng nhóm</div>
                                                     <div className="text-sm text-gray-900 mt-1">{taskForMembers.ownerName || `#${taskForMembers.ownerId}`}</div>
                                                 </div>
                                                 <div className="rounded-lg border border-gray-200 p-3 bg-gray-50/70">

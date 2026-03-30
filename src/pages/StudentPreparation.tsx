@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import StudentLayout from '../components/layout/StudentLayout';
-import { eventAPI, preparationAPI } from '../services';
+import { eventAPI, preparationAPI, studentAPI } from '../services';
 import { ActivityResponse, FinancialReportDto, PreparationDashboardDto } from '../types';
 import { getImageUrl } from '../utils/imageUtils';
 
@@ -10,6 +10,7 @@ type PreparationItem = {
   activity: ActivityResponse;
   dashboard: PreparationDashboardDto;
   report: FinancialReportDto | null;
+  myHoldingAmount: string;
 };
 
 const currencyFormatter = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' });
@@ -40,6 +41,7 @@ export default function StudentPreparation() {
   const [loading, setLoading] = useState(true);
   const [loadingPrep, setLoadingPrep] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ONGOING' | 'UPCOMING' | 'ENDED'>('ALL');
+  const [myStudentId, setMyStudentId] = useState<number | null>(null);
 
   const filteredItems = useMemo(() => {
     if (statusFilter === 'ALL') return items;
@@ -50,6 +52,10 @@ export default function StudentPreparation() {
     try {
       setLoading(true);
       setLoadingPrep(true);
+
+      const profile = await studentAPI.getMyProfile().catch(() => null);
+      const currentStudentId = profile?.id ?? null;
+      setMyStudentId(currentStudentId);
 
       const activityIds = await preparationAPI.getMyActivityIds();
       if (!activityIds.length) {
@@ -65,6 +71,11 @@ export default function StudentPreparation() {
           ]);
 
           const rep = await preparationAPI.getFinancialReport(activityId).catch(() => null);
+          const debts = currentStudentId
+            ? await preparationAPI.getFundAdvanceDebts(activityId, currentStudentId).catch(() => [])
+            : [];
+
+          const myHolding = (debts ?? []).reduce((sum, d) => sum + (Number(d.holdingAmount) || 0), 0);
 
           if (!evRes.status || !evRes.data) return null;
 
@@ -72,6 +83,7 @@ export default function StudentPreparation() {
             activity: evRes.data,
             dashboard: dash,
             report: rep,
+            myHoldingAmount: String(myHolding),
           } as PreparationItem;
         })
       );
@@ -143,7 +155,8 @@ export default function StudentPreparation() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {filteredItems.map(({ activity, dashboard, report }) => {
+                  {filteredItems.map(({ activity, dashboard, report, myHoldingAmount }) => {
+                    const myHolding = Number(myHoldingAmount) || 0;
                     const banner = getImageUrl(activity.bannerUrl);
                     const pendingTasks = (dashboard.tasks || []).filter((t) => t.status === 'PENDING').length;
                     return (
@@ -196,6 +209,12 @@ export default function StudentPreparation() {
                               </span>
                             </div>
                           </div>
+
+                          {myStudentId && myHolding > 0 && (
+                            <div className="mt-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                              Tiền đang giữ: {formatMoney(String(myHolding))}
+                            </div>
+                          )}
                         </div>
                       </button>
                     );

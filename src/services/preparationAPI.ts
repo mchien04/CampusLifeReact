@@ -3,6 +3,7 @@ import {
   ActivityBudgetDto,
   AllocateTaskAmountRequestV1,
   AllocationAdjustmentRequestDto,
+  AllocationAdjustmentSourcePlanItemDto,
   AdminDecisionAllocationAdjustmentRequest,
   AdminDecideFundAdvanceRequest,
   ApproveExpenseRequest,
@@ -19,12 +20,13 @@ import {
   FundAdvanceDebtDto,
   FundAdvanceDto,
   FundAdvanceSourceSuggestionDto,
+  MyPreparationTaskDto,
   OrganizerDto,
-  OverBudgetInfoDto,
   PreparationDashboardDto,
   PreparationTaskDto,
   PreparationTaskMemberDto,
   PreparationTaskStatus,
+  TaskAllocationSourceDto,
   UpsertActivityBudgetRequest,
   UploadResultDto,
   WorkloadWarningDto,
@@ -166,7 +168,7 @@ export const preparationAPI = {
   },
 
   adminDecision: async (expenseId: number, approved: boolean): Promise<ExpenseDto> => {
-    const body: AdminDecideExpenseRequest = { approved };
+    const body: ApproveExpenseRequest = { approved };
     const response = await api.put(`/api/preparation/expenses/${expenseId}/admin-decision`, body);
     return unwrapBody<ExpenseDto>(response.data);
   },
@@ -192,6 +194,16 @@ export const preparationAPI = {
   getTaskDetail: async (taskId: number): Promise<PreparationTaskDto> => {
     const response = await api.get(`/api/preparation/detail/${taskId}`);
     return unwrapBody<PreparationTaskDto>(response.data);
+  },
+
+  getMyTasksByActivity: async (activityId: number): Promise<MyPreparationTaskDto[]> => {
+    const response = await api.get(`/api/preparation/my/activities/tasks?activityId=${activityId}`);
+    return unwrapBody<MyPreparationTaskDto[]>(response.data) ?? [];
+  },
+
+  getTaskAllocationSources: async (taskId: number): Promise<TaskAllocationSourceDto[]> => {
+    const response = await api.get(`/api/preparation/tasks/${taskId}/allocation-sources`);
+    return unwrapBody<TaskAllocationSourceDto[]>(response.data) ?? [];
   },
 
   deleteTaskMember: async (taskId: number, studentId: number): Promise<void> => {
@@ -247,12 +259,6 @@ export const preparationAPI = {
     return unwrapBody<PreparationTaskDto>(response.data);
   },
 
-  getOverBudgetInfo: async (taskId: number): Promise<OverBudgetInfoDto> => {
-    // TODO: Phase 4 - GET /api/preparation/tasks/{taskId}/over-budget-info
-    const response = await api.get(`/api/preparation/tasks/${taskId}/over-budget-info`);
-    return unwrapBody<OverBudgetInfoDto>(response.data);
-  },
-
   createAllocationAdjustmentRequest: async (
     taskId: number,
     payload: CreateAllocationAdjustmentRequest
@@ -281,6 +287,11 @@ export const preparationAPI = {
     // TODO: Phase 4 - PUT /api/preparation/allocation-adjustments/{requestId}/admin-decision
     const response = await api.put(`/api/preparation/allocation-adjustments/${requestId}/admin-decision`, payload);
     return unwrapBody<AllocationAdjustmentRequestDto>(response.data);
+  },
+
+  getAllocationAdjustmentSourcePlan: async (requestId: number): Promise<AllocationAdjustmentSourcePlanItemDto[]> => {
+    const response = await api.get(`/api/preparation/allocation-adjustments/${requestId}/source-plan`);
+    return unwrapBody<AllocationAdjustmentSourcePlanItemDto[]>(response.data) ?? [];
   },
 
   /* ====================================================================
