@@ -189,6 +189,11 @@ export const preparationAPI = {
     return unwrapBody<PreparationTaskMemberDto[]>(response.data) ?? [];
   },
 
+  getTaskDetail: async (taskId: number): Promise<PreparationTaskDto> => {
+    const response = await api.get(`/api/preparation/detail/${taskId}`);
+    return unwrapBody<PreparationTaskDto>(response.data);
+  },
+
   deleteTaskMember: async (taskId: number, studentId: number): Promise<void> => {
     await api.delete(`/api/preparation/tasks/${taskId}/members/${studentId}`);
   },
