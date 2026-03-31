@@ -14,6 +14,7 @@ import {
     AllocationAdjustmentDecisionSourceRequest,
     AllocationAdjustmentRequestDto,
     AllocationAdjustmentSourcePlanItemDto,
+    BulkAddOrganizersResultDto,
     CashFlowReportDto,
     ExpenseDto,
     ExpenseStatus,
@@ -28,6 +29,7 @@ import {
     PreparationTaskDto,
     PreparationTaskMemberDto,
     PreparationTaskStatus,
+    TaskAllocationSourceDto,
     WorkloadWarningDto,
 } from '../../types';
 import { getImageUrl } from '../../utils/imageUtils';
@@ -94,15 +96,19 @@ function taskStatusBadgeClass(status: PreparationTaskStatus) {
     return 'bg-gray-50 text-gray-700 border border-gray-200';
 }
 
-type ManagerTabKey = 'overview' | 'task-center';
+type ManagerTabKey = 'overview' | 'task-center' | 'exports';
+type PreparationExportType = 'financial' | 'operational' | 'audit';
+type PreparationExportFormat = 'xlsx' | 'pdf';
 
 const managerTabs: Array<{ key: ManagerTabKey; label: string }> = [
     { key: 'overview', label: 'Tổng quan' },
     { key: 'task-center', label: 'Trung tâm nhiệm vụ' },
+    { key: 'exports', label: 'Xuất báo cáo' },
 ];
 
 function parseManagerTab(value: string | null): ManagerTabKey {
     if (value === 'task-center') return 'task-center';
+    if (value === 'exports') return 'exports';
     if (value === 'tasks') return 'task-center';
     if (value === 'allocations') return 'task-center';
     if (value === 'fund-advances') return 'task-center';
@@ -140,7 +146,7 @@ export default function PreparationDetail() {
     const [searchQuery, setSearchQuery] = useState('');
     const [searching, setSearching] = useState(false);
     const [searchResults, setSearchResults] = useState<any[]>([]);
-    const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
+    const [selectedStudentIds, setSelectedStudentIds] = useState<number[]>([]);
     const [addingOrganizer, setAddingOrganizer] = useState(false);
 
     const [showTaskModal, setShowTaskModal] = useState(false);
@@ -158,6 +164,9 @@ export default function PreparationDetail() {
     const [showTaskAdvanceHistory, setShowTaskAdvanceHistory] = useState(false);
     const [taskAdvanceHistory, setTaskAdvanceHistory] = useState<FundAdvanceDto[]>([]);
     const [loadingTaskAdvanceHistory, setLoadingTaskAdvanceHistory] = useState(false);
+    const [showTaskAllocationSources, setShowTaskAllocationSources] = useState(false);
+    const [taskAllocationSources, setTaskAllocationSources] = useState<TaskAllocationSourceDto[]>([]);
+    const [loadingTaskAllocationSources, setLoadingTaskAllocationSources] = useState(false);
     const [decidingTaskCompletionId, setDecidingTaskCompletionId] = useState<number | null>(null);
 
     const [showAllocateModal, setShowAllocateModal] = useState(false);
@@ -184,6 +193,11 @@ export default function PreparationDetail() {
     const [loadingReports, setLoadingReports] = useState(false);
     const [workloadWarnings, setWorkloadWarnings] = useState<WorkloadWarningDto[]>([]);
     const [loadingWorkload, setLoadingWorkload] = useState(false);
+    const [exportingByKey, setExportingByKey] = useState<Record<string, boolean>>({});
+    const [lastFailedExport, setLastFailedExport] = useState<{
+        reportType: PreparationExportType;
+        format: PreparationExportFormat;
+    } | null>(null);
 
     const hasPreparation = Boolean(dashboard?.hasPreparation);
     const financialTasks = useMemo(() => {
@@ -215,6 +229,40 @@ export default function PreparationDetail() {
     const showTaskMemberAndWorkload = managerTab === 'task-center';
     const showAllocationSection = managerTab === 'task-center';
     const showFundSection = managerTab === 'task-center';
+    const showExportSection = managerTab === 'exports';
+
+    const getExportKey = (reportType: PreparationExportType, format: PreparationExportFormat) => `${reportType}:${format}`;
+
+    const toSafeFileNameSegment = (value: string) =>
+        value
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9-_]/g, '')
+            .replace(/-+/g, '-');
+
+    const getExportDefaultFileName = (reportType: PreparationExportType, format: PreparationExportFormat) => {
+        const date = new Date().toISOString().slice(0, 10);
+        const activitySegment = toSafeFileNameSegment(activity?.name || '') || `activity-${id}`;
+        return `preparation-${reportType}-${activitySegment}-${date}.${format}`;
+    };
+
+    const parseFileNameFromContentDisposition = (contentDisposition?: string): string | null => {
+        if (!contentDisposition) return null;
+
+        const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+        if (utf8Match?.[1]) {
+            try {
+                return decodeURIComponent(utf8Match[1]);
+            } catch {
+                return utf8Match[1];
+            }
+        }
+
+        const basicMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+        if (basicMatch?.[1]) return basicMatch[1];
+        return null;
+    };
 
     useEffect(() => {
         if (!dashboard?.tasks?.length) {
@@ -390,21 +438,49 @@ export default function PreparationDetail() {
     }, [searchStudents]);
 
     const addOrganizer = async () => {
-        if (!selectedStudentId) return;
+        if (selectedStudentIds.length === 0) return;
         try {
             setAddingOrganizer(true);
-            await preparationAPI.addOrganizer(id, selectedStudentId);
-            toast.success('Đã thêm organizer');
+            const result: BulkAddOrganizersResultDto = await preparationAPI.addOrganizersBulk(id, {
+                studentIds: selectedStudentIds,
+            });
+            const addedCount = result?.added?.length ?? 0;
+            const skippedCount = result?.skippedStudentIds?.length ?? 0;
+
+            if (addedCount > 0 && skippedCount > 0) {
+                toast.success(`Đã thêm ${addedCount} organizer, bỏ qua ${skippedCount} người đã tồn tại.`);
+            } else if (addedCount > 0) {
+                toast.success(`Đã thêm ${addedCount} organizer.`);
+            } else {
+                toast.info('Không có organizer mới được thêm.');
+            }
+
             setShowAddOrganizer(false);
             setSearchQuery('');
             setSearchResults([]);
-            setSelectedStudentId(null);
+            setSelectedStudentIds([]);
             await loadCore();
         } catch (e: any) {
             toast.error(e?.response?.data?.message || e?.message || 'Không thể thêm organizer');
         } finally {
             setAddingOrganizer(false);
         }
+    };
+
+    const toggleOrganizerCandidate = (studentId: number) => {
+        setSelectedStudentIds((prev) => {
+            if (prev.includes(studentId)) {
+                return prev.filter((id) => id !== studentId);
+            }
+            return [...prev, studentId];
+        });
+    };
+
+    const closeAddOrganizerModal = () => {
+        setShowAddOrganizer(false);
+        setSearchQuery('');
+        setSearchResults([]);
+        setSelectedStudentIds([]);
     };
 
     const removeOrganizer = async (studentId: number) => {
@@ -461,26 +537,32 @@ export default function PreparationDetail() {
         try {
             setSelectedTaskId(taskId);
             setShowTaskAdvanceHistory(false);
+            setShowTaskAllocationSources(false);
             setLoadingTaskDetail(true);
             setLoadingTaskMembers(true);
             setLoadingTaskAdvanceHistory(true);
-            const [detail, members, advances] = await Promise.all([
+            setLoadingTaskAllocationSources(true);
+            const [detail, members, advances, allocationSources] = await Promise.all([
                 preparationAPI.getTaskDetail(taskId),
                 preparationAPI.getTaskMembers(taskId),
                 preparationAPI.listFundAdvancesByTask(taskId).catch(() => [] as FundAdvanceDto[]),
+                preparationAPI.getTaskAllocationSources(taskId).catch(() => [] as TaskAllocationSourceDto[]),
             ]);
             setTaskDetail(detail);
             setTaskDetailMembers(members ?? []);
             setTaskAdvanceHistory(advances ?? []);
+            setTaskAllocationSources(allocationSources ?? []);
         } catch (e: any) {
             setTaskDetail(null);
             setTaskDetailMembers([]);
             setTaskAdvanceHistory([]);
+            setTaskAllocationSources([]);
             toast.error(e?.response?.data?.message || e?.message || 'Không thể tải chi tiết task');
         } finally {
             setLoadingTaskDetail(false);
             setLoadingTaskMembers(false);
             setLoadingTaskAdvanceHistory(false);
+            setLoadingTaskAllocationSources(false);
         }
     };
 
@@ -763,6 +845,70 @@ export default function PreparationDetail() {
         }
     };
 
+    const downloadPreparationExport = async (reportType: PreparationExportType, format: PreparationExportFormat) => {
+        const key = getExportKey(reportType, format);
+        try {
+            setExportingByKey((prev) => ({ ...prev, [key]: true }));
+
+            let payload: { blob: Blob; contentDisposition?: string };
+            if (reportType === 'financial') {
+                payload = await preparationAPI.downloadFinancialExport(id, format);
+            } else if (reportType === 'operational') {
+                payload = await preparationAPI.downloadOperationalExport(id, format);
+            } else {
+                payload = await preparationAPI.downloadAuditExport(id, format);
+            }
+
+            const fileName =
+                parseFileNameFromContentDisposition(payload.contentDisposition) ||
+                getExportDefaultFileName(reportType, format);
+
+            const url = window.URL.createObjectURL(payload.blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            setLastFailedExport(null);
+
+            toast.success(`Đã bắt đầu tải ${fileName}`);
+        } catch (e: any) {
+            setLastFailedExport({ reportType, format });
+            toast.error(e?.response?.data?.message || e?.message || 'Không thể xuất báo cáo');
+        } finally {
+            setExportingByKey((prev) => ({ ...prev, [key]: false }));
+        }
+    };
+
+    const reviewPreparationExportPdf = async (reportType: PreparationExportType) => {
+        const key = getExportKey(reportType, 'pdf');
+        try {
+            setExportingByKey((prev) => ({ ...prev, [key]: true }));
+
+            let payload: { blob: Blob; contentDisposition?: string };
+            if (reportType === 'financial') {
+                payload = await preparationAPI.downloadFinancialExport(id, 'pdf');
+            } else if (reportType === 'operational') {
+                payload = await preparationAPI.downloadOperationalExport(id, 'pdf');
+            } else {
+                payload = await preparationAPI.downloadAuditExport(id, 'pdf');
+            }
+
+            const previewUrl = window.URL.createObjectURL(payload.blob);
+            window.open(previewUrl, '_blank', 'noopener,noreferrer');
+            setTimeout(() => window.URL.revokeObjectURL(previewUrl), 60000);
+            setLastFailedExport(null);
+            toast.success('Đã mở review PDF ở tab mới');
+        } catch (e: any) {
+            setLastFailedExport({ reportType, format: 'pdf' });
+            toast.error(e?.response?.data?.message || e?.message || 'Không thể review PDF báo cáo');
+        } finally {
+            setExportingByKey((prev) => ({ ...prev, [key]: false }));
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -872,6 +1018,87 @@ export default function PreparationDetail() {
                                 onBudgetSaved={loadCore}
                             />
                         </div>
+                        </div>
+                    )}
+
+                    {showExportSection && (
+                        <div className="card">
+                            <div className="p-6 space-y-4">
+                                <div className="flex items-center justify-between gap-3">
+                                    <h2 className="text-lg font-semibold text-[#001C44]">Xuất báo cáo</h2>
+                                    <div className="flex items-center gap-2">
+                                        {lastFailedExport && (
+                                            <button
+                                                type="button"
+                                                onClick={() => downloadPreparationExport(lastFailedExport.reportType, lastFailedExport.format)}
+                                                disabled={Boolean(exportingByKey[getExportKey(lastFailedExport.reportType, lastFailedExport.format)])}
+                                                className="px-3 py-1.5 text-xs font-medium rounded-lg border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                Thử lại lần tải gần nhất
+                                            </button>
+                                        )}
+                                        <span className="text-xs text-gray-500">Có thể review PDF trước khi tải</span>
+                                    </div>
+                                </div>
+
+                                {[
+                                    {
+                                        key: 'financial' as PreparationExportType,
+                                        title: 'Financial',
+                                        subtitle: 'Budget vs Actual + Cash Flow + Debts',
+                                    },
+                                    {
+                                        key: 'operational' as PreparationExportType,
+                                        title: 'Operational',
+                                        subtitle: 'Tasks + Workload + Evidence',
+                                    },
+                                    {
+                                        key: 'audit' as PreparationExportType,
+                                        title: 'Audit',
+                                        subtitle: 'Audit logs + Reserve transfers',
+                                    },
+                                ].map((item) => {
+                                    const xlsxKey = getExportKey(item.key, 'xlsx');
+                                    const pdfKey = getExportKey(item.key, 'pdf');
+                                    return (
+                                        <div
+                                            key={item.key}
+                                            className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border border-gray-200 rounded-lg p-3"
+                                        >
+                                            <div>
+                                                <div className="text-sm font-semibold text-gray-900">{item.title}</div>
+                                                <div className="text-xs text-gray-500">{item.subtitle}</div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => reviewPreparationExportPdf(item.key)}
+                                                    disabled={Boolean(exportingByKey[pdfKey])}
+                                                    className="px-3 py-1.5 text-xs font-medium rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    {exportingByKey[pdfKey] ? 'Đang mở review...' : 'Review PDF'}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => downloadPreparationExport(item.key, 'xlsx')}
+                                                    disabled={Boolean(exportingByKey[xlsxKey])}
+                                                    className="px-3 py-1.5 text-xs font-medium rounded-lg border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    {exportingByKey[xlsxKey] ? 'Đang xuất XLSX...' : 'Tải XLSX'}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => downloadPreparationExport(item.key, 'pdf')}
+                                                    disabled={Boolean(exportingByKey[pdfKey])}
+                                                    className="px-3 py-1.5 text-xs font-medium rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    {exportingByKey[pdfKey] ? 'Đang xuất PDF...' : 'Tải PDF'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                     )}
 
@@ -1297,7 +1524,9 @@ export default function PreparationDetail() {
                                         setTaskDetail(null);
                                         setTaskDetailMembers([]);
                                         setShowTaskAdvanceHistory(false);
+                                        setShowTaskAllocationSources(false);
                                         setTaskAdvanceHistory([]);
+                                        setTaskAllocationSources([]);
                                     }}
                                     className="h-9 w-9 inline-flex items-center justify-center rounded-full border border-white/25 bg-white/10 text-white hover:text-[#FFD66D] hover:bg-white/20 transition-colors"
                                 >
@@ -1339,6 +1568,15 @@ export default function PreparationDetail() {
                                                 <div className="rounded-lg border border-gray-200 p-3 bg-gray-50/70">
                                                     <div className="text-sm font-semibold text-gray-700">Đã cấp phát</div>
                                                     <div className="text-sm text-gray-900 mt-1">{formatMoney(taskForMembers.allocatedAmount)}</div>
+                                                    {taskForMembers.isFinancial && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowTaskAllocationSources(true)}
+                                                            className="mt-2 px-2.5 py-1 text-xs font-medium border border-[#001C44] text-[#001C44] rounded-lg hover:bg-[#001C44] hover:text-white"
+                                                        >
+                                                            Xem nguồn
+                                                        </button>
+                                                    )}
                                                 </div>
                                                 <div className="rounded-lg border border-gray-200 p-3 bg-gray-50/70">
                                                     <div className="text-sm font-semibold text-gray-700">Deadline</div>
@@ -1371,6 +1609,78 @@ export default function PreparationDetail() {
                                             </div>
                                         </div>
                                     </div>
+
+                                    {taskForMembers.isFinancial && showTaskAllocationSources && (
+                                        <div className="fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4">
+                                            <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+                                                <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] px-5 py-3 flex items-center justify-between">
+                                                    <div className="text-sm font-semibold text-white">Nguồn cấp phát theo ví</div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowTaskAllocationSources(false)}
+                                                        className="h-8 w-8 inline-flex items-center justify-center rounded-full border border-white/30 text-white hover:bg-white/10"
+                                                    >
+                                                        <span className="sr-only">Đóng</span>
+                                                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                                <div className="p-4">
+                                                    <div className="flex justify-end mb-3">
+                                                        <button
+                                                            type="button"
+                                                            onClick={async () => {
+                                                                if (!taskForMembers?.id) return;
+                                                                try {
+                                                                    setLoadingTaskAllocationSources(true);
+                                                                    const list = await preparationAPI.getTaskAllocationSources(taskForMembers.id);
+                                                                    setTaskAllocationSources(list ?? []);
+                                                                } catch {
+                                                                    setTaskAllocationSources([]);
+                                                                } finally {
+                                                                    setLoadingTaskAllocationSources(false);
+                                                                }
+                                                            }}
+                                                            className="px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg hover:bg-gray-100"
+                                                        >
+                                                            Tải lại
+                                                        </button>
+                                                    </div>
+                                                    {loadingTaskAllocationSources ? (
+                                                        <div className="text-sm text-gray-500">Đang tải nguồn cấp phát...</div>
+                                                    ) : taskAllocationSources.length === 0 ? (
+                                                        <div className="text-sm text-gray-500">Chưa có dữ liệu allocation theo ví cho nhiệm vụ này.</div>
+                                                    ) : (
+                                                        <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                                                            <table className="min-w-full divide-y divide-gray-200">
+                                                                <thead className="bg-gray-50">
+                                                                    <tr>
+                                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ví</th>
+                                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Đã cấp phát</th>
+                                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Đang tạm ứng</th>
+                                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Đã chi duyệt</th>
+                                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Còn lại</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody className="bg-white divide-y divide-gray-200">
+                                                                    {taskAllocationSources.map((item) => (
+                                                                        <tr key={item.categoryId}>
+                                                                            <td className="px-4 py-3 text-sm text-gray-700">{item.categoryName}</td>
+                                                                            <td className="px-4 py-3 text-sm font-semibold text-gray-900">{formatMoney(item.allocatedAmount)}</td>
+                                                                            <td className="px-4 py-3 text-sm text-gray-700">{formatMoney(item.holdingAdvanceAmount)}</td>
+                                                                            <td className="px-4 py-3 text-sm text-gray-700">{formatMoney(item.approvedSpentAmount)}</td>
+                                                                            <td className="px-4 py-3 text-sm font-semibold text-[#001C44]">{formatMoney(item.allocationRemainingAmount)}</td>
+                                                                        </tr>
+                                                                    ))}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {taskForMembers.isFinancial && showTaskAdvanceHistory && (
                                         <div className="card overflow-hidden">
@@ -1467,7 +1777,7 @@ export default function PreparationDetail() {
                                     <h3 className="text-lg font-bold text-white">Thêm organizer</h3>
                                     <p className="text-xs text-gray-200 mt-0.5">Tìm sinh viên và thêm vào BTC</p>
                                 </div>
-                                <button type="button" onClick={() => setShowAddOrganizer(false)} className="text-white hover:text-[#FFD66D] transition-colors">
+                                <button type="button" onClick={closeAddOrganizerModal} className="text-white hover:text-[#FFD66D] transition-colors">
                                     <span className="sr-only">Đóng</span>
                                     <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1488,6 +1798,9 @@ export default function PreparationDetail() {
                                     className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
                                 />
                                 <p className="mt-1 text-xs text-gray-500">Nhập ít nhất 2 ký tự để tìm kiếm</p>
+                                {selectedStudentIds.length > 0 && (
+                                    <p className="mt-1 text-xs text-[#001C44] font-medium">Đã chọn {selectedStudentIds.length} người để thêm.</p>
+                                )}
                             </div>
 
                             {searching ? (
@@ -1500,19 +1813,21 @@ export default function PreparationDetail() {
                             ) : (
                                 searchResults.length > 0 && (
                                     <div className="max-h-60 overflow-y-auto border-2 border-gray-200 rounded-lg divide-y divide-gray-200">
-                                        {searchResults.map((s: any) => (
+                                        {searchResults.map((s: any) => {
+                                            const isSelected = selectedStudentIds.includes(s.id);
+                                            return (
                                             <div
                                                 key={s.id}
-                                                className={`p-4 hover:bg-gray-50 cursor-pointer transition-all ${selectedStudentId === s.id ? 'bg-gradient-to-r from-[#001C44] to-[#002A66] bg-opacity-10 border-l-4 border-[#001C44]' : ''
+                                                className={`p-4 hover:bg-gray-50 cursor-pointer transition-all ${isSelected ? 'bg-gradient-to-r from-[#001C44] to-[#002A66] bg-opacity-10 border-l-4 border-[#001C44]' : ''
                                                     }`}
-                                                onClick={() => setSelectedStudentId(s.id)}
+                                                onClick={() => toggleOrganizerCandidate(s.id)}
                                             >
                                                 <div className="flex items-center justify-between">
                                                     <div className="min-w-0">
                                                         <div className="text-sm font-semibold text-gray-900">{s.fullName}</div>
                                                         <div className="text-xs text-gray-500 mt-0.5">{s.studentCode} • {s.email}</div>
                                                     </div>
-                                                    {selectedStudentId === s.id && (
+                                                    {isSelected && (
                                                         <div className="text-[#001C44] bg-[#FFD66D] rounded-full p-1">
                                                             <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                                                                 <path
@@ -1525,7 +1840,8 @@ export default function PreparationDetail() {
                                                     )}
                                                 </div>
                                             </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 )
                             )}
@@ -1533,18 +1849,18 @@ export default function PreparationDetail() {
                             <div className="flex justify-end gap-3 pt-4 mt-4 border-t border-gray-200">
                                 <button
                                     type="button"
-                                    onClick={() => setShowAddOrganizer(false)}
+                                    onClick={closeAddOrganizerModal}
                                     className="px-6 py-2.5 text-sm font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                                 >
                                     Hủy
                                 </button>
                                 <button
                                     type="button"
-                                    disabled={!selectedStudentId || addingOrganizer}
+                                    disabled={selectedStudentIds.length === 0 || addingOrganizer}
                                     onClick={addOrganizer}
                                     className="px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-lg hover:from-[#002A66] hover:to-[#001C44] focus:outline-none focus:ring-2 focus:ring-[#001C44] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
                                 >
-                                    {addingOrganizer ? 'Đang thêm...' : 'Thêm'}
+                                    {addingOrganizer ? 'Đang thêm...' : `Thêm (${selectedStudentIds.length})`}
                                 </button>
                             </div>
                         </div>

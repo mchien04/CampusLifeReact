@@ -2,6 +2,8 @@ import api from './api';
 import {
   ActivityBudgetDto,
   AllocateTaskAmountRequestV1,
+  BulkAddOrganizersRequest,
+  BulkAddOrganizersResultDto,
   AllocationAdjustmentRequestDto,
   AllocationAdjustmentSourcePlanItemDto,
   AdminDecisionAllocationAdjustmentRequest,
@@ -37,6 +39,16 @@ function unwrapBody<T>(data: any): T {
   return (data?.body ?? data?.data ?? data) as T;
 }
 
+type PreparationExportFormat = 'xlsx' | 'pdf';
+
+function getPreparationExportUrl(
+  activityId: number,
+  reportType: 'financial' | 'operational' | 'audit',
+  format: PreparationExportFormat
+): string {
+  return `/api/preparation/activities/${activityId}/exports/${reportType}?format=${format}`;
+}
+
 export const preparationAPI = {
   getMyActivityIds: async (): Promise<number[]> => {
     const response = await api.get('/api/preparation/my/activity-ids');
@@ -64,6 +76,14 @@ export const preparationAPI = {
 
   addOrganizer: async (activityId: number, studentId: number): Promise<void> => {
     await api.post(`/api/preparation/activities/${activityId}/organizers/${studentId}`);
+  },
+
+  addOrganizersBulk: async (
+    activityId: number,
+    payload: BulkAddOrganizersRequest
+  ): Promise<BulkAddOrganizersResultDto> => {
+    const response = await api.post(`/api/preparation/activities/${activityId}/organizers`, payload);
+    return unwrapBody<BulkAddOrganizersResultDto>(response.data);
   },
 
   removeOrganizer: async (activityId: number, studentId: number): Promise<void> => {
@@ -372,5 +392,35 @@ export const preparationAPI = {
     // TODO: Phase 6 - GET /api/preparation/activities/{activityId}/reports/cash-flow
     const response = await api.get(`/api/preparation/activities/${activityId}/reports/cash-flow`);
     return unwrapBody<CashFlowReportDto>(response.data);
+  },
+
+  downloadFinancialExport: async (activityId: number, format: PreparationExportFormat): Promise<{ blob: Blob; contentDisposition?: string }> => {
+    const response = await api.get(getPreparationExportUrl(activityId, 'financial', format), {
+      responseType: 'blob',
+    });
+    return {
+      blob: response.data,
+      contentDisposition: response.headers?.['content-disposition'],
+    };
+  },
+
+  downloadOperationalExport: async (activityId: number, format: PreparationExportFormat): Promise<{ blob: Blob; contentDisposition?: string }> => {
+    const response = await api.get(getPreparationExportUrl(activityId, 'operational', format), {
+      responseType: 'blob',
+    });
+    return {
+      blob: response.data,
+      contentDisposition: response.headers?.['content-disposition'],
+    };
+  },
+
+  downloadAuditExport: async (activityId: number, format: PreparationExportFormat): Promise<{ blob: Blob; contentDisposition?: string }> => {
+    const response = await api.get(getPreparationExportUrl(activityId, 'audit', format), {
+      responseType: 'blob',
+    });
+    return {
+      blob: response.data,
+      contentDisposition: response.headers?.['content-disposition'],
+    };
   },
 };
