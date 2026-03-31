@@ -13,6 +13,7 @@ import {
   CreateExpenseRequest,
   CreateFundAdvanceRequest,
   CreateFundAdvanceRequestV1,
+  ExpenseCategorySuggestionDto,
   ExpenseDto,
   ExpenseStatusFilter,
   FinancialReportDto,
@@ -204,6 +205,25 @@ export const preparationAPI = {
   getTaskAllocationSources: async (taskId: number): Promise<TaskAllocationSourceDto[]> => {
     const response = await api.get(`/api/preparation/tasks/${taskId}/allocation-sources`);
     return unwrapBody<TaskAllocationSourceDto[]>(response.data) ?? [];
+  },
+
+  getExpenseCategorySuggestions: async (
+    taskId: number,
+    amount?: string
+  ): Promise<ExpenseCategorySuggestionDto[]> => {
+    const url = amount
+      ? `/api/preparation/tasks/${taskId}/expense-category-suggestions?amount=${encodeURIComponent(amount)}`
+      : `/api/preparation/tasks/${taskId}/expense-category-suggestions`;
+    const response = await api.get(url);
+    return unwrapBody<ExpenseCategorySuggestionDto[]>(response.data) ?? [];
+  },
+
+  getMyFundAdvances: async (activityId: number, taskId?: number): Promise<FundAdvanceDto[]> => {
+    const url = taskId
+      ? `/api/preparation/my/fund-advances?activityId=${activityId}&taskId=${taskId}`
+      : `/api/preparation/my/fund-advances?activityId=${activityId}`;
+    const response = await api.get(url);
+    return unwrapBody<FundAdvanceDto[]>(response.data) ?? [];
   },
 
   deleteTaskMember: async (taskId: number, studentId: number): Promise<void> => {

@@ -21,6 +21,7 @@ import {
     FinanceOverviewReportDto,
     FundAdvanceDebtDto,
     FundAdvanceDto,
+    FundAdvanceStatus,
     FundAdvanceSourceSuggestionDto,
     OrganizerDto,
     PreparationDashboardDto,
@@ -65,6 +66,20 @@ function expenseStatusLabel(status: ExpenseStatus) {
     return 'Từ chối';
 }
 
+function fundAdvanceStatusLabel(status: FundAdvanceStatus) {
+    if (status === 'REQUESTED') return 'Chờ duyệt';
+    if (status === 'HOLDING') return 'Đang giữ tiền';
+    if (status === 'SETTLED') return 'Đã tất toán';
+    return 'Từ chối';
+}
+
+function fundAdvanceStatusBadgeClass(status: FundAdvanceStatus) {
+    if (status === 'REQUESTED') return 'bg-yellow-50 text-yellow-700 border border-yellow-200';
+    if (status === 'HOLDING') return 'bg-blue-50 text-blue-700 border border-blue-200';
+    if (status === 'SETTLED') return 'bg-green-50 text-green-700 border border-green-200';
+    return 'bg-red-50 text-red-700 border border-red-200';
+}
+
 function taskStatusLabel(status: PreparationTaskStatus) {
     if (status === 'PENDING') return 'PENDING';
     if (status === 'ACCEPTED') return 'ACCEPTED';
@@ -79,12 +94,11 @@ function taskStatusBadgeClass(status: PreparationTaskStatus) {
     return 'bg-gray-50 text-gray-700 border border-gray-200';
 }
 
-type ManagerTabKey = 'overview' | 'task-center' | 'expenses';
+type ManagerTabKey = 'overview' | 'task-center';
 
 const managerTabs: Array<{ key: ManagerTabKey; label: string }> = [
     { key: 'overview', label: 'Tổng quan' },
     { key: 'task-center', label: 'Trung tâm nhiệm vụ' },
-    { key: 'expenses', label: 'Chi phí' },
 ];
 
 function parseManagerTab(value: string | null): ManagerTabKey {
@@ -92,7 +106,7 @@ function parseManagerTab(value: string | null): ManagerTabKey {
     if (value === 'tasks') return 'task-center';
     if (value === 'allocations') return 'task-center';
     if (value === 'fund-advances') return 'task-center';
-    if (value === 'expenses') return 'expenses';
+    if (value === 'expenses') return 'task-center';
     return 'overview';
 }
 
@@ -141,6 +155,10 @@ export default function PreparationDetail() {
     const [loadingTaskDetail, setLoadingTaskDetail] = useState(false);
     const [taskDetailMembers, setTaskDetailMembers] = useState<PreparationTaskMemberDto[]>([]);
     const [loadingTaskMembers, setLoadingTaskMembers] = useState(false);
+    const [showTaskAdvanceHistory, setShowTaskAdvanceHistory] = useState(false);
+    const [taskAdvanceHistory, setTaskAdvanceHistory] = useState<FundAdvanceDto[]>([]);
+    const [loadingTaskAdvanceHistory, setLoadingTaskAdvanceHistory] = useState(false);
+    const [decidingTaskCompletionId, setDecidingTaskCompletionId] = useState<number | null>(null);
 
     const [showAllocateModal, setShowAllocateModal] = useState(false);
     const [allocTaskId, setAllocTaskId] = useState<number | null>(null);
@@ -156,18 +174,6 @@ export default function PreparationDetail() {
     const [sourcePlanLoadedByRequest, setSourcePlanLoadedByRequest] = useState<Record<number, boolean>>({});
     const [sourcePlanLoadingByRequest, setSourcePlanLoadingByRequest] = useState<Record<number, boolean>>({});
     const [sourcePlanErrorByRequest, setSourcePlanErrorByRequest] = useState<Record<number, string | null>>({});
-
-    const [showFundAdvanceModal, setShowFundAdvanceModal] = useState(false);
-    const [faTaskId, setFaTaskId] = useState<number | null>(null);
-    const [faAmount, setFaAmount] = useState('');
-    const [faCategoryId, setFaCategoryId] = useState<number | null>(null);
-    const [faSearchQuery, setFaSearchQuery] = useState('');
-    const [faSearching, setFaSearching] = useState(false);
-    const [faResults, setFaResults] = useState<any[]>([]);
-    const [faStudentId, setFaStudentId] = useState<number | null>(null);
-    const [creatingFundAdvance, setCreatingFundAdvance] = useState(false);
-    const [sourceSuggestions, setSourceSuggestions] = useState<FundAdvanceSourceSuggestionDto[]>([]);
-    const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
     const [fundAdvances, setFundAdvances] = useState<FundAdvanceDto[]>([]);
     const [loadingFundAdvances, setLoadingFundAdvances] = useState(false);
@@ -347,30 +353,6 @@ export default function PreparationDetail() {
         loadFundAdvanceData();
     }, [hasPreparation, loadFundAdvanceData]);
 
-    const loadFundAdvanceSuggestions = useCallback(async () => {
-        if (!faTaskId) {
-            setSourceSuggestions([]);
-            return;
-        }
-        try {
-            setLoadingSuggestions(true);
-            const list = await preparationAPI.getFundAdvanceSourceSuggestions(faTaskId, faAmount.trim() || undefined);
-            setSourceSuggestions(list ?? []);
-            if (!faCategoryId && list.length > 0) {
-                setFaCategoryId(list[0].categoryId);
-            }
-        } catch {
-            setSourceSuggestions([]);
-        } finally {
-            setLoadingSuggestions(false);
-        }
-    }, [faAmount, faCategoryId, faTaskId]);
-
-    useEffect(() => {
-        if (!showFundAdvanceModal) return;
-        loadFundAdvanceSuggestions();
-    }, [showFundAdvanceModal, loadFundAdvanceSuggestions]);
-
     const togglePreparation = async (enabled: boolean) => {
         try {
             await preparationAPI.togglePreparation(id, enabled);
@@ -478,21 +460,27 @@ export default function PreparationDetail() {
     const openTaskDetail = async (taskId: number) => {
         try {
             setSelectedTaskId(taskId);
+            setShowTaskAdvanceHistory(false);
             setLoadingTaskDetail(true);
             setLoadingTaskMembers(true);
-            const [detail, members] = await Promise.all([
+            setLoadingTaskAdvanceHistory(true);
+            const [detail, members, advances] = await Promise.all([
                 preparationAPI.getTaskDetail(taskId),
                 preparationAPI.getTaskMembers(taskId),
+                preparationAPI.listFundAdvancesByTask(taskId).catch(() => [] as FundAdvanceDto[]),
             ]);
             setTaskDetail(detail);
             setTaskDetailMembers(members ?? []);
+            setTaskAdvanceHistory(advances ?? []);
         } catch (e: any) {
             setTaskDetail(null);
             setTaskDetailMembers([]);
+            setTaskAdvanceHistory([]);
             toast.error(e?.response?.data?.message || e?.message || 'Không thể tải chi tiết task');
         } finally {
             setLoadingTaskDetail(false);
             setLoadingTaskMembers(false);
+            setLoadingTaskAdvanceHistory(false);
         }
     };
 
@@ -529,6 +517,19 @@ export default function PreparationDetail() {
             await loadReports();
         } catch (e: any) {
             toast.error(e?.response?.data?.message || e?.message || 'Không thể duyệt cấp trưởng nhóm');
+        }
+    };
+
+    const decideTaskCompletion = async (taskId: number, approved: boolean) => {
+        try {
+            setDecidingTaskCompletionId(taskId);
+            await preparationAPI.completeTaskDecision(taskId, approved);
+            toast.success(approved ? 'Đã xác nhận hoàn thành nhiệm vụ' : 'Đã từ chối hoàn thành nhiệm vụ');
+            await loadCore();
+        } catch (e: any) {
+            toast.error(e?.response?.data?.message || e?.message || 'Không thể xử lý yêu cầu hoàn thành nhiệm vụ');
+        } finally {
+            setDecidingTaskCompletionId(null);
         }
     };
 
@@ -706,73 +707,25 @@ export default function PreparationDetail() {
         }
     };
 
-    const searchStudentsForFundAdvance = useCallback(async () => {
-        if (faSearchQuery.trim().length < 2) {
-            setFaResults([]);
-            return;
-        }
-        try {
-            setFaSearching(true);
-            const res = await studentAPI.searchStudents(faSearchQuery.trim());
-            if (res.status && res.data) {
-                setFaResults(res.data.content || []);
-            } else {
-                setFaResults([]);
-            }
-        } catch {
-            setFaResults([]);
-        } finally {
-            setFaSearching(false);
-        }
-    }, [faSearchQuery]);
+    if (!Number.isFinite(id) || id <= 0) {
+        return (
+            <div className="space-y-4">
+                <div className="card">
+                    <div className="p-6">
+                        <div className="text-sm text-gray-600">ActivityId không hợp lệ.</div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
-    useEffect(() => {
-        const t = setTimeout(searchStudentsForFundAdvance, 300);
-        return () => clearTimeout(t);
-    }, [searchStudentsForFundAdvance]);
-
-    const openFundAdvanceModal = (task: PreparationTaskDto) => {
-        setShowFundAdvanceModal(true);
-        setFaTaskId(task.id);
-        setFaAmount('');
-        setFaCategoryId(null);
-        setFaSearchQuery('');
-        setFaResults([]);
-        setFaStudentId(null);
-        setSourceSuggestions([]);
-    };
-
-    const createFundAdvance = async () => {
-        if (!faTaskId) return;
-        if (!faStudentId) {
-            toast.warning('Vui lòng chọn member');
-            return;
-        }
-        if (!faCategoryId) {
-            toast.warning('Vui lòng chọn ví nguồn');
-            return;
-        }
-        if (!faAmount.trim()) {
-            toast.warning('Vui lòng nhập số tiền tạm ứng');
-            return;
-        }
-        try {
-            setCreatingFundAdvance(true);
-            await preparationAPI.requestFundAdvance(faTaskId, {
-                studentId: faStudentId,
-                categoryId: faCategoryId,
-                amount: faAmount.trim(),
-            });
-            toast.success('Đã tạo yêu cầu tạm ứng (REQUESTED)');
-            setShowFundAdvanceModal(false);
-            await loadFundAdvanceData();
-            await loadReports();
-        } catch (e: any) {
-            toast.error(e?.response?.data?.message || e?.message || 'Không thể tạo tạm ứng');
-        } finally {
-            setCreatingFundAdvance(false);
-        }
-    };
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#001C44]"></div>
+            </div>
+        );
+    }
 
     const decideFundAdvance = async (
         fundAdvanceId: number,
@@ -809,26 +762,6 @@ export default function PreparationDetail() {
             toast.error(e?.response?.data?.message || e?.message || 'Không thể hoàn ứng');
         }
     };
-
-    if (!Number.isFinite(id) || id <= 0) {
-        return (
-            <div className="space-y-4">
-                <div className="card">
-                    <div className="p-6">
-                        <div className="text-sm text-gray-600">ActivityId không hợp lệ.</div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    if (loading) {
-        return (
-            <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#001C44]"></div>
-            </div>
-        );
-    }
 
     return (
         <div className="space-y-6">
@@ -989,13 +922,35 @@ export default function PreparationDetail() {
                                                         {t.deadline ? new Date(t.deadline).toLocaleString('vi-VN') : '-'}
                                                     </td>
                                                     <td className="px-4 py-3 text-right">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => openTaskDetail(t.id)}
-                                                            className="px-3 py-1.5 text-sm font-medium border border-[#001C44] text-[#001C44] rounded-lg hover:bg-[#001C44] hover:text-white"
-                                                        >
-                                                            Xem chi tiết
-                                                        </button>
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            {t.status === 'COMPLETION_REQUESTED' && (
+                                                                <>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => decideTaskCompletion(t.id, false)}
+                                                                        disabled={decidingTaskCompletionId === t.id}
+                                                                        className="px-3 py-1.5 text-sm font-medium bg-red-50 text-red-700 rounded-lg border border-red-200 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                    >
+                                                                        Từ chối
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => decideTaskCompletion(t.id, true)}
+                                                                        disabled={decidingTaskCompletionId === t.id}
+                                                                        className="px-3 py-1.5 text-sm font-medium bg-green-50 text-green-700 rounded-lg border border-green-200 hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                    >
+                                                                        Xác nhận
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => openTaskDetail(t.id)}
+                                                                className="px-3 py-1.5 text-sm font-medium border border-[#001C44] text-[#001C44] rounded-lg hover:bg-[#001C44] hover:text-white"
+                                                            >
+                                                                Xem chi tiết
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             ))}
@@ -1301,22 +1256,24 @@ export default function PreparationDetail() {
                                 </div>
                             </div>
                             )}
+
+                            {showFundSection && (
+                                <div className="mt-5">
+                                    <AdminExpenseReviewCard
+                                        expenses={expenses}
+                                        loading={loadingExpenses}
+                                        statusFilter={expenseFilter}
+                                        onStatusFilterChange={(status) => {
+                                            setExpenseFilter(status);
+                                            loadExpenses(status);
+                                        }}
+                                        onDecision={approveExpense}
+                                        onViewEvidence={(url) => setImageModalUrl(url)}
+                                    />
+                                </div>
+                            )}
                         </div>
                     </div>
-                    )}
-
-                    {managerTab === 'expenses' && (
-                        <AdminExpenseReviewCard
-                            expenses={expenses}
-                            loading={loadingExpenses}
-                            statusFilter={expenseFilter}
-                            onStatusFilterChange={(status) => {
-                                setExpenseFilter(status);
-                                loadExpenses(status);
-                            }}
-                            onDecision={approveExpense}
-                            onViewEvidence={(url) => setImageModalUrl(url)}
-                        />
                     )}
                 </>
             )}
@@ -1339,6 +1296,8 @@ export default function PreparationDetail() {
                                         setSelectedTaskId(null);
                                         setTaskDetail(null);
                                         setTaskDetailMembers([]);
+                                        setShowTaskAdvanceHistory(false);
+                                        setTaskAdvanceHistory([]);
                                     }}
                                     className="h-9 w-9 inline-flex items-center justify-center rounded-full border border-white/25 bg-white/10 text-white hover:text-[#FFD66D] hover:bg-white/20 transition-colors"
                                 >
@@ -1403,15 +1362,82 @@ export default function PreparationDetail() {
                                                 {taskForMembers.isFinancial && (
                                                     <button
                                                         type="button"
-                                                        onClick={() => openFundAdvanceModal(taskForMembers)}
-                                                        className="px-3 py-1.5 text-sm font-medium bg-[#001C44] bg-opacity-10 text-[#001C44] rounded-lg border border-[#001C44] border-opacity-20 hover:bg-opacity-20"
+                                                        onClick={() => setShowTaskAdvanceHistory((prev) => !prev)}
+                                                        className="px-3 py-1.5 text-sm font-medium border border-[#001C44] text-[#001C44] rounded-lg hover:bg-[#001C44] hover:text-white"
                                                     >
-                                                        Tạm ứng
+                                                        {showTaskAdvanceHistory ? 'Ẩn lịch sử tạm ứng' : 'Xem lịch sử tạm ứng'}
                                                     </button>
                                                 )}
                                             </div>
                                         </div>
                                     </div>
+
+                                    {taskForMembers.isFinancial && showTaskAdvanceHistory && (
+                                        <div className="card overflow-hidden">
+                                            <div className="bg-gray-50 px-5 py-3 border-b border-gray-200 flex items-center justify-between">
+                                                <div className="text-sm font-semibold text-gray-700">Lịch sử tạm ứng của nhiệm vụ</div>
+                                                <button
+                                                    type="button"
+                                                    onClick={async () => {
+                                                        if (!taskForMembers?.id) return;
+                                                        try {
+                                                            setLoadingTaskAdvanceHistory(true);
+                                                            const list = await preparationAPI.listFundAdvancesByTask(taskForMembers.id);
+                                                            setTaskAdvanceHistory(list ?? []);
+                                                        } catch {
+                                                            setTaskAdvanceHistory([]);
+                                                        } finally {
+                                                            setLoadingTaskAdvanceHistory(false);
+                                                        }
+                                                    }}
+                                                    className="px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg hover:bg-gray-100"
+                                                >
+                                                    Tải lại
+                                                </button>
+                                            </div>
+                                            <div className="p-4">
+                                                {loadingTaskAdvanceHistory ? (
+                                                    <div className="text-sm text-gray-500">Đang tải lịch sử tạm ứng...</div>
+                                                ) : taskAdvanceHistory.length === 0 ? (
+                                                    <div className="text-sm text-gray-500">Chưa có giao dịch tạm ứng cho nhiệm vụ này.</div>
+                                                ) : (
+                                                    <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                                                        <table className="min-w-full divide-y divide-gray-200">
+                                                            <thead className="bg-gray-50">
+                                                                <tr>
+                                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thành viên</th>
+                                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ví nguồn</th>
+                                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số tiền</th>
+                                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Còn giữ</th>
+                                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thời gian</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody className="bg-white divide-y divide-gray-200">
+                                                                {taskAdvanceHistory.map((item) => (
+                                                                    <tr key={item.id}>
+                                                                        <td className="px-4 py-3 text-sm text-gray-700">{item.studentName || `#${item.studentId}`}</td>
+                                                                        <td className="px-4 py-3 text-sm text-gray-700">{item.categoryName || '-'}</td>
+                                                                        <td className="px-4 py-3 text-sm font-semibold text-gray-900">{formatMoney(item.amount)}</td>
+                                                                        <td className="px-4 py-3 text-sm font-semibold text-[#001C44]">{formatMoney(item.remainingAmount)}</td>
+                                                                        <td className="px-4 py-3 text-sm">
+                                                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${fundAdvanceStatusBadgeClass(item.status)}`}>
+                                                                                {fundAdvanceStatusLabel(item.status)}
+                                                                            </span>
+                                                                        </td>
+                                                                        <td className="px-4 py-3 text-xs text-gray-500">
+                                                                            <div>Tạo: {new Date(item.createdAt).toLocaleString('vi-VN')}</div>
+                                                                            {item.decidedAt && <div>Duyệt: {new Date(item.decidedAt).toLocaleString('vi-VN')}</div>}
+                                                                        </td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
 
                                     <TaskMemberManager
                                         task={taskForMembers}
@@ -1692,148 +1718,6 @@ export default function PreparationDetail() {
                                     className="px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {savingAllocation ? 'Đang lưu...' : 'Lưu'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {showFundAdvanceModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-                    <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl">
-                        <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] px-6 py-4 rounded-t-xl">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h3 className="text-lg font-bold text-white">Tạo tạm ứng (FundAdvance)</h3>
-                                    <p className="text-xs text-gray-200 mt-0.5">Tạo tạm ứng cho member theo task</p>
-                                </div>
-                                <button type="button" onClick={() => setShowFundAdvanceModal(false)} className="text-white hover:text-[#FFD66D] transition-colors">
-                                    <span className="sr-only">Đóng</span>
-                                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                        <div className="p-6 space-y-4">
-                            <div>
-                                <label htmlFor="prep-fa-search" className="block text-sm font-semibold text-gray-700 mb-2">Tìm member</label>
-                                <input
-                                    id="prep-fa-search"
-                                    name="prepFundAdvanceSearch"
-                                    type="text"
-                                    value={faSearchQuery}
-                                    onChange={(e) => setFaSearchQuery(e.target.value)}
-                                    placeholder="Nhập tên hoặc mã sinh viên..."
-                                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
-                                />
-                                <p className="mt-1 text-xs text-gray-500">Nhập ít nhất 2 ký tự để tìm kiếm</p>
-                            </div>
-
-                            {faSearching ? (
-                                <div className="text-center py-6">
-                                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#001C44] mx-auto"></div>
-                                    <p className="mt-2 text-sm text-gray-600">Đang tìm kiếm...</p>
-                                </div>
-                            ) : faResults.length === 0 && faSearchQuery.trim().length >= 2 ? (
-                                <div className="text-center py-6 text-gray-500">Không tìm thấy sinh viên.</div>
-                            ) : (
-                                faResults.length > 0 && (
-                                    <div className="max-h-60 overflow-y-auto border-2 border-gray-200 rounded-lg divide-y divide-gray-200">
-                                        {faResults.map((s: any) => (
-                                            <div
-                                                key={s.id}
-                                                className={`p-4 hover:bg-gray-50 cursor-pointer transition-all ${faStudentId === s.id ? 'bg-gradient-to-r from-[#001C44] to-[#002A66] bg-opacity-10 border-l-4 border-[#001C44]' : ''}`}
-                                                onClick={() => setFaStudentId(s.id)}
-                                            >
-                                                <div className="text-sm font-semibold text-gray-900">{s.fullName}</div>
-                                                <div className="text-xs text-gray-500 mt-0.5">{s.studentCode} • {s.email}</div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )
-                            )}
-
-                            <div>
-                                <label htmlFor="prep-fa-amount" className="block text-sm font-semibold text-gray-700 mb-2">Số tiền tạm ứng</label>
-                                <input
-                                    id="prep-fa-amount"
-                                    name="prepFundAdvanceAmount"
-                                    type="text"
-                                    value={faAmount}
-                                    onChange={(e) => setFaAmount(e.target.value)}
-                                    placeholder="Ví dụ: 500000"
-                                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
-                                />
-                            </div>
-
-                            <div>
-                                <div className="flex items-center justify-between mb-2">
-                                    <label htmlFor="prep-fa-category" className="block text-sm font-semibold text-gray-700">Ví nguồn</label>
-                                    <button
-                                        type="button"
-                                        onClick={loadFundAdvanceSuggestions}
-                                        className="px-3 py-1.5 text-xs font-medium border border-gray-200 rounded-lg hover:bg-gray-50"
-                                    >
-                                        Refresh suggestions
-                                    </button>
-                                </div>
-                                <select
-                                    id="prep-fa-category"
-                                    name="prepFundAdvanceCategory"
-                                    value={faCategoryId ?? ''}
-                                    onChange={(e) => {
-                                        const v = Number(e.target.value);
-                                        setFaCategoryId(Number.isFinite(v) && v > 0 ? v : null);
-                                    }}
-                                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
-                                >
-                                    <option value="">Chọn ví nguồn...</option>
-                                    {sourceSuggestions.map((s) => (
-                                        <option key={s.categoryId} value={s.categoryId}>
-                                            {s.categoryName} (max: {formatMoney(s.maxAdvanceAmount)})
-                                        </option>
-                                    ))}
-                                </select>
-                                {loadingSuggestions ? (
-                                    <p className="mt-1 text-xs text-gray-500">Đang tải suggestions...</p>
-                                ) : (
-                                    <p className="mt-1 text-xs text-gray-500">{sourceSuggestions.length} ví khả dụng theo allocation và cash.</p>
-                                )}
-                            </div>
-
-                            {sourceSuggestions.length > 0 && (
-                                <div className="border border-gray-200 rounded-lg overflow-hidden">
-                                    <div className="bg-gray-50 px-4 py-2 text-xs font-semibold text-gray-700">Source Suggestions</div>
-                                    <div className="divide-y divide-gray-200">
-                                        {sourceSuggestions.map((s) => (
-                                            <div key={s.categoryId} className="px-4 py-2 flex items-center justify-between gap-3">
-                                                <div className="text-sm text-gray-700">{s.categoryName}</div>
-                                                <div className="text-xs text-gray-500">
-                                                    Allocation left: {formatMoney(s.allocationRemainingAmount)} • Cash: {formatMoney(s.cashAvailableAmount)} • Max: <span className="font-semibold text-[#001C44]">{formatMoney(s.maxAdvanceAmount)}</span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="flex justify-end gap-3 pt-4 mt-4 border-t border-gray-200">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowFundAdvanceModal(false)}
-                                    className="px-6 py-2.5 text-sm font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                                >
-                                    Hủy
-                                </button>
-                                <button
-                                    type="button"
-                                    disabled={!faStudentId || creatingFundAdvance}
-                                    onClick={createFundAdvance}
-                                    className="px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {creatingFundAdvance ? 'Đang tạo...' : 'Tạo'}
                                 </button>
                             </div>
                         </div>
