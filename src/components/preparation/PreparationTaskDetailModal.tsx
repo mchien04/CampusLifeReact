@@ -67,6 +67,7 @@ export default function PreparationTaskDetailModal({
   const [loadingExpenses, setLoadingExpenses] = useState(false);
   const [expenseSuggestions, setExpenseSuggestions] = useState<ExpenseCategorySuggestionDto[]>([]);
   const [loadingExpenseSuggestions, setLoadingExpenseSuggestions] = useState(false);
+  const [expenseSuggestionFetchSuccess, setExpenseSuggestionFetchSuccess] = useState<boolean | null>(null);
 
   const [expenseCategoryId, setExpenseCategoryId] = useState<number | null>(null);
   const [expenseAmount, setExpenseAmount] = useState('');
@@ -273,7 +274,8 @@ export default function PreparationTaskDetailModal({
 
   const categoryOptions = useMemo(() => {
     if (!task?.isFinancial) return [];
-    if (expenseSuggestions.length > 0) {
+    const hasAmountInput = expenseAmount.trim().length > 0;
+    if (hasAmountInput && expenseSuggestionFetchSuccess === true) {
       return expenseSuggestions.map((s) => ({
         id: s.categoryId,
         label: `${s.categoryName} (tối đa ${formatCurrency(s.maxExpenseAmount)})`,
@@ -286,7 +288,7 @@ export default function PreparationTaskDetailModal({
       }
     }
     return (activityBudget?.categories ?? []).map((c) => ({ id: c.id, label: c.name }));
-  }, [activityBudget?.categories, expenseSuggestions, isLeaderOrOwner, sources, task?.isFinancial]);
+  }, [activityBudget?.categories, expenseAmount, expenseSuggestionFetchSuccess, expenseSuggestions, isLeaderOrOwner, sources, task?.isFinancial]);
 
   const loadExpenses = async (status: ExpenseStatusFilter) => {
     if (!open || !taskId) return;
@@ -315,6 +317,7 @@ export default function PreparationTaskDetailModal({
     if (!task?.isFinancial) return;
     if (!expenseAmount.trim()) {
       setExpenseSuggestions([]);
+      setExpenseSuggestionFetchSuccess(null);
       return;
     }
 
@@ -327,6 +330,7 @@ export default function PreparationTaskDetailModal({
 
         const normalized = list ?? [];
         setExpenseSuggestions(normalized);
+        setExpenseSuggestionFetchSuccess(true);
 
         if (normalized.length === 0) return;
         if (normalized.length === 1) {
@@ -344,6 +348,7 @@ export default function PreparationTaskDetailModal({
       } catch {
         if (!mounted) return;
         setExpenseSuggestions([]);
+        setExpenseSuggestionFetchSuccess(false);
       } finally {
         if (mounted) setLoadingExpenseSuggestions(false);
       }
@@ -376,6 +381,10 @@ export default function PreparationTaskDetailModal({
     }
     if (!expenseAmount.trim() || Number(expenseAmount) <= 0) {
       toast.warning('Vui lòng nhập số tiền hợp lệ');
+      return;
+    }
+    if (expenseSuggestionFetchSuccess === true && expenseSuggestions.length === 0) {
+      toast.warning('Bạn chưa có tạm ứng HOLDING khả dụng cho ví này. Vui lòng xin tạm ứng trước khi tạo chi phí.');
       return;
     }
     if (
@@ -859,6 +868,8 @@ export default function PreparationTaskDetailModal({
                         </select>
                         {loadingExpenseSuggestions ? (
                           <div className="text-xs text-gray-500 mt-1">Đang lấy gợi ý ví chi tiêu...</div>
+                        ) : expenseAmount.trim() && expenseSuggestionFetchSuccess === true && expenseSuggestions.length === 0 ? (
+                          <div className="text-xs text-amber-700 mt-1">Không có ví phù hợp cho khoản chi này do bạn chưa có tạm ứng HOLDING khả dụng. Hãy xin tạm ứng trước.</div>
                         ) : expenseSuggestions.length === 1 ? (
                           <div className="text-xs text-green-700 mt-1">Hệ thống đã tự chọn ví vì nhiệm vụ chỉ còn 1 nguồn phù hợp.</div>
                         ) : expenseSuggestions.length > 1 ? (

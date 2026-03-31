@@ -72,6 +72,15 @@ export type OrganizerDto = {
   fullName: string;
 };
 
+export type BulkAddOrganizersRequest = {
+  studentIds: number[];
+};
+
+export type BulkAddOrganizersResultDto = {
+  added: OrganizerDto[];
+  skippedStudentIds: number[];
+};
+
 /* ====================================================================
   DTO TYPES - Budget & Categories
   ==================================================================== */
@@ -129,6 +138,7 @@ export type ExpenseCategorySuggestionDto = {
   categoryName: string;
   allocationRemainingAmount: string;
   walletRemainingAmount: string;
+  myFundAdvanceRemainingAmount: string;
   maxExpenseAmount: string;
 };
 
