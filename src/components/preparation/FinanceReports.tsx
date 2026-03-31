@@ -39,7 +39,7 @@ export default function FinanceReports({ loading, financeOverview, cashFlowRepor
         if (!financeOverview) return [];
         const tasks = Array.isArray(financeOverview.tasks) ? financeOverview.tasks : [];
         return tasks.map(t => {
-            const taskTitle = t.taskTitle || 'Untitled Task';
+            const taskTitle = t.title || t.taskTitle || 'Untitled Task';
             return {
             name: taskTitle.length > 15 ? taskTitle.slice(0, 15) + '...' : taskTitle,
             fullTitle: taskTitle,

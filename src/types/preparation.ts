@@ -124,6 +124,14 @@ export type TaskAllocationSourceDto = {
   allocationRemainingAmount: string;
 };
 
+export type ExpenseCategorySuggestionDto = {
+  categoryId: number;
+  categoryName: string;
+  allocationRemainingAmount: string;
+  walletRemainingAmount: string;
+  maxExpenseAmount: string;
+};
+
 /* ====================================================================
   DTO TYPES - Fund Advance & Allocation
   ==================================================================== */
@@ -207,7 +215,8 @@ export type FinancialReportDto = {
 
 export type TaskSpendStatusDto = {
   taskId: number;
-  taskTitle: string;
+  taskTitle?: string;
+  title?: string;
   allocatedAmount: string;
   committedAmount: string;
   approvedSpent: string;
