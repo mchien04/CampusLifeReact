@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/common';
+import { HelmetProvider } from 'react-helmet-async';
 import { Login, Register, VerifyAccount, ForgotPassword, ResetPassword } from './components/auth';
 import ChangePassword from './components/auth/ChangePassword';
 import { Home, Dashboard, CreateEvent, EventList, EditEvent, EventDetail, StudentEvents } from './pages';
@@ -53,6 +54,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import ManagerLayout from './components/layout/ManagerLayout';
+import ArticleDetail from './pages/ArticleDetail';
+import ArticleEditor from './pages/admin/ArticleEditor';
 
 const queryClient = new QueryClient();
 
@@ -61,10 +64,12 @@ function App() {
     <Router>
       <AuthProvider>
         <QueryClientProvider client={queryClient}>
-          <div className="App">
-            <Routes>
+          <HelmetProvider>
+            <div className="App">
+              <Routes>
               {/* Public Routes */}
               <Route path="/" element={<Home />} />
+              <Route path="/articles/:slug" element={<ArticleDetail />} />
 
               {/* Auth Routes - redirect to dashboard if already authenticated */}
               <Route
@@ -179,6 +184,16 @@ function App() {
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
                     <ManagerLayout>
                       <EditEvent />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/events/:id/article"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <ManagerLayout>
+                      <ArticleEditor />
                     </ManagerLayout>
                   </ProtectedRoute>
                 }
@@ -607,9 +622,10 @@ function App() {
 
               {/* Redirect any unknown routes to home */}
               <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </div>
-          <ToastContainer position="top-right" autoClose={2500} hideProgressBar />
+              </Routes>
+              <ToastContainer position="top-right" autoClose={2500} hideProgressBar />
+            </div>
+          </HelmetProvider>
         </QueryClientProvider>
       </AuthProvider>
     </Router>

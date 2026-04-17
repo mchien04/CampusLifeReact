@@ -14,4 +14,5 @@ export * from './validation';
 export * from './series';
 export * from './minigame';
 export * from './preparation';
+export * from './article';
 export * from '../services/uploadAPI';

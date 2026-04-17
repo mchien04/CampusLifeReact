@@ -688,6 +688,12 @@ const EventDetail: React.FC = () => {
                 </div>
                 <div className="flex space-x-3">
                     <Link
+                        to={`/manager/events/${event.id}/article`}
+                        className="bg-white border border-[#001C44] text-[#001C44] hover:bg-[#001C44] hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                    >
+                        Bài viết
+                    </Link>
+                    <Link
                         to={`/manager/events/${event.id}/edit`}
                         className="bg-[#001C44] hover:bg-[#002A66] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                     >
