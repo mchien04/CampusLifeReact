@@ -28,6 +28,7 @@ const ManagerLayout: React.FC<ManagerLayoutProps> = ({ children }) => {
         if (path.includes('/manager/events') || path.includes('/manager/events/create') || path.includes('/manager/events/')) {
             if (path.includes('/create')) return 'Tạo sự kiện';
             if (path.includes('/edit')) return 'Chỉnh sửa sự kiện';
+            if (path.includes('/article')) return 'Bài viết sự kiện';
             if (path.match(/\/manager\/events\/\d+/)) return 'Chi tiết sự kiện';
             return 'Quản lý sự kiện';
         }
