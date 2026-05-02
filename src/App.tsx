@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { WishlistProvider } from './contexts/WishlistContext';
 import { ProtectedRoute } from './components/common';
 import { HelmetProvider } from 'react-helmet-async';
 import { Login, Register, VerifyAccount, ForgotPassword, ResetPassword } from './components/auth';
@@ -17,6 +18,16 @@ import StudentMinigameHistory from './pages/StudentMinigameHistory';
 import StudentPreparation from './pages/StudentPreparation';
 import StudentPreparationDetail from './pages/StudentPreparationDetail';
 import QRCodeCheckIn from './pages/QRCodeCheckIn';
+import ArticleDetail from './pages/ArticleDetail';
+import ArticleListPage from './pages/ArticleListPage';
+import FeaturedArticlesPage from './pages/FeaturedArticlesPage';
+import ArticlesByCategoryPage from './pages/ArticlesByCategoryPage';
+import SearchArticlesPage from './pages/SearchArticlesPage';
+import ArticleEditor from './pages/admin/ArticleEditor';
+import ArticleAnalyticsDashboard from './pages/admin/ArticleAnalyticsDashboard';
+import AdminArticleManagement from './pages/admin/AdminArticleManagement';
+import CategoriesManagement from './pages/admin/CategoriesManagement';
+import StudentWishlist from './pages/StudentWishlist';
 import SeriesManagement from './pages/admin/SeriesManagement';
 import CreateSeries from './pages/admin/CreateSeries';
 import EditSeries from './pages/admin/EditSeries';
@@ -54,8 +65,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import ManagerLayout from './components/layout/ManagerLayout';
-import ArticleDetail from './pages/ArticleDetail';
-import ArticleEditor from './pages/admin/ArticleEditor';
 
 const queryClient = new QueryClient();
 
@@ -65,10 +74,15 @@ function App() {
       <AuthProvider>
         <QueryClientProvider client={queryClient}>
           <HelmetProvider>
-            <div className="App">
-              <Routes>
+            <WishlistProvider>
+              <div className="App">
+                <Routes>
               {/* Public Routes */}
               <Route path="/" element={<Home />} />
+              <Route path="/articles" element={<ArticleListPage />} />
+              <Route path="/articles/featured" element={<FeaturedArticlesPage />} />
+              <Route path="/articles/search" element={<SearchArticlesPage />} />
+              <Route path="/articles/category/:categorySlug" element={<ArticlesByCategoryPage />} />
               <Route path="/articles/:slug" element={<ArticleDetail />} />
 
               {/* Auth Routes - redirect to dashboard if already authenticated */}
@@ -195,6 +209,50 @@ function App() {
                     <ManagerLayout>
                       <ArticleEditor />
                     </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/articles/analytics"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <ManagerLayout>
+                      <ArticleAnalyticsDashboard />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/articles/analytics"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
+                    <ArticleAnalyticsDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/articles"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <ManagerLayout>
+                      <AdminArticleManagement />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/articles"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
+                    <AdminArticleManagement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/articles/categories"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
+                    <CategoriesManagement />
                   </ProtectedRoute>
                 }
               />
@@ -454,6 +512,14 @@ function App() {
                 }
               />
               <Route
+                path="/wishlist"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
+                    <StudentWishlist />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/student/tasks"
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
@@ -624,7 +690,8 @@ function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
               <ToastContainer position="top-right" autoClose={2500} hideProgressBar />
-            </div>
+              </div>
+            </WishlistProvider>
           </HelmetProvider>
         </QueryClientProvider>
       </AuthProvider>

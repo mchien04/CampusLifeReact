@@ -173,6 +173,34 @@ const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                         </ul>
                     </nav>
 
+                    <div className="border-t border-[#002A66] p-4 space-y-2">
+                        <Link
+                            to="/articles"
+                            className="flex items-center rounded-lg px-4 py-3 text-sm font-medium text-gray-300 transition-all duration-200 hover:bg-[#002A66] hover:text-white"
+                        >
+                            <span className={`${sidebarOpen ? 'mr-3' : 'mx-auto'}`}>
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h10l6 6v10a2 2 0 01-2 2zM14 3v6h6" />
+                                </svg>
+                            </span>
+                            {sidebarOpen && <span>Bài viết sinh viên</span>}
+                        </Link>
+
+                        {(user?.role === 'ADMIN' || user?.role === 'MANAGER') && (
+                            <Link
+                                to="/admin/articles"
+                                className="flex items-center rounded-lg px-4 py-3 text-sm font-medium text-gray-300 transition-all duration-200 hover:bg-[#002A66] hover:text-white"
+                            >
+                                <span className={`${sidebarOpen ? 'mr-3' : 'mx-auto'}`}>
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                                    </svg>
+                                </span>
+                                {sidebarOpen && <span>Quản lý bài viết</span>}
+                            </Link>
+                        )}
+                    </div>
+
                     {/* User Info */}
                     <div className="border-t border-[#002A66] p-4">
                         <UserProfileMenu sidebarOpen={sidebarOpen} />

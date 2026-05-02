@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { articleAPI } from '../../services/articleAPI';
 import type { EventArticleAdminResponse, EventArticleUpsertRequest } from '../../types/article';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import RichHtmlEditor from '../../components/article/RichHtmlEditor';
+import RichTextEditorTipTap from '../../components/article/RichTextEditorTipTap';
 
 const slugify = (value: string): string => {
     return value
@@ -293,7 +293,7 @@ const ArticleEditor: React.FC = () => {
                         <span className="block text-sm font-medium text-gray-700">Content HTML</span>
                         <span className="text-xs text-gray-500">Sử dụng Visual/HTML/Split để biên tập nhanh</span>
                     </div>
-                    <RichHtmlEditor
+                    <RichTextEditorTipTap
                         value={form.content || ''}
                         onChange={(nextValue) => updateField('content', nextValue)}
                         placeholder="Nhập nội dung landing page bằng visual editor hoặc HTML source"
