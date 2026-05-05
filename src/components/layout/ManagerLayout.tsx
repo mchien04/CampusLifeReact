@@ -45,6 +45,13 @@ const ManagerLayout: React.FC<ManagerLayoutProps> = ({ children }) => {
         if (path.includes('/manager/preparation')) return 'Preparation';
         if (path.includes('/manager/registrations')) return 'Quản lý đăng ký';
         if (path.includes('/manager/scores')) return 'Quản lý điểm số';
+        if (path.includes('/manager/articles')) {
+            if (path.includes('/analytics')) return 'Dashboard bài viết';
+            if (path.includes('/categories')) return 'Danh mục bài viết';
+            if (path.includes('/tags')) return 'Tag bài viết';
+            return 'Quản lý bài viết';
+        }
+        if (path.includes('/admin/articles')) return 'Quản lý bài viết';
         if (path.includes('/manager/emails')) {
             if (path.includes('/notifications/send')) return 'Gửi Thông báo';
             if (path.includes('/send')) return 'Gửi Email';
@@ -92,6 +99,15 @@ const ManagerLayout: React.FC<ManagerLayoutProps> = ({ children }) => {
                         strokeWidth={2}
                         d="M9 12h6m-3-3v6m9-3a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
+                </svg>
+            ),
+        },
+        {
+            name: 'Quản lý bài viết',
+            href: '/manager/articles',
+            icon: (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h10l6 6v10a2 2 0 01-2 2zM14 3v6h6" />
                 </svg>
             ),
         },

@@ -34,6 +34,24 @@ const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
             ),
         },
         {
+            name: 'Bài viết',
+            href: '/articles',
+            icon: (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h10l6 6v10a2 2 0 01-2 2zM14 3v6h6" />
+                </svg>
+            ),
+        },
+        {
+            name: 'Bài viết đã lưu',
+            href: '/wishlist',
+            icon: (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+            ),
+        },
+        {
             name: 'Chuỗi sự kiện',
             href: '/student/series',
             icon: (
@@ -172,6 +190,22 @@ const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                             })}
                         </ul>
                     </nav>
+
+                    <div className="border-t border-[#002A66] p-4 space-y-2">
+                        {(user?.role === 'ADMIN' || user?.role === 'MANAGER') && (
+                            <Link
+                                to={user?.role === 'ADMIN' ? '/admin/articles' : '/manager/articles'}
+                                className="flex items-center rounded-lg px-4 py-3 text-sm font-medium text-gray-300 transition-all duration-200 hover:bg-[#002A66] hover:text-white"
+                            >
+                                <span className={`${sidebarOpen ? 'mr-3' : 'mx-auto'}`}>
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                                    </svg>
+                                </span>
+                                {sidebarOpen && <span>Quản lý bài viết</span>}
+                            </Link>
+                        )}
+                    </div>
 
                     {/* User Info */}
                     <div className="border-t border-[#002A66] p-4">
