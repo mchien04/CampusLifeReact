@@ -1,67 +1,77 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
+import { useAuth } from './AuthContext';
 import { articleAPI } from '../services/articleAPI';
 
 interface WishlistContextType {
-    wishlistedIds: Set<number>;
-    toggleWishlist: (articleId: number) => Promise<void>;
-    isWishlisted: (articleId: number) => boolean;
+    wishlistedSlugs: Set<string>;
+    toggleWishlist: (slug: string) => Promise<void>;
+    isWishlisted: (slug: string) => boolean;
     loading: boolean;
 }
 
 const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
 
 export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [wishlistedIds, setWishlistedIds] = useState<Set<number>>(new Set());
+    const { isAuthenticated } = useAuth();
+    const [wishlistedSlugs, setWishlistedSlugs] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(false);
 
-    // Initialize wishlist on mount (if user is authenticated)
     useEffect(() => {
         const initializeWishlist = async () => {
+            if (!isAuthenticated) {
+                setWishlistedSlugs(new Set());
+                return;
+            }
+
             try {
                 setLoading(true);
-                const response = await articleAPI.getWishlistedArticles();
-                if (response.status && response.body && Array.isArray(response.body)) {
-                    const ids = new Set(response.body.map((article) => article.id));
-                    setWishlistedIds(ids);
+                const response = await articleAPI.getWishlistedArticles({ page: 0, size: 200 });
+                const items = response.body?.content ?? [];
+                if (response.status && Array.isArray(items)) {
+                    setWishlistedSlugs(new Set(items.map((item) => item.slug)));
                 }
-            } catch (error) {
-                // User might not be authenticated, that's okay
-                console.debug('Could not load wishlist, likely not authenticated');
             } finally {
                 setLoading(false);
             }
         };
 
         initializeWishlist();
-    }, []);
+    }, [isAuthenticated]);
 
-    const toggleWishlist = async (articleId: number) => {
+    const toggleWishlist = async (slug: string) => {
         try {
-            const response = await articleAPI.toggleWishlist(articleId);
-            if (response.status && response.body) {
-                // Update local state
-                if (response.body.isWishlisted) {
-                    setWishlistedIds((prev) => new Set([...Array.from(prev), articleId]));
-                } else {
-                    setWishlistedIds((prev) => {
-                        const next = new Set(prev);
-                        next.delete(articleId);
-                        return next;
-                    });
-                }
+            const currentlyWishlisted = wishlistedSlugs.has(slug);
+            const response = currentlyWishlisted
+                ? await articleAPI.removeFromWishlist(slug)
+                : await articleAPI.addToWishlist(slug);
+
+            if (!response.status) {
+                throw new Error(response.message || 'Không thể cập nhật wishlist');
             }
+
+            setWishlistedSlugs((prev) => {
+                const next = new Set(prev);
+                if (currentlyWishlisted) {
+                    next.delete(slug);
+                } else {
+                    next.add(slug);
+                }
+                return next;
+            });
         } catch (error) {
             console.error('Failed to toggle wishlist:', error);
+            toast.error('Vui lòng đăng nhập để sử dụng wishlist');
             throw error;
         }
     };
 
-    const isWishlisted = (articleId: number): boolean => {
-        return wishlistedIds.has(articleId);
+    const isWishlisted = (slug: string): boolean => {
+        return wishlistedSlugs.has(slug);
     };
 
     return (
-        <WishlistContext.Provider value={{ wishlistedIds, toggleWishlist, isWishlisted, loading }}>
+        <WishlistContext.Provider value={{ wishlistedSlugs, toggleWishlist, isWishlisted, loading }}>
             {children}
         </WishlistContext.Provider>
     );

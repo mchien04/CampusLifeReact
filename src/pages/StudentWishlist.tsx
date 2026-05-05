@@ -2,23 +2,26 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { articleAPI } from '../services/articleAPI';
 import { getImageUrl } from '../utils/imageUtils';
-import type { EventArticleDetailResponse } from '../types/article';
+import type { ArticleWishlistItemResponse, SpringPage } from '../types/article';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import StudentLayout from '../components/layout/StudentLayout';
 
 const StudentWishlist: React.FC = () => {
     const navigate = useNavigate();
-    const [articles, setArticles] = useState<EventArticleDetailResponse[]>([]);
+    const [pageData, setPageData] = useState<SpringPage<ArticleWishlistItemResponse> | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [page, setPage] = useState(0);
+    const [pageSize] = useState(12);
 
     useEffect(() => {
         const loadWishlist = async () => {
             try {
                 setLoading(true);
                 setError('');
-                const response = await articleAPI.getWishlistedArticles();
+                const response = await articleAPI.getWishlistedArticles({ page, size: pageSize });
                 if (response.status && response.body) {
-                    setArticles(response.body);
+                    setPageData(response.body);
                 } else {
                     setError('Không tải được danh sách yêu thích');
                 }
@@ -34,25 +37,27 @@ const StudentWishlist: React.FC = () => {
         };
 
         loadWishlist();
-    }, [navigate]);
+    }, [navigate, page, pageSize]);
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-b from-[#F7F9FC] via-white to-[#EEF3FF] flex items-center justify-center">
-                <LoadingSpinner />
-            </div>
+            <StudentLayout>
+                <div className="min-h-[60vh] flex items-center justify-center">
+                    <LoadingSpinner />
+                </div>
+            </StudentLayout>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-[#F7F9FC] via-white to-[#EEF3FF]">
-            <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <StudentLayout>
+            <div className="mx-auto max-w-7xl w-full">
                 <div className="mb-8">
-                    <h1 className="text-4xl font-bold text-[#001C44] mb-2">Bài viết yêu thích</h1>
+                    <h1 className="text-3xl sm:text-4xl font-bold text-[#001C44] mb-1">Bài viết đã lưu</h1>
                     <p className="text-gray-600">
-                        {articles.length === 0
+                        {(pageData?.totalElements ?? 0) === 0
                             ? 'Bạn chưa lưu bài viết nào'
-                            : `Bạn đã lưu ${articles.length} bài viết`}
+                            : `Bạn đã lưu ${pageData?.totalElements ?? 0} bài viết`}
                     </p>
                 </div>
 
@@ -62,9 +67,8 @@ const StudentWishlist: React.FC = () => {
                     </div>
                 )}
 
-                {articles.length === 0 ? (
+                {(pageData?.content ?? []).length === 0 ? (
                     <div className="text-center py-12">
-                        <div className="text-5xl mb-4">❤️</div>
                         <h2 className="text-2xl font-semibold text-[#001C44] mb-2">Chưa có bài viết nào</h2>
                         <p className="text-gray-600 mb-6">Hãy khám phá các sự kiện và lưu những bài viết yêu thích của bạn</p>
                         <Link
@@ -76,7 +80,7 @@ const StudentWishlist: React.FC = () => {
                     </div>
                 ) : (
                     <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                        {articles.map((article) => (
+                        {(pageData?.content ?? []).map((article) => (
                             <Link
                                 key={article.id}
                                 to={`/articles/${article.slug}`}
@@ -96,7 +100,7 @@ const StudentWishlist: React.FC = () => {
                                         <span className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800 truncate">
                                             {article.registrationStatus === 'OPEN' ? '🔓 Mở' : '🔒 Đóng'}
                                         </span>
-                                        <span className="text-lg">❤️</span>
+                                        <span className="text-lg">❤</span>
                                     </div>
                                     <h3 className="font-bold text-[#001C44] line-clamp-2 group-hover:text-blue-600 transition-colors">
                                         {article.title}
@@ -114,8 +118,34 @@ const StudentWishlist: React.FC = () => {
                         ))}
                     </div>
                 )}
-            </main>
-        </div>
+
+                {pageData && pageData.totalPages > 1 && (
+                    <div className="mt-10 flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm border border-gray-200">
+                        <div className="text-sm text-gray-700">
+                            Trang <span className="font-semibold">{pageData.number + 1}</span> / <span className="font-semibold">{pageData.totalPages}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setPage((prev) => Math.max(0, prev - 1))}
+                                disabled={page <= 0}
+                                className="px-4 py-2 rounded-lg bg-[#001C44] text-white font-semibold disabled:opacity-50"
+                            >
+                                ← Trước
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setPage((prev) => Math.min(pageData.totalPages - 1, prev + 1))}
+                                disabled={page >= pageData.totalPages - 1}
+                                className="px-4 py-2 rounded-lg bg-[#FFD66D] text-[#001C44] font-semibold disabled:opacity-50"
+                            >
+                                Sau →
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </StudentLayout>
     );
 };
 

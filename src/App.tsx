@@ -24,9 +24,11 @@ import FeaturedArticlesPage from './pages/FeaturedArticlesPage';
 import ArticlesByCategoryPage from './pages/ArticlesByCategoryPage';
 import SearchArticlesPage from './pages/SearchArticlesPage';
 import ArticleEditor from './pages/admin/ArticleEditor';
+import ArticleEditorById from './pages/admin/ArticleEditorById';
 import ArticleAnalyticsDashboard from './pages/admin/ArticleAnalyticsDashboard';
 import AdminArticleManagement from './pages/admin/AdminArticleManagement';
 import CategoriesManagement from './pages/admin/CategoriesManagement';
+import TagsManagement from './pages/admin/TagsManagement';
 import StudentWishlist from './pages/StudentWishlist';
 import SeriesManagement from './pages/admin/SeriesManagement';
 import CreateSeries from './pages/admin/CreateSeries';
@@ -223,10 +225,42 @@ function App() {
                 }
               />
               <Route
+                path="/manager/articles/:articleId/edit"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <ManagerLayout>
+                      <ArticleEditorById />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/articles/categories"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <ManagerLayout>
+                      <CategoriesManagement />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/articles/tags"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <ManagerLayout>
+                      <TagsManagement />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/admin/articles/analytics"
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
-                    <ArticleAnalyticsDashboard />
+                    <ManagerLayout>
+                      <ArticleAnalyticsDashboard />
+                    </ManagerLayout>
                   </ProtectedRoute>
                 }
               />
@@ -244,7 +278,19 @@ function App() {
                 path="/admin/articles"
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
-                    <AdminArticleManagement />
+                    <ManagerLayout>
+                      <AdminArticleManagement />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/articles/:articleId/edit"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
+                    <ManagerLayout>
+                      <ArticleEditorById />
+                    </ManagerLayout>
                   </ProtectedRoute>
                 }
               />
@@ -252,7 +298,19 @@ function App() {
                 path="/admin/articles/categories"
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
-                    <CategoriesManagement />
+                    <ManagerLayout>
+                      <CategoriesManagement />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/articles/tags"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
+                    <ManagerLayout>
+                      <TagsManagement />
+                    </ManagerLayout>
                   </ProtectedRoute>
                 }
               />

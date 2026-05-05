@@ -4,15 +4,16 @@ import { Link } from 'react-router-dom';
 import { articleAPI } from '../services/articleAPI';
 import { getImageUrl } from '../utils/imageUtils';
 import { useWishlist } from '../contexts/WishlistContext';
-import type { EventArticleDetailResponse } from '../types/article';
+import type { ArticleListResponse } from '../types/article';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import ArticleLayout from '../components/layout/ArticleLayout';
 
 const FeaturedArticlesPage: React.FC = () => {
-    const [articles, setArticles] = useState<EventArticleDetailResponse[]>([]);
+    const [articles, setArticles] = useState<ArticleListResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { isWishlisted, toggleWishlist } = useWishlist();
-    const [wishlistToggles, setWishlistToggles] = useState<Set<number>>(new Set());
+    const [wishlistToggles, setWishlistToggles] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         const loadFeatured = async () => {
@@ -36,16 +37,16 @@ const FeaturedArticlesPage: React.FC = () => {
         loadFeatured();
     }, []);
 
-    const handleWishlistToggle = async (articleId: number, e: React.MouseEvent) => {
+    const handleWishlistToggle = async (slug: string, e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
         try {
-            setWishlistToggles((prev) => new Set([...Array.from(prev), articleId]));
-            await toggleWishlist(articleId);
+            setWishlistToggles((prev) => new Set([...Array.from(prev), slug]));
+            await toggleWishlist(slug);
         } finally {
             setWishlistToggles((prev) => {
                 const next = new Set(prev);
-                next.delete(articleId);
+                next.delete(slug);
                 return next;
             });
         }
@@ -53,25 +54,25 @@ const FeaturedArticlesPage: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-b from-[#F7F9FC] via-white to-[#EEF3FF] flex items-center justify-center">
-                <LoadingSpinner />
-            </div>
+            <ArticleLayout>
+                <div className="min-h-[60vh] flex items-center justify-center">
+                    <LoadingSpinner />
+                </div>
+            </ArticleLayout>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-[#F7F9FC] via-white to-[#EEF3FF]">
+        <ArticleLayout>
             <Helmet>
                 <title>Bài viết nổi bật - CampusLife</title>
                 <meta name="description" content="Khám phá những bài viết nổi bật từ các sự kiện campus" />
             </Helmet>
 
-            <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+            <div>
                 {/* Header */}
-                <div className="mb-12">
-                    <h1 className="text-4xl sm:text-5xl font-black text-[#001C44] mb-3">
-                        ⭐ Bài viết nổi bật
-                    </h1>
+                <div className="mb-6">
+                    <h1 className="text-3xl sm:text-4xl font-bold text-[#001C44] mb-1">Bài viết nổi bật</h1>
                     <p className="text-lg text-gray-600">
                         Những bài viết được chọn lọc từ các sự kiện hấp dẫn nhất
                     </p>
@@ -85,7 +86,6 @@ const FeaturedArticlesPage: React.FC = () => {
 
                 {articles.length === 0 ? (
                     <div className="text-center py-12">
-                        <div className="text-5xl mb-4">📭</div>
                         <p className="text-gray-600 text-lg">Chưa có bài viết nổi bật</p>
                         <Link
                             to="/articles"
@@ -98,8 +98,8 @@ const FeaturedArticlesPage: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {articles.map((article) => {
                             const thumbUrl = getImageUrl(article.thumbnailUrl || undefined);
-                            const isWished = isWishlisted(article.id);
-                            const isToggling = wishlistToggles.has(article.id);
+                            const isWished = isWishlisted(article.slug);
+                            const isToggling = wishlistToggles.has(article.slug);
 
                             return (
                                 <Link
@@ -122,13 +122,13 @@ const FeaturedArticlesPage: React.FC = () => {
                                         )}
 
                                         {/* Featured badge */}
-                                        <div className="absolute top-3 right-3 bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
-                                            ⭐ Nổi bật
+                                        <div className="absolute top-3 right-3 bg-[#FFD66D] text-[#001C44] px-3 py-1 rounded-full text-xs font-bold">
+                                            Nổi bật
                                         </div>
 
                                         {/* Wishlist button */}
                                         <button
-                                            onClick={(e) => handleWishlistToggle(article.id, e)}
+                                            onClick={(e) => handleWishlistToggle(article.slug, e)}
                                             disabled={isToggling}
                                             className="absolute top-3 left-3 text-2xl hover:scale-125 transition-transform"
                                         >
@@ -161,7 +161,7 @@ const FeaturedArticlesPage: React.FC = () => {
                     </div>
                 )}
             </div>
-        </div>
+        </ArticleLayout>
     );
 };
 

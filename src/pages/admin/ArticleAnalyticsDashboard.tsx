@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import {
-    LineChart,
-    Line,
     BarChart,
     Bar,
+    PieChart,
+    Pie,
     XAxis,
     YAxis,
     CartesianGrid,
@@ -13,21 +13,16 @@ import {
     Cell,
 } from 'recharts';
 import { articleAPI } from '../../services/articleAPI';
-import type { DashboardAnalytics, ArticleMetrics } from '../../types/article';
+import type { ArticleStatisticsResponse } from '../../types/article';
 import ArticleMetricsCard from '../../components/article/ArticleMetricsCard';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 const COLORS = ['#0B5FFF', '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A'];
 
 const ArticleAnalyticsDashboard: React.FC = () => {
-    const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
+    const [stats, setStats] = useState<ArticleStatisticsResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [filter, setFilter] = useState<'all' | 'published'>('published');
-    const [dateRange, setDateRange] = useState({
-        startDate: '',
-        endDate: '',
-    });
 
     useEffect(() => {
         const loadAnalytics = async () => {
@@ -35,13 +30,31 @@ const ArticleAnalyticsDashboard: React.FC = () => {
                 setLoading(true);
                 setError('');
 
-                // Load dashboard analytics
-                const dashboardResponse = await articleAPI.getDashboardAnalytics();
-                if (dashboardResponse.status && dashboardResponse.body) {
-                    setAnalytics(dashboardResponse.body);
-                } else {
-                    setError('Không tải được dữ liệu thống kê');
+                const response = await articleAPI.getStatistics();
+                if (response.status && response.body) {
+                    setStats(response.body);
+                    return;
                 }
+
+                const fallback = await articleAPI.getDashboardAnalytics();
+                if (fallback.status && fallback.body) {
+                    setStats({
+                        totalArticles: fallback.body.topArticles?.length ?? 0,
+                        publishedArticles: fallback.body.articlesPublished ?? 0,
+                        draftArticles: 0,
+                        totalViews: fallback.body.totalViews ?? 0,
+                        totalWishlists: fallback.body.totalWishlists ?? 0,
+                        featuredArticles: 0,
+                        pinnedArticles: 0,
+                        topViewedArticles: fallback.body.topArticles as any,
+                        recentlyPublished: null,
+                        articlesByCategory: null,
+                        articlesByMonth: null,
+                    });
+                    return;
+                }
+
+                setError('Không tải được dữ liệu thống kê');
             } catch (err: any) {
                 console.error('Failed to load analytics:', err);
                 setError(err?.response?.data?.message || 'Có lỗi xảy ra khi tải dữ liệu');
@@ -51,20 +64,20 @@ const ArticleAnalyticsDashboard: React.FC = () => {
         };
 
         loadAnalytics();
-    }, [filter, dateRange]);
+    }, []);
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-b from-[#F7F9FC] via-white to-[#EEF3FF] flex items-center justify-center">
+            <div className="min-h-[60vh] flex items-center justify-center">
                 <LoadingSpinner />
             </div>
         );
     }
 
-    if (error || !analytics) {
+    if (error || !stats) {
         return (
-            <div className="min-h-screen bg-gradient-to-b from-[#F7F9FC] via-white to-[#EEF3FF]">
-                <main className="mx-auto max-w-7xl px-4 py-10">
+            <div className="w-full">
+                <main className="mx-auto max-w-7xl w-full">
                     <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-red-800">
                         {error || 'Không tải được dữ liệu'}
                     </div>
@@ -73,120 +86,94 @@ const ArticleAnalyticsDashboard: React.FC = () => {
         );
     }
 
+    const articlesByMonthData = Object.entries(stats.articlesByMonth || {}).map(([month, count]) => ({
+        month,
+        count,
+    }));
+
+    const articlesByCategoryData = Object.entries(stats.articlesByCategory || {}).map(([name, value]) => ({
+        name,
+        value,
+    }));
+
+    const getTitle = (row: Record<string, unknown>) => String(row.title ?? row.name ?? row.slug ?? 'Bài viết');
+    const getViews = (row: Record<string, unknown>) => Number(row.viewCount ?? row.views ?? 0);
+    const getWishlists = (row: Record<string, unknown>) => Number(row.wishlistCount ?? row.wishlists ?? 0);
+
     return (
-        <div className="min-h-screen bg-gradient-to-b from-[#F7F9FC] via-white to-[#EEF3FF]">
-            <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="w-full">
+            <main className="mx-auto max-w-7xl w-full">
                 {/* Header */}
                 <div className="mb-10">
                     <h1 className="text-4xl font-bold text-[#001C44] mb-2">Thống kê bài viết</h1>
                     <p className="text-gray-600">Xem chi tiết hiệu quả quảng bá các sự kiện</p>
                 </div>
 
-                {/* Filters */}
-                <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-                    <select
-                        value={filter}
-                        onChange={(e) => setFilter(e.target.value as 'all' | 'published')}
-                        className="rounded-lg border border-gray-300 px-4 py-2 focus:border-[#001C44] focus:outline-none"
-                    >
-                        <option value="published">Bài viết đã xuất bản</option>
-                        <option value="all">Tất cả bài viết</option>
-                    </select>
-
-                    <div className="flex gap-2">
-                        <input
-                            type="date"
-                            value={dateRange.startDate}
-                            onChange={(e) => setDateRange((prev) => ({ ...prev, startDate: e.target.value }))}
-                            className="rounded-lg border border-gray-300 px-4 py-2 focus:border-[#001C44] focus:outline-none text-sm"
-                        />
-                        <input
-                            type="date"
-                            value={dateRange.endDate}
-                            onChange={(e) => setDateRange((prev) => ({ ...prev, endDate: e.target.value }))}
-                            className="rounded-lg border border-gray-300 px-4 py-2 focus:border-[#001C44] focus:outline-none text-sm"
-                        />
-                    </div>
-                </div>
-
                 {/* Key Metrics */}
-                <div className="mb-10 grid gap-4 grid-cols-1 sm:grid-cols-3">
+                <div className="mb-10 grid gap-4 grid-cols-1 sm:grid-cols-4">
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
                         <p className="text-sm text-gray-600 mb-2">Tổng lượt xem</p>
-                        <p className="text-3xl font-bold text-[#001C44]">{analytics.totalViews.toLocaleString('vi-VN')}</p>
+                        <p className="text-3xl font-bold text-[#001C44]">{stats.totalViews.toLocaleString('vi-VN')}</p>
                     </div>
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
                         <p className="text-sm text-gray-600 mb-2">Tổng yêu thích</p>
-                        <p className="text-3xl font-bold text-red-600">{analytics.totalWishlists.toLocaleString('vi-VN')}</p>
+                        <p className="text-3xl font-bold text-red-600">{stats.totalWishlists.toLocaleString('vi-VN')}</p>
                     </div>
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                        <p className="text-sm text-gray-600 mb-2">Bài viết xuất bản</p>
-                        <p className="text-3xl font-bold text-green-600">{analytics.articlesPublished}</p>
+                        <p className="text-sm text-gray-600 mb-2">Tổng bài viết</p>
+                        <p className="text-3xl font-bold text-[#001C44]">{stats.totalArticles}</p>
+                    </div>
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                        <p className="text-sm text-gray-600 mb-2">Published / Draft</p>
+                        <p className="text-3xl font-bold text-green-600">{stats.publishedArticles} <span className="text-gray-400 font-semibold">/</span> <span className="text-yellow-600">{stats.draftArticles}</span></p>
                     </div>
                 </div>
 
-                {/* Views Trend Chart */}
-                {analytics.viewsTrend.length > 0 && (
+                {articlesByMonthData.length > 0 && (
                     <div className="mb-10 bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                        <h2 className="text-lg font-bold text-[#001C44] mb-4">Xu hướng lượt xem</h2>
+                        <h2 className="text-lg font-bold text-[#001C44] mb-4">Số bài theo tháng</h2>
                         <ResponsiveContainer width="100%" height={300}>
-                            <LineChart data={analytics.viewsTrend}>
+                            <BarChart data={articlesByMonthData}>
                                 <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="date" />
+                                <XAxis dataKey="month" />
                                 <YAxis />
                                 <Tooltip />
-                                <Legend />
-                                <Line
-                                    type="monotone"
-                                    dataKey="views"
-                                    stroke="#0B5FFF"
-                                    name="Lượt xem"
-                                    dot={false}
-                                />
-                            </LineChart>
+                                <Bar dataKey="count" fill="#0B5FFF" name="Số bài" />
+                            </BarChart>
                         </ResponsiveContainer>
                     </div>
                 )}
 
                 {/* Top Articles */}
-                {analytics.topArticles.length > 0 && (
+                {(stats.topViewedArticles || []).length > 0 && (
                     <div className="mb-10">
                         <h2 className="text-lg font-bold text-[#001C44] mb-4">Bài viết hàng đầu</h2>
                         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                            {analytics.topArticles.map((article, idx) => (
+                            {(stats.topViewedArticles || []).slice(0, 6).map((row, idx) => (
                                 <ArticleMetricsCard
-                                    key={article.id}
-                                    title={article.title}
-                                    viewCount={article.viewCount}
-                                    wishlistCount={article.wishlistCount}
-                                    clicksToRegistration={article.clicksToRegistration}
+                                    key={idx}
+                                    title={getTitle(row)}
+                                    viewCount={getViews(row)}
+                                    wishlistCount={getWishlists(row)}
                                 />
                             ))}
                         </div>
                     </div>
                 )}
 
-                {/* Top Articles Bar Chart */}
-                {analytics.topArticles.length > 0 && (
+                {articlesByCategoryData.length > 0 && (
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                        <h2 className="text-lg font-bold text-[#001C44] mb-4">Xếp hạng theo lượt xem</h2>
+                        <h2 className="text-lg font-bold text-[#001C44] mb-4">Phân bổ theo danh mục</h2>
                         <ResponsiveContainer width="100%" height={300}>
-                            <BarChart
-                                data={analytics.topArticles.slice(0, 10).map((article) => ({
-                                    name: article.title.slice(0, 15),
-                                    views: article.viewCount,
-                                }))}
-                            >
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
-                                <YAxis />
+                            <PieChart>
                                 <Tooltip />
-                                <Bar dataKey="views" fill="#0B5FFF" name="Lượt xem">
-                                    {analytics.topArticles.slice(0, 10).map((_, idx) => (
+                                <Legend />
+                                <Pie data={articlesByCategoryData} dataKey="value" nameKey="name" outerRadius={110}>
+                                    {articlesByCategoryData.map((_, idx) => (
                                         <Cell key={`cell-${idx}`} fill={COLORS[idx % COLORS.length]} />
                                     ))}
-                                </Bar>
-                            </BarChart>
+                                </Pie>
+                            </PieChart>
                         </ResponsiveContainer>
                     </div>
                 )}

@@ -1,22 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { articleAPI } from '../services/articleAPI';
 import { getImageUrl } from '../utils/imageUtils';
 import { useWishlist } from '../contexts/WishlistContext';
-import type { EventArticleDetailResponse } from '../types/article';
+import type { ArticleListResponse, SpringPage } from '../types/article';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import ArticleLayout from '../components/layout/ArticleLayout';
 
 const ArticlesByCategoryPage: React.FC = () => {
     const { categorySlug } = useParams<{ categorySlug: string }>();
-    const navigate = useNavigate();
-    const [articles, setArticles] = useState<EventArticleDetailResponse[]>([]);
+    const [articles, setArticles] = useState<ArticleListResponse[]>([]);
+    const [pageData, setPageData] = useState<SpringPage<ArticleListResponse> | null>(null);
     const [categories, setCategories] = useState<{ id: number; name: string; slug: string }[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [currentCategory, setCurrentCategory] = useState<string>('');
     const { isWishlisted, toggleWishlist } = useWishlist();
-    const [wishlistToggles, setWishlistToggles] = useState<Set<number>>(new Set());
+    const [wishlistToggles, setWishlistToggles] = useState<Set<string>>(new Set());
+    const [page, setPage] = useState(0);
+    const [pageSize] = useState(12);
 
     // Load categories
     useEffect(() => {
@@ -43,9 +46,10 @@ const ArticlesByCategoryPage: React.FC = () => {
                 setLoading(true);
                 setError(null);
                 setCurrentCategory(categorySlug);
-                const response = await articleAPI.getArticlesByCategory(categorySlug);
+                const response = await articleAPI.getArticlesByCategory(categorySlug, { page, size: pageSize });
                 if (response.status && response.body) {
-                    setArticles(response.body);
+                    setPageData(response.body);
+                    setArticles(response.body.content || []);
                 } else {
                     setError('Không thể tải bài viết theo danh mục');
                 }
@@ -58,18 +62,18 @@ const ArticlesByCategoryPage: React.FC = () => {
         };
 
         loadByCategory();
-    }, [categorySlug]);
+    }, [categorySlug, page, pageSize]);
 
-    const handleWishlistToggle = async (articleId: number, e: React.MouseEvent) => {
+    const handleWishlistToggle = async (slug: string, e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
         try {
-            setWishlistToggles((prev) => new Set([...Array.from(prev), articleId]));
-            await toggleWishlist(articleId);
+            setWishlistToggles((prev) => new Set([...Array.from(prev), slug]));
+            await toggleWishlist(slug);
         } finally {
             setWishlistToggles((prev) => {
                 const next = new Set(prev);
-                next.delete(articleId);
+                next.delete(slug);
                 return next;
             });
         }
@@ -80,28 +84,28 @@ const ArticlesByCategoryPage: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-b from-[#F7F9FC] via-white to-[#EEF3FF] flex items-center justify-center">
-                <LoadingSpinner />
-            </div>
+            <ArticleLayout>
+                <div className="min-h-[60vh] flex items-center justify-center">
+                    <LoadingSpinner />
+                </div>
+            </ArticleLayout>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-[#F7F9FC] via-white to-[#EEF3FF]">
+        <ArticleLayout>
             <Helmet>
                 <title>{currentCategoryName} - CampusLife</title>
                 <meta name="description" content={`Khám phá bài viết trong danh mục ${currentCategoryName}`} />
             </Helmet>
 
-            <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+            <div>
                 {/* Header */}
-                <div className="mb-12">
+                <div className="mb-6">
                     <Link to="/articles" className="text-[#0B5FFF] hover:underline text-sm mb-3 inline-block">
                         ← Quay lại bài viết
                     </Link>
-                    <h1 className="text-4xl sm:text-5xl font-black text-[#001C44] mb-3">
-                        📂 {currentCategoryName}
-                    </h1>
+                    <h1 className="text-3xl sm:text-4xl font-bold text-[#001C44] mb-1">{currentCategoryName}</h1>
                     <p className="text-lg text-gray-600">
                         {articles.length} bài viết trong danh mục này
                     </p>
@@ -146,7 +150,6 @@ const ArticlesByCategoryPage: React.FC = () => {
 
                 {articles.length === 0 ? (
                     <div className="text-center py-12">
-                        <div className="text-5xl mb-4">📭</div>
                         <p className="text-gray-600 text-lg">Chưa có bài viết trong danh mục này</p>
                         <Link
                             to="/articles"
@@ -159,8 +162,7 @@ const ArticlesByCategoryPage: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {articles.map((article) => {
                             const thumbUrl = getImageUrl(article.thumbnailUrl || undefined);
-                            const isWished = isWishlisted(article.id);
-                            const isToggling = wishlistToggles.has(article.id);
+                            const isWished = isWishlisted(article.slug);
 
                             return (
                                 <Link
@@ -184,8 +186,8 @@ const ArticlesByCategoryPage: React.FC = () => {
 
                                         {/* Wishlist button */}
                                         <button
-                                            onClick={(e) => handleWishlistToggle(article.id, e)}
-                                            disabled={isToggling}
+                                            onClick={(e) => handleWishlistToggle(article.slug, e)}
+                                            disabled={wishlistToggles.has(article.slug)}
                                             className="absolute top-3 right-3 text-2xl hover:scale-125 transition-transform"
                                         >
                                             {isWished ? '❤️' : '🤍'}
@@ -216,8 +218,34 @@ const ArticlesByCategoryPage: React.FC = () => {
                         })}
                     </div>
                 )}
+
+                {pageData && pageData.totalPages > 1 && (
+                    <div className="mt-10 flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm border border-gray-200">
+                        <div className="text-sm text-gray-700">
+                            Trang <span className="font-semibold">{pageData.number + 1}</span> / <span className="font-semibold">{pageData.totalPages}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setPage((prev) => Math.max(0, prev - 1))}
+                                disabled={page <= 0}
+                                className="px-4 py-2 rounded-lg bg-[#001C44] text-white font-semibold disabled:opacity-50"
+                            >
+                                ← Trước
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setPage((prev) => Math.min(pageData.totalPages - 1, prev + 1))}
+                                disabled={page >= pageData.totalPages - 1}
+                                className="px-4 py-2 rounded-lg bg-[#FFD66D] text-[#001C44] font-semibold disabled:opacity-50"
+                            >
+                                Sau →
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
-        </div>
+        </ArticleLayout>
     );
 };
 

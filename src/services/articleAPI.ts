@@ -2,22 +2,39 @@ import api from './api';
 import publicApi from './publicApi';
 import type {
     ApiResponse,
+    ArticleCategoryRequest,
+    ArticleCategoryResponse,
+    ArticleImageRequest,
+    ArticleImageResponse,
     EventArticleAdminResponse,
     EventArticleDetailResponse,
     EventArticleUpsertRequest,
-    WishlistToggleResponse,
     ArticleAnalytics,
     ArticleMetrics,
     DashboardAnalytics,
     ArticleListResponse,
+    ArticleStatisticsResponse,
+    ArticleTagRequest,
+    ArticleTagResponse,
+    ArticleWishlistItemResponse,
     SpringPage,
 } from '../types/article';
 
-const toApiResponse = <T>(payload: any): ApiResponse<T> => ({
-    status: Boolean(payload?.status),
-    message: payload?.message || '',
-    body: payload?.body ?? payload?.data ?? null,
-});
+const toApiResponse = <T>(payload: any): ApiResponse<T> => {
+    if (payload && typeof payload.status === 'boolean' && ('body' in payload || 'message' in payload)) {
+        return {
+            status: Boolean(payload.status),
+            message: payload?.message || '',
+            body: (payload?.body ?? null) as T | null,
+        };
+    }
+
+    return {
+        status: true,
+        message: '',
+        body: (payload ?? null) as T | null,
+    };
+};
 
 export const articleAPI = {
     getArticleBySlug: async (slug: string): Promise<ApiResponse<EventArticleDetailResponse>> => {
@@ -55,20 +72,22 @@ export const articleAPI = {
         return toApiResponse<EventArticleAdminResponse>(response.data);
     },
 
-    // Wishlist endpoints
-    toggleWishlist: async (articleId: number): Promise<ApiResponse<WishlistToggleResponse>> => {
-        const response = await api.post(`/api/articles/${articleId}/wishlist`);
-        return toApiResponse<WishlistToggleResponse>(response.data);
+    addToWishlist: async (slug: string): Promise<ApiResponse<null>> => {
+        const response = await api.post(`/api/articles/${encodeURIComponent(slug)}/wishlist`);
+        return toApiResponse<null>(response.data);
     },
 
-    getWishlistStatus: async (articleId: number): Promise<ApiResponse<{ isWishlisted: boolean }>> => {
-        const response = await api.get(`/api/articles/${articleId}/wishlist/status`);
-        return toApiResponse<{ isWishlisted: boolean }>(response.data);
+    removeFromWishlist: async (slug: string): Promise<ApiResponse<null>> => {
+        const response = await api.delete(`/api/articles/${encodeURIComponent(slug)}/wishlist`);
+        return toApiResponse<null>(response.data);
     },
 
-    getWishlistedArticles: async (): Promise<ApiResponse<EventArticleDetailResponse[]>> => {
-        const response = await api.get('/api/articles/wishlist');
-        return toApiResponse<EventArticleDetailResponse[]>(response.data);
+    getWishlistedArticles: async (params?: {
+        page?: number;
+        size?: number;
+    }): Promise<ApiResponse<SpringPage<ArticleWishlistItemResponse>>> => {
+        const response = await api.get('/api/articles/wishlist', { params });
+        return toApiResponse<SpringPage<ArticleWishlistItemResponse>>(response.data);
     },
 
     // Analytics endpoints
@@ -94,6 +113,11 @@ export const articleAPI = {
         } catch {
             // Silently fail - view tracking should not block article loading
         }
+    },
+
+    joinWaitlist: async (slug: string): Promise<ApiResponse<null>> => {
+        const response = await api.post(`/api/articles/${encodeURIComponent(slug)}/waitlist`);
+        return toApiResponse<null>(response.data);
     },
 
     // Get calendar event
@@ -125,39 +149,40 @@ export const articleAPI = {
     },
 
     // Featured articles
-    getFeaturedArticles: async (limit?: number): Promise<ApiResponse<EventArticleDetailResponse[]>> => {
+    getFeaturedArticles: async (limit?: number): Promise<ApiResponse<ArticleListResponse[]>> => {
         const response = await publicApi.get('/api/articles/featured', { params: { limit } });
-        return toApiResponse<EventArticleDetailResponse[]>(response.data);
+        return toApiResponse<ArticleListResponse[]>(response.data);
     },
 
     // Articles by category
-    getArticlesByCategory: async (categorySlug: string, filters?: {
-        limit?: number;
-        offset?: number;
-    }): Promise<ApiResponse<EventArticleDetailResponse[]>> => {
-        const response = await publicApi.get(`/api/articles/category/${encodeURIComponent(categorySlug)}`, { params: filters });
-        return toApiResponse<EventArticleDetailResponse[]>(response.data);
+    getArticlesByCategory: async (categorySlug: string, params?: {
+        page?: number;
+        size?: number;
+    }): Promise<ApiResponse<SpringPage<ArticleListResponse>>> => {
+        const response = await publicApi.get(`/api/articles/category/${encodeURIComponent(categorySlug)}`, { params });
+        return toApiResponse<SpringPage<ArticleListResponse>>(response.data);
     },
 
     // Search articles
-    searchArticles: async (query: string, filters?: {
-        limit?: number;
-        offset?: number;
-    }): Promise<ApiResponse<EventArticleDetailResponse[]>> => {
-        const response = await publicApi.get('/api/articles/search', { params: { q: query, ...filters } });
-        return toApiResponse<EventArticleDetailResponse[]>(response.data);
+    searchArticles: async (keyword: string, params?: {
+        page?: number;
+        size?: number;
+    }): Promise<ApiResponse<SpringPage<ArticleListResponse>>> => {
+        const response = await publicApi.get('/api/articles/search', {
+            params: { keyword, q: keyword, ...params },
+        });
+        return toApiResponse<SpringPage<ArticleListResponse>>(response.data);
+    },
+
+    getRelatedArticles: async (slug: string, params?: { limit?: number }): Promise<ApiResponse<ArticleListResponse[]>> => {
+        const response = await publicApi.get(`/api/articles/${encodeURIComponent(slug)}/related`, { params });
+        return toApiResponse<ArticleListResponse[]>(response.data);
     },
 
     // Admin statistics
-    getStatistics: async (): Promise<ApiResponse<{
-        totalViews: number;
-        totalArticles: number;
-        featuredArticles: number;
-        categoryDistribution: { name: string; count: number }[];
-        topArticles: ArticleMetrics[];
-    }>> => {
+    getStatistics: async (): Promise<ApiResponse<ArticleStatisticsResponse>> => {
         const response = await api.get('/api/admin/articles/statistics');
-        return toApiResponse(response.data);
+        return toApiResponse<ArticleStatisticsResponse>(response.data);
     },
 
     // Categories management
@@ -166,19 +191,39 @@ export const articleAPI = {
         return toApiResponse(response.data);
     },
 
-    createCategory: async (data: { name: string; slug: string; description?: string }): Promise<ApiResponse<any>> => {
+    getAdminCategories: async (): Promise<ApiResponse<ArticleCategoryResponse[]>> => {
+        const response = await api.get('/api/admin/articles/categories');
+        return toApiResponse<ArticleCategoryResponse[]>(response.data);
+    },
+
+    createCategory: async (data: ArticleCategoryRequest): Promise<ApiResponse<ArticleCategoryResponse>> => {
         const response = await api.post('/api/admin/articles/categories', data);
-        return toApiResponse(response.data);
+        return toApiResponse<ArticleCategoryResponse>(response.data);
     },
 
-    updateCategory: async (categoryId: number, data: { name?: string; slug?: string; description?: string }): Promise<ApiResponse<any>> => {
+    updateCategory: async (categoryId: number, data: ArticleCategoryRequest): Promise<ApiResponse<ArticleCategoryResponse>> => {
         const response = await api.put(`/api/admin/articles/categories/${categoryId}`, data);
-        return toApiResponse(response.data);
+        return toApiResponse<ArticleCategoryResponse>(response.data);
     },
 
-    deleteCategory: async (categoryId: number): Promise<ApiResponse<any>> => {
+    deleteCategory: async (categoryId: number): Promise<ApiResponse<null>> => {
         const response = await api.delete(`/api/admin/articles/categories/${categoryId}`);
-        return toApiResponse(response.data);
+        return toApiResponse<null>(response.data);
+    },
+
+    getAdminTags: async (): Promise<ApiResponse<ArticleTagResponse[]>> => {
+        const response = await api.get('/api/admin/articles/tags');
+        return toApiResponse<ArticleTagResponse[]>(response.data);
+    },
+
+    createTag: async (data: ArticleTagRequest): Promise<ApiResponse<ArticleTagResponse>> => {
+        const response = await api.post('/api/admin/articles/tags', data);
+        return toApiResponse<ArticleTagResponse>(response.data);
+    },
+
+    deleteTag: async (tagId: number): Promise<ApiResponse<null>> => {
+        const response = await api.delete(`/api/admin/articles/tags/${tagId}`);
+        return toApiResponse<null>(response.data);
     },
 
     // Image gallery management
@@ -187,5 +232,15 @@ export const articleAPI = {
             headers: { 'Content-Type': 'multipart/form-data' },
         });
         return toApiResponse(response.data);
+    },
+
+    addArticleImage: async (articleId: number, data: ArticleImageRequest): Promise<ApiResponse<ArticleImageResponse>> => {
+        const response = await api.post(`/api/admin/articles/${articleId}/images`, data);
+        return toApiResponse<ArticleImageResponse>(response.data);
+    },
+
+    removeArticleImage: async (articleId: number, imageId: number): Promise<ApiResponse<null>> => {
+        const response = await api.delete(`/api/admin/articles/${articleId}/images/${imageId}`);
+        return toApiResponse<null>(response.data);
     },
 };

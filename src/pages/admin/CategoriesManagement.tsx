@@ -2,25 +2,20 @@ import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { articleAPI } from '../../services/articleAPI';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-
-interface Category {
-    id: number;
-    name: string;
-    slug: string;
-    description?: string;
-}
+import type { ArticleCategoryRequest, ArticleCategoryResponse } from '../../types/article';
 
 const CategoriesManagement: React.FC = () => {
-    const [categories, setCategories] = useState<Category[]>([]);
+    const [categories, setCategories] = useState<ArticleCategoryResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [isCreating, setIsCreating] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
 
     const [formData, setFormData] = useState({
         name: '',
         slug: '',
         description: '',
+        displayOrder: 0,
+        isActive: true,
     });
 
     useEffect(() => {
@@ -31,7 +26,7 @@ const CategoriesManagement: React.FC = () => {
         try {
             setLoading(true);
             setError(null);
-            const response = await articleAPI.getCategories();
+            const response = await articleAPI.getAdminCategories();
             if (response.status && response.body) {
                 setCategories(response.body);
             }
@@ -47,7 +42,15 @@ const CategoriesManagement: React.FC = () => {
         const { name, value } = e.target;
         setFormData((prev) => ({
             ...prev,
-            [name]: value,
+            [name]: name === 'displayOrder' ? Number(value) : value,
+        }));
+    };
+
+    const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, checked } = e.target;
+        setFormData((prev) => ({
+            ...prev,
+            [name]: checked,
         }));
     };
 
@@ -76,26 +79,34 @@ const CategoriesManagement: React.FC = () => {
         }
 
         try {
+            const payload: ArticleCategoryRequest = {
+                name: formData.name,
+                slug: formData.slug,
+                description: formData.description || null,
+                displayOrder: Number.isFinite(formData.displayOrder) ? formData.displayOrder : 0,
+                isActive: Boolean(formData.isActive),
+            };
+
             if (editingId) {
-                const response = await articleAPI.updateCategory(editingId, formData);
-                if (response.status) {
+                const response = await articleAPI.updateCategory(editingId, payload);
+                if (response.status && response.body) {
                     setCategories((prev) =>
                         prev.map((c) =>
                             c.id === editingId
-                                ? { ...c, ...formData }
+                                ? response.body!
                                 : c
                         )
                     );
                     setEditingId(null);
                 }
             } else {
-                const response = await articleAPI.createCategory(formData);
+                const response = await articleAPI.createCategory(payload);
                 if (response.status && response.body) {
-                    setCategories((prev) => [...prev, response.body]);
+                    setCategories((prev) => [...prev, response.body!]);
                 }
             }
 
-            setFormData({ name: '', slug: '', description: '' });
+            setFormData({ name: '', slug: '', description: '', displayOrder: 0, isActive: true });
             setError(null);
         } catch (err) {
             console.error('Failed to save category:', err);
@@ -103,12 +114,14 @@ const CategoriesManagement: React.FC = () => {
         }
     };
 
-    const handleEdit = (category: Category) => {
+    const handleEdit = (category: ArticleCategoryResponse) => {
         setEditingId(category.id);
         setFormData({
             name: category.name,
-            slug: category.slug,
+            slug: category.slug || '',
             description: category.description || '',
+            displayOrder: category.displayOrder ?? 0,
+            isActive: Boolean(category.isActive),
         });
     };
 
@@ -128,7 +141,7 @@ const CategoriesManagement: React.FC = () => {
 
     const handleCancel = () => {
         setEditingId(null);
-        setFormData({ name: '', slug: '', description: '' });
+        setFormData({ name: '', slug: '', description: '', displayOrder: 0, isActive: true });
     };
 
     if (loading) {
@@ -140,13 +153,13 @@ const CategoriesManagement: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-[#F7F9FC] via-white to-[#EEF3FF]">
+        <div className="w-full">
             <Helmet>
                 <title>Quản lý danh mục bài viết - CampusLife</title>
                 <meta name="description" content="Quản lý danh mục bài viết" />
             </Helmet>
 
-            <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-4xl w-full">
                 <h1 className="text-4xl font-black text-[#001C44] mb-8">📂 Quản lý danh mục</h1>
 
                 {error && (
@@ -219,6 +232,31 @@ const CategoriesManagement: React.FC = () => {
                             />
                         </div>
 
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Thứ tự hiển thị</label>
+                                <input
+                                    type="number"
+                                    name="displayOrder"
+                                    value={formData.displayOrder}
+                                    onChange={handleFormChange}
+                                    className="w-full px-4 py-2 rounded-xl border-2 border-gray-300 focus:border-[#0B5FFF] focus:outline-none"
+                                />
+                            </div>
+                            <div className="flex items-end">
+                                <label className="inline-flex items-center gap-2 text-sm font-semibold text-gray-700">
+                                    <input
+                                        type="checkbox"
+                                        name="isActive"
+                                        checked={formData.isActive}
+                                        onChange={handleCheckboxChange}
+                                        className="h-4 w-4"
+                                    />
+                                    Kích hoạt
+                                </label>
+                            </div>
+                        </div>
+
                         <div className="flex gap-3 pt-4">
                             <button
                                 type="submit"
@@ -252,6 +290,12 @@ const CategoriesManagement: React.FC = () => {
                                         Slug
                                     </th>
                                     <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
+                                        Thứ tự
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
+                                        Trạng thái
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
                                         Mô tả
                                     </th>
                                     <th className="px-6 py-3 text-center text-sm font-semibold text-gray-700">
@@ -262,7 +306,7 @@ const CategoriesManagement: React.FC = () => {
                             <tbody>
                                 {categories.length === 0 ? (
                                     <tr>
-                                        <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                                        <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                                             Chưa có danh mục nào
                                         </td>
                                     </tr>
@@ -273,7 +317,17 @@ const CategoriesManagement: React.FC = () => {
                                                 {category.name}
                                             </td>
                                             <td className="px-6 py-4 text-gray-600 font-mono text-sm">
-                                                {category.slug}
+                                                {category.slug || '-'}
+                                            </td>
+                                            <td className="px-6 py-4 text-gray-600 text-sm">
+                                                {category.displayOrder}
+                                            </td>
+                                            <td className="px-6 py-4 text-sm">
+                                                <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                                                    category.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'
+                                                }`}>
+                                                    {category.isActive ? 'Active' : 'Inactive'}
+                                                </span>
                                             </td>
                                             <td className="px-6 py-4 text-gray-600 text-sm">
                                                 {category.description && (

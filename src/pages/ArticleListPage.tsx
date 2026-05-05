@@ -5,6 +5,7 @@ import { getImageUrl } from '../utils/imageUtils';
 import { useWishlist } from '../contexts/WishlistContext';
 import type { ArticleListResponse, SpringPage } from '../types/article';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import ArticleLayout from '../components/layout/ArticleLayout';
 
 type SortOption = 'newest' | 'views' | 'wishlist';
 type FilterStatus = 'all' | 'published' | 'featured';
@@ -18,7 +19,7 @@ const ArticleListPage: React.FC = () => {
     const [search, setSearch] = useState('');
     const [sort, setSort] = useState<SortOption>('newest');
     const [filter, setFilter] = useState<FilterStatus>('published');
-    const [wishlistToggles, setWishlistToggles] = useState<Set<number>>(new Set());
+    const [wishlistToggles, setWishlistToggles] = useState<Set<string>>(new Set());
     const [page, setPage] = useState(0);
     const [pageSize, setPageSize] = useState(12);
 
@@ -93,16 +94,16 @@ const ArticleListPage: React.FC = () => {
     const totalPages = articlesPage?.totalPages || 1;
     const totalElements = articlesPage?.totalElements || filteredArticles.length;
 
-    const handleWishlistToggle = async (articleId: number, e: React.MouseEvent) => {
+    const handleWishlistToggle = async (slug: string, e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
         try {
-            setWishlistToggles((prev) => new Set([...Array.from(prev), articleId]));
-            await toggleWishlist(articleId);
+            setWishlistToggles((prev) => new Set([...Array.from(prev), slug]));
+            await toggleWishlist(slug);
         } finally {
             setWishlistToggles((prev) => {
                 const next = new Set(prev);
-                next.delete(articleId);
+                next.delete(slug);
                 return next;
             });
         }
@@ -110,21 +111,21 @@ const ArticleListPage: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-b from-[#F7F9FC] via-white to-[#EEF3FF] flex items-center justify-center">
-                <LoadingSpinner />
-            </div>
+            <ArticleLayout>
+                <div className="min-h-[60vh] flex items-center justify-center">
+                    <LoadingSpinner />
+                </div>
+            </ArticleLayout>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-[#F7F9FC] via-white to-[#EEF3FF]">
-            <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <ArticleLayout>
+            <div>
                 {/* Header */}
-                <div className="mb-10 py-8 rounded-2xl bg-gradient-to-r from-[#001C44] via-[#002A66] to-[#001C44] text-white shadow-lg">
-                    <div className="px-4">
-                        <h1 className="text-4xl font-bold mb-3">📰 Bài viết sự kiện</h1>
-                        <p className="text-gray-100">Khám phá các bài viết quảng bá từ hệ thống CampusLife</p>
-                    </div>
+                <div className="mb-6">
+                    <h1 className="text-3xl sm:text-4xl font-bold text-[#001C44]">Bài viết sự kiện</h1>
+                    <p className="text-gray-600 mt-1">Khám phá các bài viết nổi bật từ hệ thống CampusLife</p>
                 </div>
 
                 {error && (
@@ -134,51 +135,53 @@ const ArticleListPage: React.FC = () => {
                 )}
 
                 {/* Filters & Search */}
-                <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end">
-                    {/* Search */}
-                    <div className="flex-1">
-                        <label className="block text-sm font-semibold text-[#001C44] mb-2">
-                            Tìm kiếm
-                        </label>
-                        <input
-                            type="text"
-                            placeholder="Tìm theo tiêu đề hoặc mô tả..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="w-full rounded-xl border-2 border-gray-300 px-4 py-3 focus:border-[#001C44] focus:ring-2 focus:ring-[#001C44] focus:ring-opacity-10 focus:outline-none transition-all"
-                        />
-                    </div>
+                <div className="mb-8 rounded-2xl bg-white border border-gray-200 p-4 sm:p-6 shadow-sm">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+                        {/* Search */}
+                        <div className="flex-1">
+                            <label className="block text-sm font-semibold text-[#001C44] mb-2">
+                                Tìm kiếm
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Tìm theo tiêu đề hoặc mô tả..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="w-full rounded-xl border-2 border-gray-300 px-4 py-3 focus:border-[#001C44] focus:ring-2 focus:ring-[#001C44] focus:ring-opacity-10 focus:outline-none transition-all"
+                            />
+                        </div>
 
-                    {/* Filter */}
-                    <div>
-                        <label className="block text-sm font-semibold text-[#001C44] mb-2">
-                            Trạng thái
-                        </label>
-                        <select
-                            value={filter}
-                            onChange={(e) => setFilter(e.target.value as FilterStatus)}
-                            className="rounded-xl border-2 border-gray-300 px-4 py-3 focus:border-[#001C44] focus:ring-2 focus:ring-[#001C44] focus:ring-opacity-10 focus:outline-none transition-all bg-white cursor-pointer"
-                        >
-                            <option value="published">Đã xuất bản</option>
-                            <option value="featured">Nổi bật</option>
-                            <option value="all">Tất cả</option>
-                        </select>
-                    </div>
+                        {/* Filter */}
+                        <div>
+                            <label className="block text-sm font-semibold text-[#001C44] mb-2">
+                                Trạng thái
+                            </label>
+                            <select
+                                value={filter}
+                                onChange={(e) => setFilter(e.target.value as FilterStatus)}
+                                className="rounded-xl border-2 border-gray-300 px-4 py-3 focus:border-[#001C44] focus:ring-2 focus:ring-[#001C44] focus:ring-opacity-10 focus:outline-none transition-all bg-white cursor-pointer"
+                            >
+                                <option value="published">Đã xuất bản</option>
+                                <option value="featured">Nổi bật</option>
+                                <option value="all">Tất cả</option>
+                            </select>
+                        </div>
 
-                    {/* Sort */}
-                    <div>
-                        <label className="block text-sm font-semibold text-[#001C44] mb-2">
-                            Sắp xếp
-                        </label>
-                        <select
-                            value={sort}
-                            onChange={(e) => setSort(e.target.value as SortOption)}
-                            className="rounded-xl border-2 border-gray-300 px-4 py-3 focus:border-[#001C44] focus:ring-2 focus:ring-[#001C44] focus:ring-opacity-10 focus:outline-none transition-all bg-white cursor-pointer"
-                        >
-                            <option value="newest">Mới nhất</option>
-                            <option value="views">Lượt xem cao</option>
-                            <option value="wishlist">Yêu thích nhiều</option>
-                        </select>
+                        {/* Sort */}
+                        <div>
+                            <label className="block text-sm font-semibold text-[#001C44] mb-2">
+                                Sắp xếp
+                            </label>
+                            <select
+                                value={sort}
+                                onChange={(e) => setSort(e.target.value as SortOption)}
+                                className="rounded-xl border-2 border-gray-300 px-4 py-3 focus:border-[#001C44] focus:ring-2 focus:ring-[#001C44] focus:ring-opacity-10 focus:outline-none transition-all bg-white cursor-pointer"
+                            >
+                                <option value="newest">Mới nhất</option>
+                                <option value="views">Lượt xem cao</option>
+                                <option value="wishlist">Yêu thích nhiều</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -190,7 +193,6 @@ const ArticleListPage: React.FC = () => {
                 {/* Articles Grid */}
                 {filteredArticles.length === 0 ? (
                     <div className="text-center py-16">
-                        <div className="text-5xl mb-4">📰</div>
                         <h2 className="text-2xl font-semibold text-[#001C44] mb-2">Không tìm thấy bài viết</h2>
                         <p className="text-gray-600">Hãy thử tìm kiếm hoặc lọc lại để xem các bài viết khác</p>
                     </div>
@@ -223,15 +225,15 @@ const ArticleListPage: React.FC = () => {
                                     <div className="absolute top-3 left-3">
                                         {article.registrationStatus === 'OPEN' ? (
                                             <span className="inline-flex items-center rounded-full bg-green-500 px-3 py-1 text-xs font-bold text-white shadow-md">
-                                                ✓ Mở
+                                                Mở
                                             </span>
                                         ) : article.registrationStatus === 'CLOSED' ? (
                                             <span className="inline-flex items-center rounded-full bg-red-500 px-3 py-1 text-xs font-bold text-white shadow-md">
-                                                ✗ Đóng
+                                                Đóng
                                             </span>
                                         ) : (
                                             <span className="inline-flex items-center rounded-full bg-gray-500 px-3 py-1 text-xs font-bold text-white shadow-md">
-                                                ⏳ {article.registrationStatus || 'Chưa xác định'}
+                                                {article.registrationStatus || 'Chưa xác định'}
                                             </span>
                                         )}
                                     </div>
@@ -241,7 +243,7 @@ const ArticleListPage: React.FC = () => {
                                         <div className="absolute top-3 right-3">
                                             {article.isPinned && (
                                                 <span className="inline-flex items-center rounded-full bg-[#FFD66D] px-3 py-1 text-xs font-bold text-[#001C44] shadow-md">
-                                                    📌 Ghim
+                                                    Ghim
                                                 </span>
                                             )}
                                         </div>
@@ -249,17 +251,17 @@ const ArticleListPage: React.FC = () => {
 
                                     {/* Wishlist button */}
                                     <button
-                                        onClick={(e) => handleWishlistToggle(article.id, e)}
-                                        disabled={wishlistToggles.has(article.id)}
+                                        onClick={(e) => handleWishlistToggle(article.slug, e)}
+                                        disabled={wishlistToggles.has(article.slug)}
                                         className="absolute bottom-3 right-3 bg-white rounded-full p-2 shadow-md hover:shadow-lg hover:scale-110 transition-all disabled:opacity-50"
                                         title={
-                                            isWishlisted(article.id)
+                                            isWishlisted(article.slug)
                                                 ? 'Xóa khỏi yêu thích'
                                                 : 'Thêm vào yêu thích'
                                         }
                                     >
                                         <span className="text-2xl">
-                                            {isWishlisted(article.id) ? '❤️' : '🤍'}
+                                            {isWishlisted(article.slug) ? '❤️' : '🤍'}
                                         </span>
                                     </button>
                                 </div>
@@ -279,10 +281,10 @@ const ArticleListPage: React.FC = () => {
                                     {/* Stats */}
                                     <div className="flex items-center justify-between text-sm text-gray-600 mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
                                         <span className="flex items-center gap-1">
-                                            <span className="text-lg">👁️</span> {(article.viewCount || 0).toLocaleString('vi-VN')}
+                                            <span className="text-lg">👁</span> {(article.viewCount || 0).toLocaleString('vi-VN')}
                                         </span>
                                         <span className="flex items-center gap-1">
-                                            <span className="text-lg">❤️</span> {(article.wishlistCount || 0).toLocaleString('vi-VN')}
+                                            <span className="text-lg">❤</span> {(article.wishlistCount || 0).toLocaleString('vi-VN')}
                                         </span>
                                     </div>
 
@@ -335,8 +337,8 @@ const ArticleListPage: React.FC = () => {
                         </div>
                     </div>
                 )}
-            </main>
-        </div>
+            </div>
+        </ArticleLayout>
     );
 };
 
