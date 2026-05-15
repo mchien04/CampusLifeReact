@@ -1,12 +1,24 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import ChatbotWidget from '../chatbot/ChatbotWidget';
+import { ChatbotPageContext } from '../../services/chatbotAPI';
 
 type PublicLayoutProps = {
     children: React.ReactNode;
+    chatbotEnabled?: boolean;
+    chatbotPageContext?: ChatbotPageContext;
+    chatbotContextActivityId?: number | null;
+    chatbotContextArticleSlug?: string | null;
 };
 
-const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
+const PublicLayout: React.FC<PublicLayoutProps> = ({
+    children,
+    chatbotEnabled = false,
+    chatbotPageContext = 'GLOBAL',
+    chatbotContextActivityId = null,
+    chatbotContextArticleSlug = null,
+}) => {
     const navigate = useNavigate();
     const { isAuthenticated, username, logout } = useAuth();
 
@@ -86,9 +98,16 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
                     <div className="text-[#001C44] font-medium">Hệ thống quản lý hoạt động sinh viên</div>
                 </div>
             </footer>
+
+            {chatbotEnabled && (
+                <ChatbotWidget
+                    pageContext={chatbotPageContext}
+                    contextActivityId={chatbotContextActivityId}
+                    contextArticleSlug={chatbotContextArticleSlug}
+                />
+            )}
         </div>
     );
 };
 
 export default PublicLayout;
-

@@ -24,6 +24,7 @@ const StudentEventDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { user } = useAuth();
+    const contextActivityId = id && !Number.isNaN(Number(id)) ? Number(id) : null;
     const [event, setEvent] = useState<ActivityResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -411,7 +412,7 @@ const StudentEventDetail: React.FC = () => {
 
     if (loading) {
         return (
-            <StudentLayout>
+            <StudentLayout chatbotPageContext="ACTIVITY_DETAIL" chatbotContextActivityId={contextActivityId}>
                 <div className="flex items-center justify-center min-h-[60vh]">
                     <LoadingSpinner />
                 </div>
@@ -421,7 +422,7 @@ const StudentEventDetail: React.FC = () => {
 
     if (error || !event) {
         return (
-            <StudentLayout>
+            <StudentLayout chatbotPageContext="ACTIVITY_DETAIL" chatbotContextActivityId={contextActivityId}>
                 <div className="flex items-center justify-center min-h-[60vh]">
                     <div className="text-center">
                         <div className="text-red-600 text-6xl mb-4">⚠️</div>
@@ -442,7 +443,7 @@ const StudentEventDetail: React.FC = () => {
     const eventStatus = getEventStatus();
 
     return (
-        <StudentLayout>
+        <StudentLayout chatbotPageContext="ACTIVITY_DETAIL" chatbotContextActivityId={event?.id ?? contextActivityId}>
             <div className="space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Main Content */}

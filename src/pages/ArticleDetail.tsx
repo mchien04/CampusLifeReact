@@ -155,7 +155,11 @@ const ArticleDetail: React.FC = () => {
 
     if (loading) {
         return (
-            <ArticleLayout>
+            <ArticleLayout
+                chatbotEnabled={true}
+                chatbotPageContext="ARTICLE_DETAIL"
+                chatbotContextArticleSlug={slug ?? null}
+            >
                 <div className="min-h-[60vh] flex items-center justify-center">
                     <LoadingSpinner />
                 </div>
@@ -165,7 +169,11 @@ const ArticleDetail: React.FC = () => {
 
     if (notFound || !article) {
         return (
-            <ArticleLayout>
+            <ArticleLayout
+                chatbotEnabled={true}
+                chatbotPageContext="ARTICLE_DETAIL"
+                chatbotContextArticleSlug={slug ?? null}
+            >
                 <div className="min-h-[60vh] flex items-center justify-center px-4">
                     <div className="max-w-md w-full text-center bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
                         <h1 className="text-2xl font-bold text-[#001C44] mb-3">Không tìm thấy bài viết</h1>
@@ -183,7 +191,11 @@ const ArticleDetail: React.FC = () => {
     }
 
     return (
-        <ArticleLayout>
+        <ArticleLayout
+            chatbotEnabled={true}
+            chatbotPageContext="ARTICLE_DETAIL"
+            chatbotContextArticleSlug={slug ?? null}
+        >
             <Helmet>
                 <title>{seoTitle}</title>
                 <meta name="description" content={seoDescription} />
