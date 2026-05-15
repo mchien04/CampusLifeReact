@@ -3,12 +3,22 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { NotificationDropdown } from '../notification/NotificationDropdown';
 import UserProfileMenu from './UserProfileMenu';
+import ChatbotWidget from '../chatbot/ChatbotWidget';
+import { ChatbotPageContext } from '../../services/chatbotAPI';
 
 interface StudentLayoutProps {
     children: React.ReactNode;
+    chatbotPageContext?: ChatbotPageContext;
+    chatbotContextActivityId?: number | null;
+    chatbotContextArticleSlug?: string | null;
 }
 
-const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
+const StudentLayout: React.FC<StudentLayoutProps> = ({
+    children,
+    chatbotPageContext = 'GLOBAL',
+    chatbotContextActivityId = null,
+    chatbotContextArticleSlug = null,
+}) => {
     const { username, logout, user } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
@@ -246,6 +256,12 @@ const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                         </div>
                     </div>
                 </footer>
+
+                <ChatbotWidget
+                    pageContext={chatbotPageContext}
+                    contextActivityId={chatbotContextActivityId}
+                    contextArticleSlug={chatbotContextArticleSlug}
+                />
             </div>
         </div>
     );
