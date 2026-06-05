@@ -56,6 +56,8 @@ const ArticleEditorById: React.FC = () => {
         isFeatured: false,
         isPinned: false,
         priority: 0,
+        articleType: 'ANNOUNCEMENT',
+        isPrimary: false,
     });
 
     useEffect(() => {
@@ -92,7 +94,7 @@ const ArticleEditorById: React.FC = () => {
                     setArticle(response.body);
                     setTagIdsInitialized(false);
                     setForm({
-                        activityId: response.body.activityId,
+                        activityId: response.body.activityId ?? undefined,
                         title: response.body.title,
                         slug: response.body.slug,
                         thumbnailUrl: response.body.thumbnailUrl || '',
@@ -104,6 +106,8 @@ const ArticleEditorById: React.FC = () => {
                         isFeatured: Boolean(response.body.featured),
                         isPinned: Boolean(response.body.pinned),
                         priority: response.body.priority ?? 0,
+                        articleType: response.body.articleType || 'ANNOUNCEMENT',
+                        isPrimary: response.body.isPrimary || false,
                     });
                 } else {
                     setError(response.message || 'Không tải được bài viết');
@@ -155,7 +159,7 @@ const ArticleEditorById: React.FC = () => {
         try {
             const payload: EventArticleUpsertRequest = {
                 ...form,
-                activityId: article.activityId,
+                activityId: article.activityId ?? undefined,
                 thumbnailUrl: form.thumbnailUrl || null,
                 seoTitle: form.seoTitle || null,
                 seoDescription: form.seoDescription || null,
@@ -166,7 +170,7 @@ const ArticleEditorById: React.FC = () => {
                 setArticle(response.body);
                 setTagIdsInitialized(false);
                 setForm({
-                    activityId: response.body.activityId,
+                    activityId: response.body.activityId ?? undefined,
                     title: response.body.title,
                     slug: response.body.slug,
                     thumbnailUrl: response.body.thumbnailUrl || '',
@@ -178,6 +182,8 @@ const ArticleEditorById: React.FC = () => {
                     isFeatured: Boolean(response.body.featured),
                     isPinned: Boolean(response.body.pinned),
                     priority: response.body.priority ?? 0,
+                    articleType: response.body.articleType || 'ANNOUNCEMENT',
+                    isPrimary: response.body.isPrimary || false,
                 });
             } else {
                 setError(response.message || 'Không thể lưu bài viết');
@@ -453,7 +459,7 @@ const ArticleEditorById: React.FC = () => {
                         </div>
                     </label>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div className="space-y-2">
                             <span className="block text-sm font-medium text-gray-700">Danh mục</span>
                             <select
@@ -467,6 +473,20 @@ const ArticleEditorById: React.FC = () => {
                                         {c.name}
                                     </option>
                                 ))}
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <span className="block text-sm font-medium text-gray-700">Loại bài viết</span>
+                            <select
+                                value={form.articleType || 'ANNOUNCEMENT'}
+                                onChange={(e) => updateField('articleType', e.target.value)}
+                                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#001C44] focus:outline-none bg-white"
+                            >
+                                <option value="ANNOUNCEMENT">Thông báo</option>
+                                <option value="RECAP">Tổng kết</option>
+                                <option value="BEHIND_SCENE">Hậu trường</option>
+                                <option value="RESULT">Kết quả</option>
+                                <option value="UPDATE">Cập nhật</option>
                             </select>
                         </div>
                         <div className="space-y-2 md:col-span-2">
@@ -490,8 +510,8 @@ const ArticleEditorById: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 h-[52px]">
                             <input
                                 type="checkbox"
                                 checked={Boolean(form.isFeatured)}
@@ -500,7 +520,7 @@ const ArticleEditorById: React.FC = () => {
                             />
                             Nổi bật
                         </label>
-                        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 h-[52px]">
                             <input
                                 type="checkbox"
                                 checked={Boolean(form.isPinned)}
@@ -508,6 +528,15 @@ const ArticleEditorById: React.FC = () => {
                                 className="h-4 w-4"
                             />
                             Ghim
+                        </label>
+                        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 h-[52px]">
+                            <input
+                                type="checkbox"
+                                checked={Boolean(form.isPrimary)}
+                                onChange={(e) => setForm((prev) => ({ ...prev, isPrimary: e.target.checked }))}
+                                className="h-4 w-4"
+                            />
+                            Đại diện chính
                         </label>
                         <div className="space-y-2">
                             <span className="block text-sm font-medium text-gray-700">Priority</span>

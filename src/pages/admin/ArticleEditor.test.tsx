@@ -54,6 +54,8 @@ describe('ArticleEditor', () => {
                     wishlistCount: 0,
                 createdAt: null,
                 updatedAt: null,
+                articleType: 'ANNOUNCEMENT' as const,
+                isPrimary: false,
             },
         });
 
@@ -95,6 +97,8 @@ describe('ArticleEditor', () => {
                     wishlistCount: 0,
                 createdAt: null,
                 updatedAt: null,
+                articleType: 'ANNOUNCEMENT' as const,
+                isPrimary: false,
             },
         });
         mockedArticleAPI.publishArticle.mockResolvedValue({
@@ -115,6 +119,8 @@ describe('ArticleEditor', () => {
                     wishlistCount: 0,
                 createdAt: null,
                 updatedAt: null,
+                articleType: 'ANNOUNCEMENT' as const,
+                isPrimary: false,
             },
         });
 

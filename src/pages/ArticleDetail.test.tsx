@@ -49,7 +49,6 @@ describe('ArticleDetail', () => {
                 published: true,
                 publishedAt: '2026-04-17T10:30:00',
                 registrationStatus: 'OPEN',
-                registrationLink: '/activities/123',
                     viewCount: 0,
                     wishlistCount: 0,
                     isFeatured: false,
