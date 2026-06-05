@@ -7,28 +7,27 @@ import { sanitizeArticleContent } from '../utils/sanitizeHtml';
 import { downloadCalendarFile } from '../utils/calendarExport';
 import { getImageUrl } from '../utils/imageUtils';
 import { useWishlist } from '../contexts/WishlistContext';
-import type { ArticleListResponse, EventArticleDetailResponse, RegistrationCtaStatus } from '../types/article';
+import { useAuth } from '../contexts/AuthContext';
+import type { ArticleListResponse, EventArticleDetailResponse } from '../types/article';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ArticleLayout from '../components/layout/ArticleLayout';
+import RegistrationCTA from '../components/article/RegistrationCTA';
+import ReactionBar from '../components/article/ReactionBar';
+import CommentSection from '../components/article/CommentSection';
+import ShareButton from '../components/article/ShareButton';
+import '../components/article/article-components.css';
 
-const CTA_LABELS: Record<RegistrationCtaStatus, string> = {
-    UPCOMING: 'Sắp mở đăng ký',
-    OPEN: 'Đăng ký ngay',
-    WAITLIST: 'Đăng ký danh sách chờ',
-    FULL: 'Hết chỗ',
-    CLOSED: 'Đã đóng đăng ký',
-};
 
 const ArticleDetail: React.FC = () => {
     const { slug } = useParams<{ slug: string }>();
     const navigate = useNavigate();
     const { toggleWishlist, isWishlisted } = useWishlist();
+    const { isAuthenticated } = useAuth();
     const [article, setArticle] = useState<EventArticleDetailResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [notFound, setNotFound] = useState(false);
     const [wishlisting, setWishlisting] = useState(false);
     const [exporting, setExporting] = useState(false);
-    const [submittingWaitlist, setSubmittingWaitlist] = useState(false);
     const [relatedArticles, setRelatedArticles] = useState<ArticleListResponse[]>([]);
     const [loadingRelated, setLoadingRelated] = useState(false);
 
@@ -46,7 +45,15 @@ const ArticleDetail: React.FC = () => {
             try {
                 const response = await articleAPI.getArticleBySlug(slug);
                 if (response.status && response.body) {
-                    setArticle(response.body);
+                    const data = response.body;
+
+                    // Handle slug redirect (Phase 3)
+                    if (data.redirectedFrom && data.currentSlug && data.currentSlug !== slug) {
+                        navigate(`/articles/${data.currentSlug}`, { replace: true });
+                        return;
+                    }
+
+                    setArticle(data);
                     // Track view (fire and forget)
                     articleAPI.trackArticleView(slug);
                 } else {
@@ -64,7 +71,7 @@ const ArticleDetail: React.FC = () => {
         };
 
         loadArticle();
-    }, [slug]);
+    }, [slug, navigate]);
 
     useEffect(() => {
         const loadRelated = async () => {
@@ -91,7 +98,6 @@ const ArticleDetail: React.FC = () => {
     const seoDescription = article?.seoDescription || '';
     const sanitizedContent = useMemo(() => sanitizeArticleContent(article?.content || ''), [article?.content]);
     const thumbnailUrl = article ? getImageUrl(article.thumbnailUrl || undefined) : null;
-    const ctaLabel = (article?.registrationStatus && CTA_LABELS[article.registrationStatus as RegistrationCtaStatus]) || CTA_LABELS.CLOSED;
     const coverImages = (article?.coverImages || []).map((img) => ({ ...img, imageUrl: getImageUrl(img.imageUrl) || img.imageUrl }));
     const galleryImages = (article?.images || []).map((img) => ({ ...img, imageUrl: getImageUrl(img.imageUrl) || img.imageUrl }));
     const heroImageUrl = coverImages[0]?.imageUrl || thumbnailUrl || null;
@@ -119,37 +125,6 @@ const ArticleDetail: React.FC = () => {
             toast.error('Không tải được file lịch (.ics)');
         } finally {
             setExporting(false);
-        }
-    };
-
-    const handleCtaClick = async () => {
-        if (!article) return;
-
-        if (article.registrationStatus === 'WAITLIST') {
-            try {
-                setSubmittingWaitlist(true);
-                const response = await articleAPI.joinWaitlist(article.slug);
-                if (!response.status) {
-                    throw new Error(response.message || 'Không thể đăng ký danh sách chờ');
-                }
-                toast.success('Đã đăng ký danh sách chờ');
-            } catch (error: any) {
-                toast.error(error?.message || 'Đăng ký danh sách chờ thất bại');
-            } finally {
-                setSubmittingWaitlist(false);
-            }
-            return;
-        }
-
-        if (article.registrationStatus !== 'OPEN') return;
-
-        const link = article.registrationLink || '';
-        if (/^https?:\/\//i.test(link)) {
-            window.location.href = link;
-            return;
-        }
-        if (link.startsWith('/')) {
-            navigate(link);
         }
     };
 
@@ -272,37 +247,47 @@ const ArticleDetail: React.FC = () => {
                             <div className="prose prose-lg prose-slate max-w-none prose-headings:text-[#001C44] prose-a:text-[#0B5FFF] prose-img:rounded-2xl prose-img:shadow-lg prose-strong:text-[#001C44] prose-code:bg-gray-100 prose-code:text-red-600 prose-code:rounded-lg prose-code:px-2 prose-code:py-1">
                                 <div dangerouslySetInnerHTML={{ __html: sanitizedContent }} />
                             </div>
+
+                            {/* Reaction Bar */}
+                            <ReactionBar
+                                slug={article.slug}
+                                initialMyReaction={article.myReaction}
+                                isAuthenticated={isAuthenticated}
+                            />
+
+                            {/* Comment Section */}
+                            <CommentSection
+                                slug={article.slug}
+                                isAuthenticated={isAuthenticated}
+                                currentUserId={null}
+                            />
                         </div>
                     </article>
 
                     <aside className="space-y-4">
                         <div className="rounded-2xl bg-white border border-gray-200 shadow-sm p-5">
                             <div className="flex flex-col gap-3">
-                                <button
-                                    type="button"
-                                    disabled={article.registrationStatus !== 'OPEN' && article.registrationStatus !== 'WAITLIST'}
-                                    onClick={handleCtaClick}
-                                    className={`inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 font-semibold transition-all ${article.registrationStatus === 'OPEN'
-                                        ? 'bg-[#001C44] text-white hover:bg-[#002A66]'
-                                        : article.registrationStatus === 'WAITLIST'
-                                            ? 'bg-[#FFD66D] text-[#001C44] hover:bg-yellow-400'
-                                            : 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                                        }`}
-                                >
-                                    {article.registrationStatus === 'WAITLIST' && submittingWaitlist ? 'Đang xử lý...' : ctaLabel}
-                                </button>
+                                <RegistrationCTA
+                                    activityInfo={article.activityInfo}
+                                    registrationStatus={article.registrationStatus}
+                                    slug={article.slug}
+                                />
 
-                                <button
-                                    type="button"
-                                    onClick={handleWishlistToggle}
-                                    disabled={wishlisting}
-                                    className={`inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 font-semibold transition-all border ${(article.isWishlisted || isWishlisted(article.slug))
-                                        ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
-                                        : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
-                                        } disabled:opacity-50`}
-                                >
-                                    {(article.isWishlisted || isWishlisted(article.slug)) ? 'Đã lưu' : 'Lưu bài viết'}
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={handleWishlistToggle}
+                                        disabled={wishlisting}
+                                        className={`flex-1 inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 font-semibold transition-all border ${(article.isWishlisted || isWishlisted(article.slug))
+                                            ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
+                                            : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                                            } disabled:opacity-50`}
+                                    >
+                                        {(article.isWishlisted || isWishlisted(article.slug)) ? 'Đã lưu' : 'Lưu bài viết'}
+                                    </button>
+
+                                    <ShareButton slug={article.slug} title={article.title} />
+                                </div>
 
                                 <button
                                     type="button"

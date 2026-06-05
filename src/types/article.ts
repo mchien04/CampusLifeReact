@@ -2,6 +2,51 @@ export type ISODateTime = string;
 
 export type RegistrationCtaStatus = 'UPCOMING' | 'OPEN' | 'WAITLIST' | 'FULL' | 'CLOSED';
 
+export type ArticleType = 'ANNOUNCEMENT' | 'RECAP' | 'BEHIND_SCENE' | 'RESULT' | 'UPDATE';
+
+export type ReactionType = 'LIKE' | 'LOVE' | 'CLAP' | 'FIRE' | 'SUPPORT';
+
+export type StudentBasicInfo = {
+    id: number;
+    fullName: string;
+    studentCode: string;
+    avatarUrl: string | null;
+};
+
+export type ArticleCommentResponse = {
+    id: number;
+    articleId: number;
+    parentCommentId: number | null;
+    content: string;
+    isFlagged: boolean;
+    flagReason: string | null;
+    isHidden: boolean;
+    student: StudentBasicInfo | null;
+    replies: ArticleCommentResponse[];
+    createdAt: ISODateTime;
+    updatedAt: ISODateTime;
+};
+
+export type CreateCommentRequest = {
+    content: string;
+    parentCommentId?: number | null;
+};
+
+export type ReactionSummary = Record<ReactionType, number>;
+
+export type ArticleHistoryResponse = {
+    id: number;
+    articleId: number;
+    title: string;
+    slug: string;
+    thumbnailUrl: string | null;
+    seoDescription: string | null;
+    isPublished: boolean;
+    publishedAt: ISODateTime | null;
+    registrationStatus: RegistrationCtaStatus | null;
+    viewedAt: ISODateTime;
+};
+
 export type SpringPage<T> = {
     content: T[];
     pageable: {
@@ -36,8 +81,11 @@ export type ArticleListResponse = {
     slug: string;
     thumbnailUrl?: string | null;
     seoDescription?: string | null;
-    registrationStatus?: string | null;
-    registrationLink?: string | null;
+    registrationStatus?: RegistrationCtaStatus | null;
+    activityId?: number | null;
+    shareLink?: string | null;
+    articleType: ArticleType;
+    isPrimary: boolean;
     isPublished: boolean;
     isFeatured: boolean;
     isPinned: boolean;
@@ -59,8 +107,7 @@ export type ArticleDetailResponse = {
     seoDescription?: string | null;
     published: boolean;
     publishedAt?: ISODateTime | null;
-    registrationStatus?: string | null;
-    registrationLink?: string | null;
+    registrationStatus?: RegistrationCtaStatus | null;
     viewCount: number;
     wishlistCount: number;
     isFeatured: boolean;
@@ -76,12 +123,17 @@ export type ArticleDetailResponse = {
         endDate?: ISODateTime | null;
         registrationStartDate?: ISODateTime | null;
         registrationDeadline?: ISODateTime | null;
+        scoreType?: string | null;
+        shareLink?: string | null;
     } | null;
     category?: { id: number; name: string; slug?: string | null } | null;
     tags?: string[] | null;
     images?: ArticleImageResponse[] | null;
     coverImages?: ArticleImageResponse[] | null;
     isWishlisted: boolean;
+    myReaction?: ReactionType | null;
+    redirectedFrom?: string | null;
+    currentSlug?: string | null;
 };
 
 export type ArticleWishlistItemResponse = {
@@ -99,6 +151,8 @@ export type ArticleWishlistItemResponse = {
 
 export type EventArticleUpsertRequest = {
     activityId?: number;
+    articleType?: ArticleType;
+    isPrimary?: boolean;
     title: string;
     slug: string;
     thumbnailUrl?: string | null;
@@ -114,7 +168,7 @@ export type EventArticleUpsertRequest = {
 
 export type EventArticleAdminResponse = {
     id: number;
-    activityId: number;
+    activityId: number | null;
     title: string;
     slug: string;
     thumbnailUrl?: string | null;
@@ -133,6 +187,8 @@ export type EventArticleAdminResponse = {
     tagNames?: string[] | null;
     createdAt?: ISODateTime | null;
     updatedAt?: ISODateTime | null;
+    articleType: ArticleType;
+    isPrimary: boolean;
 };
 
 export type ArticleCategoryRequest = {

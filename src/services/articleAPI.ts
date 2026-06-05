@@ -4,19 +4,25 @@ import type {
     ApiResponse,
     ArticleCategoryRequest,
     ArticleCategoryResponse,
+    ArticleCommentResponse,
+    ArticleHistoryResponse,
     ArticleImageRequest,
     ArticleImageResponse,
+    ArticleListResponse,
+    ArticleStatisticsResponse,
+    ArticleTagRequest,
+    ArticleTagResponse,
+    ArticleType,
+    ArticleWishlistItemResponse,
+    CreateCommentRequest,
     EventArticleAdminResponse,
     EventArticleDetailResponse,
     EventArticleUpsertRequest,
     ArticleAnalytics,
     ArticleMetrics,
     DashboardAnalytics,
-    ArticleListResponse,
-    ArticleStatisticsResponse,
-    ArticleTagRequest,
-    ArticleTagResponse,
-    ArticleWishlistItemResponse,
+    ReactionSummary,
+    ReactionType,
     SpringPage,
 } from '../types/article';
 
@@ -241,6 +247,142 @@ export const articleAPI = {
 
     removeArticleImage: async (articleId: number, imageId: number): Promise<ApiResponse<null>> => {
         const response = await api.delete(`/api/admin/articles/${articleId}/images/${imageId}`);
+        return toApiResponse<null>(response.data);
+    },
+
+    // =============================================
+    // Phase 1/2/3 — New API Functions
+    // =============================================
+
+    // ===== COMMENTS (Student) =====
+
+    createComment: async (slug: string, data: CreateCommentRequest): Promise<ApiResponse<ArticleCommentResponse>> => {
+        const response = await api.post(`/api/articles/${encodeURIComponent(slug)}/comments`, data);
+        return toApiResponse<ArticleCommentResponse>(response.data);
+    },
+
+    getComments: async (slug: string, params?: { page?: number; size?: number }): Promise<ApiResponse<SpringPage<ArticleCommentResponse>>> => {
+        const response = await publicApi.get(`/api/articles/${encodeURIComponent(slug)}/comments`, { params });
+        return toApiResponse<SpringPage<ArticleCommentResponse>>(response.data);
+    },
+
+    deleteOwnComment: async (commentId: number): Promise<ApiResponse<null>> => {
+        const response = await api.delete(`/api/articles/comments/${commentId}`);
+        return toApiResponse<null>(response.data);
+    },
+
+    // ===== REACTIONS =====
+
+    addReaction: async (slug: string, type: ReactionType): Promise<ApiResponse<null>> => {
+        const response = await api.post(`/api/articles/${encodeURIComponent(slug)}/reaction`, null, {
+            params: { type },
+        });
+        return toApiResponse<null>(response.data);
+    },
+
+    removeReaction: async (slug: string): Promise<ApiResponse<null>> => {
+        const response = await api.delete(`/api/articles/${encodeURIComponent(slug)}/reaction`);
+        return toApiResponse<null>(response.data);
+    },
+
+    getReactionSummary: async (slug: string): Promise<ApiResponse<ReactionSummary>> => {
+        const response = await publicApi.get(`/api/articles/${encodeURIComponent(slug)}/reactions`);
+        return toApiResponse<ReactionSummary>(response.data);
+    },
+
+    // ===== SHARE TRACKING =====
+
+    trackShare: async (slug: string): Promise<void> => {
+        try {
+            await publicApi.post(`/api/articles/${encodeURIComponent(slug)}/track-share`);
+        } catch {
+            // Silent fail — same pattern as trackArticleView
+        }
+    },
+
+    // ===== READING HISTORY =====
+
+    getReadingHistory: async (params?: { page?: number; size?: number }): Promise<ApiResponse<SpringPage<ArticleHistoryResponse>>> => {
+        const response = await api.get('/api/articles/history', { params });
+        return toApiResponse<SpringPage<ArticleHistoryResponse>>(response.data);
+    },
+
+    deleteHistoryItem: async (historyId: number): Promise<ApiResponse<null>> => {
+        const response = await api.delete(`/api/articles/history/${historyId}`);
+        return toApiResponse<null>(response.data);
+    },
+
+    clearAllHistory: async (): Promise<ApiResponse<null>> => {
+        const response = await api.delete('/api/articles/history');
+        return toApiResponse<null>(response.data);
+    },
+
+    // ===== TRENDING =====
+
+    getTrendingArticles: async (params?: { days?: number; limit?: number }): Promise<ApiResponse<ArticleListResponse[]>> => {
+        const response = await publicApi.get('/api/articles/trending', { params });
+        return toApiResponse<ArticleListResponse[]>(response.data);
+    },
+
+    // ===== ADMIN: SET PRIMARY =====
+
+    setPrimaryArticle: async (articleId: number): Promise<ApiResponse<EventArticleAdminResponse>> => {
+        const response = await api.put(`/api/admin/articles/${articleId}/set-primary`);
+        return toApiResponse<EventArticleAdminResponse>(response.data);
+    },
+
+    // ===== ADMIN: ADVANCED FILTER =====
+
+    getAdminArticlesFiltered: async (params?: {
+        status?: 'PUBLISHED' | 'DRAFT' | 'ALL';
+        activityId?: number;
+        categoryId?: number;
+        articleType?: ArticleType;
+        featured?: boolean;
+        pinned?: boolean;
+        primary?: boolean;
+        search?: string;
+        dateFrom?: string;
+        dateTo?: string;
+        page?: number;
+        size?: number;
+    }): Promise<ApiResponse<SpringPage<EventArticleAdminResponse>>> => {
+        const response = await api.get('/api/admin/articles', { params });
+        return toApiResponse<SpringPage<EventArticleAdminResponse>>(response.data);
+    },
+
+    // ===== ADMIN: EXPORT EXCEL =====
+
+    exportArticlesExcel: async (params?: Record<string, any>): Promise<Blob> => {
+        const response = await api.get('/api/admin/articles/export', {
+            params,
+            responseType: 'blob',
+        });
+        return response.data;
+    },
+
+    // ===== ADMIN: COMMENT MODERATION =====
+
+    getAdminComments: async (articleId: number, params?: {
+        page?: number;
+        size?: number;
+    }): Promise<ApiResponse<SpringPage<ArticleCommentResponse>>> => {
+        const response = await api.get(`/api/admin/articles/${articleId}/comments`, { params });
+        return toApiResponse<SpringPage<ArticleCommentResponse>>(response.data);
+    },
+
+    hideComment: async (commentId: number): Promise<ApiResponse<ArticleCommentResponse>> => {
+        const response = await api.put(`/api/admin/articles/comments/${commentId}/hide`);
+        return toApiResponse<ArticleCommentResponse>(response.data);
+    },
+
+    unhideComment: async (commentId: number): Promise<ApiResponse<ArticleCommentResponse>> => {
+        const response = await api.put(`/api/admin/articles/comments/${commentId}/unhide`);
+        return toApiResponse<ArticleCommentResponse>(response.data);
+    },
+
+    adminDeleteComment: async (commentId: number): Promise<ApiResponse<null>> => {
+        const response = await api.delete(`/api/admin/articles/comments/${commentId}`);
         return toApiResponse<null>(response.data);
     },
 };

@@ -6,6 +6,8 @@ import { useWishlist } from '../contexts/WishlistContext';
 import type { ArticleListResponse, SpringPage } from '../types/article';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ArticleLayout from '../components/layout/ArticleLayout';
+import ArticleTypeBadge from '../components/article/ArticleTypeBadge';
+import TrendingArticlesWidget from '../components/article/TrendingArticlesWidget';
 
 type SortOption = 'newest' | 'views' | 'wishlist';
 type FilterStatus = 'all' | 'published' | 'featured';
@@ -134,8 +136,10 @@ const ArticleListPage: React.FC = () => {
                     </div>
                 )}
 
-                {/* Filters & Search */}
-                <div className="mb-8 rounded-2xl bg-white border border-gray-200 p-4 sm:p-6 shadow-sm">
+                <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-8">
+                    <div className="space-y-6">
+                        {/* Filters & Search */}
+                        <div className="mb-8 rounded-2xl bg-white border border-gray-200 p-4 sm:p-6 shadow-sm">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
                         {/* Search */}
                         <div className="flex-1">
@@ -268,6 +272,14 @@ const ArticleListPage: React.FC = () => {
 
                                 {/* Content */}
                                 <div className="p-5">
+                                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                                        <ArticleTypeBadge type={article.articleType} />
+                                        {article.isPrimary && (
+                                            <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800 border border-amber-200">
+                                                ★ Chính
+                                            </span>
+                                        )}
+                                    </div>
                                     <h3 className="font-bold text-[#001C44] line-clamp-2 group-hover:text-blue-600 transition-colors text-lg mb-3">
                                         {article.title}
                                     </h3>
@@ -337,6 +349,11 @@ const ArticleListPage: React.FC = () => {
                         </div>
                     </div>
                 )}
+                    </div>
+                    <aside className="space-y-6">
+                        <TrendingArticlesWidget limit={5} />
+                    </aside>
+                </div>
             </div>
         </ArticleLayout>
     );

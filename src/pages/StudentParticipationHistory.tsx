@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { ActivityRegistrationResponse, RegistrationStatus } from '../types';
 import { registrationAPI } from '../services';
@@ -7,17 +7,12 @@ import StudentLayout from '../components/layout/StudentLayout';
 const StudentParticipationHistory: React.FC = () => {
     const [registrations, setRegistrations] = useState<ActivityRegistrationResponse[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
     const [filters, setFilters] = useState({
         status: 'ALL' as RegistrationStatus | 'ALL',
         timeRange: 'ALL' as 'ALL' | 'THIS_MONTH' | 'LAST_MONTH' | 'THIS_YEAR',
     });
 
-    useEffect(() => {
-        loadRegistrations();
-    }, [filters]);
-
-    const loadRegistrations = async () => {
+    const loadRegistrations = useCallback(async () => {
         try {
             setLoading(true);
             const data = await registrationAPI.getMyRegistrations();
@@ -58,11 +53,14 @@ const StudentParticipationHistory: React.FC = () => {
             setRegistrations(filteredData);
         } catch (error) {
             console.error('Error loading registrations:', error);
-            setError('Có lỗi xảy ra khi tải lịch sử tham gia');
         } finally {
             setLoading(false);
         }
-    };
+    }, [filters]);
+
+    useEffect(() => {
+        loadRegistrations();
+    }, [loadRegistrations]);
 
     const handleCancelRegistration = async (activityId: number) => {
         if (!window.confirm('Bạn có chắc chắn muốn hủy đăng ký sự kiện này?')) {

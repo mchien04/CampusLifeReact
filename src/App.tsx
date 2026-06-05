@@ -6,7 +6,7 @@ import { ProtectedRoute } from './components/common';
 import { HelmetProvider } from 'react-helmet-async';
 import { Login, Register, VerifyAccount, ForgotPassword, ResetPassword } from './components/auth';
 import ChangePassword from './components/auth/ChangePassword';
-import { Home, Dashboard, CreateEvent, EventList, EditEvent, EventDetail, StudentEvents } from './pages';
+import { Home, Dashboard, CreateEvent, EventList, EditEvent, EventDetail, StudentEvents, StudentReadingHistory } from './pages';
 import StudentEventDetail from './pages/StudentEventDetail';
 import StudentParticipationHistory from './pages/StudentParticipationHistory';
 import StudentProfile from './pages/StudentProfile';
@@ -29,6 +29,7 @@ import ArticleAnalyticsDashboard from './pages/admin/ArticleAnalyticsDashboard';
 import AdminArticleManagement from './pages/admin/AdminArticleManagement';
 import CategoriesManagement from './pages/admin/CategoriesManagement';
 import TagsManagement from './pages/admin/TagsManagement';
+import CommentManagement from './pages/admin/CommentManagement';
 import StudentWishlist from './pages/StudentWishlist';
 import SeriesManagement from './pages/admin/SeriesManagement';
 import CreateSeries from './pages/admin/CreateSeries';
@@ -235,6 +236,14 @@ function App() {
                 }
               />
               <Route
+                path="/manager/articles/:articleId/comments"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <CommentManagement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/manager/articles/categories"
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
@@ -291,6 +300,14 @@ function App() {
                     <ManagerLayout>
                       <ArticleEditorById />
                     </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/articles/:articleId/comments"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
+                    <CommentManagement />
                   </ProtectedRoute>
                 }
               />
@@ -590,6 +607,14 @@ function App() {
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
                     <StudentParticipationHistory />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/student/reading-history"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
+                    <StudentReadingHistory />
                   </ProtectedRoute>
                 }
               />
