@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ActivityTask, ActivityResponse, TaskFilters } from '../../types';
 import { taskAPI, eventAPI } from '../../services';
 import { TaskForm } from '../../components/task/TaskForm';
@@ -10,7 +9,6 @@ const TaskManagement: React.FC = () => {
     const [tasks, setTasks] = useState<ActivityTask[]>([]);
     const [activities, setActivities] = useState<ActivityResponse[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
     const [showForm, setShowForm] = useState(false);
     const [editingTask, setEditingTask] = useState<ActivityTask | null>(null);
     const [showAssignmentModal, setShowAssignmentModal] = useState(false);
@@ -27,11 +25,7 @@ const TaskManagement: React.FC = () => {
         currentPage: 0,
     });
 
-    useEffect(() => {
-        loadData();
-    }, [filters]);
-
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         try {
             setLoading(true);
             const [tasksResponse, activitiesResponse] = await Promise.all([
@@ -62,11 +56,14 @@ const TaskManagement: React.FC = () => {
             setActivities(standaloneActivities);
         } catch (error) {
             console.error('Error loading data:', error);
-            setError('Có lỗi xảy ra khi tải dữ liệu');
         } finally {
             setLoading(false);
         }
-    };
+    }, [filters]);
+
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
 
     const handleCreateTask = async (data: any) => {
         try {

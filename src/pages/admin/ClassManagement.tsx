@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
 import { StudentClass, Department, ClassFilters } from '../../types';
 import { classAPI, departmentAPI } from '../../services';
 import { ClassForm } from '../../components/class/ClassForm';
@@ -9,7 +8,6 @@ const ClassManagement: React.FC = () => {
     const [classes, setClasses] = useState<StudentClass[]>([]);
     const [departments, setDepartments] = useState<Department[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
     const [showForm, setShowForm] = useState(false);
     const [editingClass, setEditingClass] = useState<StudentClass | null>(null);
     const [selectedClass, setSelectedClass] = useState<StudentClass | null>(null);
@@ -25,11 +23,7 @@ const ClassManagement: React.FC = () => {
         currentPage: 0,
     });
 
-    useEffect(() => {
-        loadData();
-    }, [filters]);
-
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         try {
             setLoading(true);
             console.log('Loading classes with filters:', filters);
@@ -51,11 +45,14 @@ const ClassManagement: React.FC = () => {
             setDepartments(departmentsResponse.data || []);
         } catch (error) {
             console.error('Error loading data:', error);
-            setError('Có lỗi xảy ra khi tải dữ liệu');
         } finally {
             setLoading(false);
         }
-    };
+    }, [filters]);
+
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
 
     const handleCreateClass = async (data: any) => {
         try {

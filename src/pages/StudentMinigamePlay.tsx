@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { minigameAPI } from '../services/minigameAPI';
 import { eventAPI } from '../services/eventAPI';
@@ -29,25 +29,7 @@ const StudentMinigamePlay: React.FC = () => {
     const [attemptCount, setAttemptCount] = useState<number>(0);
     const [isRegistered, setIsRegistered] = useState<boolean>(false);
 
-    useEffect(() => {
-        if (activityId) {
-            loadMinigame();
-        }
-    }, [activityId]);
-
-    const loadAttemptCount = async () => {
-        if (!minigame) return;
-        try {
-            const attemptsResponse = await minigameAPI.getMyAttempts(minigame.id);
-            if (attemptsResponse.status && attemptsResponse.data) {
-                setAttemptCount(attemptsResponse.data.length);
-            }
-        } catch (err) {
-            console.error('Error loading attempt count:', err);
-        }
-    };
-
-    const loadMinigame = async () => {
+    const loadMinigame = useCallback(async () => {
         if (!activityId) {
             console.error('loadMinigame: activityId is missing');
             return;
@@ -126,7 +108,13 @@ const StudentMinigamePlay: React.FC = () => {
             setLoading(false);
             console.log('loadMinigame: Loading completed');
         }
-    };
+    }, [activityId, navigate, isRegistered]);
+
+    useEffect(() => {
+        if (activityId) {
+            loadMinigame();
+        }
+    }, [activityId, loadMinigame]);
 
     const handleStart = async () => {
         if (!minigame) {

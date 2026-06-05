@@ -1,4 +1,4 @@
-import { ActivityResponse, Activity } from './activity';
+import { Activity } from './activity';
 import { Student } from './student';
 import { User } from './auth';
 
