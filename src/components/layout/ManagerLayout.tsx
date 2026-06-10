@@ -5,6 +5,7 @@ import { Role } from '../../types';
 import { NotificationDropdown } from '../notification/NotificationDropdown';
 import Submenu from './Submenu';
 import UserProfileMenu from './UserProfileMenu';
+import StudentLayout from './StudentLayout';
 
 interface ManagerLayoutProps {
     children: React.ReactNode;
@@ -14,6 +15,10 @@ const ManagerLayout: React.FC<ManagerLayoutProps> = ({ children }) => {
     const { username, logout, userRole } = useAuth();
     const location = useLocation();
     const [sidebarOpen, setSidebarOpen] = useState(true);
+
+    if (userRole === Role.STUDENT) {
+        return <StudentLayout>{children}</StudentLayout>;
+    }
 
     const isActive = (href: string) => {
         if (href === '/dashboard') {

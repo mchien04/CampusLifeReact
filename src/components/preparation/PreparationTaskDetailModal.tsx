@@ -4,6 +4,8 @@ import { preparationAPI } from '../../services';
 import AllocationAdjustmentRequestModal from './AllocationAdjustmentRequestModal';
 import { compressImage } from '../../utils/compressImage';
 import { getImageUrl } from '../../utils/imageUtils';
+import ImageUploadProof from './ImageUploadProof';
+import TaskProofGallery from './TaskProofGallery';
 import {
   ActivityBudgetDto,
   ExpenseCategorySuggestionDto,
@@ -94,6 +96,7 @@ export default function PreparationTaskDetailModal({
   const [submittingFaRequest, setSubmittingFaRequest] = useState(false);
 
   const [imageModalUrl, setImageModalUrl] = useState<string | null>(null);
+  const [proofUrls, setProofUrls] = useState<string[]>([]);
 
   useEffect(() => {
     if (!open || !taskId) return;
@@ -146,6 +149,7 @@ export default function PreparationTaskDetailModal({
     setFaDebtWarning(null);
     setImageModalUrl(null);
     setShowAllocationRequestModal(false);
+    setProofUrls([]);
   }, [open]);
 
   const myRole = useMemo<PreparationTaskMemberRole | null>(() => {
@@ -203,9 +207,13 @@ export default function PreparationTaskDetailModal({
 
   const requestComplete = async () => {
     if (!taskId) return;
+    if (proofUrls.length === 0) {
+      toast.warning('Vui lòng tải lên ít nhất 1 ảnh minh chứng');
+      return;
+    }
     try {
       setSubmitting(true);
-      const updated = await preparationAPI.requestTaskComplete(taskId);
+      const updated = await preparationAPI.requestTaskComplete(taskId, { proofUrls });
       setTask(updated);
       onTaskUpdated(updated);
       toast.success('Đã gửi yêu cầu hoàn thành');
@@ -676,6 +684,11 @@ export default function PreparationTaskDetailModal({
                           {task.isFinancial && <span>Cấp phát: {formatCurrency(task.allocatedAmount)}</span>}
                         </div>
                         {task.description && <div className="text-sm text-gray-600 mt-2 whitespace-pre-line">{task.description}</div>}
+                        {task.completionProofUrls && task.completionProofUrls.length > 0 && (
+                          <div className="mt-4">
+                            <TaskProofGallery proofUrls={task.completionProofUrls} />
+                          </div>
+                        )}
                       </div>
                       <div className="shrink-0 flex flex-wrap items-center gap-2">
                         {task.status === 'PENDING' && (
@@ -689,14 +702,21 @@ export default function PreparationTaskDetailModal({
                           </button>
                         )}
                         {task.status === 'ACCEPTED' && isLeaderOrOwner && (
-                          <button
-                            type="button"
-                            disabled={submitting}
-                            onClick={requestComplete}
-                            className="px-4 py-2 bg-[#FFD66D] text-[#001C44] rounded-lg text-sm font-semibold hover:bg-[#FFC947] disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            Yêu cầu hoàn thành
-                          </button>
+                          <div className="flex flex-col items-end gap-2">
+                            <ImageUploadProof
+                              taskId={task.id}
+                              uploadedUrls={proofUrls}
+                              setUploadedUrls={setProofUrls}
+                            />
+                            <button
+                              type="button"
+                              disabled={submitting}
+                              onClick={requestComplete}
+                              className="px-4 py-2 bg-[#FFD66D] text-[#001C44] rounded-lg text-sm font-semibold hover:bg-[#FFC947] disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              Yêu cầu hoàn thành
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>

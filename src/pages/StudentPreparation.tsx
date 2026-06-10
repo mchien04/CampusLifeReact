@@ -11,6 +11,7 @@ type PreparationItem = {
   dashboard: PreparationDashboardDto;
   report: FinancialReportDto | null;
   myHoldingAmount: string;
+  isSupervisor: boolean;
 };
 
 const currencyFormatter = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' });
@@ -65,9 +66,10 @@ export default function StudentPreparation() {
 
       const settled = await Promise.allSettled(
         activityIds.map(async (activityId) => {
-          const [dash, evRes] = await Promise.all([
+          const [dash, evRes, organizers] = await Promise.all([
             preparationAPI.getDashboard(activityId),
             eventAPI.getEvent(activityId),
+            preparationAPI.listOrganizers(activityId).catch(() => []),
           ]);
 
           const rep = await preparationAPI.getFinancialReport(activityId).catch(() => null);
@@ -79,11 +81,16 @@ export default function StudentPreparation() {
 
           if (!evRes.status || !evRes.data) return null;
 
+          const isSup = currentStudentId
+            ? organizers.some((o) => o.studentId === currentStudentId && o.prepSupervisor)
+            : false;
+
           return {
             activity: evRes.data,
             dashboard: dash,
             report: rep,
             myHoldingAmount: String(myHolding),
+            isSupervisor: isSup,
           } as PreparationItem;
         })
       );
@@ -155,7 +162,7 @@ export default function StudentPreparation() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {filteredItems.map(({ activity, dashboard, report, myHoldingAmount }) => {
+                  {filteredItems.map(({ activity, dashboard, report, myHoldingAmount, isSupervisor }) => {
                     const myHolding = Number(myHoldingAmount) || 0;
                     const banner = getImageUrl(activity.bannerUrl);
                     const pendingTasks = (dashboard.tasks || []).filter((t) => t.status === 'PENDING').length;
@@ -180,7 +187,12 @@ export default function StudentPreparation() {
                               </div>
                               <div className="text-xs text-gray-500 mt-1 truncate">{activity.location}</div>
                             </div>
-                            <div className="shrink-0">
+                            <div className="shrink-0 flex gap-2">
+                              {isSupervisor && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                                  Giám sát
+                                </span>
+                              )}
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#001C44] bg-opacity-10 text-[#001C44] border border-[#001C44] border-opacity-20">
                                 BTC
                               </span>

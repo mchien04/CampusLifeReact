@@ -33,6 +33,7 @@ export type PreparationTaskDto = {
   status: PreparationTaskStatus;
   assigneeId?: number;
   assigneeName?: string | null;
+  completionProofUrls?: string[];
 };
 
 export type MyPreparationTaskDto = {
@@ -70,6 +71,7 @@ export type PreparationDashboardDto = {
 export type OrganizerDto = {
   studentId: number;
   fullName: string;
+  prepSupervisor?: boolean;
 };
 
 export type BulkAddOrganizersRequest = {
@@ -353,3 +355,7 @@ export type CreateFundAdvanceRequest = {
 export type ApproveFundAdvanceRequest = { approved: boolean };
 
 export type AdminDecideFundAdvanceRequest = { approved: boolean };
+
+export type RequestTaskCompletionPayload = {
+  proofUrls: string[];
+};

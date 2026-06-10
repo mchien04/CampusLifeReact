@@ -6,6 +6,8 @@ interface CommentSectionProps {
     slug: string;
     isAuthenticated: boolean;
     currentUserId?: number | null;
+    currentUserAvatarUrl?: string | null;
+    currentUserFullName?: string | null;
     className?: string;
 }
 
@@ -44,52 +46,55 @@ const CommentItem: React.FC<CommentItemProps> = ({
     depth = 0,
 }) => {
     const isOwner = currentUserId != null && comment.student?.id === currentUserId;
-    const maxDepth = 2; // Maximum nesting depth
 
     return (
-        <div
-            className={`comment-item ${depth > 0 ? 'comment-item--reply' : ''}`}
-            style={{ marginLeft: depth > 0 ? Math.min(depth, maxDepth) * 24 : 0 }}
-        >
-            <div className="comment-item__header">
-                <div className="comment-item__avatar">
-                    {comment.student?.avatarUrl ? (
-                        <img
-                            src={comment.student.avatarUrl}
-                            alt={comment.student.fullName}
-                            className="comment-item__avatar-img"
-                        />
-                    ) : (
-                        <div className="comment-item__avatar-placeholder">
-                            {comment.student?.fullName?.charAt(0)?.toUpperCase() || '?'}
-                        </div>
-                    )}
-                </div>
-                <div className="comment-item__meta">
-                    <span className="comment-item__name">
-                        {comment.student?.fullName || 'Người dùng'}
-                    </span>
-                    <span className="comment-item__time">
-                        {formatRelativeTime(comment.createdAt)}
-                    </span>
+        <div className={`comment-item ${depth > 0 ? 'comment-item--reply' : ''}`}>
+            <div className="comment-item__header flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="comment-item__avatar shrink-0">
+                        {comment.student?.avatarUrl ? (
+                            <img
+                                src={comment.student.avatarUrl}
+                                alt={comment.student.fullName}
+                                className="w-8 h-8 rounded-full object-cover border border-gray-100"
+                            />
+                        ) : (
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#001C44] to-[#002A66] text-[#FFD66D] flex items-center justify-center font-bold text-xs shadow-sm">
+                                {comment.student?.fullName?.charAt(0)?.toUpperCase() || '?'}
+                            </div>
+                        )}
+                    </div>
+                    <div className="comment-item__meta flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                        <span className="font-semibold text-sm text-gray-900">
+                            {comment.student?.fullName || 'Người dùng'}
+                        </span>
+                        {isOwner && (
+                            <span className="inline-flex items-center rounded-full bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold text-blue-700 border border-blue-200">
+                                Bạn
+                            </span>
+                        )}
+                        <span className="text-[11px] text-gray-400">
+                            {formatRelativeTime(comment.createdAt)}
+                        </span>
+                    </div>
                 </div>
             </div>
 
-            <div className="comment-item__content">
+            <div className="comment-item__content text-sm text-gray-700 pl-11 pr-4 py-1 leading-relaxed whitespace-pre-wrap break-words">
                 {comment.content}
             </div>
 
             {comment.isFlagged && (
-                <div className="comment-item__flag" title={comment.flagReason || 'Flagged'}>
-                    🚩 Bình luận này đã bị gắn cờ
+                <div className="comment-item__flag ml-11 mt-1 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-1.5 inline-flex items-center gap-1.5">
+                    <span>🚩</span> <span>Bình luận này đang chờ phê duyệt nội dung</span>
                 </div>
             )}
 
-            <div className="comment-item__actions">
+            <div className="comment-item__actions ml-11 mt-1 flex items-center gap-3">
                 {isAuthenticated && (
                     <button
                         type="button"
-                        className="comment-item__action-btn"
+                        className="text-xs font-semibold text-gray-500 hover:text-blue-600 transition-colors"
                         onClick={() => onReply(comment.id)}
                     >
                         Trả lời
@@ -98,7 +103,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
                 {isOwner && (
                     <button
                         type="button"
-                        className="comment-item__action-btn comment-item__action-btn--danger"
+                        className="text-xs font-semibold text-red-500 hover:text-red-700 transition-colors"
                         onClick={() => onDelete(comment.id)}
                     >
                         Xóa
@@ -108,7 +113,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
 
             {/* Render replies recursively */}
             {comment.replies && comment.replies.length > 0 && (
-                <div className="comment-item__replies">
+                <div className="comment-item__replies pl-11 mt-2 space-y-1">
                     {comment.replies.map((reply) => (
                         <CommentItem
                             key={reply.id}
@@ -126,12 +131,31 @@ const CommentItem: React.FC<CommentItemProps> = ({
     );
 };
 
+// Skeletons for Loading State
+const CommentSkeleton: React.FC = () => (
+    <div className="comment-item animate-pulse py-4 border-b border-gray-100">
+        <div className="flex items-center gap-3 mb-2">
+            <div className="w-8 h-8 rounded-full bg-gray-200" />
+            <div className="space-y-2 flex-1">
+                <div className="h-3 bg-gray-200 rounded w-1/4" />
+                <div className="h-2 bg-gray-200 rounded w-1/6" />
+            </div>
+        </div>
+        <div className="space-y-2 pl-11">
+            <div className="h-3 bg-gray-200 rounded w-full" />
+            <div className="h-3 bg-gray-200 rounded w-5/6" />
+        </div>
+    </div>
+);
+
 // ===== Main Comment Section =====
 
 const CommentSection: React.FC<CommentSectionProps> = ({
     slug,
     isAuthenticated,
     currentUserId,
+    currentUserAvatarUrl,
+    currentUserFullName,
     className = '',
 }) => {
     const [comments, setComments] = useState<ArticleCommentResponse[]>([]);
@@ -188,14 +212,13 @@ const CommentSection: React.FC<CommentSectionProps> = ({
             };
             const res = await articleAPI.createComment(slug, data);
             if (res.status && res.body) {
-                // Reset and refetch (simpler than optimistic tree insert)
                 setNewComment('');
                 setReplyTo(null);
                 setPage(0);
                 void fetchComments(0);
             }
         } catch {
-            // Could add error toast
+            // silent
         } finally {
             setSubmitting(false);
         }
@@ -214,7 +237,6 @@ const CommentSection: React.FC<CommentSectionProps> = ({
         try {
             const res = await articleAPI.deleteOwnComment(commentId);
             if (res.status) {
-                // Cascade delete confirmed — just remove from tree
                 const removeFromTree = (list: ArticleCommentResponse[]): ArticleCommentResponse[] => {
                     return list
                         .filter((c) => c.id !== commentId)
@@ -227,7 +249,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                 setTotalComments((prev) => Math.max(0, prev - 1));
             }
         } catch {
-            // Could show error toast
+            // silent
         }
     };
 
@@ -237,50 +259,78 @@ const CommentSection: React.FC<CommentSectionProps> = ({
 
     return (
         <div className={`comment-section ${className}`}>
-            <h3 className="comment-section__title">
-                Bình luận {totalComments > 0 && <span className="comment-section__count">({totalComments})</span>}
+            <h3 className="comment-section__title text-lg font-bold text-[#001C44] mb-5 border-b border-gray-100 pb-3">
+                Bình luận {totalComments > 0 && <span className="text-gray-400 font-medium">({totalComments})</span>}
             </h3>
 
             {/* Comment Form */}
             {isAuthenticated ? (
-                <form className="comment-form" onSubmit={handleSubmit}>
+                <form className="comment-form border border-gray-200 rounded-xl bg-white shadow-sm overflow-hidden mb-6" onSubmit={handleSubmit}>
                     {replyTo != null && (
-                        <div className="comment-form__reply-indicator">
-                            <span>Đang trả lời bình luận #{replyTo}</span>
-                            <button type="button" onClick={cancelReply} className="comment-form__cancel-reply">
+                        <div className="comment-form__reply-indicator bg-amber-50 text-amber-800 border-b border-amber-100 px-4 py-2 text-xs flex justify-between items-center">
+                            <span>Đang phản hồi bình luận <strong>#{replyTo}</strong></span>
+                            <button type="button" onClick={cancelReply} className="text-gray-400 hover:text-amber-800 font-bold">
                                 ✕
                             </button>
                         </div>
                     )}
-                    <textarea
-                        className="comment-form__input"
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        placeholder={replyTo ? 'Viết câu trả lời...' : 'Viết bình luận...'}
-                        rows={3}
-                        maxLength={2000}
-                    />
-                    <div className="comment-form__footer">
-                        <span className="comment-form__char-count">
-                            {newComment.length}/2000
-                        </span>
-                        <button
-                            type="submit"
-                            disabled={!newComment.trim() || submitting}
-                            className="comment-form__submit"
-                        >
-                            {submitting ? 'Đang gửi...' : 'Gửi bình luận'}
-                        </button>
+                    <div className="flex gap-3 p-4">
+                        <div className="comment-form__avatar shrink-0 hidden sm:block">
+                            {currentUserAvatarUrl ? (
+                                <img
+                                    src={currentUserAvatarUrl}
+                                    alt="Avatar"
+                                    className="w-9 h-9 rounded-full object-cover border border-gray-200"
+                                />
+                            ) : (
+                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#001C44] to-[#002A66] text-[#FFD66D] flex items-center justify-center font-bold text-sm shadow-sm">
+                                    {currentUserFullName?.charAt(0)?.toUpperCase() || 'U'}
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex-1">
+                            <textarea
+                                className="comment-form__input w-full border-0 outline-none p-0 focus:ring-0 text-sm min-h-[60px] text-gray-800 placeholder-gray-400 resize-none"
+                                value={newComment}
+                                onChange={(e) => setNewComment(e.target.value)}
+                                placeholder={replyTo ? 'Viết phản hồi...' : 'Chia sẻ suy nghĩ của bạn về bài viết này...'}
+                                rows={2}
+                                maxLength={2000}
+                            />
+                            <div className="comment-form__footer border-t border-gray-100 pt-3 mt-3 flex justify-between items-center">
+                                <span className="comment-form__char-count text-xs text-gray-400">
+                                    {newComment.length}/2000 ký tự
+                                </span>
+                                <div className="flex gap-2">
+                                    {replyTo != null && (
+                                        <button
+                                            type="button"
+                                            onClick={cancelReply}
+                                            className="px-4 py-2 text-xs font-semibold text-gray-500 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                                        >
+                                            Hủy
+                                        </button>
+                                    )}
+                                    <button
+                                        type="submit"
+                                        disabled={!newComment.trim() || submitting}
+                                        className="px-4 py-2 bg-[#001C44] hover:bg-[#002A66] text-white rounded-lg text-xs font-bold shadow transition-colors disabled:opacity-50"
+                                    >
+                                        {submitting ? 'Đang gửi...' : replyTo ? 'Trả lời' : 'Bình luận'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </form>
             ) : (
-                <div className="comment-form__login-prompt">
-                    Đăng nhập để bình luận
+                <div className="comment-form__login-prompt bg-gray-50 border border-dashed border-gray-200 text-gray-500 text-center py-6 rounded-xl text-sm mb-6">
+                    Vui lòng đăng nhập để tham gia bình luận.
                 </div>
             )}
 
             {/* Comment List */}
-            <div className="comment-section__list">
+            <div className="comment-section__list space-y-4">
                 {comments.map((comment) => (
                     <CommentItem
                         key={comment.id}
@@ -295,15 +345,17 @@ const CommentSection: React.FC<CommentSectionProps> = ({
 
             {/* Loading state */}
             {loading && comments.length === 0 && (
-                <div className="comment-section__loading">
-                    Đang tải bình luận...
+                <div className="space-y-4 mt-4">
+                    <CommentSkeleton />
+                    <CommentSkeleton />
+                    <CommentSkeleton />
                 </div>
             )}
 
             {/* Empty state */}
             {!loading && comments.length === 0 && (
-                <div className="comment-section__empty">
-                    Chưa có bình luận nào. Hãy là người đầu tiên!
+                <div className="text-center py-10 text-sm text-gray-400 bg-gray-50 rounded-xl border border-gray-100">
+                    💡 Chưa có thảo luận nào. Hãy bắt đầu cuộc trò chuyện!
                 </div>
             )}
 
@@ -313,9 +365,9 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                     type="button"
                     onClick={handleLoadMore}
                     disabled={loading}
-                    className="comment-section__load-more"
+                    className="w-full text-center py-2.5 mt-4 border border-gray-200 hover:border-gray-300 text-sm font-semibold text-gray-600 hover:text-[#001C44] bg-white rounded-xl shadow-sm transition-all"
                 >
-                    {loading ? 'Đang tải...' : 'Tải thêm bình luận'}
+                    {loading ? 'Đang tải...' : 'Xem thêm bình luận'}
                 </button>
             )}
         </div>

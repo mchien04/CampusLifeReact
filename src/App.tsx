@@ -344,7 +344,7 @@ function App() {
               <Route
                 path="/manager/preparation/:activityId"
                 element={
-                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER, Role.STUDENT]}>
                     <ManagerLayout>
                       <PreparationDetail />
                     </ManagerLayout>
