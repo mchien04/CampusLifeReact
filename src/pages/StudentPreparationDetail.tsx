@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import StudentLayout from '../components/layout/StudentLayout';
 import { PreparationOrganizerPanel } from '../components/preparation/PreparationOrganizerPanel';
-import { eventAPI } from '../services/eventAPI';
+import { eventAPI, preparationAPI, studentAPI } from '../services';
 import { ActivityResponse } from '../types';
 import { getImageUrl } from '../utils/imageUtils';
 
@@ -14,6 +14,7 @@ export default function StudentPreparationDetail() {
 
   const [loading, setLoading] = useState(true);
   const [event, setEvent] = useState<ActivityResponse | null>(null);
+  const [isSupervisor, setIsSupervisor] = useState(false);
 
   useEffect(() => {
     const run = async () => {
@@ -22,6 +23,15 @@ export default function StudentPreparationDetail() {
         const res = await eventAPI.getEvent(id);
         if (res.status && res.data) {
           setEvent(res.data);
+          try {
+            const profile = await studentAPI.getMyProfile();
+            const organizers = await preparationAPI.listOrganizers(id);
+            const isSup = organizers.some((o) => o.studentId === profile.id && o.prepSupervisor);
+            setIsSupervisor(isSup);
+          } catch (err) {
+            console.error('Error checking supervisor status:', err);
+            setIsSupervisor(false);
+          }
         } else {
           setEvent(null);
           toast.error(res.message || 'Không thể tải thông tin sự kiện');
@@ -74,6 +84,23 @@ export default function StudentPreparationDetail() {
           </div>
         ) : event ? (
           <>
+            {isSupervisor && (
+              <div className="border-b border-gray-200 mb-6">
+                <nav className="-mb-px flex space-x-8">
+                  <button
+                    className="py-4 px-1 border-b-2 font-medium text-sm border-[#001C44] text-[#001C44]"
+                  >
+                    Thông tin chuẩn bị (Sinh viên)
+                  </button>
+                  <button
+                    onClick={() => navigate(`/manager/preparation/${event.id}`)}
+                    className="py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  >
+                    Quản trị (Supervisor)
+                  </button>
+                </nav>
+              </div>
+            )}
             <div className="card">
               <div className="p-6">
                 <div className="flex flex-col md:flex-row gap-4">

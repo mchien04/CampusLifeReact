@@ -31,6 +31,7 @@ import {
   PreparationTaskStatus,
   TaskAllocationSourceDto,
   UpsertActivityBudgetRequest,
+  RequestTaskCompletionPayload,
   UploadResultDto,
   WorkloadWarningDto,
 } from '../types/preparation';
@@ -88,6 +89,14 @@ export const preparationAPI = {
 
   removeOrganizer: async (activityId: number, studentId: number): Promise<void> => {
     await api.delete(`/api/preparation/activities/${activityId}/organizers/${studentId}`);
+  },
+
+  assignPrepSupervisor: async (activityId: number, studentId: number): Promise<void> => {
+    await api.put(`/api/preparation/activities/${activityId}/organizers/${studentId}/prep-supervisor`);
+  },
+
+  revokePrepSupervisor: async (activityId: number, studentId: number): Promise<void> => {
+    await api.delete(`/api/preparation/activities/${activityId}/organizers/${studentId}/prep-supervisor`);
   },
 
   assignTask: async (
@@ -266,10 +275,17 @@ export const preparationAPI = {
     return unwrapBody<PreparationTaskDto>(response.data);
   },
 
-  requestTaskComplete: async (taskId: number): Promise<PreparationTaskDto> => {
-    // TODO: Phase 3 - PUT /api/preparation/tasks/{taskId}/request-complete
-    const response = await api.put(`/api/preparation/tasks/${taskId}/request-complete`);
+  requestTaskComplete: async (taskId: number, payload: RequestTaskCompletionPayload): Promise<PreparationTaskDto> => {
+    const response = await api.put(`/api/preparation/tasks/${taskId}/request-complete`, payload);
     return unwrapBody<PreparationTaskDto>(response.data);
+  },
+
+  uploadTaskProof: async (taskId: number, file: File): Promise<string> => {
+    const fd = new FormData();
+    fd.append('file', file);
+    const response = await api.post(`/api/preparation/tasks/${taskId}/completion-proofs`, fd);
+    const body = unwrapBody<UploadResultDto>(response.data);
+    return body.url;
   },
 
   completeTaskDecision: async (taskId: number, approved: boolean): Promise<PreparationTaskDto> => {

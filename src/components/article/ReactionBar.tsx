@@ -35,6 +35,7 @@ const ReactionBar: React.FC<ReactionBarProps> = ({
     const [myReaction, setMyReaction] = useState<ReactionType | null>(initialMyReaction);
     const [loading, setLoading] = useState(true);
     const [actionPending, setActionPending] = useState(false);
+    const [animatingType, setAnimatingType] = useState<ReactionType | null>(null);
 
     useEffect(() => {
         setMyReaction(initialMyReaction);
@@ -59,12 +60,13 @@ const ReactionBar: React.FC<ReactionBarProps> = ({
 
     const handleReaction = async (type: ReactionType) => {
         if (!isAuthenticated) {
-            // Could show toast/notification
             return;
         }
         if (actionPending) return;
 
         setActionPending(true);
+        setAnimatingType(type);
+        setTimeout(() => setAnimatingType(null), 300);
 
         try {
             if (myReaction === type) {
@@ -117,12 +119,13 @@ const ReactionBar: React.FC<ReactionBarProps> = ({
                     const { emoji, label } = REACTION_EMOJI[type];
                     const count = summary[type];
                     const isActive = myReaction === type;
+                    const isAnimating = animatingType === type;
 
                     return (
                         <button
                             key={type}
                             type="button"
-                            className={`reaction-bar__btn ${isActive ? 'reaction-bar__btn--active' : ''}`}
+                            className={`reaction-bar__btn ${isActive ? 'reaction-bar__btn--active' : ''} ${isAnimating ? 'emoji-pop' : ''}`}
                             onClick={() => void handleReaction(type)}
                             disabled={actionPending}
                             title={!isAuthenticated ? 'Đăng nhập để tương tác' : label}
@@ -136,7 +139,7 @@ const ReactionBar: React.FC<ReactionBarProps> = ({
                 })}
             </div>
             {totalReactions > 0 && (
-                <span className="reaction-bar__total">
+                <span className="reaction-bar__total text-xs font-semibold text-gray-500">
                     {totalReactions} lượt tương tác
                 </span>
             )}

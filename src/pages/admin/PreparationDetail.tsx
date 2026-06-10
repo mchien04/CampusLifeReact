@@ -1,7 +1,8 @@
-﻿
+
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { useAuth } from '../../contexts/AuthContext';
 import { eventAPI, preparationAPI, studentAPI } from '../../services';
 import LeaderExpenseReviewCard from '../../components/preparation/LeaderExpenseReviewCard';
 import AdminExpenseReviewCard from '../../components/preparation/AdminExpenseReviewCard';
@@ -119,6 +120,8 @@ function parseManagerTab(value: string | null): ManagerTabKey {
 export default function PreparationDetail() {
     const { activityId } = useParams<{ activityId: string }>();
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const isAdminOrManager = user?.role === 'ADMIN' || user?.role === 'MANAGER';
     const [searchParams, setSearchParams] = useSearchParams();
     const id = Number(activityId);
     const managerTab = parseManagerTab(searchParams.get('tab'));
@@ -139,6 +142,25 @@ export default function PreparationDetail() {
     const [loadingExpenses, setLoadingExpenses] = useState(false);
     const [expenses, setExpenses] = useState<ExpenseDto[]>([]);
     const [expenseFilter, setExpenseFilter] = useState<ExpenseStatusFilter>('ALL');
+
+    const [myStudentId, setMyStudentId] = useState<number | null>(null);
+
+    useEffect(() => {
+        if (user?.role === 'STUDENT') {
+            studentAPI.getMyProfile().then(p => setMyStudentId(p.id)).catch(() => {});
+        }
+    }, [user?.role]);
+
+    useEffect(() => {
+        if (loading || !user) return;
+        if (user.role === 'STUDENT' && myStudentId != null) {
+            const isSupervisor = organizers.some(o => o.studentId === myStudentId && o.prepSupervisor);
+            if (!isSupervisor) {
+                toast.error('Bạn không có quyền truy cập trang này');
+                navigate('/dashboard', { replace: true });
+            }
+        }
+    }, [loading, user, myStudentId, organizers, navigate]);
 
     const [imageModalUrl, setImageModalUrl] = useState<string | null>(null);
 
@@ -491,6 +513,22 @@ export default function PreparationDetail() {
             await loadCore();
         } catch (e: any) {
             toast.error(e?.response?.data?.message || e?.message || 'Không thể xóa organizer');
+        }
+    };
+
+    const togglePrepSupervisor = async (studentId: number, currentStatus: boolean) => {
+        if (!isAdminOrManager) return;
+        try {
+            if (currentStatus) {
+                await preparationAPI.revokePrepSupervisor(id, studentId);
+                toast.success('Đã thu hồi quyền Giám sát chuẩn bị');
+            } else {
+                await preparationAPI.assignPrepSupervisor(id, studentId);
+                toast.success('Đã cấp quyền Giám sát chuẩn bị');
+            }
+            await loadCore();
+        } catch (e: any) {
+            toast.error(e?.response?.data?.message || e?.message || 'Không thể cập nhật quyền');
         }
     };
 
@@ -911,6 +949,23 @@ export default function PreparationDetail() {
 
     return (
         <div className="space-y-6">
+            {user?.role === 'STUDENT' && (
+                <div className="border-b border-gray-200">
+                    <nav className="-mb-px flex space-x-8">
+                        <button
+                            onClick={() => navigate(`/student/preparation/${id}`)}
+                            className="py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                        >
+                            Thông tin chuẩn bị (Sinh viên)
+                        </button>
+                        <button
+                            className="py-4 px-1 border-b-2 font-medium text-sm border-[#001C44] text-[#001C44]"
+                        >
+                            Quản trị (Supervisor)
+                        </button>
+                    </nav>
+                </div>
+            )}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-[#001C44] flex items-center">
@@ -927,16 +982,18 @@ export default function PreparationDetail() {
                     >
                         Quay lại
                     </button>
-                    <button
-                        type="button"
-                        onClick={() => togglePreparation(!hasPreparation)}
-                        className={`px-5 py-2.5 text-sm font-semibold rounded-lg border transition-colors ${hasPreparation
-                            ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
-                            : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
-                            }`}
-                    >
-                        {hasPreparation ? 'Chuẩn bị: Bật' : 'Chuẩn bị: Tắt'}
-                    </button>
+                    {isAdminOrManager && (
+                        <button
+                            type="button"
+                            onClick={() => togglePreparation(!hasPreparation)}
+                            className={`px-5 py-2.5 text-sm font-semibold rounded-lg border transition-colors ${hasPreparation
+                                ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+                                : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                                }`}
+                        >
+                            {hasPreparation ? 'Chuẩn bị: Bật' : 'Chuẩn bị: Tắt'}
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -983,13 +1040,15 @@ export default function PreparationDetail() {
                                     <div className="p-6">
                                     <div className="flex items-center justify-between mb-4">
                                         <h2 className="text-lg font-semibold text-[#001C44]">Organizer</h2>
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowAddOrganizer(true)}
-                                            className="btn-yellow px-5 py-2 rounded-lg text-sm font-medium"
-                                        >
-                                            + Thêm organizer
-                                        </button>
+                                        {isAdminOrManager && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowAddOrganizer(true)}
+                                                className="btn-yellow px-5 py-2 rounded-lg text-sm font-medium"
+                                            >
+                                                + Thêm organizer
+                                            </button>
+                                        )}
                                     </div>
                                     {organizers.length === 0 ? (
                                         <div className="text-sm text-gray-500">Chưa có organizer.</div>
@@ -997,14 +1056,37 @@ export default function PreparationDetail() {
                                         <div className="space-y-2">
                                             {organizers.map((o) => (
                                                 <div key={o.studentId} className="flex items-center justify-between border border-gray-200 rounded-lg p-3">
-                                                    <div className="text-sm font-medium text-gray-900">{o.fullName}</div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeOrganizer(o.studentId)}
-                                                        className="px-3 py-1.5 text-sm font-medium bg-red-50 text-red-700 rounded-lg border border-red-200 hover:bg-red-100"
-                                                    >
-                                                        Xóa
-                                                    </button>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="text-sm font-medium text-gray-900">{o.fullName}</div>
+                                                        {o.prepSupervisor && (
+                                                            <span className="px-2 py-0.5 text-xs font-semibold bg-blue-100 text-blue-800 rounded-full flex items-center gap-1">
+                                                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                                    <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-4.874-1.125A3.989 3.989 0 015 15a3.989 3.989 0 01-2.664-1.139 1 1 0 01-.285-1.049l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L9 4.323V3a1 1 0 011-1zm-5.169 9.78l.755-2.353L8 10.386V12a1 1 0 11-2 0v-1.614l-2.424 1.212.593 1.844v.002a2.001 2.001 0 001.662-1.664zM12 12a1 1 0 11-2 0v-1.614l2.424-1.213L14.415 11.5l.593-1.844a2.001 2.001 0 001.662 1.664v-.002L12 12z" clipRule="evenodd" />
+                                                                </svg>
+                                                                Giám sát
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    {isAdminOrManager && (
+                                                        <div className="flex items-center gap-2">
+                                                            {!o.prepSupervisor && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => togglePrepSupervisor(o.studentId, false)}
+                                                                    className="px-3 py-1.5 text-sm font-medium rounded-lg border bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                                                                >
+                                                                    Cấp Giám sát
+                                                                </button>
+                                                            )}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => removeOrganizer(o.studentId)}
+                                                                className="px-3 py-1.5 text-sm font-medium bg-red-50 text-red-700 rounded-lg border border-red-200 hover:bg-red-100"
+                                                            >
+                                                                Xóa
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>
@@ -1016,6 +1098,7 @@ export default function PreparationDetail() {
                                 activityId={id}
                                 financeMessage={dashboard?.financeMessage}      
                                 onBudgetSaved={loadCore}
+                                readOnly={!isAdminOrManager}
                             />
                         </div>
                         </div>

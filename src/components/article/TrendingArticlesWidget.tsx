@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { articleAPI } from '../../services/articleAPI';
+import { getImageUrl } from '../../utils/imageUtils';
 import type { ArticleListResponse } from '../../types/article';
 import ArticleTypeBadge from './ArticleTypeBadge';
 
@@ -75,6 +76,17 @@ const TrendingArticlesWidget: React.FC<TrendingArticlesWidgetProps> = ({
                             <div className={`trending-widget__rank trending-widget__rank--${index + 1}`}>
                                 {rankStr}
                             </div>
+                            {article.thumbnailUrl ? (
+                                <img
+                                    src={getImageUrl(article.thumbnailUrl) || ''}
+                                    alt={article.title}
+                                    className="trending-widget__thumbnail"
+                                />
+                            ) : (
+                                <div className="trending-widget__thumbnail bg-gray-100 flex items-center justify-center text-sm shrink-0">
+                                    📸
+                                </div>
+                            )}
                             <div className="trending-widget__info">
                                 <div className="trending-widget__meta">
                                     <ArticleTypeBadge type={article.articleType} className="trending-widget__type" />

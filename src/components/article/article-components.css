@@ -27,24 +27,26 @@
     background: linear-gradient(135deg, #10b981, #059669);
     color: #fff;
     box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+    animation: cta-pulse 2s infinite;
 }
 
 .cta-open:hover:not(:disabled) {
     background: linear-gradient(135deg, #059669, #047857);
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.45);
-    transform: translateY(-1px);
+    transform: translateY(-2px) scale(1.02);
 }
 
 .cta-waitlist {
     background: linear-gradient(135deg, #f59e0b, #d97706);
     color: #fff;
     box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
+    animation: cta-pulse-waitlist 2s infinite;
 }
 
 .cta-waitlist:hover:not(:disabled) {
     background: linear-gradient(135deg, #d97706, #b45309);
     box-shadow: 0 4px 12px rgba(245, 158, 11, 0.45);
-    transform: translateY(-1px);
+    transform: translateY(-2px) scale(1.02);
 }
 
 .cta-upcoming {
@@ -65,47 +67,55 @@
 /* ===== Reaction Bar ===== */
 
 .reaction-bar {
-    display: flex;
+    display: inline-flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 12px;
-    padding: 12px 0;
+    gap: 16px;
+    padding: 10px 18px;
+    background: rgba(248, 250, 252, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid #e2e8f0;
+    border-radius: 999px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
 }
 
 .reaction-bar__buttons {
     display: flex;
-    gap: 6px;
+    gap: 8px;
 }
 
 .reaction-bar__btn {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 6px 12px;
+    gap: 6px;
+    padding: 6px 14px;
     border: 1px solid #e2e8f0;
     border-radius: 999px;
     background: #fff;
     cursor: pointer;
-    transition: all 0.18s ease;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     font-size: 0.85rem;
     color: #475569;
 }
 
 .reaction-bar__btn:hover:not(:disabled) {
-    background: #f1f5f9;
-    border-color: #cbd5e1;
-    transform: scale(1.05);
+    background: rgba(255, 214, 109, 0.12);
+    border-color: #ffd66d;
+    transform: translateY(-2px) scale(1.08);
 }
 
 .reaction-bar__btn--active {
-    background: #eff6ff;
-    border-color: #3b82f6;
-    color: #1d4ed8;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+    background: #001c44;
+    border-color: #001c44;
+    color: #ffd66d;
+    box-shadow: 0 4px 10px rgba(0, 28, 68, 0.2);
 }
 
 .reaction-bar__btn--active:hover:not(:disabled) {
-    background: #dbeafe;
+    background: #002a66;
+    border-color: #002a66;
+    color: #ffd66d;
 }
 
 .reaction-bar__btn:disabled {
@@ -542,10 +552,10 @@
 
 .trending-widget {
     background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
+    border: 1px solid #f1f5f9;
+    border-radius: 20px;
     padding: 20px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
 }
 
 .trending-widget__title {
@@ -560,40 +570,64 @@
 .trending-widget__list {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
 }
 
 .trending-widget__item {
     display: flex;
+    align-items: center;
     gap: 12px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     padding: 8px;
-    border-radius: 12px;
+    border-radius: 14px;
 }
 
 .trending-widget__item:hover {
     background-color: #f8fafc;
-    transform: translateX(4px);
+    transform: translateX(6px);
 }
 
 .trending-widget__rank {
-    font-size: 1.5rem;
+    font-size: 0.95rem;
     font-weight: 800;
-    color: #cbd5e1;
+    color: #64748b;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
     line-height: 1;
 }
 
 .trending-widget__rank--1 {
-    color: #f59e0b; /* Gold */
+    background: linear-gradient(135deg, #ffe082 0%, #ffd54f 100%);
+    color: #b45309;
+    box-shadow: 0 3px 8px rgba(255, 213, 79, 0.4);
 }
 
 .trending-widget__rank--2 {
-    color: #94a3b8; /* Silver */
+    background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+    color: #475569;
+    box-shadow: 0 3px 8px rgba(203, 213, 225, 0.4);
 }
 
 .trending-widget__rank--3 {
-    color: #b45309; /* Bronze */
+    background: linear-gradient(135deg, #ffcc80 0%, #ffb74d 100%);
+    color: #78350f;
+    box-shadow: 0 3px 8px rgba(255, 183, 77, 0.4);
+}
+
+.trending-widget__thumbnail {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 1px solid #e2e8f0;
 }
 
 .trending-widget__info {
@@ -669,5 +703,77 @@
 @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: .5; }
+}
+
+@keyframes cta-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+}
+
+@keyframes cta-pulse-waitlist {
+    0% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+    }
+}
+
+@keyframes comment-slide-in {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes emoji-pop {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.4);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.comment-item {
+    animation: comment-slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.emoji-pop {
+    animation: emoji-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.comment-item--reply {
+    position: relative;
+    padding-left: 20px;
+    margin-left: 12px;
+    border-left: 2px solid #f1f5f9;
+}
+
+.comment-item--reply::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 20px;
+    width: 8px;
+    height: 2px;
+    background: #cbd5e1;
 }
 

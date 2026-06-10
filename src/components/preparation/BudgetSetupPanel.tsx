@@ -14,6 +14,7 @@ type BudgetSetupPanelProps = {
   activityId: number;
   financeMessage?: string | null;
   onBudgetSaved?: () => void | Promise<void>;
+  readOnly?: boolean;
 };
 
 const currencyFormatter = new Intl.NumberFormat('vi-VN', {
@@ -42,7 +43,7 @@ function isResidualWallet(name: string) {
   return normalized === 'khac' || normalized === 'khác';
 }
 
-export default function BudgetSetupPanel({ activityId, financeMessage, onBudgetSaved }: BudgetSetupPanelProps) {
+export default function BudgetSetupPanel({ activityId, financeMessage, onBudgetSaved, readOnly }: BudgetSetupPanelProps) {
   const [tab, setTab] = useState<TabKey>('OVERVIEW');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -152,17 +153,19 @@ export default function BudgetSetupPanel({ activityId, financeMessage, onBudgetS
             >
               Wallet Overview
             </button>
-            <button
-              type="button"
-              onClick={() => setTab('SETUP')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                tab === 'SETUP'
-                  ? 'bg-gradient-to-r from-[#001C44] to-[#002A66] text-white border-transparent'
-                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              Budget Setup
-            </button>
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={() => setTab('SETUP')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                  tab === 'SETUP'
+                    ? 'bg-gradient-to-r from-[#001C44] to-[#002A66] text-white border-transparent'
+                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                Budget Setup
+              </button>
+            )}
           </div>
         </div>
 

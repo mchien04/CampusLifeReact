@@ -8,6 +8,7 @@ import { registrationAPI } from '../services/registrationAPI';
 import { taskAPI } from '../services/taskAPI';
 import { submissionAPI } from '../services/submissionAPI';
 import { studentAPI } from '../services/studentAPI';
+import { preparationAPI } from '../services/preparationAPI';
 import { getSubmissionStatusColor, getSubmissionStatusLabel } from '../utils/submissionUtils';
 import { ActivityResponse, ActivityType, ScoreType, ActivityPhotoResponse } from '../types';
 import { ActivityTaskResponse, TaskAssignmentResponse } from '../types/task';
@@ -39,6 +40,7 @@ const StudentEventDetail: React.FC = () => {
     // Tasks and submissions (within this event page)
     const [tasks, setTasks] = useState<TaskAssignmentResponse[]>([]);
     const [loadingTasks, setLoadingTasks] = useState(false);
+    const [isSupervisor, setIsSupervisor] = useState(false);
     const [showSubmissionModal, setShowSubmissionModal] = useState(false);
     const [selectedTask, setSelectedTask] = useState<TaskAssignmentResponse | null>(null);
     const [mySubmission, setMySubmission] = useState<TaskSubmissionResponse | null>(null);
@@ -94,8 +96,11 @@ const StudentEventDetail: React.FC = () => {
             const response = await eventAPI.getEvent(parseInt(id!));
             if (response.status && response.data) {
                 setEvent(response.data);
-                await checkRegistrationStatus(response.data.id);
-                await loadTasksByActivity(response.data.id);
+                await Promise.all([
+                    checkRegistrationStatus(response.data.id),
+                    loadTasksByActivity(response.data.id),
+                    checkSupervisorStatus(response.data.id)
+                ]);
 
                 // If this is a minigame activity, load its quiz info
                 if (response.data.type === ActivityType.MINIGAME) {
@@ -111,6 +116,18 @@ const StudentEventDetail: React.FC = () => {
             console.error('Error loading event:', err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const checkSupervisorStatus = async (activityId: number) => {
+        try {
+            const studentProfile = await studentAPI.getMyProfile();
+            const organizers = await preparationAPI.listOrganizers(activityId);
+            const isSup = organizers.some(o => o.studentId === studentProfile.id && o.prepSupervisor);
+            setIsSupervisor(isSup);
+        } catch (err) {
+            console.error('Error checking supervisor status:', err);
+            setIsSupervisor(false);
         }
     };
 
@@ -465,9 +482,15 @@ const StudentEventDetail: React.FC = () => {
                                                 {getStatusLabel(registration.status)}
                                             </span>
                                         )}
+                                        {isSupervisor && (
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                                                🛡️ Giám sát viên (Supervisor)
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
 
+                                <h1 className="text-3xl font-bold text-[#001C44] mt-2 mb-4">{event.name}</h1>
 
                                 {/* Event Banner */}
                                 {event.bannerUrl && (
@@ -632,6 +655,15 @@ const StudentEventDetail: React.FC = () => {
                                                 ✅ Đã được duyệt - Không thể hủy
                                             </span>
                                         </div>
+                                    )}
+
+                                    {isSupervisor && (
+                                        <button
+                                            onClick={() => navigate(`/manager/preparation/${event.id}`)}
+                                            className="bg-purple-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors"
+                                        >
+                                            Giao diện quản trị (Supervisor)
+                                        </button>
                                     )}
                                 </div>
                             </div>

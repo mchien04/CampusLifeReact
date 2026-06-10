@@ -8,6 +8,7 @@ import { downloadCalendarFile } from '../utils/calendarExport';
 import { getImageUrl } from '../utils/imageUtils';
 import { useWishlist } from '../contexts/WishlistContext';
 import { useAuth } from '../contexts/AuthContext';
+import { studentAPI } from '../services/studentAPI';
 import type { ArticleListResponse, EventArticleDetailResponse } from '../types/article';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ArticleLayout from '../components/layout/ArticleLayout';
@@ -30,6 +31,21 @@ const ArticleDetail: React.FC = () => {
     const [exporting, setExporting] = useState(false);
     const [relatedArticles, setRelatedArticles] = useState<ArticleListResponse[]>([]);
     const [loadingRelated, setLoadingRelated] = useState(false);
+    const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
+
+    useEffect(() => {
+        const loadProfile = async () => {
+            if (isAuthenticated) {
+                try {
+                    const profile = await studentAPI.getMyProfile();
+                    setCurrentUserProfile(profile);
+                } catch (err) {
+                    console.error('Failed to load profile:', err);
+                }
+            }
+        };
+        loadProfile();
+    }, [isAuthenticated]);
 
     useEffect(() => {
         const loadArticle = async () => {
@@ -187,9 +203,38 @@ const ArticleDetail: React.FC = () => {
 
                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
                     <article className="overflow-hidden rounded-2xl bg-white border border-gray-200 shadow-sm">
+                        {/* Elegant Header Area (Medium Style) */}
+                        <div className="px-6 pt-8 pb-4">
+                            <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">
+                                {article.category?.name && (
+                                    <span className="rounded-full bg-blue-50 text-blue-700 px-3 py-1 border border-blue-200">
+                                        {article.category.name}
+                                    </span>
+                                )}
+                                {article.publishedAt && (
+                                    <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
+                                        📅 {new Date(article.publishedAt).toLocaleDateString('vi-VN')}
+                                    </span>
+                                )}
+                                <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
+                                    👁️ {article.viewCount.toLocaleString('vi-VN')} lượt xem
+                                </span>
+                            </div>
+
+                            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#001C44] mb-4 leading-tight">
+                                {article.title}
+                            </h1>
+
+                            {article.seoDescription && (
+                                <p className="text-base text-gray-600 font-medium leading-relaxed mb-4 border-l-4 border-[#FFD66D] pl-4">
+                                    {article.seoDescription}
+                                </p>
+                            )}
+                        </div>
+
                         {heroImageUrl && (
-                            <div className="bg-gray-100">
-                                <img src={heroImageUrl} alt={article.title} className="w-full max-h-[460px] object-cover" />
+                            <div className="bg-gray-50 border-y border-gray-100">
+                                <img src={heroImageUrl} alt={article.title} className="w-full max-h-[480px] object-cover" />
                             </div>
                         )}
 
@@ -206,27 +251,6 @@ const ArticleDetail: React.FC = () => {
                         )}
 
                         <div className="px-6 py-8">
-                            <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600 mb-4">
-                                {article.publishedAt && (
-                                    <span>{new Date(article.publishedAt).toLocaleDateString('vi-VN')}</span>
-                                )}
-                                <span>•</span>
-                                <span>{article.viewCount.toLocaleString('vi-VN')} lượt xem</span>
-                                {article.category?.name && (
-                                    <>
-                                        <span>•</span>
-                                        <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700 border border-gray-200">
-                                            {article.category.name}
-                                        </span>
-                                    </>
-                                )}
-                            </div>
-
-                            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#001C44] mb-4">{article.title}</h1>
-
-                            {article.seoDescription && (
-                                <p className="text-lg text-gray-700 mb-8">{article.seoDescription}</p>
-                            )}
 
                             {galleryImages.length > 0 && (
                                 <div className="mb-10">
@@ -249,17 +273,21 @@ const ArticleDetail: React.FC = () => {
                             </div>
 
                             {/* Reaction Bar */}
-                            <ReactionBar
-                                slug={article.slug}
-                                initialMyReaction={article.myReaction}
-                                isAuthenticated={isAuthenticated}
-                            />
+                            <div className="mt-8 pt-6 border-t border-gray-100">
+                                <ReactionBar
+                                    slug={article.slug}
+                                    initialMyReaction={article.myReaction}
+                                    isAuthenticated={isAuthenticated}
+                                />
+                            </div>
 
                             {/* Comment Section */}
                             <CommentSection
                                 slug={article.slug}
                                 isAuthenticated={isAuthenticated}
-                                currentUserId={null}
+                                currentUserId={currentUserProfile?.id}
+                                currentUserAvatarUrl={currentUserProfile?.avatarUrl}
+                                currentUserFullName={currentUserProfile?.fullName}
                             />
                         </div>
                     </article>
@@ -300,10 +328,26 @@ const ArticleDetail: React.FC = () => {
                             </div>
 
                             {article.activityInfo && (
-                                <div className="mt-5 pt-5 border-t border-gray-200 space-y-2 text-sm text-gray-700">
-                                    <div className="font-semibold text-[#001C44]">Thông tin sự kiện</div>
-                                    <div className="text-gray-800 font-medium">{article.activityInfo.name}</div>
-                                    {article.activityInfo.location && <div className="text-gray-600">{article.activityInfo.location}</div>}
+                                <div className="mt-5 pt-5 border-t border-gray-100 space-y-3">
+                                    <div className="text-xs font-bold uppercase tracking-wider text-gray-400">Thông tin sự kiện</div>
+                                    <div className="bg-gradient-to-br from-gray-50 to-blue-50/10 rounded-xl border border-blue-100/50 p-4 space-y-2.5">
+                                        <div className="text-sm font-bold text-[#001C44] leading-tight">{article.activityInfo.name}</div>
+                                        {article.activityInfo.location && (
+                                            <div className="flex items-start gap-2 text-xs text-gray-600">
+                                                <span className="shrink-0 text-base">📍</span>
+                                                <span>{article.activityInfo.location}</span>
+                                            </div>
+                                        )}
+                                        {article.activityInfo.startDate && (
+                                            <div className="flex items-start gap-2 text-xs text-gray-600">
+                                                <span className="shrink-0 text-base">📅</span>
+                                                <span className="leading-normal">
+                                                    {new Date(article.activityInfo.startDate).toLocaleDateString('vi-VN')}
+                                                    {article.activityInfo.endDate && ` - ${new Date(article.activityInfo.endDate).toLocaleDateString('vi-VN')}`}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             )}
                         </div>
