@@ -658,7 +658,7 @@ export default function PreparationTaskDetailModal({
                         onClick={() => setTab('LEADER')}
                         className={`px-4 py-2 rounded-lg text-sm font-semibold border ${tab === 'LEADER' ? 'bg-[#001C44] text-white border-transparent' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
                       >
-                        Duyệt cấp 1
+                        Duyệt chi phí
                       </button>
                     )}
                     <button
@@ -701,25 +701,32 @@ export default function PreparationTaskDetailModal({
                             Nhận nhiệm vụ
                           </button>
                         )}
-                        {task.status === 'ACCEPTED' && isLeaderOrOwner && (
-                          <div className="flex flex-col items-end gap-2">
+                      </div>
+                    </div>
+                    {task.status === 'ACCEPTED' && isLeaderOrOwner && (
+                      <div className="mt-5 pt-5 border-t border-gray-200">
+                        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-sm font-semibold text-gray-700 mb-2">Minh chứng hoàn thành</h4>
                             <ImageUploadProof
                               taskId={task.id}
                               uploadedUrls={proofUrls}
                               setUploadedUrls={setProofUrls}
                             />
+                          </div>
+                          <div className="shrink-0 w-full sm:w-auto">
                             <button
                               type="button"
                               disabled={submitting}
                               onClick={requestComplete}
-                              className="px-4 py-2 bg-[#FFD66D] text-[#001C44] rounded-lg text-sm font-semibold hover:bg-[#FFC947] disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="w-full sm:w-auto px-4 py-2 bg-[#FFD66D] text-[#001C44] rounded-lg text-sm font-semibold hover:bg-[#FFC947] disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                             >
                               Yêu cầu hoàn thành
                             </button>
                           </div>
-                        )}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   <div className="border border-gray-200 rounded-xl overflow-hidden">
@@ -1030,7 +1037,7 @@ export default function PreparationTaskDetailModal({
               {tab === 'LEADER' && task.isFinancial && isLeaderOrOwner && (
                 <div className="border border-gray-200 rounded-xl overflow-hidden">
                   <div className="bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700 flex items-center justify-between">
-                    <span>Duyệt cấp 1</span>
+                    <span>Duyệt chi phí</span>
                     <button
                       type="button"
                       onClick={() => loadExpenses(expenseFilter)}
