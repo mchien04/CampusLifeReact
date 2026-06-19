@@ -7,7 +7,6 @@ type AdminExpenseReviewCardProps = {
   loading: boolean;
   statusFilter: ExpenseStatusFilter;
   onStatusFilterChange: (status: ExpenseStatusFilter) => void;
-  onDecision: (expenseId: number, approved: boolean) => Promise<void>;
   onViewEvidence: (url: string) => void;
 };
 
@@ -38,34 +37,21 @@ export default function AdminExpenseReviewCard({
   loading,
   statusFilter,
   onStatusFilterChange,
-  onDecision,
   onViewEvidence,
 }: AdminExpenseReviewCardProps) {
-  const [decidingExpenseId, setDecidingExpenseId] = useState<number | null>(null);
-
-  const handleDecision = async (expenseId: number, approved: boolean) => {
-    setDecidingExpenseId(expenseId);
-    try {
-      await onDecision(expenseId, approved);
-    } finally {
-      setDecidingExpenseId(null);
-    }
-  };
-
-  // Separate pending admin expenses from completed
-  const pendingAdminExpenses = expenses.filter((ex) => ex.status === 'PENDING_ADMIN');
-  const completedExpenses = expenses.filter((ex) => ex.status !== 'PENDING_ADMIN');
+  // We no longer separate pending admin expenses, show everything in table
+  const completedExpenses = expenses;
 
   return (
     <div className="card">
       <div className="p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
           <div>
-            <h2 className="text-lg font-semibold text-[#001C44]">Duyệt chi phí (Cấp quản trị)</h2>
+            <h2 className="text-lg font-semibold text-[#001C44]">Chi phí</h2>
             <p className="text-sm text-gray-600 mt-1">
-              {pendingAdminExpenses.length > 0
-                ? `${pendingAdminExpenses.length} chi phí chờ duyệt`
-                : 'Không có chi phí chờ duyệt'}
+              {expenses.length > 0
+                ? `Tổng số: ${expenses.length} chi phí`
+                : 'Không có chi phí'}
             </p>
           </div>
 
@@ -93,88 +79,9 @@ export default function AdminExpenseReviewCard({
           <div className="text-sm text-gray-500 py-8 text-center">Chưa có chi phí.</div>
         ) : (
           <>
-            {/* Pending Admin Section */}
-            {(statusFilter === 'PENDING_ADMIN' || statusFilter === 'ALL') && pendingAdminExpenses.length > 0 && (
-              <div className="mb-8">
-                <h3 className="text-sm font-semibold text-[#001C44] mb-4 flex items-center">
-                  <span className="w-2 h-2 bg-blue-600 rounded-full mr-2"></span>
-                  Chờ duyệt {statusFilter === 'ALL' && `(${pendingAdminExpenses.length})`}
-                </h3>
-                <div className="space-y-3">
-                  {pendingAdminExpenses.map((ex) => {
-                    const imgUrl = getImageUrl(ex.evidenceUrl);
-                    return (
-                      <div key={ex.id} className="border border-blue-200 rounded-lg p-4 bg-blue-50 hover:opacity-90 transition-colors">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-baseline gap-4 flex-wrap">
-                              <div className="text-lg font-bold text-[#001C44]">{formatMoney(ex.amount)}</div>
-                              {ex.categoryName && (
-                                <div className="text-sm text-gray-700">
-                                  <span className="font-medium">Hạng mục:</span> {ex.categoryName}
-                                </div>
-                              )}
-                            </div>
-
-                            {ex.description && (
-                              <div className="text-sm text-gray-700 mt-2 whitespace-normal break-words">
-                                <span className="font-medium">Mô tả:</span> {ex.description}
-                              </div>
-                            )}
-
-                            <div className="flex items-center gap-4 text-xs text-gray-600 mt-2 flex-wrap">
-                              <span>Người tạo: <span className="font-medium">{ex.createdByName || `#${ex.createdById}`}</span></span>
-                              <span>Ngày tạo: <span className="font-medium">{new Date(ex.createdAt).toLocaleString('vi-VN')}</span></span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            {imgUrl && (
-                              <button
-                                type="button"
-                                onClick={() => onViewEvidence(imgUrl)}
-                                className="px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-gray-700"
-                              >
-                                Minh chứng
-                              </button>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-end gap-2 mt-4 pt-4 border-t border-blue-200">
-                          <button
-                            type="button"
-                            onClick={() => handleDecision(ex.id, false)}
-                            disabled={decidingExpenseId === ex.id}
-                            className="px-4 py-2 text-sm font-medium bg-red-50 text-red-700 rounded-lg border border-red-200 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                          >
-                            {decidingExpenseId === ex.id ? 'Đang xử lý...' : 'Từ chối'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDecision(ex.id, true)}
-                            disabled={decidingExpenseId === ex.id}
-                            className="px-4 py-2 text-sm font-medium bg-green-50 text-green-700 rounded-lg border border-green-200 hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                          >
-                            {decidingExpenseId === ex.id ? 'Đang xử lý...' : 'Duyệt'}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Completed/Rejected Expenses - Table View */}
-            {(statusFilter === 'ALL' || statusFilter === 'APPROVED' || statusFilter === 'REJECTED') &&
-              completedExpenses.length > 0 && (
+            {/* All Expenses - Table View */}
+            {completedExpenses.length > 0 && (
                 <>
-                  {statusFilter === 'ALL' && pendingAdminExpenses.length > 0 && (
-                    <h3 className="text-sm font-semibold text-[#001C44] mb-4 mt-6 pt-6 border-t border-gray-200">
-                      Lịch sử
-                    </h3>
-                  )}
                   <div className="overflow-x-auto border border-gray-200 rounded-xl">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
