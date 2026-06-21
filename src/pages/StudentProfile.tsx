@@ -333,7 +333,7 @@ const StudentProfile: React.FC = () => {
             if (imageFile) {
                 const uploadResponse = await uploadAPI.uploadImage(imageFile);
                 if (uploadResponse.status && uploadResponse.data) {
-                    profileImageUrl = uploadResponse.data.bannerUrl;
+                    profileImageUrl = uploadResponse.data;
                 }
             }
 

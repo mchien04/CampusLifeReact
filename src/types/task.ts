@@ -8,9 +8,7 @@ export interface ActivityTask {
     activity: Activity;
     title: string;
     description?: string;
-    requiresSubmission: boolean;
-    maxPoints?: number;
-    dueDate?: string;
+    requiresSubmission: boolean;    dueDate?: string;
     status: 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
     createdAt: string;
     updatedAt: string;
@@ -35,17 +33,13 @@ export interface CreateTaskRequest {
     activityId: number;
     title: string;
     description?: string;
-    requiresSubmission: boolean;
-    maxPoints?: number;
-    dueDate?: string;
+    requiresSubmission: boolean;    dueDate?: string;
 }
 
 export interface UpdateTaskRequest {
     title: string;
     description?: string;
-    requiresSubmission: boolean;
-    maxPoints?: number;
-    dueDate?: string;
+    requiresSubmission: boolean;    dueDate?: string;
 }
 
 export interface AssignTaskRequest {

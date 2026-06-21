@@ -160,8 +160,7 @@ const StudentMinigamePlay: React.FC = () => {
             console.log('handleStart: startAttempt response', response);
             
             if (response.status && response.data) {
-                // Use id if available, otherwise fallback to attemptId for backward compatibility
-                const newAttemptId = response.data.id || response.data.attemptId || 0;
+                const newAttemptId = response.data.id || 0;
                 setAttemptId(newAttemptId);
                 setStartedAt(response.data.startedAt);
                 console.log('handleStart: Attempt started successfully, attemptId:', newAttemptId);
@@ -237,7 +236,7 @@ const StudentMinigamePlay: React.FC = () => {
                     }
                 }
                 
-                // Show success message if passed (status is now a string)
+                // Show success message when the attempt is passed
                 if (response.data.status === 'PASSED' && response.data.pointsEarned) {
                     toast.success(`Chúc mừng! Bạn đã nhận được ${parseFloat(response.data.pointsEarned).toFixed(1)} điểm`);
                 }
@@ -392,14 +391,7 @@ const StudentMinigamePlay: React.FC = () => {
                                     </span>
                                 </div>
                             )}
-                            {minigame?.rewardPoints && (
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Điểm thưởng:</span>
-                                    <span className="font-semibold text-[#001C44]">
-                                        {parseFloat(minigame.rewardPoints).toFixed(1)} điểm
-                                    </span>
-                                </div>
-                            )}
+                            
                         </div>
                         <button
                             type="button"

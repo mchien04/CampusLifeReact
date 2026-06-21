@@ -20,7 +20,6 @@ Phạm vi gồm:
 - `src/services/scoresAPI.ts`
 - `src/services/taskAPI.ts`
 - `src/services/activityPhotoAPI.ts`
-- `src/services/articleAPI.ts`
 - `src/types/activity.ts`
 - `src/types/registration.ts`
 - `src/types/series.ts`
@@ -38,19 +37,9 @@ Frontend hiện xem `Activity` là thực thể trung tâm. Từ activity có th
 - Minigame: activity có `type = MINIGAME`, quiz nằm ở `minigameAPI`.
 - Series: activity thuộc series có `seriesId`, `seriesOrder`; nhiều thuộc tính tính điểm/đăng ký được kế thừa từ series.
 - Task/submission: activity có các nhiệm vụ cho sinh viên.
-- Article: activity có thể có bài viết truyền thông.
 - Photo gallery: activity có ảnh thư viện.
-- Preparation: activity có công tác chuẩn bị và tài chính riêng.
 
 ## Route Theo Role
-
-### Public
-
-| Route | Màn hình | Ghi chú |
-|---|---|---|
-| `/` | `Home` | Trang landing. |
-| `/articles` | `ArticleListPage` | Bài viết public, có thể liên quan activity. |
-| `/articles/:slug` | `ArticleDetail` | Chi tiết bài viết, có waitlist/calendar. |
 
 ### Student
 
@@ -76,7 +65,6 @@ Frontend hiện xem `Activity` là thực thể trung tâm. Từ activity có th
 | `/manager/events/create` | `CreateEvent` | `eventAPI.createEvent`. |
 | `/manager/events/:id` | `EventDetail` | `getEvent`, publish/unpublish/copy, registration, task, minigame, photo, check-in. |
 | `/manager/events/:id/edit` | `EditEvent` | `getEvent`, `updateEvent`. |
-| `/manager/events/:id/article` | `ArticleEditor` | `articleAPI.getArticleByActivityId`, create/update article. |
 | `/admin/events/:id/registrations` | `EventRegistrations` | `getEvent`, `getActivityRegistrations`, `updateRegistrationStatus`. |
 | `/manager/registrations` | `ManagerRegistrations` | `getEvents`, `getActivityRegistrations`, ticket validation/check-in. |
 | `/manager/series` | `SeriesManagement` | `seriesAPI.getSeries`, `deleteSeries`. |
@@ -569,23 +557,6 @@ Service: `activityPhotoAPI`.
 | `getActivityPhotos` | GET | `/api/activities/{activityId}/photos` | Student/Manager/Admin tùy màn detail | `ActivityPhotoResponse[]` |
 | `deletePhoto` | DELETE | `/api/activities/{activityId}/photos/{photoId}` | Manager/Admin | `void` |
 | `updatePhotoOrder` | PUT | `/api/activities/{activityId}/photos/{photoId}/order?order=` | Manager/Admin | `ActivityPhotoResponse` |
-
-## API Article Liên Quan Activity
-
-Service: `articleAPI`.
-
-Các API đáng chú ý trong luồng event:
-
-| Method frontend | HTTP | Endpoint | Role dùng | Ghi chú |
-|---|---:|---|---|---|
-| `getArticleByActivityId` | GET | `/api/admin/articles/by-activity/{activityId}` | Manager/Admin | Lấy bài viết gắn với activity. |
-| `createArticle` | POST | `/api/admin/articles` | Manager/Admin | Tạo bài viết, request có thể chứa activity liên quan. |
-| `updateArticle` | PUT | `/api/admin/articles/{articleId}` | Manager/Admin | Cập nhật bài viết. |
-| `publishArticle` | PUT | `/api/admin/articles/{articleId}/publish` | Manager/Admin | Publish bài viết. |
-| `unpublishArticle` | PUT | `/api/admin/articles/{articleId}/unpublish` | Manager/Admin | Unpublish bài viết. |
-| `joinWaitlist` | POST | `/api/articles/{slug}/waitlist` | Student | Public article có thể dẫn tới waitlist. |
-| `getArticleCalendar` | GET | `/api/articles/{slug}/calendar` | Public/Student | Export calendar từ bài viết. |
-| `getRelatedArticles` | GET | `/api/articles/{slug}/related` | Public/Student | Bài liên quan. |
 
 ## Luồng Tạo Activity Thường
 

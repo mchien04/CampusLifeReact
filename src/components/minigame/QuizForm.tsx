@@ -31,7 +31,7 @@ const QuizForm: React.FC<QuizFormProps> = ({
             questionCount: 0,
             timeLimit: undefined,
             requiredCorrectAnswers: undefined,
-            rewardPoints: undefined,
+
             maxAttempts: null,
             questions: []
         };
@@ -195,11 +195,11 @@ const QuizForm: React.FC<QuizFormProps> = ({
             console.log('🔍 QuizForm: uploadResponse received', uploadResponse);
 
             if (uploadResponse.status && uploadResponse.data) {
-                console.log('🔍 QuizForm: Upload successful, imageUrl:', uploadResponse.data.bannerUrl);
+                console.log('🔍 QuizForm: Upload successful, imageUrl:', uploadResponse.data);
                 const question = formData.questions[questionIndex];
                 updateQuestion(questionIndex, {
                     ...question,
-                    imageUrl: uploadResponse.data.bannerUrl
+                    imageUrl: uploadResponse.data
                 });
                 // Giữ preview cho đến khi ảnh từ server load thành công
                 // Preview sẽ được xóa trong onLoad handler của img tag
@@ -476,24 +476,7 @@ const QuizForm: React.FC<QuizFormProps> = ({
                             />
                         </div>
 
-                        {/* Reward Points - Only show if not in series */}
-                        {!isInSeries && (
-                            <div>
-                                <label htmlFor="rewardPoints" className="block text-sm font-medium text-gray-700 mb-2">
-                                    Điểm thưởng
-                                </label>
-                                <input
-                                    type="number"
-                                    id="rewardPoints"
-                                    name="rewardPoints"
-                                    min="0"
-                                    step="0.1"
-                                    value={formData.rewardPoints || ''}
-                                    onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
-                                />
-                            </div>
-                        )}
+
 
                         {/* Info notice for series activities */}
                         {isInSeries && (

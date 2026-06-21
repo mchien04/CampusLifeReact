@@ -1,13 +1,9 @@
 import api from './api';
 import { Response } from '../types/auth';
 
-export interface UploadResponse {
-    bannerUrl: string;
-}
-
 export const uploadAPI = {
     // Upload image file
-    uploadImage: async (file: File): Promise<Response<UploadResponse>> => {
+    uploadImage: async (file: File): Promise<Response<string>> => {
         try {
             console.log('🔍 uploadAPI: Starting image upload...');
             console.log('🔍 uploadAPI: File info:', {
@@ -30,13 +26,10 @@ export const uploadAPI = {
             console.log('🔍 uploadAPI: Response data:', response.data);
 
             // Backend trả về: {data: "url", message: "success", status: true}
-            // Nhưng interface UploadResponse mong đợi: {bannerUrl: "url"}
-            const uploadResponse: Response<UploadResponse> = {
+            const uploadResponse: Response<string> = {
                 status: response.data.status,
                 message: response.data.message,
-                data: {
-                    bannerUrl: response.data.data // Lấy URL từ response.data.data
-                }
+                data: response.data.data // Lấy URL từ response.data.data
             };
 
             console.log('🔍 uploadAPI: Processed response:', uploadResponse);

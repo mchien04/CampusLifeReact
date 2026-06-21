@@ -3,6 +3,7 @@ import { CreateActivityRequest, ActivityType, ScoreType } from '../../types/acti
 import { uploadAPI } from '../../services/uploadAPI';
 import { getImageUrl } from '../../utils/imageUtils';
 import OrganizerSelector from './OrganizerSelector';
+import { ScoreRulesForm } from './ScoreRulesForm';
 
 export type FormMode = 'normal' | 'minigame' | 'series';
 
@@ -47,8 +48,7 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
             startDate: '',
             endDate: '',
             requiresSubmission: false,
-            maxPoints: mode === 'minigame' || mode === 'series' ? undefined : '0',
-            penaltyPointsIncomplete: mode === 'minigame' ? undefined : '0',
+            scoreRules: [],
             registrationStartDate: mode === 'series' ? undefined : '',
             registrationDeadline: mode === 'series' ? undefined : '',
             shareLink: '',
@@ -125,7 +125,7 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
                 newErrors.endDate = 'Ngày kết thúc là bắt buộc';
             }
 
-            if (!formData.location.trim()) {
+            if (!formData.location || !formData.location.trim()) {
                 newErrors.location = 'Địa điểm là bắt buộc';
             }
         }
@@ -135,10 +135,7 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
             newErrors.endDate = 'Ngày kết thúc phải sau ngày bắt đầu';
         }
 
-        // Only validate maxPoints for normal mode and if requiresSubmission
-        if (mode === 'normal' && formData.requiresSubmission && (!formData.maxPoints || parseFloat(formData.maxPoints) <= 0)) {
-            newErrors.maxPoints = 'Điểm tối đa phải lớn hơn 0 khi yêu cầu nộp bài';
-        }
+        // Validation for points has been moved to ScoreRulesForm or removed
 
         // Only validate organizerIds for normal and minigame modes
         if (mode !== 'series' && (!formData.organizerIds || formData.organizerIds.length === 0)) {
@@ -228,7 +225,7 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
                     if (uploadResponse.status && uploadResponse.data) {
                         const updatedFormData = {
                             ...formData,
-                            bannerUrl: uploadResponse.data.bannerUrl,
+                            bannerUrl: uploadResponse.data,
                             bannerFile: undefined
                         };
                         onSubmit(updatedFormData);
@@ -272,6 +269,14 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
     const formContent = (
         <form onSubmit={handleSubmit} className={inline ? "space-y-6" : "p-6 space-y-6"}>
             {renderFields ? renderFields(renderFieldsProps) : null}
+
+            {/* Score Rules Section */}
+            <div className="pt-6 border-t border-gray-200">
+                <ScoreRulesForm 
+                    rules={formData.scoreRules || []}
+                    onChange={(rules) => setFormData(prev => ({ ...prev, scoreRules: rules }))}
+                />
+            </div>
 
             {/* Submit Button */}
             <div className={`flex justify-end space-x-4 ${inline ? 'pt-6 border-t border-gray-200' : 'pt-6 border-t border-gray-200'}`}>

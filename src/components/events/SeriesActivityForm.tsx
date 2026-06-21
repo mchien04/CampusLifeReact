@@ -347,8 +347,6 @@ const SeriesActivityForm: React.FC<SeriesActivityFormProps> = ({
         organizerIds: initialData.organizerIds || [],
         type: ActivityType.SUKIEN, // Default type, will be null in series
         scoreType: undefined, // From series
-        maxPoints: undefined, // Not used in series
-        penaltyPointsIncomplete: undefined,
         registrationStartDate: undefined, // From series
         registrationDeadline: undefined, // From series
         ticketQuantity: undefined, // From series

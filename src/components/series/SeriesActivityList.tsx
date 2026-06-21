@@ -15,7 +15,7 @@ const SeriesActivityList: React.FC<SeriesActivityListProps> = ({
     canManage = false
 }) => {
     // Get activities and sort by seriesOrder (ascending)
-    // Activities in series have type, scoreType, maxPoints = null (values come from series)
+    // Activities in series inherit score configuration from the parent series
     const activities = (series.activities || [])
         .sort((a, b) => (a.seriesOrder || 0) - (b.seriesOrder || 0));
 

@@ -11,9 +11,12 @@ export interface SubmissionRequirementResponse {
     activityName: string;
     requiresSubmission: boolean;
     isImportant: boolean;
-    mandatoryForFacultyStudents: boolean;
-    maxPoints?: number;
-    scoreType?: string;
+    mandatoryForFacultyStudents: boolean;    scoreType?: string;
+}
+
+export interface SubmissionAttachment {
+    url: string;
+    type: "file" | "image";
 }
 
 export interface TaskSubmissionResponse {
@@ -28,6 +31,7 @@ export interface TaskSubmissionResponse {
     // Content & files
     content: string | null;
     fileUrls: string[];
+    attachments: SubmissionAttachment[];
     // Grading
     score: number | null;
     isCompleted: boolean | null;
@@ -44,9 +48,11 @@ export interface TaskSubmissionResponse {
 export interface CreateSubmissionRequest {
     content?: string;
     files?: File[];
+    images?: File[];
 }
 
 export interface UpdateSubmissionRequest {
     content?: string;
     files?: File[];
+    images?: File[];
 }

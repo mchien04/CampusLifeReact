@@ -98,7 +98,7 @@ const EventList: React.FC = () => {
         return typeLabels[type] || type;
     };
 
-    const getScoreTypeLabel = (scoreType: ScoreType | null): string => {
+    const getScoreTypeLabel = (scoreType: ScoreType | null | undefined): string => {
         if (!scoreType) return 'N/A';
         const scoreTypeLabels: Record<ScoreType, string> = {
             [ScoreType.REN_LUYEN]: 'Điểm rèn luyện',
@@ -385,12 +385,7 @@ const EventList: React.FC = () => {
                                 <span className="truncate font-medium text-gray-800">{event.participantCount} người tham gia</span>
                             </div>
                         )}
-                        {event.maxPoints && parseFloat(event.maxPoints) > 0 && (
-                            <div className="flex items-center">
-                                <span className="w-5 h-5 mr-2.5 text-[#FFD66D]">🏆</span>
-                                <span className="truncate font-semibold text-[#001C44]">{event.maxPoints} điểm</span>
-                            </div>
-                        )}
+                        
                         {event.ticketQuantity && event.ticketQuantity > 0 && (
                             <div className="flex items-center">
                                 <span className="w-5 h-5 mr-2.5 text-indigo-600">🎫</span>

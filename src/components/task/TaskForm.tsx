@@ -19,7 +19,6 @@ export const TaskForm: React.FC<TaskFormProps> = ({
         title: '',
         description: '',
         requiresSubmission: false,
-        maxPoints: '',
         dueDate: '',
     });
     const [loading, setLoading] = useState(false);
@@ -32,7 +31,6 @@ export const TaskForm: React.FC<TaskFormProps> = ({
                 title: taskData.title,
                 description: taskData.description || '',
                 requiresSubmission: taskData.requiresSubmission,
-                maxPoints: taskData.maxPoints?.toString() || '',
                 dueDate: taskData.dueDate ? taskData.dueDate.split('T')[0] : '',
             });
         }
@@ -51,12 +49,6 @@ export const TaskForm: React.FC<TaskFormProps> = ({
             newErrors.activityId = 'Vui lòng chọn sự kiện';
         }
 
-        if (formData.requiresSubmission && formData.maxPoints) {
-            const points = parseFloat(formData.maxPoints);
-            if (isNaN(points) || points <= 0) {
-                newErrors.maxPoints = 'Điểm tối đa phải là số dương';
-            }
-        }
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -76,7 +68,6 @@ export const TaskForm: React.FC<TaskFormProps> = ({
                 title: formData.title.trim(),
                 description: formData.description.trim() || undefined,
                 requiresSubmission: formData.requiresSubmission,
-                maxPoints: formData.requiresSubmission && formData.maxPoints ? parseFloat(formData.maxPoints) : undefined,
                 dueDate: formData.dueDate || undefined,
             };
 
@@ -196,28 +187,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
                             </label>
                         </div>
 
-                        {formData.requiresSubmission && (
-                            <div>
-                                <label htmlFor="maxPoints" className="block text-sm font-medium text-gray-700">
-                                    Điểm tối đa
-                                </label>
-                                <input
-                                    type="number"
-                                    id="maxPoints"
-                                    name="maxPoints"
-                                    value={formData.maxPoints}
-                                    onChange={handleChange}
-                                    min="0"
-                                    step="0.1"
-                                    className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${errors.maxPoints ? 'border-red-300' : 'border-gray-300'
-                                        }`}
-                                    placeholder="Nhập điểm tối đa"
-                                />
-                                {errors.maxPoints && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.maxPoints}</p>
-                                )}
-                            </div>
-                        )}
+
 
                         <div>
                             <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700">

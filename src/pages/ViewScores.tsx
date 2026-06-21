@@ -214,12 +214,7 @@ const ViewScores: React.FC = () => {
                                         <div key={itemIdx} className="py-3 flex justify-between items-start hover:bg-gray-50 transition-colors">
                                             <div className="flex-1">
                                                 <div className="font-medium text-gray-900">
-                                                    {it.sourceType === 'MANUAL' && 'Nhập tay'}
-                                                    {it.sourceType === 'ACTIVITY_CHECKIN' && 'Điểm danh hoạt động'}
-                                                    {it.sourceType === 'ACTIVITY_SUBMISSION' && 'Nộp bài hoạt động'}
-                                                    {it.sourceType === 'SERIES_MILESTONE' && '🎯 Điểm milestone (chuỗi sự kiện)'}
-                                                    {it.sourceType === 'MINIGAME' && '🎮 Điểm minigame quiz'}
-                                                    {it.sourceType === 'CHUYEN_DE_COUNT' && '📚 Đếm số buổi (chuyên đề)'}
+                                                    {getSourceTypeLabel(it.sourceType)}
                                                 </div>
                                                 {it.sourceNote && (
                                                     <div className="text-sm text-gray-600 mt-1">{it.sourceNote}</div>
@@ -316,62 +311,9 @@ const ViewScores: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Activity Participations */}
-                        {historyData.activityParticipations && historyData.activityParticipations.length > 0 && (
-                            <div className="card p-6">
-                                <h2 className="text-xl font-semibold text-[#001C44] mb-4">Chi tiết tham gia hoạt động</h2>
-                                <div className="overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-gray-200">
-                                        <thead className="bg-gray-50">
-                                            <tr>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Hoạt động</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Loại</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Chuỗi sự kiện</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Điểm</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Ngày</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Nguồn</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
-                                            {historyData.activityParticipations.map((participation) => (
-                                                <tr key={participation.id} className="hover:bg-gray-50">
-                                                    <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                                        {participation.activityId && participation.activityName ? (
-                                                            <Link to={`/student/events/${participation.activityId}`} className="text-[#001C44] hover:underline">
-                                                                {participation.activityName}
-                                                            </Link>
-                                                        ) : (
-                                                            <span className="text-gray-500">-</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                                                        {participation.activityType || '-'}
-                                                    </td>
-                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                                                        {participation.seriesName || '-'}
-                                                    </td>
-                                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-[#001C44]">
-                                                        {formatScore(participation.pointsEarned)}
-                                                    </td>
-                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                                                        {formatDateTime(participation.date)}
-                                                    </td>
-                                                    <td className="px-4 py-3 whitespace-nowrap">
-                                                        <span className={`px-2 py-1 rounded text-xs font-medium border ${getSourceTypeColor(participation.sourceType)}`}>
-                                                            {getSourceTypeLabel(participation.sourceType)}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        )}
 
                         {/* Empty State for History */}
                         {(!historyData.scoreHistories || historyData.scoreHistories.length === 0) && 
-                         (!historyData.activityParticipations || historyData.activityParticipations.length === 0) && 
                          !isHistoryFetching && !isHistoryError && (
                             <div className="card p-8 text-center">
                                 <div className="text-gray-400 text-6xl mb-4">📊</div>

@@ -37,7 +37,7 @@ const renderMinigameFields = (props: RenderFieldsProps & { isInSeries?: boolean 
                         type="text"
                         id="name"
                         name="name"
-                        value={formData.name}
+                        value={formData.name || ''}
                         onChange={handleChange}
                         className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44] ${errors.name ? 'border-red-500' : 'border-gray-300'
                             }`}
@@ -53,7 +53,7 @@ const renderMinigameFields = (props: RenderFieldsProps & { isInSeries?: boolean 
                     <select
                         id="scoreType"
                         name="scoreType"
-                        value={formData.scoreType}
+                        value={formData.scoreType || ''}
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
                     >
@@ -71,7 +71,7 @@ const renderMinigameFields = (props: RenderFieldsProps & { isInSeries?: boolean 
                         type="text"
                         id="location"
                         name="location"
-                        value={formData.location}
+                        value={formData.location || ''}
                         onChange={handleChange}
                         className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44] ${errors.location ? 'border-red-500' : 'border-gray-300'
                             }`}
@@ -89,7 +89,7 @@ const renderMinigameFields = (props: RenderFieldsProps & { isInSeries?: boolean 
                 <textarea
                     id="description"
                     name="description"
-                    value={formData.description}
+                    value={formData.description || ''}
                     onChange={handleChange}
                     rows={4}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
@@ -107,7 +107,7 @@ const renderMinigameFields = (props: RenderFieldsProps & { isInSeries?: boolean 
                         type="datetime-local"
                         id="startDate"
                         name="startDate"
-                        value={formData.startDate}
+                        value={formData.startDate || ''}
                         onChange={handleChange}
                         className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44] ${errors.startDate ? 'border-red-500' : 'border-gray-300'
                             }`}
@@ -123,7 +123,7 @@ const renderMinigameFields = (props: RenderFieldsProps & { isInSeries?: boolean 
                         type="datetime-local"
                         id="endDate"
                         name="endDate"
-                        value={formData.endDate}
+                        value={formData.endDate || ''}
                         onChange={handleChange}
                         className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44] ${errors.endDate ? 'border-red-500' : 'border-gray-300'
                             }`}
@@ -139,7 +139,7 @@ const renderMinigameFields = (props: RenderFieldsProps & { isInSeries?: boolean 
                         type="datetime-local"
                         id="registrationStartDate"
                         name="registrationStartDate"
-                        value={formData.registrationStartDate}
+                        value={formData.registrationStartDate || ''}
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
                     />
@@ -153,7 +153,7 @@ const renderMinigameFields = (props: RenderFieldsProps & { isInSeries?: boolean 
                         type="datetime-local"
                         id="registrationDeadline"
                         name="registrationDeadline"
-                        value={formData.registrationDeadline}
+                        value={formData.registrationDeadline || ''}
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
                     />
@@ -170,8 +170,8 @@ const renderMinigameFields = (props: RenderFieldsProps & { isInSeries?: boolean 
                     </div>
                     <div className="ml-3">
                         <p className="text-sm text-[#001C44]">
-                            <strong>Lưu ý:</strong> Điểm thưởng cho Mini Game sẽ được cấu hình khi tạo Quiz. 
-                            Các trường "Điểm tối đa" và "Điểm trừ khi không hoàn thành" không áp dụng cho Mini Game.
+                            <strong>Lưu ý:</strong> Quy tắc cộng điểm cho Mini Game được cấu hình bằng score rules ở activity
+                            và điểm quiz thực nhận sẽ đến từ kết quả làm bài.
                         </p>
                     </div>
                 </div>
@@ -231,7 +231,7 @@ const renderMinigameFields = (props: RenderFieldsProps & { isInSeries?: boolean 
                             type="url"
                             id="bannerUrl"
                             name="bannerUrl"
-                            value={formData.bannerUrl}
+                            value={formData.bannerUrl || ''}
                             onChange={(e) => {
                                 handleChange(e);
                                 // Clear file if URL is entered
@@ -286,7 +286,7 @@ const renderMinigameFields = (props: RenderFieldsProps & { isInSeries?: boolean 
 
             {/* Organizer Selection */}
             <OrganizerSelector
-                selectedIds={formData.organizerIds}
+                selectedIds={formData.organizerIds || []}
                 onChange={handleOrganizerChange}
                 error={errors.organizerIds}
                 required={true}
@@ -333,9 +333,8 @@ const renderMinigameFields = (props: RenderFieldsProps & { isInSeries?: boolean 
                                             } as any
                                         });
                                     }}
-                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44] ${
-                                        errors.ticketQuantity ? 'border-red-500' : 'border-gray-300'
-                                    }`}
+                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44] ${errors.ticketQuantity ? 'border-red-500' : 'border-gray-300'
+                                        }`}
                                     placeholder="Nhập số lượng slot"
                                 />
                                 {errors.ticketQuantity && (
@@ -402,8 +401,6 @@ const MinigameActivityForm: React.FC<MinigameActivityFormProps> = ({
     const processedInitialData = {
         ...initialData,
         type: ActivityType.MINIGAME,
-        maxPoints: undefined,
-        penaltyPointsIncomplete: undefined,
         ticketQuantity: isInSeries ? undefined : (initialData.ticketQuantity ?? 0),
     };
 

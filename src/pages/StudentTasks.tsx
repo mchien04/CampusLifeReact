@@ -25,6 +25,8 @@ const StudentTasks: React.FC = () => {
     const [submissionContent, setSubmissionContent] = useState('');
     const [submissionFiles, setSubmissionFiles] = useState<File[]>([]);
     const [submissionFilePreviews, setSubmissionFilePreviews] = useState<string[]>([]);
+    const [submissionImages, setSubmissionImages] = useState<File[]>([]);
+    const [submissionImagePreviews, setSubmissionImagePreviews] = useState<string[]>([]);
     const [submissionLoading, setSubmissionLoading] = useState(false);
     const [submissionError, setSubmissionError] = useState('');
     const [submissionSuccess, setSubmissionSuccess] = useState('');
@@ -95,18 +97,18 @@ const StudentTasks: React.FC = () => {
             if (response.status && response.data) {
                 setCurrentSubmission(response.data);
                 setSubmissionContent(response.data.content || '');
-                // fileUrls is now always an array from backend
-                if (response.data.fileUrls && response.data.fileUrls.length > 0) {
-                    setSubmissionFilePreviews(response.data.fileUrls);
-                } else {
-                    setSubmissionFilePreviews([]);
-                }
+                const atts = response.data.attachments || [];
+                setSubmissionFilePreviews(atts.filter((a: any) => a.type === 'file').map((a: any) => a.url));
+                setSubmissionImagePreviews(atts.filter((a: any) => a.type === 'image').map((a: any) => a.url));
                 setSubmissionFiles([]); // Clear file input for existing submissions
+                setSubmissionImages([]);
             } else {
                 setCurrentSubmission(null);
                 setSubmissionContent('');
                 setSubmissionFiles([]);
                 setSubmissionFilePreviews([]);
+                setSubmissionImages([]);
+                setSubmissionImagePreviews([]);
             }
         } catch (error) {
             console.error('Error loading submission:', error);
@@ -115,6 +117,8 @@ const StudentTasks: React.FC = () => {
             setSubmissionContent('');
             setSubmissionFiles([]);
             setSubmissionFilePreviews([]);
+            setSubmissionImages([]);
+            setSubmissionImagePreviews([]);
         } finally {
             setSubmissionLoading(false);
         }
@@ -133,6 +137,8 @@ const StudentTasks: React.FC = () => {
         setSubmissionContent('');
         setSubmissionFiles([]);
         setSubmissionFilePreviews([]);
+        setSubmissionImages([]);
+        setSubmissionImagePreviews([]);
         setSubmissionError('');
         setSubmissionSuccess('');
         loadStudentTasks(); // Reload tasks to update submission status
@@ -141,9 +147,16 @@ const StudentTasks: React.FC = () => {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             setSubmissionFiles(Array.from(e.target.files));
-            // Generate previews for newly selected files
             const newPreviews = Array.from(e.target.files).map(file => URL.createObjectURL(file));
-            setSubmissionFilePreviews(prev => [...prev, ...newPreviews]);
+            setSubmissionFilePreviews(newPreviews);
+        }
+    };
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            setSubmissionImages(Array.from(e.target.files));
+            const newPreviews = Array.from(e.target.files).map(file => URL.createObjectURL(file));
+            setSubmissionImagePreviews(newPreviews);
         }
     };
 
@@ -159,6 +172,7 @@ const StudentTasks: React.FC = () => {
             const data: CreateSubmissionRequest = {
                 content: submissionContent.trim() || undefined,
                 files: submissionFiles.length > 0 ? submissionFiles : undefined,
+                images: submissionImages.length > 0 ? submissionImages : undefined,
             };
 
             let response;
@@ -488,11 +502,14 @@ const StudentTasks: React.FC = () => {
                                                         <p className="text-gray-700 whitespace-pre-wrap">{mySubmission.content}</p>
                                                     </div>
                                                 )}
-                                                {(mySubmission.fileUrls && (Array.isArray(mySubmission.fileUrls) ? mySubmission.fileUrls.length > 0 : String(mySubmission.fileUrls).length > 0)) && (
+                                                {((mySubmission.attachments && mySubmission.attachments.length > 0) || (mySubmission.fileUrls && (Array.isArray(mySubmission.fileUrls) ? mySubmission.fileUrls.length > 0 : String(mySubmission.fileUrls).length > 0))) && (
                                                     <div className="mb-3">
                                                         <p className="text-gray-700 font-semibold mb-2">📎 File đính kèm:</p>
                                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                                            {(Array.isArray(mySubmission.fileUrls) ? mySubmission.fileUrls : String(mySubmission.fileUrls).split(',').map((u: string) => u.trim())).map((url: string, idx: number) => (
+                                                            {((mySubmission.attachments && mySubmission.attachments.length > 0)
+                                                                ? mySubmission.attachments.filter((attachment) => attachment.type === 'file').map((attachment) => attachment.url)
+                                                                : (Array.isArray(mySubmission.fileUrls) ? mySubmission.fileUrls : String(mySubmission.fileUrls).split(',').map((u: string) => u.trim()))
+                                                            ).map((url: string, idx: number) => (
                                                                 <button
                                                                     key={idx}
                                                                     type="button"
@@ -504,6 +521,30 @@ const StudentTasks: React.FC = () => {
                                                                     </svg>
                                                                     <span className="truncate">{url.split('/').pop()}</span>
                                                                 </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {mySubmission.attachments?.some((attachment) => attachment.type === 'image') && (
+                                                    <div className="mb-3">
+                                                        <p className="text-gray-700 font-semibold mb-2">🖼️ Hình ảnh minh chứng:</p>
+                                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                                            {mySubmission.attachments
+                                                                .filter((attachment) => attachment.type === 'image')
+                                                                .map((attachment, idx) => (
+                                                                <a
+                                                                    key={`image-${idx}`}
+                                                                    href={attachment.url}
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                    className="relative aspect-square overflow-hidden rounded-lg border border-gray-200 hover:border-[#001C44]"
+                                                                >
+                                                                    <img
+                                                                        src={attachment.url}
+                                                                        alt={`Minh chứng ${idx + 1}`}
+                                                                        className="h-full w-full object-cover"
+                                                                    />
+                                                                </a>
                                                             ))}
                                                         </div>
                                                     </div>
@@ -646,6 +687,34 @@ const StudentTasks: React.FC = () => {
                                                 >
                                                     {fileUrl.split('/').pop()}
                                                 </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            <div>
+                                <label htmlFor="submissionImages" className="block text-sm font-semibold text-gray-700 mb-2">
+                                    🖼️ Hình ảnh đính kèm (tùy chọn)
+                                </label>
+                                <input
+                                    type="file"
+                                    id="submissionImages"
+                                    multiple
+                                    accept="image/*"
+                                    onChange={handleImageChange}
+                                    disabled={!!(currentSubmission && (currentSubmission.status === 'GRADED' || currentSubmission.isCompleted !== null || currentSubmission.gradedAt !== null))}
+                                    className={`block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-5 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-[#001C44] file:to-[#002A66] file:text-[#FFD66D] hover:file:from-[#002A66] hover:file:to-[#001C44] transition-all ${
+                                        currentSubmission && (currentSubmission.status === 'GRADED' || currentSubmission.isCompleted !== null || currentSubmission.gradedAt !== null)
+                                            ? 'opacity-50 cursor-not-allowed'
+                                            : ''
+                                    }`}
+                                />
+                                <p className="mt-2 text-xs text-gray-500">Cho phép chọn nhiều hình ảnh cùng lúc.</p>
+                                {submissionImagePreviews.length > 0 && (
+                                    <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        {submissionImagePreviews.map((imageUrl, index) => (
+                                            <div key={index} className="relative aspect-square border-2 border-gray-200 rounded-lg overflow-hidden group hover:border-[#001C44] transition-all">
+                                                <img src={imageUrl} alt={`Preview ${index}`} className="w-full h-full object-cover" />
                                             </div>
                                         ))}
                                     </div>

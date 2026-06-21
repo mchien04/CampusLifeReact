@@ -181,6 +181,9 @@ export const eventAPI = {
     getEventsByDepartment: async (departmentId: number): Promise<Response<ActivityResponse[]>> => {
         try {
             const response = await api.get(`/api/activities/department/${departmentId}`);
+            if (Array.isArray(response.data)) {
+                return { status: true, message: 'Success', data: response.data };
+            }
             return {
                 status: response.data.status,
                 message: response.data.message,
@@ -200,6 +203,9 @@ export const eventAPI = {
     getEventsByScoreType: async (scoreType: string): Promise<Response<ActivityResponse[]>> => {
         try {
             const response = await api.get(`/api/activities/score-type/${scoreType}`);
+            if (Array.isArray(response.data)) {
+                return { status: true, message: 'Success', data: response.data };
+            }
             return {
                 status: response.data.status,
                 message: response.data.message,
@@ -223,6 +229,9 @@ export const eventAPI = {
             if (month) params.append('month', month.toString());
 
             const response = await api.get(`/api/activities/month?${params.toString()}`);
+            if (Array.isArray(response.data)) {
+                return { status: true, message: 'Success', data: response.data };
+            }
             return {
                 status: response.data.status,
                 message: response.data.message,
@@ -242,6 +251,9 @@ export const eventAPI = {
     getMyEvents: async (): Promise<Response<ActivityResponse[]>> => {
         try {
             const response = await api.get('/api/activities/my');
+            if (Array.isArray(response.data)) {
+                return { status: true, message: 'Success', data: response.data };
+            }
             return {
                 status: response.data.status,
                 message: response.data.message,

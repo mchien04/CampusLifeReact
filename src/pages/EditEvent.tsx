@@ -123,8 +123,8 @@ const EditEvent: React.FC = () => {
         startDate: event.startDate,
         endDate: event.endDate,
         requiresSubmission: event.requiresSubmission ?? false,
-        maxPoints: event.maxPoints?.toString() || '0',
-        penaltyPointsIncomplete: event.penaltyPointsIncomplete?.toString() || '0',
+        
+        
         registrationStartDate: event.registrationStartDate ?? undefined,
         registrationDeadline: event.registrationDeadline ?? undefined,
         shareLink: event.shareLink,

@@ -37,8 +37,7 @@ export interface MiniGame {
     isActive: boolean;
     type: MiniGameType;
     activityId: number;
-    requiredCorrectAnswers?: number;
-    rewardPoints?: string; // BigDecimal as string
+    requiredCorrectAnswers?: number; // BigDecimal as string
     maxAttempts?: number | null; // null = không giới hạn
     // Note: quiz is no longer included in MiniGameResponse from backend
     // Use getQuestions API to fetch questions separately
@@ -68,9 +67,7 @@ export interface CreateMiniGameRequest {
     description?: string;
     questionCount: number;
     timeLimit?: number;
-    requiredCorrectAnswers?: number;
-    rewardPoints?: string;
-    maxAttempts?: number | null; // null = không giới hạn
+    requiredCorrectAnswers?: number;    maxAttempts?: number | null; // null = không giới hạn
     questions: CreateQuestionRequest[];
 }
 
@@ -91,9 +88,7 @@ export interface UpdateMiniGameRequest {
     description?: string;
     questionCount?: number;
     timeLimit?: number;
-    requiredCorrectAnswers?: number;
-    rewardPoints?: string;
-    maxAttempts?: number | null; // null = không giới hạn
+    requiredCorrectAnswers?: number;    maxAttempts?: number | null; // null = không giới hạn
     questions?: CreateQuestionRequest[];
 }
 
@@ -104,8 +99,6 @@ export interface StartAttemptResponse {
     status: string; // Changed to string to match backend
     startedAt: string;
     timeLimit?: number;
-    // Legacy field for backward compatibility
-    attemptId?: number;
 }
 
 export interface SubmitAttemptRequest {
@@ -125,9 +118,6 @@ export interface SubmitAttemptResponse {
         isCompleted: boolean;
         participationType: string;
     }; // Present when PASSED
-    // Legacy field for backward compatibility
-    attemptId?: number;
-    passed?: boolean; // Can be derived from status === 'PASSED'
 }
 
 // Types for Questions API (without correct answers)
@@ -206,9 +196,7 @@ export interface QuizQuestionsEditResponse {
     description?: string;
     questionCount: number;
     timeLimit?: number;
-    requiredCorrectAnswers?: number;
-    rewardPoints?: string;
-    maxAttempts?: number | null;
+    requiredCorrectAnswers?: number;    maxAttempts?: number | null;
     questions: QuizQuestionEditResponse[];
 }
 

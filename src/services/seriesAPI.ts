@@ -58,7 +58,7 @@ export const seriesAPI = {
      * Notes:
      * - Activities are sorted by seriesOrder (ascending)
      * - Only returns activities that are not deleted (isDeleted = false)
-     * - Activities in series have type, scoreType, maxPoints = null (values come from series)
+     * - Activities in series inherit score configuration from the series context
      * - Properties like registrationStartDate, registrationDeadline, requiresApproval, 
      *   ticketQuantity are inherited from the series
      * 

@@ -19,6 +19,7 @@ const TaskSubmissions: React.FC<Props> = ({ taskId }) => {
     });
 
     const [grading, setGrading] = useState<{ id: number; isCompleted: boolean | null; feedback: string } | null>(null);
+    const [viewingSubmission, setViewingSubmission] = useState<TaskSubmissionResponse | null>(null);
 
     const mutation = useMutation({
         mutationFn: async () => {
@@ -72,7 +73,13 @@ const TaskSubmissions: React.FC<Props> = ({ taskId }) => {
                                     <td className="px-3 py-2">
                                         {s.isCompleted === true ? 'Đạt' : s.isCompleted === false ? 'Không đạt' : '-'} / {s.status}
                                     </td>
-                                    <td className="px-3 py-2">
+                                    <td className="px-3 py-2 space-x-2">
+                                        <button
+                                            className="px-3 py-1 bg-gray-600 text-white rounded"
+                                            onClick={() => setViewingSubmission(s)}
+                                        >
+                                            Xem chi tiết
+                                        </button>
                                         <button
                                             className="px-3 py-1 bg-blue-600 text-white rounded"
                                             onClick={() => setGrading({ id: s.id, isCompleted: s.isCompleted ?? null, feedback: s.feedback ?? '' })}
@@ -139,6 +146,81 @@ const TaskSubmissions: React.FC<Props> = ({ taskId }) => {
                             >
                                 {(mutation as any).isPending || (mutation as any).status === 'pending' ? 'Đang lưu...' : 'Lưu'}
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {viewingSubmission && (
+                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+                    <div className="bg-white rounded shadow p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <div className="flex justify-between items-start mb-4">
+                            <h2 className="text-xl font-semibold text-[#001C44]">Chi tiết bài nộp</h2>
+                            <button onClick={() => setViewingSubmission(null)} className="text-gray-500 hover:text-gray-700">
+                                ✕
+                            </button>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <h3 className="font-semibold text-gray-700">Sinh viên:</h3>
+                                <p>{viewingSubmission.studentName} ({viewingSubmission.studentCode})</p>
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-gray-700">Nội dung:</h3>
+                                <div className="bg-gray-50 p-3 rounded mt-1 min-h-[60px] whitespace-pre-wrap">
+                                    {viewingSubmission.content || <span className="text-gray-400 italic">Không có nội dung</span>}
+                                </div>
+                            </div>
+                            
+                            {/* Attachments */}
+                            {viewingSubmission.attachments && viewingSubmission.attachments.length > 0 && (
+                                <div>
+                                    <h3 className="font-semibold text-gray-700 mb-2">Đính kèm:</h3>
+                                    
+                                    {/* Files */}
+                                    {viewingSubmission.attachments.filter(a => a.type === 'file').length > 0 && (
+                                        <div className="mb-4">
+                                            <h4 className="text-sm font-medium text-gray-500 mb-2">Tệp tài liệu:</h4>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                {viewingSubmission.attachments.filter(a => a.type === 'file').map((file, idx) => (
+                                                    <a key={idx} href={file.url} target="_blank" rel="noreferrer" className="flex items-center p-2 border rounded hover:bg-gray-50 text-blue-600 truncate text-sm">
+                                                        📎 {file.url.split('/').pop()}
+                                                    </a>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Images */}
+                                    {viewingSubmission.attachments.filter(a => a.type === 'image').length > 0 && (
+                                        <div>
+                                            <h4 className="text-sm font-medium text-gray-500 mb-2">Hình ảnh:</h4>
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                                {viewingSubmission.attachments.filter(a => a.type === 'image').map((img, idx) => (
+                                                    <a key={idx} href={img.url} target="_blank" rel="noreferrer" className="block border rounded overflow-hidden hover:opacity-90">
+                                                        <img src={img.url} alt="Attachment" className="w-full h-32 object-cover" />
+                                                    </a>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            <div className="mt-6 pt-4 border-t flex gap-2">
+                                <button
+                                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                    onClick={() => {
+                                        setGrading({ id: viewingSubmission.id, isCompleted: viewingSubmission.isCompleted ?? null, feedback: viewingSubmission.feedback ?? '' });
+                                        setViewingSubmission(null);
+                                    }}
+                                >
+                                    Chấm điểm ngay
+                                </button>
+                                <button className="px-4 py-2 border rounded hover:bg-gray-50" onClick={() => setViewingSubmission(null)}>
+                                    Đóng
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

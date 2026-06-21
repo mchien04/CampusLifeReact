@@ -14,7 +14,7 @@ interface QuizResultsProps {
 const QuizResults: React.FC<QuizResultsProps> = ({ result, minigame, attemptDetail, onClose, onRetry, attemptCount = 0 }) => {
     const percentage = (result.correctCount / result.totalQuestions) * 100;
     // Status is now a string from backend, check for 'PASSED'
-    const passed = result.status === 'PASSED' || result.passed === true;
+    const passed = result.status === 'PASSED';
     const [showDetails, setShowDetails] = useState(false);
     
     // Check if can retry (has attempts remaining)
