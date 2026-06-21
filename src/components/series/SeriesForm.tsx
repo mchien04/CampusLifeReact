@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CreateSeriesRequest, formatMilestonePoints, parseMilestonePoints } from '../../types/series';
 import { ScoreType } from '../../types/activity';
+import { seriesAPI } from '../../services/seriesAPI';
 
 interface SeriesFormProps {
     onSubmit: (data: CreateSeriesRequest) => void;
@@ -26,7 +27,10 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
             registrationStartDate: '',
             registrationDeadline: '',
             requiresApproval: true,
-            ticketQuantity: undefined
+            ticketQuantity: undefined,
+            minimumRequirementEnabled: false,
+            minimumRequiredEvents: undefined,
+            minimumPenaltyPoints: undefined
         };
 
         return {
@@ -39,6 +43,49 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
     const [milestoneEntries, setMilestoneEntries] = useState<Array<{ count: number; points: number }>>([]);
     const [milestoneInput, setMilestoneInput] = useState({ count: '', points: '' });
     const [unlimitedTickets, setUnlimitedTickets] = useState(!formData.ticketQuantity);
+    const [presets, setPresets] = useState<any[]>([]);
+    const [selectedPresetCode, setSelectedPresetCode] = useState<string>('');
+    const isEditing = !!(initialData && Object.keys(initialData).length > 0);
+
+    // Load presets
+    useEffect(() => {
+        const fetchPresets = async () => {
+            const res = await seriesAPI.getSeriesPresets();
+            if (res.status && res.data) {
+                setPresets(res.data);
+            }
+        };
+        fetchPresets();
+    }, []);
+
+    const handlePresetChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const code = e.target.value;
+        setSelectedPresetCode(code);
+        if (!code) return;
+
+        try {
+            const previewRes = await seriesAPI.previewSeriesPreset({ presetCode: code });
+            if (previewRes.status && previewRes.data) {
+                const presetData = previewRes.data;
+                setFormData(prev => ({
+                    ...prev,
+                    scoreType: presetData.scoreType,
+                    milestonePoints: formatMilestonePoints(presetData.milestonePoints),
+                    minimumRequirementEnabled: presetData.minimumRequirementEnabled ?? false,
+                    minimumRequiredEvents: presetData.minimumRequiredEvents ?? undefined,
+                    minimumPenaltyPoints: presetData.minimumPenaltyPoints ?? undefined
+                }));
+                // Tự động set entries cho giao diện
+                setMilestoneEntries(
+                    Object.entries(presetData.milestonePoints)
+                        .map(([count, points]) => ({ count: parseInt(count), points: points as number }))
+                        .sort((a, b) => a.count - b.count)
+                );
+            }
+        } catch (error) {
+            console.error('Lỗi khi tải mẫu cấu hình:', error);
+        }
+    };
 
     useEffect(() => {
         if (formData.milestonePoints) {
@@ -185,6 +232,27 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
                     {/* Basic Information */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {!isEditing && presets.length > 0 && (
+                            <div className="md:col-span-2 mb-4 p-4 bg-blue-50 rounded-md border border-blue-100">
+                                <label htmlFor="preset" className="block text-sm font-medium text-[#001C44] mb-2">
+                                    Mẫu cấu hình chuỗi sự kiện (Preset)
+                                </label>
+                                <select
+                                    id="preset"
+                                    value={selectedPresetCode}
+                                    onChange={handlePresetChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
+                                >
+                                    <option value="">-- Tự do cấu hình (Không dùng mẫu) --</option>
+                                    {presets.map(preset => (
+                                        <option key={preset.code} value={preset.code}>
+                                            {preset.name} - {preset.description}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
                         <div className="md:col-span-2">
                             <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
                                 Tên chuỗi sự kiện *
@@ -381,6 +449,58 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
                                         onChange={handleChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
                                     />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Minimum Requirements */}
+                    <div className="border-t pt-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Điều kiện tối thiểu</h3>
+                        <div className="space-y-4">
+                            <label className="flex items-center space-x-2">
+                                <input
+                                    type="checkbox"
+                                    name="minimumRequirementEnabled"
+                                    checked={formData.minimumRequirementEnabled || false}
+                                    onChange={handleChange}
+                                    className="rounded border-gray-300 text-[#001C44] focus:ring-[#001C44]"
+                                />
+                                <span className="text-sm font-medium text-gray-700">Bật yêu cầu tối thiểu (Minimum Requirements)</span>
+                            </label>
+
+                            {formData.minimumRequirementEnabled && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                                    <div>
+                                        <label htmlFor="minimumRequiredEvents" className="block text-sm font-medium text-gray-700 mb-2">
+                                            Số sự kiện tối thiểu cần hoàn thành
+                                        </label>
+                                        <input
+                                            type="number"
+                                            id="minimumRequiredEvents"
+                                            name="minimumRequiredEvents"
+                                            min="1"
+                                            value={formData.minimumRequiredEvents || ''}
+                                            onChange={handleChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
+                                            placeholder="Ví dụ: 2"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="minimumPenaltyPoints" className="block text-sm font-medium text-gray-700 mb-2">
+                                            Điểm phạt nếu không hoàn thành (điểm dương)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            id="minimumPenaltyPoints"
+                                            name="minimumPenaltyPoints"
+                                            min="0"
+                                            value={formData.minimumPenaltyPoints || ''}
+                                            onChange={handleChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
+                                            placeholder="Ví dụ: 5"
+                                        />
+                                    </div>
                                 </div>
                             )}
                         </div>

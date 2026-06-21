@@ -31,6 +31,7 @@ const QuizForm: React.FC<QuizFormProps> = ({
             questionCount: 0,
             timeLimit: undefined,
             requiredCorrectAnswers: undefined,
+            showAnswers: false,
 
             maxAttempts: null,
             questions: []
@@ -544,6 +545,31 @@ const QuizForm: React.FC<QuizFormProps> = ({
                             {unlimitedAttempts && (
                                 <p className="text-xs text-gray-500 mt-1">Sinh viên có thể làm quiz không giới hạn số lần</p>
                             )}
+                        </div>
+
+                        <div>
+                            <div className="flex items-center justify-between mb-2">
+                                <label htmlFor="showAnswers" className="block text-sm font-medium text-gray-700">
+                                    Hiển thị đáp án
+                                </label>
+                                <div className="flex items-center space-x-2">
+                                    <span className="text-sm text-gray-600">{formData.showAnswers ? 'Có' : 'Không'}</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setFormData(prev => ({ ...prev, showAnswers: !prev.showAnswers }));
+                                        }}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:ring-offset-2 ${formData.showAnswers ? 'bg-[#001C44]' : 'bg-gray-300'
+                                            }`}
+                                    >
+                                        <span
+                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.showAnswers ? 'translate-x-6' : 'translate-x-1'
+                                                }`}
+                                        />
+                                    </button>
+                                </div>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">Cho phép sinh viên xem đáp án đúng sau khi nộp bài</p>
                         </div>
                     </div>
 

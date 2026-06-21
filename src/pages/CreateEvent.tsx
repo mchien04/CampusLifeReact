@@ -65,7 +65,7 @@ const CreateEvent: React.FC = () => {
             <EventForm
                 onSubmit={handleSubmit}
                 loading={loading}
-                title="Tạo sự kiện mới"
+                title="Tạo sự kiện thường mới"
                 onCancel={() => navigate('/manager/events')}
             />
         </div>

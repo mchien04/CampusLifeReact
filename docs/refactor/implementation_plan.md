@@ -80,6 +80,18 @@ tài liệu này bám theo hiện trạng code trong `src/types`, `src/services`
    - hay loại khỏi UI nhưng giữ trong type để tương thích;
    - hay xóa hoàn toàn khỏi contract FE.
 
+6. **Tách rõ 3 luồng tạo mới ở UI.**
+   Không dùng một form activity chung cho cả sự kiện thường, minigame và series.
+   - `EventForm.tsx`: chỉ dành cho activity thường.
+   - `MinigameActivityForm.tsx`: chỉ dành cho activity minigame.
+   - `SeriesForm.tsx` + `SeriesActivityForm.tsx`: là flow riêng cho series và activity con trong series.
+
+7. **Activity thường không được phép chọn `MINIGAME` trong form sự kiện thường.**
+   Nếu người dùng muốn tạo minigame, phải đi qua flow minigame riêng.
+
+8. **Activity con trong series dùng form rút gọn.**
+   Trong series, user vẫn có thể tạo activity thường hoặc minigame, nhưng chỉ nhập các field thật sự cần cho activity con; các field mang tính cấu hình độc lập hoặc trùng với series phải bị ẩn/khóa hoặc được kế thừa từ series.
+
 ---
 
 ## Proposed Changes
@@ -187,6 +199,53 @@ Mục tiêu: đồng bộ types và service adapters với contract backend th�
 
 Mục tiêu: chuyển activity khỏi mô hình điểm tĩnh và hiển thị/submit theo `scoreRules`.
 
+#### Quyết định kiến trúc cho flow tạo mới
+
+- **Flow 1 - Tạo sự kiện thường**
+  - Dùng `EventForm.tsx`.
+  - Không cho chọn `ActivityType.MINIGAME` trong dropdown loại sự kiện.
+  - Chỉ cho phép các loại activity thường như:
+    - `SUKIEN`
+    - `CONG_TAC_XA_HOI`
+    - `CHUYEN_DE_DOANH_NGHIEP`
+
+- **Flow 2 - Tạo minigame**
+  - Dùng `MinigameActivityForm.tsx` và các màn create/edit quiz riêng.
+  - `type` được cố định là `MINIGAME`, không cho user đổi qua loại khác trong cùng form.
+  - Form này chỉ hiển thị các field phù hợp với minigame activity + quiz flow.
+
+- **Flow 3 - Tạo series**
+  - Dùng `SeriesForm.tsx` cho cấu hình series.
+  - Activity con bên trong series được tạo qua `SeriesActivityForm.tsx` hoặc flow series-specific tương đương.
+  - Activity con trong series vẫn có thể là:
+    - activity thường
+    - minigame
+  - Nhưng chỉ dùng **bộ field rút gọn**, vì nhiều field phải kế thừa hoặc chịu semantics từ series.
+
+#### Nguyên tắc field cho activity con trong series
+
+- **Giữ lại** các field tối thiểu:
+  - `name`
+  - `description`
+  - `type`
+  - `startDate`
+  - `endDate`
+  - `location`
+  - `bannerUrl`
+  - `requiresSubmission` nếu backend vẫn cần ở activity con
+  - các field thực sự cần để gắn organizer/approval nếu contract yêu cầu
+
+- **Ẩn hoặc kế thừa từ series**:
+  - `scoreType` gốc nếu điểm được hiểu ở tầng series
+  - mọi field điểm tĩnh cũ
+  - các field registration/policy đã được series quản lý
+  - các field duplicate với cấu hình tổng của series
+
+- **Minigame trong series**
+  - Vẫn là `type = MINIGAME`.
+  - Dùng bộ field rút gọn của activity con + quiz flow riêng.
+  - Không kéo toàn bộ form create event thường vào flow series.
+
 #### Đề xuất chia nhỏ phase này
 
 - **Phase 2a - Form contract migration**
@@ -219,6 +278,9 @@ Mục tiêu: chuyển activity khỏi mô hình điểm tĩnh và hiển thị/s
 
 #### [MODIFY] [EventForm.tsx](file:///d:/2025-2026%20HKI/TLCN/campuslifereact/src/components/events/EventForm.tsx)
 
+- Chuyển form này thành **form tạo activity thường chuyên biệt**.
+- Bỏ lựa chọn `ActivityType.MINIGAME` khỏi dropdown loại sự kiện.
+- Nếu cần giữ chung component, rename nội bộ hoặc thêm guard để `EventForm` không được submit `type = MINIGAME`.
 - Loại bỏ validation bắt buộc `maxPoints` khi `requiresSubmission`.
 - Xóa các input:
   - `maxPoints`
@@ -230,14 +292,26 @@ Mục tiêu: chuyển activity khỏi mô hình điểm tĩnh và hiển thị/s
 
 #### [MODIFY] [MinigameActivityForm.tsx](file:///d:/2025-2026%20HKI/TLCN/campuslifereact/src/components/events/MinigameActivityForm.tsx)
 
+- Chốt đây là **form tạo activity minigame chuyên biệt**.
+- Cố định `type = MINIGAME`.
+- Không hiển thị dropdown đổi loại activity trong form này.
 - Bỏ các giả định UI dựa vào `scoreType`/`maxPoints` của activity minigame.
 - Nếu minigame activity vẫn cần thông tin điểm để giải thích cho người dùng, hiển thị theo `scoreRules` hoặc theo chú thích milestone/quiz flow mới.
 - Đồng bộ với `BaseEventForm.tsx` để không còn set state theo model activity cũ.
 
 #### [MODIFY] [CreateEvent.tsx](file:///d:/2025-2026%20HKI/TLCN/campuslifereact/src/pages/CreateEvent.tsx) & [EditEvent.tsx](file:///d:/2025-2026%20HKI/TLCN/campuslifereact/src/pages/EditEvent.tsx)
 
+- `CreateEvent.tsx` chỉ dùng cho activity thường.
+- Nếu hiện route này vẫn cho tạo minigame bằng cách chọn type, cần bỏ nhánh đó khỏi UI và navigation.
 - Map `initialData` và submit payload sang `scoreRules`.
 - Không nạp lại `maxPoints`/`penaltyPointsIncomplete` làm source of truth.
+
+#### [REVIEW/MODIFY] Luồng tạo minigame riêng
+
+- Rà lại các route/page create minigame hiện có để bảo đảm user đi từ:
+  - chọn/tạo activity minigame riêng
+  - sau đó cấu hình quiz bằng form riêng
+- Không để `CreateEvent.tsx` và `MinigameActivityForm.tsx` chồng chéo trách nhiệm.
 
 #### [MODIFY] [EventDetail.tsx](file:///d:/2025-2026%20HKI/TLCN/campuslifereact/src/pages/EventDetail.tsx) & [StudentEventDetail.tsx](file:///d:/2025-2026%20HKI/TLCN/campuslifereact/src/pages/StudentEventDetail.tsx)
 
@@ -256,11 +330,30 @@ Mục tiêu: chuyển activity khỏi mô hình điểm tĩnh và hiển thị/s
 
 #### [REVIEW] Các luồng series/activity liên quan
 
-- Rà lại các chỗ phụ thuộc `scoreType`/`maxPoints` trong:
+- Rà lại các chỗ phụ thuộc `scoreType`/`maxPoints` và các field không nên xuất hiện ở activity con trong series:
   - `SeriesActivityForm.tsx`
   - `SeriesActivityList.tsx`
   - logic copy/edit activity
 - Mục tiêu là tránh để flow series trở thành chỗ giữ lại contract cũ.
+- Chốt rõ trong implementation:
+  - activity con trong series được chọn `thường` hoặc `minigame`;
+  - nhưng form phải **tinh gọn hơn form create độc lập**;
+  - các field do series kiểm soát phải bị ẩn hoặc read-only;
+  - không cho user hiểu nhầm rằng activity con trong series là một event độc lập đầy đủ cấu hình.
+
+#### [MODIFY] [SeriesForm.tsx](file:///d:/2025-2026%20HKI/TLCN/campuslifereact/src/components/series/SeriesForm.tsx) & [SeriesActivityForm.tsx](file:///d:/2025-2026%20HKI/TLCN/campuslifereact/src/components/events/SeriesActivityForm.tsx)
+
+- Giữ `SeriesForm.tsx` chỉ cho cấu hình series cấp cha.
+- `SeriesActivityForm.tsx` phải là form tạo activity con rút gọn.
+- Thêm hoặc chỉnh UI chọn loại activity con:
+  - `SUKIEN` / activity thường
+  - `MINIGAME`
+- Khi chọn `MINIGAME` trong series:
+  - chỉ bật các field cần cho minigame activity con;
+  - phần quiz chi tiết vẫn đi qua flow riêng, không nhồi hết vào form series activity nếu gây quá tải.
+- Khi chọn activity thường trong series:
+  - không hiển thị các field chỉ dành cho minigame;
+  - vẫn không bung full field set của `EventForm.tsx`.
 
 #### [REVIEW/MODIFY] [TaskForm.tsx](file:///d:/2025-2026%20HKI/TLCN/campuslifereact/src/components/task/TaskForm.tsx) & [TaskManagement.tsx](file:///d:/2025-2026%20HKI/TLCN/campuslifereact/src/pages/admin/TaskManagement.tsx)
 

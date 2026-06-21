@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ActivityTask, ActivityResponse, CreateTaskRequest, UpdateTaskRequest } from '../../types';
+import { taskAPI } from '../../services/taskAPI';
+import { toast } from 'react-toastify';
 
 interface TaskFormProps {
     taskData?: ActivityTask | null;
@@ -22,6 +24,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
         dueDate: '',
     });
     const [loading, setLoading] = useState(false);
+    const [checkingOverdue, setCheckingOverdue] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     useEffect(() => {
@@ -92,6 +95,26 @@ export const TaskForm: React.FC<TaskFormProps> = ({
                 ...prev,
                 [name]: '',
             }));
+        }
+    };
+
+    const handleCheckOverdue = async () => {
+        if (!taskData?.id) return;
+        
+        setCheckingOverdue(true);
+        try {
+            const res = await taskAPI.checkOverdueTaskById(taskData.id);
+            if (res.status) {
+                const updatedCount = res.data?.updatedCount || 0;
+                toast.success(`Đã kiểm tra! Cập nhật ${updatedCount} bài nộp thành OVERDUE.`);
+            } else {
+                toast.error(res.message || 'Lỗi khi kiểm tra nhiệm vụ quá hạn.');
+            }
+        } catch (error) {
+            console.error('Error checking overdue task:', error);
+            toast.error('Có lỗi xảy ra khi kiểm tra.');
+        } finally {
+            setCheckingOverdue(false);
         }
     };
 
@@ -203,21 +226,36 @@ export const TaskForm: React.FC<TaskFormProps> = ({
                             />
                         </div>
 
-                        <div className="flex justify-end space-x-3 pt-4">
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                            >
-                                Hủy
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-                            >
-                                {loading ? 'Đang xử lý...' : (taskData ? 'Cập nhật' : 'Tạo mới')}
-                            </button>
+                        <div className="flex justify-between items-center pt-4 border-t">
+                            <div>
+                                {taskData && (
+                                    <button
+                                        type="button"
+                                        onClick={handleCheckOverdue}
+                                        disabled={checkingOverdue}
+                                        className="px-4 py-2 text-sm font-medium text-white bg-yellow-600 border border-transparent rounded-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 disabled:opacity-50"
+                                        title="Kiểm tra và xử phạt các sinh viên chưa nộp bài khi đã quá hạn"
+                                    >
+                                        {checkingOverdue ? 'Đang kiểm tra...' : 'Kiểm tra quá hạn'}
+                                    </button>
+                                )}
+                            </div>
+                            <div className="flex space-x-3">
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                >
+                                    Hủy
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                                >
+                                    {loading ? 'Đang xử lý...' : (taskData ? 'Cập nhật' : 'Tạo mới')}
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>

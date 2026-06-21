@@ -64,6 +64,7 @@ import EmailHistory from './pages/admin/EmailHistory';
 import EmailDetail from './pages/admin/EmailDetail';
 import NotificationList from './pages/NotificationList';
 import NotificationDetail from './pages/NotificationDetail';
+import AdminTools from './pages/admin/AdminTools';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';

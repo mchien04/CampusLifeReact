@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CreateActivityRequest, ActivityType, ScoreType } from '../../types/activity';
 import { uploadAPI } from '../../services/uploadAPI';
+import { eventAPI } from '../../services/eventAPI';
 import { getImageUrl } from '../../utils/imageUtils';
 import OrganizerSelector from './OrganizerSelector';
 import { ScoreRulesForm } from './ScoreRulesForm';
@@ -81,6 +82,61 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
     const [isInitialLoad, setIsInitialLoad] = useState(true);
     const [unlimitedTickets, setUnlimitedTickets] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [presets, setPresets] = useState<any[]>([]);
+    const [selectedPresetCode, setSelectedPresetCode] = useState<string>('');
+    const isEditing = !!(initialData && initialData.name);
+
+    // Load presets on mount
+    useEffect(() => {
+        const fetchPresets = async () => {
+            try {
+                const res = await eventAPI.getActivityPresets();
+                if (res.status && res.data) {
+                    setPresets(res.data);
+                    
+                    // If mode is minigame and we are on initial load (not editing)
+                    if (mode === 'minigame' && !isEditing) {
+                        const hasMinigamePreset = res.data.some(p => p.code === 'MINIGAME_PASS_ONLY');
+                        if (hasMinigamePreset) {
+                            setSelectedPresetCode('MINIGAME_PASS_ONLY');
+                            const previewRes = await eventAPI.previewActivityPreset({ presetCode: 'MINIGAME_PASS_ONLY' });
+                            if (previewRes.status && previewRes.data) {
+                                const presetData = previewRes.data;
+                                setFormData(prev => ({
+                                    ...prev,
+                                    requiresSubmission: presetData.requiresSubmission,
+                                    scoreRules: presetData.scoreRules || []
+                                }));
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Lỗi khi tải mẫu cấu hình:', error);
+            }
+        };
+        fetchPresets();
+    }, [mode, isEditing]);
+
+    const handlePresetChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const code = e.target.value;
+        setSelectedPresetCode(code);
+        if (!code) return;
+
+        try {
+            const previewRes = await eventAPI.previewActivityPreset({ presetCode: code });
+            if (previewRes.status && previewRes.data) {
+                const presetData = previewRes.data;
+                setFormData(prev => ({
+                    ...prev,
+                    requiresSubmission: presetData.requiresSubmission,
+                    scoreRules: presetData.scoreRules || []
+                }));
+            }
+        } catch (error) {
+            console.error('Lỗi khi tải mẫu cấu hình:', error);
+        }
+    };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
@@ -268,15 +324,40 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
 
     const formContent = (
         <form onSubmit={handleSubmit} className={inline ? "space-y-6" : "p-6 space-y-6"}>
+            {!isEditing && mode !== 'series' && presets.length > 0 && (
+                <div className="p-4 bg-blue-50 rounded-md border border-blue-100">
+                    <label htmlFor="preset" className="block text-sm font-medium text-[#001C44] mb-2">
+                        Mẫu cấu hình (Preset) <span className="text-gray-500 font-normal">- Tự động điền yêu cầu nộp bài và các luật tính điểm</span>
+                    </label>
+                    <select
+                        id="preset"
+                        value={selectedPresetCode}
+                        onChange={handlePresetChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
+                    >
+                        <option value="">-- Tự do cấu hình (Không dùng mẫu) --</option>
+                        {presets
+                            .filter(preset => mode !== 'minigame' || preset.activityType === 'MINIGAME')
+                            .map(preset => (
+                                <option key={preset.code} value={preset.code}>
+                                    {preset.name} - {preset.description}
+                                </option>
+                            ))}
+                    </select>
+                </div>
+            )}
+
             {renderFields ? renderFields(renderFieldsProps) : null}
 
             {/* Score Rules Section */}
-            <div className="pt-6 border-t border-gray-200">
-                <ScoreRulesForm 
-                    rules={formData.scoreRules || []}
-                    onChange={(rules) => setFormData(prev => ({ ...prev, scoreRules: rules }))}
-                />
-            </div>
+            {mode !== 'series' && (
+                <div className="pt-6 border-t border-gray-200">
+                    <ScoreRulesForm 
+                        rules={formData.scoreRules || []}
+                        onChange={(rules) => setFormData(prev => ({ ...prev, scoreRules: rules }))}
+                    />
+                </div>
+            )}
 
             {/* Submit Button */}
             <div className={`flex justify-end space-x-4 ${inline ? 'pt-6 border-t border-gray-200' : 'pt-6 border-t border-gray-200'}`}>

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import EventForm from '../components/events/EventForm';
-import { CreateActivityRequest, ActivityResponse } from '../types/activity';
+import MinigameActivityForm from '../components/events/MinigameActivityForm';
+import SeriesActivityForm from '../components/events/SeriesActivityForm';
+import { CreateActivityRequest, ActivityResponse, ActivityType } from '../types/activity';
 import { eventAPI } from '../services/eventAPI';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -192,13 +194,41 @@ const EditEvent: React.FC = () => {
             )}
 
             {/* Form */}
-            <EventForm
-                onSubmit={handleSubmit}
-                loading={loading}
-                initialData={initialData}
-                title="Chỉnh sửa sự kiện"
-                onCancel={() => navigate('/manager/events')}
-            />
+            {event.seriesId ? (
+                <SeriesActivityForm
+                    onSubmit={(data) => {
+                        const updateData: CreateActivityRequest = {
+                            ...initialData,
+                            ...data,
+                            type: event.type ?? ActivityType.SUKIEN,
+                            startDate: data.startDate || event.startDate,
+                            endDate: data.endDate || event.endDate,
+                        };
+                        handleSubmit(updateData);
+                    }}
+                    loading={loading}
+                    initialData={initialData as any}
+                    title={event.type === ActivityType.MINIGAME ? "Chỉnh sửa Mini Game trong chuỗi" : "Chỉnh sửa sự kiện trong chuỗi"}
+                    onCancel={() => navigate('/manager/events')}
+                    isMinigame={event.type === ActivityType.MINIGAME}
+                />
+            ) : event.type === ActivityType.MINIGAME ? (
+                <MinigameActivityForm
+                    onSubmit={handleSubmit}
+                    loading={loading}
+                    initialData={initialData}
+                    title="Chỉnh sửa thông tin Mini Game"
+                    onCancel={() => navigate('/manager/events')}
+                />
+            ) : (
+                <EventForm
+                    onSubmit={handleSubmit}
+                    loading={loading}
+                    initialData={initialData}
+                    title="Chỉnh sửa sự kiện"
+                    onCancel={() => navigate('/manager/events')}
+                />
+            )}
 
         </div>
     );

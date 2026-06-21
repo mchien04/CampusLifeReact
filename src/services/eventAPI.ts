@@ -1,8 +1,46 @@
 import api from './api';
 import { CreateActivityRequest, ActivityResponse } from '../types/activity';
 import { Response } from '../types/auth';
+import { ActivityPresetPreviewResponse } from '../types/presets';
 
 export const eventAPI = {
+    // Activity Presets
+    getActivityPresets: async (): Promise<Response<any[]>> => {
+        try {
+            const response = await api.get('/api/activities/presets');
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Error fetching activity presets:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Không thể tải danh sách mẫu sự kiện',
+                data: []
+            };
+        }
+    },
+
+    previewActivityPreset: async (data: any): Promise<Response<ActivityPresetPreviewResponse>> => {
+        try {
+            const response = await api.post('/api/activities/presets/preview', data);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Error previewing activity preset:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Có lỗi xảy ra khi xem trước mẫu',
+                data: undefined
+            };
+        }
+    },
+
     // Get all events
     getEvents: async (): Promise<Response<ActivityResponse[]>> => {
         try {

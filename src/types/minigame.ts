@@ -35,9 +35,10 @@ export interface MiniGame {
     questionCount: number;
     timeLimit?: number; // in seconds
     isActive: boolean;
+    showAnswers: boolean;
     type: MiniGameType;
     activityId: number;
-    requiredCorrectAnswers?: number; // BigDecimal as string
+    requiredCorrectAnswers?: number; // BigDecimal as string
     maxAttempts?: number | null; // null = không giới hạn
     // Note: quiz is no longer included in MiniGameResponse from backend
     // Use getQuestions API to fetch questions separately
@@ -67,7 +68,8 @@ export interface CreateMiniGameRequest {
     description?: string;
     questionCount: number;
     timeLimit?: number;
-    requiredCorrectAnswers?: number;    maxAttempts?: number | null; // null = không giới hạn
+    requiredCorrectAnswers?: number;    maxAttempts?: number | null; // null = không giới hạn
+    showAnswers?: boolean | null;
     questions: CreateQuestionRequest[];
 }
 
@@ -88,7 +90,8 @@ export interface UpdateMiniGameRequest {
     description?: string;
     questionCount?: number;
     timeLimit?: number;
-    requiredCorrectAnswers?: number;    maxAttempts?: number | null; // null = không giới hạn
+    requiredCorrectAnswers?: number;    maxAttempts?: number | null; // null = không giới hạn
+    showAnswers?: boolean | null;
     questions?: CreateQuestionRequest[];
 }
 
@@ -172,6 +175,7 @@ export interface AttemptDetailResponse {
     startedAt: string;
     submittedAt?: string;
     requiredCorrectAnswers?: number;
+    showAnswers: boolean;
     questions: QuestionWithAnswer[];
 }
 
@@ -196,7 +200,8 @@ export interface QuizQuestionsEditResponse {
     description?: string;
     questionCount: number;
     timeLimit?: number;
-    requiredCorrectAnswers?: number;    maxAttempts?: number | null;
+    requiredCorrectAnswers?: number;    
+    maxAttempts?: number | null;
+    showAnswers?: boolean;
     questions: QuizQuestionEditResponse[];
 }
-

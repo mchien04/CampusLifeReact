@@ -31,6 +31,11 @@ export interface StudentSeriesProgress {
     nextMilestonePoints?: string; // Điểm sẽ nhận khi đạt mốc tiếp theo
     milestonePoints?: string | Record<number, number>; // Map các mốc điểm (JSON string or object)
     scoreType?: ScoreType; // Loại điểm (REN_LUYEN, etc.)
+    minimumRequirementEnabled?: boolean;
+    minimumRequiredEvents?: number | null;
+    minimumPenaltyPoints?: number | null;
+    minimumRequirementMet?: boolean;
+    remainingToAvoidPenalty?: number;
 }
 
 export interface CreateSeriesRequest {
@@ -43,6 +48,11 @@ export interface CreateSeriesRequest {
     registrationDeadline?: string;
     requiresApproval?: boolean;
     ticketQuantity?: number;
+    minimumRequirementEnabled?: boolean | null;
+    minimumRequiredEvents?: number | null;
+    minimumPenaltyPoints?: number | null;
+    presetCode?: string | null;
+    presetConfig?: any | null;
 }
 
 export interface UpdateSeriesRequest {
@@ -55,6 +65,9 @@ export interface UpdateSeriesRequest {
     registrationDeadline?: string;
     requiresApproval?: boolean;
     ticketQuantity?: number;
+    minimumRequirementEnabled?: boolean | null;
+    minimumRequiredEvents?: number | null;
+    minimumPenaltyPoints?: number | null;
 }
 
 export interface CreateActivityInSeriesRequest {
@@ -89,6 +102,9 @@ export interface SeriesResponse {
     registrationDeadline?: string;
     requiresApproval: boolean;
     ticketQuantity?: number;
+    minimumRequirementEnabled?: boolean;
+    minimumRequiredEvents?: number | null;
+    minimumPenaltyPoints?: number | null;
     createdAt: string;
     activities?: ActivityResponse[];
     totalActivities?: number;

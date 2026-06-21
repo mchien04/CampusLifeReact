@@ -14,8 +14,46 @@ import {
     SeriesProgressListResponse
 } from '../types/series';
 import { ActivityResponse } from '../types/activity';
+import { SeriesPresetPreviewResponse } from '../types/presets';
 
 export const seriesAPI = {
+    // Series Presets
+    getSeriesPresets: async (): Promise<Response<any[]>> => {
+        try {
+            const response = await api.get('/api/series/presets');
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Error fetching series presets:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Không thể tải danh sách mẫu chuỗi sự kiện',
+                data: []
+            };
+        }
+    },
+
+    previewSeriesPreset: async (data: any): Promise<Response<SeriesPresetPreviewResponse>> => {
+        try {
+            const response = await api.post('/api/series/presets/preview', data);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Error previewing series preset:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Có lỗi xảy ra khi xem trước mẫu',
+                data: undefined
+            };
+        }
+    },
+
     // Get all series
     getSeries: async (): Promise<Response<SeriesResponse[]>> => {
         try {

@@ -49,8 +49,8 @@ const EditQuiz: React.FC = () => {
                 type: 'QUIZ' as any,
                 activityId: 0, // We'll get this from activity
                 requiredCorrectAnswers: editData.requiredCorrectAnswers,
-
-                maxAttempts: editData.maxAttempts ?? null // Include maxAttempts from API response
+                maxAttempts: editData.maxAttempts ?? null, // Include maxAttempts from API response
+                showAnswers: editData.showAnswers ?? false
             };
             setMinigame(minigameData);
 
@@ -171,6 +171,7 @@ const EditQuiz: React.FC = () => {
         requiredCorrectAnswers: minigame.requiredCorrectAnswers,
 
         maxAttempts: minigame.maxAttempts !== undefined ? minigame.maxAttempts : null,
+        showAnswers: minigame.showAnswers,
         // Use loaded questions with correct answers
         questions: initialQuestions
     };

@@ -1,9 +1,11 @@
 import React, { useState, useEffect, ChangeEvent } from 'react';
 import { CreateActivityRequest, ActivityType, ScoreType, ActivityScoreRuleRequest } from '../../types/activity';
 import { uploadAPI } from '../../services/uploadAPI';
+import { eventAPI } from '../../services/eventAPI';
 import { getImageUrl } from '../../utils/imageUtils';
 import OrganizerSelector from './OrganizerSelector';
 import { ScoreRulesForm } from './ScoreRulesForm';
+import { ActivityPresetPreviewResponse } from '../../types/presets';
 
 interface EventFormProps {
     onSubmit: (data: CreateActivityRequest) => void;
@@ -63,6 +65,41 @@ const EventForm: React.FC<EventFormProps> = ({
     const [originalBannerUrl, setOriginalBannerUrl] = useState<string>('');
     const [isInitialLoad, setIsInitialLoad] = useState(true);
     const [unlimitedTickets, setUnlimitedTickets] = useState(false);
+    const [presets, setPresets] = useState<any[]>([]);
+    const [selectedPresetCode, setSelectedPresetCode] = useState<string>('');
+    const isEditing = !!(initialData && Object.keys(initialData).length > 0);
+
+    // Load presets on mount
+    useEffect(() => {
+        const fetchPresets = async () => {
+            const res = await eventAPI.getActivityPresets();
+            if (res.status && res.data) {
+                setPresets(res.data);
+            }
+        };
+        fetchPresets();
+    }, []);
+
+    const handlePresetChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const code = e.target.value;
+        setSelectedPresetCode(code);
+        if (!code) return;
+
+        try {
+            const previewRes = await eventAPI.previewActivityPreset({ presetCode: code });
+            if (previewRes.status && previewRes.data) {
+                const presetData = previewRes.data;
+                setFormData(prev => ({
+                    ...prev,
+                    type: presetData.activityType,
+                    requiresSubmission: presetData.requiresSubmission,
+                    scoreRules: presetData.scoreRules || []
+                }));
+            }
+        } catch (error) {
+            console.error('Lỗi khi tải mẫu cấu hình:', error);
+        }
+    };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
@@ -93,6 +130,10 @@ const EventForm: React.FC<EventFormProps> = ({
 
     const validateForm = (): boolean => {
         const newErrors: Record<string, string> = {};
+
+        if (formData.type === ActivityType.MINIGAME) {
+            newErrors.type = 'Không thể tạo hoặc lưu Mini Game từ form sự kiện thường này.';
+        }
 
         if (!formData.name.trim()) {
             newErrors.name = 'Tên sự kiện là bắt buộc';
@@ -252,12 +293,33 @@ const EventForm: React.FC<EventFormProps> = ({
             <div className="bg-white shadow-lg rounded-lg">
                 <div className="px-6 py-4 border-b border-gray-200">
                     <h2 className="text-2xl font-bold text-[#001C44]">{title}</h2>
-                    <p className="text-gray-600 mt-1">Điền thông tin chi tiết về sự kiện</p>
+                    <p className="text-gray-600 mt-1">Điền thông tin chi tiết về sự kiện thường (không dùng cho Mini Game)</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
                     {/* Basic Information */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {!isEditing && presets.length > 0 && (
+                            <div className="md:col-span-2 mb-4 p-4 bg-blue-50 rounded-md border border-blue-100">
+                                <label htmlFor="preset" className="block text-sm font-medium text-[#001C44] mb-2">
+                                    Mẫu cấu hình (Preset) <span className="text-gray-500 font-normal">- Tự động điền loại sự kiện, yêu cầu nộp bài và các luật tính điểm</span>
+                                </label>
+                                <select
+                                    id="preset"
+                                    value={selectedPresetCode}
+                                    onChange={handlePresetChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
+                                >
+                                    <option value="">-- Tự do cấu hình (Không dùng mẫu) --</option>
+                                    {presets.map(preset => (
+                                        <option key={preset.code} value={preset.code}>
+                                            {preset.name} - {preset.description}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
                         <div className="md:col-span-2">
                             <label htmlFor="name" className="block text-sm font-medium text-[#001C44] mb-2">
                                 Tên sự kiện *
@@ -284,13 +346,13 @@ const EventForm: React.FC<EventFormProps> = ({
                                 name="type"
                                 value={formData.type || ''}
                                 onChange={handleChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.type ? 'border-red-500' : 'border-gray-300'}`}
                             >
                                 <option value={ActivityType.SUKIEN}>Sự kiện</option>
-                                <option value={ActivityType.MINIGAME}>Mini Game</option>
                                 <option value={ActivityType.CONG_TAC_XA_HOI}>Công tác xã hội</option>
                                 <option value={ActivityType.CHUYEN_DE_DOANH_NGHIEP}>Chuyên đề doanh nghiệp</option>
                             </select>
+                            {errors.type && <p className="text-red-500 text-sm mt-1">{errors.type}</p>}
                         </div>
 
                         <div>
