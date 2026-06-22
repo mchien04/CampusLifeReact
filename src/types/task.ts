@@ -8,9 +8,7 @@ export interface ActivityTask {
     activity: Activity;
     title: string;
     description?: string;
-    requiresSubmission: boolean;
-    maxPoints?: number;
-    dueDate?: string;
+    requiresSubmission: boolean;    dueDate?: string;
     status: 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
     createdAt: string;
     updatedAt: string;
@@ -35,17 +33,13 @@ export interface CreateTaskRequest {
     activityId: number;
     title: string;
     description?: string;
-    requiresSubmission: boolean;
-    maxPoints?: number;
-    dueDate?: string;
+    requiresSubmission: boolean;    dueDate?: string;
 }
 
 export interface UpdateTaskRequest {
     title: string;
     description?: string;
-    requiresSubmission: boolean;
-    maxPoints?: number;
-    dueDate?: string;
+    requiresSubmission: boolean;    dueDate?: string;
 }
 
 export interface AssignTaskRequest {
@@ -144,7 +138,8 @@ export enum TaskStatus {
     PENDING = 'PENDING',
     IN_PROGRESS = 'IN_PROGRESS',
     COMPLETED = 'COMPLETED',
-    CANCELLED = 'CANCELLED'
+    CANCELLED = 'CANCELLED',
+    OVERDUE = 'OVERDUE'
 }
 
 export const getTaskStatusLabel = (status: string): string => {
@@ -157,6 +152,8 @@ export const getTaskStatusLabel = (status: string): string => {
             return 'Hoàn thành';
         case 'CANCELLED':
             return 'Đã hủy';
+        case 'OVERDUE':
+            return 'Quá hạn';
         default:
             return status;
     }
@@ -186,6 +183,8 @@ export const getTaskStatusColor = (status: string): string => {
         case 'COMPLETED':
             return 'bg-green-100 text-green-800';
         case 'CANCELLED':
+            return 'bg-red-100 text-red-800';
+        case 'OVERDUE':
             return 'bg-red-100 text-red-800';
         default:
             return 'bg-gray-100 text-gray-800';

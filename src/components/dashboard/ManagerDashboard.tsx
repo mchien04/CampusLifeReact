@@ -56,10 +56,11 @@ const ManagerDashboard: React.FC = () => {
     ];
 
     const quickActions = [
-        { name: 'Tạo sự kiện mới', href: '/manager/events/create', icon: '➕', description: 'Tạo sự kiện hoạt động mới' },
+        { name: 'Tạo sự kiện thường', href: '/manager/events/create', icon: '➕', description: 'Tạo sự kiện hoạt động thường' },
+        { name: 'Tạo Mini Game mới', href: '/manager/minigames/create', icon: '🎮', description: 'Tạo hoạt động Mini Game kèm Quiz' },
         { name: 'Quản lý sự kiện', href: '/manager/events', icon: '📅', description: 'Xem và quản lý sự kiện' },
         { name: 'Chuỗi sự kiện', href: '/manager/series', icon: '📋', description: 'Tạo và quản lý chuỗi sự kiện' },
-        { name: 'Mini Game', href: '/manager/minigames', icon: '🎮', description: 'Tạo và quản lý quiz minigame' },
+        { name: 'Mini Game', href: '/manager/minigames', icon: '🎯', description: 'Xem và quản lý quiz minigame' },
         { name: 'Quản lý đăng ký', href: '/manager/registrations', icon: '📝', description: 'Duyệt đăng ký sự kiện' },
         { name: 'Điểm sinh viên', href: '/manager/scores', icon: '📊', description: 'Xem và sắp xếp theo điểm' },
     ];

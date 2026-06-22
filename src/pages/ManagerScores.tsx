@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'react-toastify';
 import { scoresAPI } from '../services/scoresAPI';
 import { academicPublicAPI } from '../services/academicPublicAPI';
 import { departmentAPI } from '../services/api';
@@ -10,6 +11,8 @@ import { StudentClass } from '../types/class';
 import { ScoreType, StudentRankingResponse, ScoreHistoryViewResponse, getSourceTypeLabel, getSourceTypeColor, formatScore, formatDateTime } from '../types/score';
 
 const ManagerScores: React.FC = () => {
+    const queryClient = useQueryClient();
+
     // Filter states
     const [semesterId, setSemesterId] = useState<number | null>(null);
     const [scoreType, setScoreType] = useState<ScoreType | null>(null);
@@ -35,6 +38,11 @@ const ManagerScores: React.FC = () => {
     const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
     const [historyPage, setHistoryPage] = useState(0);
     const historyPageSize = 20;
+
+    // Recalculate states
+    const [isRecalculatingAll, setIsRecalculatingAll] = useState(false);
+    const [showRecalculateConfirm, setShowRecalculateConfirm] = useState(false);
+    const [isRecalculatingStudent, setIsRecalculatingStudent] = useState(false);
 
     // Load initial data
     useEffect(() => {
@@ -192,6 +200,48 @@ const ManagerScores: React.FC = () => {
         setHistoryPage(0);
     };
 
+    const handleRecalculateAll = async () => {
+        if (!semesterId) {
+            toast.warning('Vui lòng chọn học kỳ');
+            return;
+        }
+        setShowRecalculateConfirm(false);
+        setIsRecalculatingAll(true);
+        try {
+            const response = await scoresAPI.recalculateAllScores();
+            if (response.status) {
+                toast.success(response.message || 'Tính lại điểm toàn trường thành công');
+                loadRanking();
+            } else {
+                toast.error(response.message || 'Tính lại điểm toàn trường thất bại');
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi tính lại điểm');
+        } finally {
+            setIsRecalculatingAll(false);
+        }
+    };
+
+    const handleRecalculateStudent = async () => {
+        if (!selectedStudentId || !semesterId) return;
+        
+        setIsRecalculatingStudent(true);
+        try {
+            const response = await scoresAPI.recalculateStudentScore(selectedStudentId, semesterId);
+            if (response.status) {
+                toast.success(response.message || 'Tính lại điểm sinh viên thành công');
+                queryClient.invalidateQueries({ queryKey: ['scoreHistory', selectedStudentId, semesterId] });
+                loadRanking();
+            } else {
+                toast.error(response.message || 'Tính lại điểm sinh viên thất bại');
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi tính lại điểm sinh viên');
+        } finally {
+            setIsRecalculatingStudent(false);
+        }
+    };
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -283,12 +333,19 @@ const ManagerScores: React.FC = () => {
                                 <option value="ASC">Điểm thấp → cao</option>
                             </select>
                         </div>
-                        <div className="flex items-end">
+                        <div className="flex items-end space-x-2">
                             <button
-                                className="w-full px-4 py-2.5 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66] transition-all shadow-sm hover:shadow-md font-medium"
+                                className="px-4 py-2.5 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66] transition-all shadow-sm hover:shadow-md font-medium"
                                 onClick={loadRanking}
                             >
                                 🔄 Làm mới
+                            </button>
+                            <button
+                                className="px-4 py-2.5 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-all shadow-sm hover:shadow-md font-medium whitespace-nowrap"
+                                onClick={() => setShowRecalculateConfirm(true)}
+                                disabled={!semesterId}
+                            >
+                                ⚠️ Tính lại toàn trường
                             </button>
                         </div>
                     </div>
@@ -389,9 +446,7 @@ const ManagerScores: React.FC = () => {
                                                 {ranking.scoreTypeLabel}
                                             </td>
                                             <td className="px-4 py-3 whitespace-nowrap text-sm font-bold text-[#001C44]">
-                                                {typeof ranking.score === 'number'
-                                                    ? ranking.score.toFixed(2)
-                                                    : ranking.score}
+                                                {formatScore(ranking.score)}
                                             </td>
                                             <td className="px-4 py-3 whitespace-nowrap text-sm">
                                                 <button
@@ -427,12 +482,28 @@ const ManagerScores: React.FC = () => {
                             <h2 className="text-2xl font-bold text-[#001C44]">
                                 Lịch sử điểm - {historyData?.studentName || 'Đang tải...'}
                             </h2>
-                            <button
-                                onClick={handleCloseHistory}
-                                className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
-                            >
-                                ×
-                            </button>
+                            <div className="flex items-center space-x-4">
+                                <button
+                                    onClick={handleRecalculateStudent}
+                                    disabled={isRecalculatingStudent}
+                                    className="px-4 py-2 bg-yellow-100 text-yellow-800 border border-yellow-300 rounded-md hover:bg-yellow-200 transition-colors text-sm font-medium flex items-center disabled:opacity-50"
+                                >
+                                    {isRecalculatingStudent ? (
+                                        <>
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-800 mr-2"></div>
+                                            Đang tính...
+                                        </>
+                                    ) : (
+                                        '🔄 Tính lại điểm SV này'
+                                    )}
+                                </button>
+                                <button
+                                    onClick={handleCloseHistory}
+                                    className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                                >
+                                    ×
+                                </button>
+                            </div>
                         </div>
                         <div className="p-6">
                             {isHistoryFetching ? (
@@ -513,62 +584,9 @@ const ManagerScores: React.FC = () => {
                                         </div>
                                     )}
 
-                                    {/* Activity Participations */}
-                                    {historyData.activityParticipations && historyData.activityParticipations.length > 0 && (
-                                        <div className="bg-white border border-gray-200 rounded-lg p-6">
-                                            <h3 className="text-xl font-semibold text-[#001C44] mb-4">Chi tiết tham gia hoạt động</h3>
-                                            <div className="overflow-x-auto">
-                                                <table className="min-w-full divide-y divide-gray-200">
-                                                    <thead className="bg-gray-50">
-                                                        <tr>
-                                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Hoạt động</th>
-                                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Loại</th>
-                                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Chuỗi sự kiện</th>
-                                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Điểm</th>
-                                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Ngày</th>
-                                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Nguồn</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="bg-white divide-y divide-gray-200">
-                                                        {historyData.activityParticipations.map((participation) => (
-                                                            <tr key={participation.id} className="hover:bg-gray-50">
-                                                                <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                                                    {participation.activityId && participation.activityName ? (
-                                                                        <Link to={`/manager/events/${participation.activityId}`} className="text-[#001C44] hover:underline">
-                                                                            {participation.activityName}
-                                                                        </Link>
-                                                                    ) : (
-                                                                        <span className="text-gray-500">-</span>
-                                                                    )}
-                                                                </td>
-                                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                                                                    {participation.activityType || '-'}
-                                                                </td>
-                                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                                                                    {participation.seriesName || '-'}
-                                                                </td>
-                                                                <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-[#001C44]">
-                                                                    {formatScore(participation.pointsEarned)}
-                                                                </td>
-                                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                                                                    {formatDateTime(participation.date)}
-                                                                </td>
-                                                                <td className="px-4 py-3 whitespace-nowrap">
-                                                                    <span className={`px-2 py-1 rounded text-xs font-medium border ${getSourceTypeColor(participation.sourceType)}`}>
-                                                                        {getSourceTypeLabel(participation.sourceType)}
-                                                                    </span>
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    )}
 
                                     {/* Empty State */}
-                                    {(!historyData.scoreHistories || historyData.scoreHistories.length === 0) && 
-                                     (!historyData.activityParticipations || historyData.activityParticipations.length === 0) && (
+                                    {(!historyData.scoreHistories || historyData.scoreHistories.length === 0) && (
                                         <div className="text-center py-8">
                                             <div className="text-gray-400 text-6xl mb-4">📊</div>
                                             <p className="text-gray-600 text-lg">Không có lịch sử điểm cho học kỳ này.</p>
@@ -605,6 +623,46 @@ const ManagerScores: React.FC = () => {
                             )}
                         </div>
                     </div>
+                </div>
+            )}
+
+            {/* Confirmation Dialog */}
+            {showRecalculateConfirm && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                        <h3 className="text-lg font-bold text-red-600 mb-4 flex items-center">
+                            <span className="mr-2">⚠️</span>
+                            Xác nhận tính lại điểm
+                        </h3>
+                        <p className="text-gray-700 mb-6">
+                            Bạn sắp thực hiện tính lại điểm cho toàn bộ sinh viên trong học kỳ này. 
+                            Quá trình này có thể mất nhiều thời gian và làm gián đoạn hệ thống. 
+                            Bạn có chắc chắn muốn tiếp tục?
+                        </p>
+                        <div className="flex justify-end space-x-3">
+                            <button
+                                onClick={() => setShowRecalculateConfirm(false)}
+                                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                            >
+                                Hủy bỏ
+                            </button>
+                            <button
+                                onClick={handleRecalculateAll}
+                                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                            >
+                                Đồng ý tính lại
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Fullscreen Loading Overlay */}
+            {isRecalculatingAll && (
+                <div className="fixed inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center z-[9999]">
+                    <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-white mb-4"></div>
+                    <h2 className="text-2xl font-bold text-white mb-2">Đang tính lại điểm toàn trường...</h2>
+                    <p className="text-gray-300">Vui lòng không đóng trình duyệt. Quá trình này có thể mất vài phút.</p>
                 </div>
             )}
         </div>

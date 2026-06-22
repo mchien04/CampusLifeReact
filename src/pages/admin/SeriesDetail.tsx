@@ -145,7 +145,7 @@ const SeriesDetail: React.FC = () => {
         try {
             setIsCreatingQuiz(true);
             // Since we're creating a new quiz, we need CreateMiniGameRequest
-            // Ensure all required fields are present and rewardPoints is not included when in series
+            // Ensure all required fields are present and series activities only carry supported fields
             const createData = data as CreateMiniGameRequest;
             const quizData: CreateMiniGameRequest = {
                 activityId: createdActivityId,
@@ -156,7 +156,7 @@ const SeriesDetail: React.FC = () => {
                 requiredCorrectAnswers: createData.requiredCorrectAnswers,
                 maxAttempts: createData.maxAttempts ?? null,
                 questions: createData.questions || []
-                // rewardPoints is intentionally omitted for series activities
+                // Series activities rely on series-level score configuration
             };
 
             const response = await minigameAPI.createMiniGame(quizData);

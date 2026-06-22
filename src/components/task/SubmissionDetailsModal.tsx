@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../services/api';
 import { TaskAssignmentResponse, TaskStatus, ActivityTask } from '../../types/task';
-import { SubmissionStatus, TaskSubmissionResponse } from '../../types/submission';
+import { SubmissionStatus, SubmissionAttachment, TaskSubmissionResponse } from '../../types/submission';
 import { submissionAPI } from '../../services/submissionAPI';
 import { getSubmissionStatusColor, getSubmissionStatusLabel } from '../../utils/submissionUtils';
 
@@ -25,6 +25,7 @@ const SubmissionDetailsModal: React.FC<SubmissionDetailsModalProps> = ({
     const [gradingError, setGradingError] = useState('');
     const [gradingSuccess, setGradingSuccess] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+    const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
 
     const loadSubmissions = useCallback(async () => {
         console.log('🔍 SubmissionDetailsModal: loading submissions for taskId=', task.id);
@@ -130,6 +131,17 @@ const SubmissionDetailsModal: React.FC<SubmissionDetailsModalProps> = ({
         }
     };
 
+    const getSubmissionAttachments = (submission: TaskSubmissionResponse): SubmissionAttachment[] => {
+        if (submission.attachments && submission.attachments.length > 0) {
+            return submission.attachments;
+        }
+
+        return (submission.fileUrls || []).map((url) => ({
+            url,
+            type: 'file' as const,
+        }));
+    };
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-gray-200">
@@ -177,23 +189,49 @@ const SubmissionDetailsModal: React.FC<SubmissionDetailsModalProps> = ({
                                         </div>
                                     )}
 
-                                    {submission.fileUrls && submission.fileUrls.length > 0 && (
+                                    {getSubmissionAttachments(submission).some((attachment) => attachment.type === 'file') && (
                                         <div className="mb-3">
                                             <p className="text-sm font-medium text-gray-700">File đính kèm:</p>
                                             <div className="mt-1 space-y-1">
-                                                {submission.fileUrls.map((fileUrl: string, idx: number) => (
-                                                    <button
-                                                        key={idx}
-                                                        type="button"
-                                                        onClick={() => handleDownload(fileUrl)}
-                                                        className="flex items-center text-blue-600 hover:underline text-sm"
-                                                    >
-                                                        <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                                            <path fillRule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clipRule="evenodd" />
-                                                        </svg>
-                                                        {fileUrl.split('/').pop()}
-                                                    </button>
-                                                ))}
+                                                {getSubmissionAttachments(submission)
+                                                    .filter((attachment) => attachment.type === 'file')
+                                                    .map((attachment, idx: number) => (
+                                                        <button
+                                                            key={idx}
+                                                            type="button"
+                                                            onClick={() => handleDownload(attachment.url)}
+                                                            className="flex items-center text-blue-600 hover:underline text-sm"
+                                                        >
+                                                            <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path fillRule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clipRule="evenodd" />
+                                                            </svg>
+                                                            {attachment.url.split('/').pop()}
+                                                        </button>
+                                                    ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {getSubmissionAttachments(submission).some((attachment) => attachment.type === 'image') && (
+                                        <div className="mb-3">
+                                            <p className="text-sm font-medium text-gray-700">Hình ảnh minh chứng:</p>
+                                            <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-3">
+                                                {getSubmissionAttachments(submission)
+                                                    .filter((attachment) => attachment.type === 'image')
+                                                    .map((attachment, idx: number) => (
+                                                        <button
+                                                            key={`image-${idx}`}
+                                                            type="button"
+                                                            onClick={() => setSelectedImageUrl(attachment.url)}
+                                                            className="relative aspect-square overflow-hidden rounded-lg border border-gray-200 hover:border-[#001C44]"
+                                                        >
+                                                            <img
+                                                                src={attachment.url}
+                                                                alt={`Minh chứng ${idx + 1}`}
+                                                                className="h-full w-full object-cover"
+                                                            />
+                                                        </button>
+                                                    ))}
                                             </div>
                                         </div>
                                     )}
@@ -283,6 +321,19 @@ const SubmissionDetailsModal: React.FC<SubmissionDetailsModalProps> = ({
                     )}
                 </div>
             </div>
+
+            {selectedImageUrl && (
+                <div
+                    className="fixed inset-0 z-[60] bg-black bg-opacity-80 flex items-center justify-center p-4"
+                    onClick={() => setSelectedImageUrl(null)}
+                >
+                    <img
+                        src={selectedImageUrl}
+                        alt="Xem trước minh chứng"
+                        className="max-h-[90vh] max-w-[90vw] rounded-lg shadow-2xl"
+                    />
+                </div>
+            )}
         </div>
     );
 };

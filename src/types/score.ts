@@ -1,4 +1,15 @@
 export type ScoreSourceType = 'MANUAL' | 'ACTIVITY_CHECKIN' | 'ACTIVITY_SUBMISSION' | 'SERIES_MILESTONE' | 'MINIGAME' | 'CHUYEN_DE_COUNT';
+
+export type ScoreEntrySourceType =
+    | "ACTIVITY_PARTICIPATION"
+    | "ACTIVITY_REGISTRATION"
+    | "TASK_SUBMISSION"
+    | "TASK_ASSIGNMENT"
+    | "MINIGAME_ATTEMPT"
+    | "SERIES_PROGRESS"
+    | "SERIES_MINIMUM_REQUIREMENT"
+    | "MANUAL_ADJUSTMENT"
+    | "RECALCULATION";
 export type ScoreType = 'REN_LUYEN' | 'CONG_TAC_XA_HOI' | 'CHUYEN_DE';
 
 export interface TrainingCalculateItem {
@@ -46,7 +57,7 @@ export interface StudentRankingResponse {
     semesterId: number;
     semesterName: string;
     scoreType: ScoreType | null;
-    score: number; // BigDecimal as number
+    score: string; // BigDecimal as string
     scoreTypeLabel: string;
 }
 
@@ -61,8 +72,18 @@ export interface StudentRankingResponseData {
     rankings: StudentRankingResponse[];
 }
 
+export interface StudentRankResponse {
+    rank: number;
+    studentId: number;
+    studentCode: string;
+    studentName: string;
+    departmentName: string;
+    className: string;
+    score: string;
+}
+
 // Score History Types
-export type ScoreHistorySourceType = 'ACTIVITY' | 'MINIGAME' | 'MILESTONE' | 'RECALCULATED';
+export type ScoreHistorySourceType = 'ACTIVITY' | 'MINIGAME' | 'MILESTONE' | 'RECALCULATED'; // Legacy
 
 export interface ActivityParticipationDetailResponse {
     id: number;
@@ -88,7 +109,7 @@ export interface ScoreHistoryDetailResponse {
     activityName: string | null;
     seriesId: number | null;
     seriesName: string | null;
-    sourceType: ScoreHistorySourceType;
+    sourceType: ScoreEntrySourceType | string;
     changedByUsername: string | null;
     changedByFullName: string | null;
 }
@@ -112,14 +133,24 @@ export interface ScoreHistoryViewResponse {
 // Helper functions
 export const getSourceTypeLabel = (sourceType: string): string => {
     switch (sourceType) {
+        case 'ACTIVITY_PARTICIPATION':
+        case 'ACTIVITY':
+            return 'Tham gia sự kiện';
+        case 'TASK_SUBMISSION':
+        case 'ACTIVITY_SUBMISSION':
+            return 'Nộp bài tập';
+        case 'MINIGAME_ATTEMPT':
         case 'MINIGAME':
             return 'Minigame Quiz';
+        case 'SERIES_PROGRESS':
         case 'MILESTONE':
             return 'Milestone (Chuỗi sự kiện)';
+        case 'MANUAL_ADJUSTMENT':
+        case 'MANUAL':
+            return 'Điều chỉnh thủ công';
+        case 'RECALCULATION':
         case 'RECALCULATED':
             return 'Tính lại điểm';
-        case 'ACTIVITY':
-            return 'Hoạt động';
         default:
             return sourceType;
     }
@@ -127,14 +158,24 @@ export const getSourceTypeLabel = (sourceType: string): string => {
 
 export const getSourceTypeColor = (sourceType: string): string => {
     switch (sourceType) {
+        case 'MINIGAME_ATTEMPT':
         case 'MINIGAME':
             return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+        case 'SERIES_PROGRESS':
         case 'MILESTONE':
             return 'bg-purple-100 text-purple-800 border-purple-300';
+        case 'RECALCULATION':
         case 'RECALCULATED':
             return 'bg-gray-100 text-gray-800 border-gray-300';
+        case 'ACTIVITY_PARTICIPATION':
         case 'ACTIVITY':
             return 'bg-blue-100 text-blue-800 border-blue-300';
+        case 'TASK_SUBMISSION':
+        case 'ACTIVITY_SUBMISSION':
+            return 'bg-green-100 text-green-800 border-green-300';
+        case 'MANUAL_ADJUSTMENT':
+        case 'MANUAL':
+            return 'bg-orange-100 text-orange-800 border-orange-300';
         default:
             return 'bg-gray-100 text-gray-800 border-gray-300';
     }

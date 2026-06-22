@@ -171,10 +171,10 @@ const RichTextEditorTipTap: React.FC<RichTextEditorTipTapProps> = ({
             setImageUploading(true);
             const compressed = await compressImage(file, { maxWidth: 1600, quality: 0.8 });
             const response = await uploadAPI.uploadImage(compressed);
-            if (!response.status || !response.data?.bannerUrl) {
-                throw new Error(response.message || 'Không upload được ảnh');
+            if (!response.status || !response.data) {
+                throw new Error('Upload failed');
             }
-            setImageUrl(response.data.bannerUrl);
+            setImageUrl(response.data);
         } catch (err: any) {
             console.error('Upload image failed:', err);
         } finally {

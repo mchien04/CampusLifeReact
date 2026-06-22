@@ -8,6 +8,8 @@ import { taskAPI } from '../services/taskAPI';
 import { registrationAPI } from '../services/registrationAPI';
 import { getImageUrl } from '../utils/imageUtils';
 import { TaskList, TaskForm, TaskAssignmentsList } from '../components/tasks';
+
+import { ScoreRulesDisplay } from '../components/events/ScoreRulesDisplay';
 import SubmissionDetailsModal from '../components/task/SubmissionDetailsModal';
 import { submissionAPI } from '../services/submissionAPI';
 import { TaskAssignmentModal } from '../components/task/TaskAssignmentModal';
@@ -44,28 +46,28 @@ const EventDetail: React.FC = () => {
     const [showRegistrationForm, setShowRegistrationForm] = useState(false);
     const [showParticipationForm, setShowParticipationForm] = useState(false);
     const [loadingRegistration, setLoadingRegistration] = useState(false);
-    
+
     // Photo gallery states
     const [photos, setPhotos] = useState<ActivityPhotoResponse[]>([]);
     const [loadingPhotos, setLoadingPhotos] = useState(false);
     const [showUploadForm, setShowUploadForm] = useState(false);
-    
+
     // Minigame/Quiz states
     const [minigame, setMinigame] = useState<MiniGame | null>(null);
     const [loadingMinigame, setLoadingMinigame] = useState(false);
-    
+
     // QR Code states
     const [showQrCode, setShowQrCode] = useState(false);
     const [backfilling, setBackfilling] = useState(false);
     const [showFullScreenQr, setShowFullScreenQr] = useState(false);
-    
+
     const navigate = useNavigate();
     const refetch = async () => {
         if (!id) return;
         try {
             const response = await eventAPI.getEvent(parseInt(id));
             if (response.status && response.data) setEvent(response.data);
-        } catch {}
+        } catch { }
     };
 
     const handlePublish = async () => {
@@ -135,7 +137,7 @@ const EventDetail: React.FC = () => {
     useEffect(() => {
         const loadPhotos = async () => {
             if (!event || !id) return;
-            
+
             // Only load photos if event has ended
             const isEventEnded = new Date(event.endDate) < new Date();
             if (!isEventEnded) return;
@@ -308,7 +310,7 @@ const EventDetail: React.FC = () => {
 
     const handlePrintQrCode = () => {
         if (!event?.checkInCode) return;
-        
+
         // Tạo một cửa sổ mới để in
         const printContent = `
             <!DOCTYPE html>
@@ -393,13 +395,13 @@ const EventDetail: React.FC = () => {
             </body>
             </html>
         `;
-        
+
         const printWindow = window.open('', '_blank');
         if (!printWindow) {
             toast.error('Không thể mở cửa sổ in. Vui lòng cho phép popup.');
             return;
         }
-        
+
         printWindow.document.write(printContent);
         printWindow.document.close();
     };
@@ -629,7 +631,7 @@ const EventDetail: React.FC = () => {
         return typeLabels[type] || type;
     };
 
-    const getScoreTypeLabel = (scoreType: ScoreType | null): string => {
+    const getScoreTypeLabel = (scoreType: ScoreType | null | undefined): string => {
         if (!scoreType) return 'N/A';
         const scoreTypeLabels: Record<ScoreType, string> = {
             [ScoreType.REN_LUYEN]: 'Điểm rèn luyện',
@@ -732,7 +734,11 @@ const EventDetail: React.FC = () => {
                                         {getTypeLabel(event.type)}
                                     </span>
                                     <span className="inline-block px-3 py-1.5 text-sm font-medium rounded-full bg-[#FFD66D] bg-opacity-30 text-[#001C44] border border-[#FFD66D]">
-                                        {getScoreTypeLabel(event.scoreType)}
+                                        {event.scoreRules && event.scoreRules.length > 0
+                                            ? Array.from(new Set(event.scoreRules.map(r => r.scoreType)))
+                                                .map(type => getScoreTypeLabel(type))
+                                                .join(', ')
+                                            : 'Không cộng điểm'}
                                     </span>
                                     <span className="text-sm text-gray-500 font-mono">
                                         ID: {event.id}
@@ -836,23 +842,12 @@ const EventDetail: React.FC = () => {
                                             </p>
                                         </div>
                                     </div>
-                                    {event.maxPoints && parseFloat(event.maxPoints) > 0 && (
-                                        <div className="flex items-center">
-                                            <span className="w-5 h-5 mr-3 text-yellow-600">🏆</span>
-                                            <div>
-                                                <p className="text-sm text-gray-500">Điểm tối đa</p>
-                                                <p className="font-medium">{event.maxPoints} điểm</p>
-                                            </div>
+                                    {event.seriesId ? (
+                                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
+                                            ℹ️ Hoạt động thuộc chuỗi sự kiện. Điểm số sẽ tính theo tiến độ của chuỗi sự kiện.
                                         </div>
-                                    )}
-                                    {event.penaltyPointsIncomplete && parseFloat(event.penaltyPointsIncomplete) > 0 && (
-                                        <div className="flex items-center">
-                                            <span className="w-5 h-5 mr-3 text-red-600">⚠️</span>
-                                            <div>
-                                                <p className="text-sm text-gray-500">Điểm trừ khi không hoàn thành</p>
-                                                <p className="font-medium">{event.penaltyPointsIncomplete} điểm</p>
-                                            </div>
-                                        </div>
+                                    ) : (
+                                        <ScoreRulesDisplay rules={event.scoreRules} />
                                     )}
                                     <div className="flex items-center">
                                         <span className="w-5 h-5 mr-3 text-indigo-600">🎫</span>
@@ -951,13 +946,13 @@ const EventDetail: React.FC = () => {
                             <h3 className="text-lg font-semibold text-[#001C44] mb-4">Thông tin hệ thống</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
                                 <div>
-                                    <p><span className="font-medium">Ngày tạo:</span> {formatDate(event.createdAt)}</p>
+                                    <p><span className="font-medium">Ngày tạo:</span> {event.createdAt ? formatDate(event.createdAt) : '-'}</p>
                                     {event.createdBy && (
                                         <p><span className="font-medium">Người tạo:</span> {event.createdBy}</p>
                                     )}
                                 </div>
                                 <div>
-                                    <p><span className="font-medium">Cập nhật lần cuối:</span> {formatDate(event.updatedAt)}</p>
+                                    <p><span className="font-medium">Cập nhật lần cuối:</span> {event.updatedAt ? formatDate(event.updatedAt) : '-'}</p>
                                     {event.lastModifiedBy && (
                                         <p><span className="font-medium">Người cập nhật:</span> {event.lastModifiedBy}</p>
                                     )}
@@ -1392,15 +1387,7 @@ const EventDetail: React.FC = () => {
                                                         </div>
                                                     </div>
                                                 )}
-                                                {minigame.rewardPoints && (
-                                                    <div className="flex items-center">
-                                                        <span className="w-5 h-5 mr-2 text-yellow-600">🏆</span>
-                                                        <div>
-                                                            <p className="text-sm text-gray-500">Điểm thưởng</p>
-                                                            <p className="font-semibold">{parseFloat(minigame.rewardPoints).toFixed(1)} điểm</p>
-                                                        </div>
-                                                    </div>
-                                                )}
+
                                                 <div className="flex items-center">
                                                     <span className="w-5 h-5 mr-2 text-purple-600">📊</span>
                                                     <div>
@@ -1549,7 +1536,6 @@ const EventDetail: React.FC = () => {
                     task={{
                         id: selectedTaskForSubmission.id,
                         title: selectedTaskForSubmission.name,
-                        maxPoints: event && event.maxPoints ? Number(parseFloat(event.maxPoints)) : undefined,
                         activity: { id: selectedTaskForSubmission.activityId } as any,
                     } as any}
                     onClose={() => {

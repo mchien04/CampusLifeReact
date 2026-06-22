@@ -1,6 +1,5 @@
 import api from './api';
 import { TrainingCalculateResponse, ScoreViewResponse, StudentRankingResponseData, ScoreHistoryViewResponse, ScoreType } from '../types/score';
-import { mockSemesterScores } from './mocks/scores.mock';
 
 // Normalize response format
 const normalize = <T>(data: any): { status: boolean; message: string; data?: T } => {
@@ -102,26 +101,21 @@ export const scoresAPI = {
         return normalize<number>(res.data);
     },
 
-    // Mocked list for manager view (deprecated - use getStudentRanking instead)
-    listSemesterScores: async (params: {
-        semesterId: number;
-        facultyName?: string;
-        className?: string;
-        sort?: 'asc' | 'desc';
-        page?: number;
-        pageSize?: number;
-    }): Promise<{ status: boolean; message: string; data?: { items: any[]; total: number } }> => {
-        const { semesterId, facultyName, className, sort = 'desc', page = 1, pageSize = 10 } = params;
-        let rows = mockSemesterScores.filter(r => r.semesterId === semesterId);
-        if (facultyName) rows = rows.filter(r => r.facultyName === facultyName);
-        if (className) rows = rows.filter(r => r.className === className);
-        rows = rows.sort((a, b) => (sort === 'asc' ? a.totalScore - b.totalScore : b.totalScore - a.totalScore));
-        const start = (page - 1) * pageSize;
-        const items = rows.slice(start, start + pageSize);
-        return {
-            status: true,
-            message: 'OK',
-            data: { items, total: rows.length },
-        };
+    recalculateStudentScore: async (
+        studentId: number,
+        semesterId?: number
+    ): Promise<{ status: boolean; message: string; data?: string }> => {
+        const queryParams = new URLSearchParams();
+        if (semesterId) {
+            queryParams.append('semesterId', String(semesterId));
+        }
+        const url = `/api/scores/recalculate/student/${studentId}${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+        const res = await api.post(url);
+        return normalize<string>(res.data);
+    },
+
+    recalculateAllScores: async (): Promise<{ status: boolean; message: string; data?: string }> => {
+        const res = await api.post('/api/scores/recalculate/all');
+        return normalize<string>(res.data);
     },
 };

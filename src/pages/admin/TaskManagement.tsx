@@ -282,7 +282,7 @@ const TaskManagement: React.FC = () => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm text-gray-900">
-                                                {task.maxPoints || 'Không có'}
+                                                
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

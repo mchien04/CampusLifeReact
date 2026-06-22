@@ -64,7 +64,7 @@ export const registrationAPI = {
         return response.data; // { status, message, body }
     },
 
-    checkIn: async (data: { ticketCode?: string; notes?: string }): Promise<ApiResponse<ActivityParticipationResponse>> => {
+    checkIn: async (data: ActivityParticipationRequest): Promise<ApiResponse<ActivityParticipationResponse>> => {
         const response = await api.post('/api/registrations/checkin', data);
         return response.data; // { status, message, body }
     },

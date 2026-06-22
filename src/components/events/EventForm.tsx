@@ -1,8 +1,14 @@
 import React, { useState, useEffect, ChangeEvent } from 'react';
-import { CreateActivityRequest, ActivityType, ScoreType } from '../../types/activity';
+import { CreateActivityRequest, ActivityType, ScoreType, ActivityScoreRuleRequest } from '../../types/activity';
 import { uploadAPI } from '../../services/uploadAPI';
+import { eventAPI } from '../../services/eventAPI';
+import { departmentAPI } from '../../services/adminAPI';
 import { getImageUrl } from '../../utils/imageUtils';
 import OrganizerSelector from './OrganizerSelector';
+import { ActivityPresetPreviewResponse } from '../../types/presets';
+import ActivityScoreRulePreview from './ActivityScoreRulePreview';
+import { ScoreRulesForm } from './ScoreRulesForm';
+import { Department } from '../../types/admin';
 
 interface EventFormProps {
     onSubmit: (data: CreateActivityRequest) => void;
@@ -24,13 +30,11 @@ const EventForm: React.FC<EventFormProps> = ({
         const defaultData: CreateActivityRequest = {
             name: '',
             type: ActivityType.SUKIEN,
-            scoreType: ScoreType.REN_LUYEN,
             description: '',
             startDate: '',
             endDate: '',
             requiresSubmission: false,
-            maxPoints: '0',
-            penaltyPointsIncomplete: '0',
+            scoreRules: [],
             registrationStartDate: '',
             registrationDeadline: '',
             shareLink: '',
@@ -63,6 +67,60 @@ const EventForm: React.FC<EventFormProps> = ({
     const [originalBannerUrl, setOriginalBannerUrl] = useState<string>('');
     const [isInitialLoad, setIsInitialLoad] = useState(true);
     const [unlimitedTickets, setUnlimitedTickets] = useState(false);
+    const [presets, setPresets] = useState<any[]>([]);
+    const [selectedPresetCode, setSelectedPresetCode] = useState<string>('');
+    const [presetPreview, setPresetPreview] = useState<ActivityPresetPreviewResponse | null>(null);
+    const [departments, setDepartments] = useState<Department[]>([]);
+    const isEditing = !!(initialData && Object.keys(initialData).length > 0);
+
+    // Load presets on mount
+    useEffect(() => {
+        const fetchPresets = async () => {
+            const res = await eventAPI.getActivityPresets();
+            if (res.status && res.data) {
+                setPresets(res.data);
+            }
+        };
+        fetchPresets();
+    }, []);
+
+    // Load departments on mount
+    useEffect(() => {
+        const fetchDepartments = async () => {
+            try {
+                const res = await departmentAPI.getDepartments();
+                if (res.status && res.data) {
+                    setDepartments(res.data);
+                }
+            } catch (err) {
+                console.error('Error fetching departments:', err);
+            }
+        };
+        fetchDepartments();
+    }, []);
+
+    const handlePresetChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const code = e.target.value;
+        setSelectedPresetCode(code);
+        if (!code) return;
+
+        try {
+            const previewRes = await eventAPI.previewActivityPreset({ presetCode: code });
+            if (previewRes.status && previewRes.data) {
+                const presetData = previewRes.data;
+                setPresetPreview(presetData);
+                setFormData(prev => ({
+                    ...prev,
+                    type: presetData.activityType,
+                    requiresSubmission: presetData.requiresSubmission,
+                    scoreRules: presetData.scoreRules || []
+                }));
+            }
+        } catch (error) {
+            console.error('Lỗi khi tải mẫu cấu hình:', error);
+            setPresetPreview(null);
+        }
+    };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
@@ -94,6 +152,10 @@ const EventForm: React.FC<EventFormProps> = ({
     const validateForm = (): boolean => {
         const newErrors: Record<string, string> = {};
 
+        if (formData.type === ActivityType.MINIGAME) {
+            newErrors.type = 'Không thể tạo hoặc lưu Mini Game từ form sự kiện thường này.';
+        }
+
         if (!formData.name.trim()) {
             newErrors.name = 'Tên sự kiện là bắt buộc';
         }
@@ -110,12 +172,26 @@ const EventForm: React.FC<EventFormProps> = ({
             newErrors.endDate = 'Ngày kết thúc phải sau ngày bắt đầu';
         }
 
-        if (!formData.location.trim()) {
+        if (!formData.location || !formData.location.trim()) {
             newErrors.location = 'Địa điểm là bắt buộc';
         }
 
-        if (formData.requiresSubmission && (!formData.maxPoints || parseFloat(formData.maxPoints) <= 0)) {
-            newErrors.maxPoints = 'Điểm tối đa phải lớn hơn 0 khi yêu cầu nộp bài';
+        if (formData.requiresSubmission) {
+            const hasPassFailWithFailPoints = formData.scoreRules?.some(
+                rule => rule.calculation === 'PASS_FAIL_POINTS' && rule.failPoints !== undefined && rule.failPoints !== null && rule.failPoints !== ''
+            );
+            if (!hasPassFailWithFailPoints) {
+                newErrors.scoreRules = 'Sự kiện yêu cầu nộp bài thu hoạch phải có ít nhất một luật tính điểm Đạt/Trượt và có cấu hình điểm trượt hợp lệ.';
+            }
+        }
+
+        if (formData.type === ActivityType.CHUYEN_DE_DOANH_NGHIEP) {
+            const hasInvalidNoShowPenalty = formData.scoreRules?.some(
+                rule => rule.triggerType === 'NO_SHOW' && rule.scoreType === ScoreType.CHUYEN_DE
+            );
+            if (hasInvalidNoShowPenalty) {
+                newErrors.scoreRules = 'Sự kiện Chuyên đề doanh nghiệp không được cấu hình luật phạt vắng mặt (No-show) bằng điểm Chuyên đề. Vui lòng chọn loại điểm phạt khác (ví dụ: Rèn luyện).';
+            }
         }
 
         if (!formData.organizerIds || formData.organizerIds.length === 0) {
@@ -212,7 +288,7 @@ const EventForm: React.FC<EventFormProps> = ({
                         // Update formData with the uploaded image URL
                         const updatedFormData = {
                             ...formData,
-                            bannerUrl: uploadResponse.data.bannerUrl,
+                            bannerUrl: uploadResponse.data,
                             bannerFile: undefined // Remove file reference
                         };
 
@@ -252,12 +328,34 @@ const EventForm: React.FC<EventFormProps> = ({
             <div className="bg-white shadow-lg rounded-lg">
                 <div className="px-6 py-4 border-b border-gray-200">
                     <h2 className="text-2xl font-bold text-[#001C44]">{title}</h2>
-                    <p className="text-gray-600 mt-1">Điền thông tin chi tiết về sự kiện</p>
+                    <p className="text-gray-600 mt-1">Điền thông tin chi tiết về sự kiện thường (không dùng cho Mini Game)</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
                     {/* Basic Information */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {!isEditing && presets.length > 0 && (
+                            <div className="md:col-span-2 mb-4 p-4 bg-blue-50 rounded-md border border-blue-100">
+                                <label htmlFor="preset" className="block text-sm font-medium text-[#001C44] mb-2">
+                                    Mẫu cấu hình (Preset) <span className="text-gray-500 font-normal">- Tự động điền loại sự kiện, yêu cầu nộp bài và các luật tính điểm</span>
+                                </label>
+                                <select
+                                    id="preset"
+                                    value={selectedPresetCode}
+                                    onChange={handlePresetChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
+                                >
+                                    <option value="">-- Tự do cấu hình (Không dùng mẫu) --</option>
+                                    {presets.map(preset => (
+                                        <option key={preset.code} value={preset.code}>
+                                            {preset.name} - {preset.description}
+                                        </option>
+                                    ))}
+                                </select>
+                                <ActivityScoreRulePreview preview={presetPreview} />
+                            </div>
+                        )}
+
                         <div className="md:col-span-2">
                             <label htmlFor="name" className="block text-sm font-medium text-[#001C44] mb-2">
                                 Tên sự kiện *
@@ -266,7 +364,7 @@ const EventForm: React.FC<EventFormProps> = ({
                                 type="text"
                                 id="name"
                                 name="name"
-                                value={formData.name}
+                                value={formData.name || ''}
                                 onChange={handleChange}
                                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44] ${errors.name ? 'border-red-500' : 'border-gray-300'
                                     }`}
@@ -282,32 +380,15 @@ const EventForm: React.FC<EventFormProps> = ({
                             <select
                                 id="type"
                                 name="type"
-                                value={formData.type}
+                                value={formData.type || ''}
                                 onChange={handleChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.type ? 'border-red-500' : 'border-gray-300'}`}
                             >
                                 <option value={ActivityType.SUKIEN}>Sự kiện</option>
-                                <option value={ActivityType.MINIGAME}>Mini Game</option>
                                 <option value={ActivityType.CONG_TAC_XA_HOI}>Công tác xã hội</option>
                                 <option value={ActivityType.CHUYEN_DE_DOANH_NGHIEP}>Chuyên đề doanh nghiệp</option>
                             </select>
-                        </div>
-
-                        <div>
-                            <label htmlFor="scoreType" className="block text-sm font-medium text-gray-700 mb-2">
-                                Kiểu tính điểm
-                            </label>
-                            <select
-                                id="scoreType"
-                                name="scoreType"
-                                value={formData.scoreType}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                <option value={ScoreType.REN_LUYEN}>Điểm rèn luyện</option>
-                                <option value={ScoreType.CONG_TAC_XA_HOI}>Điểm công tác xã hội</option>
-                                <option value={ScoreType.CHUYEN_DE}>Điểm chuyên đề doanh nghiệp</option>
-                            </select>
+                            {errors.type && <p className="text-red-500 text-sm mt-1">{errors.type}</p>}
                         </div>
 
                         <div>
@@ -318,7 +399,7 @@ const EventForm: React.FC<EventFormProps> = ({
                                 type="text"
                                 id="location"
                                 name="location"
-                                value={formData.location}
+                                value={formData.location || ''}
                                 onChange={handleChange}
                                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.location ? 'border-red-500' : 'border-gray-300'
                                     }`}
@@ -336,7 +417,7 @@ const EventForm: React.FC<EventFormProps> = ({
                         <textarea
                             id="description"
                             name="description"
-                            value={formData.description}
+                            value={formData.description || ''}
                             onChange={handleChange}
                             rows={4}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -354,7 +435,7 @@ const EventForm: React.FC<EventFormProps> = ({
                                 type="datetime-local"
                                 id="startDate"
                                 name="startDate"
-                                value={formData.startDate}
+                                value={formData.startDate || ''}
                                 onChange={handleChange}
                                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.startDate ? 'border-red-500' : 'border-gray-300'
                                     }`}
@@ -370,7 +451,7 @@ const EventForm: React.FC<EventFormProps> = ({
                                 type="datetime-local"
                                 id="endDate"
                                 name="endDate"
-                                value={formData.endDate}
+                                value={formData.endDate || ''}
                                 onChange={handleChange}
                                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.endDate ? 'border-red-500' : 'border-gray-300'
                                     }`}
@@ -386,7 +467,7 @@ const EventForm: React.FC<EventFormProps> = ({
                                 type="datetime-local"
                                 id="registrationStartDate"
                                 name="registrationStartDate"
-                                value={formData.registrationStartDate}
+                                value={formData.registrationStartDate || ''}
                                 onChange={handleChange}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
@@ -400,7 +481,7 @@ const EventForm: React.FC<EventFormProps> = ({
                                 type="datetime-local"
                                 id="registrationDeadline"
                                 name="registrationDeadline"
-                                value={formData.registrationDeadline}
+                                value={formData.registrationDeadline || ''}
                                 onChange={handleChange}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
@@ -414,7 +495,7 @@ const EventForm: React.FC<EventFormProps> = ({
                                 type="checkbox"
                                 id="isImportant"
                                 name="isImportant"
-                                checked={formData.isImportant}
+                                checked={!!formData.isImportant}
                                 onChange={handleChange}
                                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                             />
@@ -428,7 +509,7 @@ const EventForm: React.FC<EventFormProps> = ({
                                 type="checkbox"
                                 id="mandatoryForFacultyStudents"
                                 name="mandatoryForFacultyStudents"
-                                checked={formData.mandatoryForFacultyStudents}
+                                checked={!!formData.mandatoryForFacultyStudents}
                                 onChange={handleChange}
                                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                             />
@@ -441,42 +522,6 @@ const EventForm: React.FC<EventFormProps> = ({
                     {/* Additional Options */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div>
-                            <label htmlFor="maxPoints" className="block text-sm font-medium text-gray-700 mb-2">
-                                Điểm tối đa
-                            </label>
-                            <input
-                                type="number"
-                                id="maxPoints"
-                                name="maxPoints"
-                                value={formData.maxPoints}
-                                onChange={handleChange}
-                                min="0"
-                                step="0.01"
-                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.maxPoints ? 'border-red-500' : 'border-gray-300'
-                                    }`}
-                                placeholder="0"
-                            />
-                            {errors.maxPoints && <p className="text-red-500 text-sm mt-1">{errors.maxPoints}</p>}
-                        </div>
-
-                        <div>
-                            <label htmlFor="penaltyPointsIncomplete" className="block text-sm font-medium text-gray-700 mb-2">
-                                Điểm trừ khi không hoàn thành
-                            </label>
-                            <input
-                                type="number"
-                                id="penaltyPointsIncomplete"
-                                name="penaltyPointsIncomplete"
-                                value={formData.penaltyPointsIncomplete}
-                                onChange={handleChange}
-                                min="0"
-                                step="0.01"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                placeholder="0"
-                            />
-                        </div>
-
-                        <div>
                             <label htmlFor="ticketQuantity" className="block text-sm font-medium text-gray-700 mb-2">
                                 Số lượng vé/slot
                             </label>
@@ -488,7 +533,7 @@ const EventForm: React.FC<EventFormProps> = ({
                                         name="unlimitedTickets"
                                         checked={unlimitedTickets}
                                         onChange={handleUnlimitedChange}
-                                        disabled={formData.isImportant || formData.mandatoryForFacultyStudents}
+                                        disabled={!!formData.isImportant || !!formData.mandatoryForFacultyStudents}
                                         className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${(formData.isImportant || formData.mandatoryForFacultyStudents) ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     />
                                     <label htmlFor="unlimitedTickets" className={`ml-2 block text-sm ${(formData.isImportant || formData.mandatoryForFacultyStudents) ? 'text-gray-500' : 'text-gray-900'}`}>
@@ -502,7 +547,7 @@ const EventForm: React.FC<EventFormProps> = ({
                                     value={formData.ticketQuantity ?? ''}
                                     onChange={handleChange}
                                     min="0"
-                                    disabled={unlimitedTickets || formData.isImportant || formData.mandatoryForFacultyStudents}
+                                    disabled={unlimitedTickets || !!formData.isImportant || !!formData.mandatoryForFacultyStudents}
                                     className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${(unlimitedTickets || formData.isImportant || formData.mandatoryForFacultyStudents) ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                                     placeholder="Nhập số lượng vé"
                                 />
@@ -574,7 +619,7 @@ const EventForm: React.FC<EventFormProps> = ({
                                     type="url"
                                     id="bannerUrl"
                                     name="bannerUrl"
-                                    value={formData.bannerUrl}
+                                    value={formData.bannerUrl || ''}
                                     onChange={(e) => {
                                         handleChange(e);
                                         // Clear file if URL is entered
@@ -634,7 +679,26 @@ const EventForm: React.FC<EventFormProps> = ({
                         </div>
                     </div>
 
-                    {/* Text Areas */}
+                    {/* Score Rules Section */}
+                    <div className="pt-6 border-t border-gray-200">
+                        <ScoreRulesForm
+                            rules={formData.scoreRules || []}
+                            onChange={(rules) => {
+                                setFormData(prev => ({ ...prev, scoreRules: rules }));
+                                if (errors.scoreRules) {
+                                    setErrors(prev => ({ ...prev, scoreRules: '' }));
+                                }
+                            }}
+                            departments={departments}
+                        />
+                        {errors.scoreRules && (
+                            <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded text-red-600 text-sm">
+                                <strong>Lỗi cấu hình điểm:</strong> {errors.scoreRules}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Requirements & Benefits */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label htmlFor="benefits" className="block text-sm font-medium text-gray-700 mb-2">
@@ -643,7 +707,7 @@ const EventForm: React.FC<EventFormProps> = ({
                             <textarea
                                 id="benefits"
                                 name="benefits"
-                                value={formData.benefits}
+                                value={formData.benefits || ''}
                                 onChange={handleChange}
                                 rows={3}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -658,7 +722,7 @@ const EventForm: React.FC<EventFormProps> = ({
                             <textarea
                                 id="requirements"
                                 name="requirements"
-                                value={formData.requirements}
+                                value={formData.requirements || ''}
                                 onChange={handleChange}
                                 rows={3}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -676,7 +740,7 @@ const EventForm: React.FC<EventFormProps> = ({
                             type="text"
                             id="contactInfo"
                             name="contactInfo"
-                            value={formData.contactInfo}
+                            value={formData.contactInfo || ''}
                             onChange={handleChange}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             placeholder="Email hoặc số điện thoại"
@@ -685,7 +749,7 @@ const EventForm: React.FC<EventFormProps> = ({
 
                     {/* Organizer Selection */}
                     <OrganizerSelector
-                        selectedIds={formData.organizerIds}
+                        selectedIds={formData.organizerIds || []}
                         onChange={handleOrganizerChange}
                         error={errors.organizerIds}
                         required={true}
@@ -714,7 +778,7 @@ const EventForm: React.FC<EventFormProps> = ({
                                 name="requiresApproval"
                                 checked={!!formData.requiresApproval}
                                 onChange={handleChange}
-                                disabled={formData.isImportant || formData.mandatoryForFacultyStudents}
+                                disabled={!!formData.isImportant || !!formData.mandatoryForFacultyStudents}
                                 className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${(formData.isImportant || formData.mandatoryForFacultyStudents) ? 'opacity-50 cursor-not-allowed' : ''}`}
                             />
                             <label htmlFor="requiresApproval" className={`ml-2 block text-sm ${(formData.isImportant || formData.mandatoryForFacultyStudents) ? 'text-gray-500' : 'text-gray-900'}`}>
@@ -730,7 +794,7 @@ const EventForm: React.FC<EventFormProps> = ({
                                 type="checkbox"
                                 id="requiresSubmission"
                                 name="requiresSubmission"
-                                checked={formData.requiresSubmission}
+                                checked={!!formData.requiresSubmission}
                                 onChange={handleChange}
                                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                             />
@@ -749,7 +813,7 @@ const EventForm: React.FC<EventFormProps> = ({
                             type="url"
                             id="shareLink"
                             name="shareLink"
-                            value={formData.shareLink}
+                            value={formData.shareLink || ''}
                             onChange={handleChange}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             placeholder="https://example.com/event-link"

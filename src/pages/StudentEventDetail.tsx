@@ -12,14 +12,19 @@ import { preparationAPI } from '../services/preparationAPI';
 import { getSubmissionStatusColor, getSubmissionStatusLabel } from '../utils/submissionUtils';
 import { ActivityResponse, ActivityType, ScoreType, ActivityPhotoResponse } from '../types';
 import { ActivityTaskResponse, TaskAssignmentResponse } from '../types/task';
-import { TaskSubmissionResponse } from '../types/submission';
+import { TaskSubmissionResponse, SubmissionAttachment } from '../types/submission';
 import { RegistrationStatus, ParticipationType, ActivityRegistrationResponse } from '../types/registration';
 import { LoadingSpinner } from '../components/common';
+
+import { ScoreRulesDisplay } from '../components/events/ScoreRulesDisplay';
 import { PhotoGrid } from '../components/events';
 import { activityPhotoAPI } from '../services/activityPhotoAPI';
 import StudentLayout from '../components/layout/StudentLayout';
 import { minigameAPI } from '../services/minigameAPI';
 import { MiniGame } from '../types/minigame';
+import { seriesAPI } from '../services/seriesAPI';
+import { StudentSeriesProgress } from '../types/series';
+import SeriesProgressBanner from '../components/series/SeriesProgressBanner';
 
 const StudentEventDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -37,6 +42,8 @@ const StudentEventDetail: React.FC = () => {
     const [minigame, setMinigame] = useState<MiniGame | null>(null);
     const [loadingMinigame, setLoadingMinigame] = useState(false);
 
+    const [seriesProgress, setSeriesProgress] = useState<StudentSeriesProgress | null>(null);
+
     // Tasks and submissions (within this event page)
     const [tasks, setTasks] = useState<TaskAssignmentResponse[]>([]);
     const [loadingTasks, setLoadingTasks] = useState(false);
@@ -46,7 +53,10 @@ const StudentEventDetail: React.FC = () => {
     const [mySubmission, setMySubmission] = useState<TaskSubmissionResponse | null>(null);
     const [submitContent, setSubmitContent] = useState('');
     const [submitFiles, setSubmitFiles] = useState<File[]>([]);
+    const [submitImages, setSubmitImages] = useState<File[]>([]);
     const [filePreviews, setFilePreviews] = useState<string[]>([]);
+    const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+    const [selectedImagePreview, setSelectedImagePreview] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
 
     // Photo gallery states
@@ -101,6 +111,17 @@ const StudentEventDetail: React.FC = () => {
                     loadTasksByActivity(response.data.id),
                     checkSupervisorStatus(response.data.id)
                 ]);
+
+                if (response.data.seriesId) {
+                    try {
+                        const seriesProgressRes = await seriesAPI.getMySeriesProgress(response.data.seriesId);
+                        if (seriesProgressRes.status && seriesProgressRes.data) {
+                            setSeriesProgress(seriesProgressRes.data);
+                        }
+                    } catch (e) {
+                        console.error('Error loading series progress:', e);
+                    }
+                }
 
                 // If this is a minigame activity, load its quiz info
                 if (response.data.type === ActivityType.MINIGAME) {
@@ -253,7 +274,7 @@ const StudentEventDetail: React.FC = () => {
         return labels[type] || type;
     };
 
-    const getScoreTypeLabel = (scoreType: ScoreType | null) => {
+    const getScoreTypeLabel = (scoreType: ScoreType | null | undefined) => {
         if (!scoreType) return 'N/A';
         const labels: Record<ScoreType, string> = {
             [ScoreType.REN_LUYEN]: 'Rèn luyện',
@@ -269,7 +290,8 @@ const StudentEventDetail: React.FC = () => {
             [RegistrationStatus.APPROVED]: 'Đã duyệt',
             [RegistrationStatus.REJECTED]: 'Từ chối',
             [RegistrationStatus.CANCELLED]: 'Đã hủy',
-            [RegistrationStatus.ATTENDED]: 'Đã tham dự'
+            [RegistrationStatus.ATTENDED]: 'Đã tham dự',
+            [RegistrationStatus.WAITLIST]: 'Danh sách chờ'
         };
         return labels[status] || status;
     };
@@ -280,7 +302,8 @@ const StudentEventDetail: React.FC = () => {
             [RegistrationStatus.APPROVED]: 'bg-green-100 text-green-800',
             [RegistrationStatus.REJECTED]: 'bg-red-100 text-red-800',
             [RegistrationStatus.CANCELLED]: 'bg-gray-100 text-gray-800',
-            [RegistrationStatus.ATTENDED]: 'bg-blue-100 text-blue-800'
+            [RegistrationStatus.ATTENDED]: 'bg-blue-100 text-blue-800',
+            [RegistrationStatus.WAITLIST]: 'bg-purple-100 text-purple-800'
         };
         return colors[status] || 'bg-gray-100 text-gray-800';
     };
@@ -366,16 +389,17 @@ const StudentEventDetail: React.FC = () => {
         setMySubmission(null);
         setSubmitContent('');
         setSubmitFiles([]);
+        setSubmitImages([]);
         setFilePreviews([]);
+        setImagePreviews([]);
         try {
             const res = await submissionAPI.getMySubmissionForTask(task.id);
             if (res.status && res.data) {
                 setMySubmission(res.data);
                 setSubmitContent(res.data.content || '');
-                // Normalize fileUrls for preview (read-only links)
-                // fileUrls is now always an array from backend
-                const urls = res.data.fileUrls || [];
-                setFilePreviews(urls);
+                const attachments = getSubmissionAttachments(res.data);
+                setFilePreviews(attachments.filter((attachment) => attachment.type === 'file').map((attachment) => attachment.url));
+                setImagePreviews(attachments.filter((attachment) => attachment.type === 'image').map((attachment) => attachment.url));
             }
         } catch (e) {
             console.warn('No existing submission or failed to fetch:', e);
@@ -388,7 +412,10 @@ const StudentEventDetail: React.FC = () => {
         setMySubmission(null);
         setSubmitContent('');
         setSubmitFiles([]);
+        setSubmitImages([]);
         setFilePreviews([]);
+        setImagePreviews([]);
+        setSelectedImagePreview(null);
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -396,6 +423,42 @@ const StudentEventDetail: React.FC = () => {
         setSubmitFiles(files);
         const previews = files.map(file => URL.createObjectURL(file));
         setFilePreviews(previews);
+    };
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        setSubmitImages(files);
+        const previews = files.map(file => URL.createObjectURL(file));
+        setImagePreviews(previews);
+    };
+
+    const getSubmissionAttachments = (submission: TaskSubmissionResponse): SubmissionAttachment[] => {
+        if (submission.attachments && submission.attachments.length > 0) {
+            return submission.attachments;
+        }
+
+        return (submission.fileUrls || []).map((url) => ({
+            url,
+            type: 'file' as const,
+        }));
+    };
+
+    const handleDownload = async (fileUrl: string) => {
+        try {
+            const filename = (fileUrl.split('/').pop() || 'file').trim();
+            const resp = await api.get(fileUrl, { responseType: 'blob' });
+            const blobUrl = window.URL.createObjectURL(new Blob([resp.data]));
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(blobUrl);
+        } catch (e) {
+            console.error('Download failed', e);
+            alert('Tải file thất bại. Vui lòng thử lại.');
+        }
     };
 
     const handleSubmitTask = async () => {
@@ -406,6 +469,7 @@ const StudentEventDetail: React.FC = () => {
                 const res = await submissionAPI.updateSubmission(mySubmission.id, {
                     content: submitContent || undefined,
                     files: submitFiles.length > 0 ? submitFiles : undefined,
+                    images: submitImages.length > 0 ? submitImages : undefined,
                 });
                 if (!res.status) throw new Error(res.message || 'Cập nhật bài nộp thất bại');
                 alert('Cập nhật bài nộp thành công');
@@ -413,13 +477,21 @@ const StudentEventDetail: React.FC = () => {
                 const res = await submissionAPI.submitTask(selectedTask.id, {
                     content: submitContent || undefined,
                     files: submitFiles.length > 0 ? submitFiles : undefined,
+                    images: submitImages.length > 0 ? submitImages : undefined,
                 });
                 if (!res.status) throw new Error(res.message || 'Nộp bài thất bại');
                 alert('Nộp bài thành công');
             }
             // Refresh my submission
             const latest = await submissionAPI.getMySubmissionForTask(selectedTask.id);
-            if (latest.status && latest.data) setMySubmission(latest.data);
+            if (latest.status && latest.data) {
+                setMySubmission(latest.data);
+                const attachments = getSubmissionAttachments(latest.data);
+                setFilePreviews(attachments.filter((attachment) => attachment.type === 'file').map((attachment) => attachment.url));
+                setImagePreviews(attachments.filter((attachment) => attachment.type === 'image').map((attachment) => attachment.url));
+            }
+            setSubmitFiles([]);
+            setSubmitImages([]);
         } catch (e: any) {
             alert(e.message || 'Có lỗi xảy ra khi nộp bài');
         } finally {
@@ -538,7 +610,13 @@ const StudentEventDetail: React.FC = () => {
                                     </div>
                                     <div className="flex items-center text-sm text-gray-500">
                                         <span className="mr-2">⭐</span>
-                                        <span>{getScoreTypeLabel(event.scoreType)}</span>
+                                        <span>
+                                            {event.scoreRules && event.scoreRules.length > 0
+                                                ? Array.from(new Set(event.scoreRules.map(r => r.scoreType)))
+                                                    .map(type => getScoreTypeLabel(type))
+                                                    .join(', ')
+                                                : 'Không cộng điểm'}
+                                        </span>
                                     </div>
                                     {event.seriesId && (
                                         <div className="flex items-center text-sm text-yellow-600">
@@ -555,23 +633,12 @@ const StudentEventDetail: React.FC = () => {
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                    {event.seriesId ? (
+                                    {event.seriesId && (
                                         <div className="flex items-center text-sm text-yellow-600">
                                             <span className="mr-2">🏆</span>
                                             <span>
-                                                Điểm milestone (từ chuỗi) - Không tính điểm từ maxPoints
+                                                Sự kiện thuộc chuỗi
                                             </span>
-                                        </div>
-                                    ) : event.maxPoints && parseFloat(event.maxPoints) > 0 ? (
-                                        <div className="flex items-center text-sm text-gray-500">
-                                            <span className="mr-2">🏆</span>
-                                            <span>Điểm tối đa: {event.maxPoints}</span>
-                                        </div>
-                                    ) : null}
-                                    {event.penaltyPointsIncomplete && parseFloat(event.penaltyPointsIncomplete) > 0 && (
-                                        <div className="flex items-center text-sm text-red-600">
-                                            <span className="mr-2">⚠️</span>
-                                            <span>Điểm trừ khi không hoàn thành: {event.penaltyPointsIncomplete}</span>
                                         </div>
                                     )}
                                     {event.ticketQuantity && event.ticketQuantity > 0 ? (
@@ -625,6 +692,12 @@ const StudentEventDetail: React.FC = () => {
                                 )}
                             </div>
                         </div>
+
+                        {seriesProgress && (
+                            <div className="mb-6">
+                                <SeriesProgressBanner progress={seriesProgress} />
+                            </div>
+                        )}
 
                         {/* Actions */}
                         <div className="card">
@@ -707,14 +780,7 @@ const StudentEventDetail: React.FC = () => {
                                                         </span>
                                                     </div>
                                                 )}
-                                                {minigame.rewardPoints && (
-                                                    <div className="flex flex-col">
-                                                        <span className="text-gray-500">Điểm thưởng</span>
-                                                        <span className="font-semibold text-[#001C44]">
-                                                            {parseFloat(minigame.rewardPoints).toFixed(1)} điểm
-                                                        </span>
-                                                    </div>
-                                                )}
+
                                             </div>
 
                                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -724,8 +790,8 @@ const StudentEventDetail: React.FC = () => {
                                                         disabled={!canStartQuiz()}
                                                         onClick={() => navigate(`/student/minigames/${event.id}/play`)}
                                                         className={`btn-yellow px-6 py-2 rounded-lg text-sm font-medium ${!canStartQuiz()
-                                                                ? 'opacity-60 cursor-not-allowed'
-                                                                : ''
+                                                            ? 'opacity-60 cursor-not-allowed'
+                                                            : ''
                                                             }`}
                                                     >
                                                         Làm quiz
@@ -785,23 +851,28 @@ const StudentEventDetail: React.FC = () => {
                         )}
 
                         {/* Event Tasks and Submission (Student) */}
-                        {event.requiresSubmission && (
+                        {tasks.length > 0 && (
                             <div className="card">
                                 <div className="p-6">
                                     <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-lg font-semibold text-[#001C44]">Nhiệm vụ cần nộp bài</h3>
+                                        <h3 className="text-lg font-semibold text-[#001C44]">Danh sách nhiệm vụ</h3>
                                     </div>
                                     {loadingTasks ? (
                                         <p className="text-sm text-gray-500">Đang tải nhiệm vụ...</p>
-                                    ) : tasks.length === 0 ? (
-                                        <p className="text-sm text-gray-500">Chưa có nhiệm vụ.</p>
                                     ) : (
                                         <div className="space-y-3">
                                             {tasks.map((t) => (
                                                 <div key={t.id} className="flex items-center justify-between">
                                                     <div>
-                                                        <p className="text-sm font-medium text-gray-900">{t.taskName}</p>
-                                                        {t.submissionDeadline && (
+                                                        <p className="text-sm font-medium text-gray-900">
+                                                            {t.taskName}
+                                                            {t.requiresSubmission === false && (
+                                                                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                                                    Tùy chọn
+                                                                </span>
+                                                            )}
+                                                        </p>
+                                                        {t.submissionDeadline && t.requiresSubmission !== false && (
                                                             <p className="text-xs text-gray-500">Hạn: {new Date(t.submissionDeadline).toLocaleString('vi-VN')}</p>
                                                         )}
                                                     </div>
@@ -833,21 +904,14 @@ const StudentEventDetail: React.FC = () => {
                                         <span className="text-sm text-gray-500">Loại sự kiện:</span>
                                         <span className="text-sm font-medium">{getTypeLabel(event.type)}</span>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-500">Loại điểm:</span>
-                                        <span className="text-sm font-medium">{getScoreTypeLabel(event.scoreType)}</span>
-                                    </div>
-                                    {event.maxPoints && (
-                                        <div className="flex justify-between">
-                                            <span className="text-sm text-gray-500">Điểm tối đa:</span>
-                                            <span className="text-sm font-medium">{event.maxPoints}</span>
+                                </div>
+                                <div className="mt-4 border-t pt-4">
+                                    {event.seriesId ? (
+                                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
+                                            ℹ️ Hoạt động thuộc chuỗi sự kiện. Điểm số sẽ tính theo tiến độ của chuỗi sự kiện.
                                         </div>
-                                    )}
-                                    {event.penaltyPointsIncomplete && (
-                                        <div className="flex justify-between">
-                                            <span className="text-sm text-gray-500">Điểm phạt:</span>
-                                            <span className="text-sm font-medium text-red-600">{event.penaltyPointsIncomplete}</span>
-                                        </div>
+                                    ) : (
+                                        <ScoreRulesDisplay rules={event.scoreRules} />
                                     )}
                                 </div>
                             </div>
@@ -938,65 +1002,46 @@ const StudentEventDetail: React.FC = () => {
                                         onChange={handleFileChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
                                     />
-                                    {/* Previews */}
-                                    {(filePreviews.length > 0 || (mySubmission && mySubmission.fileUrls)) && (
+                                    {filePreviews.length > 0 && (
                                         <div className="mt-2 space-y-1">
                                             {filePreviews.map((url, idx) => (
                                                 <button
                                                     key={`p-${idx}`}
                                                     type="button"
-                                                    onClick={async () => {
-                                                        try {
-                                                            const filename = (url.split('/').pop() || `file-${idx + 1}`).trim();
-                                                            const resp = await api.get(url, { responseType: 'blob' });
-                                                            const blobUrl = window.URL.createObjectURL(new Blob([resp.data]));
-                                                            const link = document.createElement('a');
-                                                            link.href = blobUrl;
-                                                            link.setAttribute('download', filename);
-                                                            document.body.appendChild(link);
-                                                            link.click();
-                                                            link.remove();
-                                                            window.URL.revokeObjectURL(blobUrl);
-                                                        } catch (e) {
-                                                            console.error('Download failed', e);
-                                                            alert('Tải file thất bại. Vui lòng thử lại.');
-                                                        }
-                                                    }}
+                                                    onClick={() => handleDownload(url)}
                                                     className="text-blue-600 text-sm hover:underline"
                                                 >
-                                                    File mới {idx + 1}
+                                                    {url.split('/').pop() || `file-${idx + 1}`}
                                                 </button>
                                             ))}
-                                            {mySubmission && (() => {
-                                                // fileUrls is now always an array from backend
-                                                const urls = mySubmission.fileUrls || [];
-                                                return urls.map((u, idx) => (
-                                                    <button
-                                                        key={`e-${idx}`}
-                                                        type="button"
-                                                        onClick={async () => {
-                                                            try {
-                                                                const filename = (u.split('/').pop() || `file-${idx + 1}`).trim();
-                                                                const resp = await api.get(u, { responseType: 'blob' });
-                                                                const blobUrl = window.URL.createObjectURL(new Blob([resp.data]));
-                                                                const link = document.createElement('a');
-                                                                link.href = blobUrl;
-                                                                link.setAttribute('download', filename);
-                                                                document.body.appendChild(link);
-                                                                link.click();
-                                                                link.remove();
-                                                                window.URL.revokeObjectURL(blobUrl);
-                                                            } catch (e) {
-                                                                console.error('Download failed', e);
-                                                                alert('Tải file thất bại. Vui lòng thử lại.');
-                                                            }
-                                                        }}
-                                                        className="text-gray-700 text-sm hover:underline"
-                                                    >
-                                                        File hiện có {idx + 1}
-                                                    </button>
-                                                ));
-                                            })()}
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Hình ảnh minh chứng (tùy chọn)</label>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        onChange={handleImageChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
+                                    />
+                                    {imagePreviews.length > 0 && (
+                                        <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
+                                            {imagePreviews.map((url, idx) => (
+                                                <button
+                                                    key={`img-${idx}`}
+                                                    type="button"
+                                                    onClick={() => setSelectedImagePreview(url)}
+                                                    className="relative aspect-square overflow-hidden rounded-lg border border-gray-200 hover:border-[#001C44]"
+                                                >
+                                                    <img
+                                                        src={url}
+                                                        alt={`Minh chứng ${idx + 1}`}
+                                                        className="h-full w-full object-cover"
+                                                    />
+                                                </button>
+                                            ))}
                                         </div>
                                     )}
                                 </div>
@@ -1014,7 +1059,9 @@ const StudentEventDetail: React.FC = () => {
                                                 setMySubmission(null);
                                                 setSubmitContent('');
                                                 setSubmitFiles([]);
+                                                setSubmitImages([]);
                                                 setFilePreviews([]);
+                                                setImagePreviews([]);
                                                 alert('Đã xóa bài nộp.');
                                             } catch (e: any) {
                                                 alert(e.message || 'Có lỗi xảy ra khi xóa bài nộp');
@@ -1031,6 +1078,19 @@ const StudentEventDetail: React.FC = () => {
                                 </button>
                             </div>
                         </div>
+                    </div>
+                )}
+
+                {selectedImagePreview && (
+                    <div
+                        className="fixed inset-0 z-[60] bg-black bg-opacity-80 flex items-center justify-center p-4"
+                        onClick={() => setSelectedImagePreview(null)}
+                    >
+                        <img
+                            src={selectedImagePreview}
+                            alt="Xem trước minh chứng"
+                            className="max-h-[90vh] max-w-[90vw] rounded-lg shadow-2xl"
+                        />
                     </div>
                 )}
 

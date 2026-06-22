@@ -7,7 +7,8 @@ export enum RegistrationStatus {
     APPROVED = 'APPROVED',
     REJECTED = 'REJECTED',
     CANCELLED = 'CANCELLED',
-    ATTENDED = 'ATTENDED'
+    ATTENDED = 'ATTENDED',
+    WAITLIST = 'WAITLIST'
 }
 
 // New ActivityRegistration interface matching backend
@@ -16,7 +17,7 @@ export interface ActivityRegistration {
     activity: Activity;
     student: Student;
     registrationDate: string;
-    status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+    status: RegistrationStatus;
     participationType: 'INDIVIDUAL' | 'GROUP';
     groupName?: string;
     notes?: string;
@@ -61,8 +62,8 @@ export interface ActivityRegistrationResponse {
 export interface ActivityParticipationRequest {
     ticketCode?: string;
     studentId?: number;
-    participationType: ParticipationType;
-    pointsEarned?: number;
+    participationType?: ParticipationType | null;
+    pointsEarned?: string | null;
     notes?: string;
 }
 
@@ -74,7 +75,7 @@ export interface ActivityParticipationResponse {
     studentName: string;
     studentCode: string;
     participationType: ParticipationType;
-    pointsEarned?: number;
+    pointsEarned?: string | null;
     date: string; // LocalDateTime in backend, so string
     notes?: string;
 }
@@ -104,6 +105,8 @@ export const getRegistrationStatusLabel = (status: RegistrationStatus): string =
             return 'Đã hủy';
         case RegistrationStatus.ATTENDED:
             return 'Đã tham dự';
+        case RegistrationStatus.WAITLIST:
+            return 'Danh sách chờ';
         default:
             return status;
     }

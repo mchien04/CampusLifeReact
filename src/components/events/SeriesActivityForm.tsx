@@ -65,6 +65,23 @@ const renderSeriesActivityFields = (props: RenderFieldsProps & { isMinigame?: bo
             {/* Basic Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="md:col-span-2">
+                    <label htmlFor="type" className="block text-sm font-medium text-[#001C44] mb-2">
+                        Loại hoạt động con
+                    </label>
+                    <select
+                        id="type"
+                        name="type"
+                        value={isMinigame ? 'MINIGAME' : 'SUKIEN'}
+                        disabled={true}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed text-gray-500 focus:outline-none"
+                    >
+                        <option value="SUKIEN">Sự kiện thường</option>
+                        <option value="MINIGAME">Mini Game</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">Loại hoạt động con được thiết lập dựa trên bước chọn trước đó.</p>
+                </div>
+
+                <div className="md:col-span-2">
                     <label htmlFor="name" className="block text-sm font-medium text-[#001C44] mb-2">
                         Tên sự kiện *
                     </label>
@@ -345,10 +362,7 @@ const SeriesActivityForm: React.FC<SeriesActivityFormProps> = ({
         requirements: initialData.requirements || '',
         contactInfo: initialData.contactInfo || '',
         organizerIds: initialData.organizerIds || [],
-        type: ActivityType.SUKIEN, // Default type, will be null in series
-        scoreType: undefined, // From series
-        maxPoints: undefined, // Not used in series
-        penaltyPointsIncomplete: undefined,
+        type: isMinigame ? ActivityType.MINIGAME : ActivityType.SUKIEN, // Set correct type based on prop
         registrationStartDate: undefined, // From series
         registrationDeadline: undefined, // From series
         ticketQuantity: undefined, // From series

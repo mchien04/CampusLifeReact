@@ -1,6 +1,6 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ActivityRegistrationResponse, RegistrationStatus, TicketCodeValidateResponse, getRegistrationStatusLabel } from '../types/registration';
+import { ActivityRegistrationResponse, RegistrationStatus, TicketCodeValidateResponse, getRegistrationStatusLabel, ParticipationType } from '../types/registration';
 import { registrationAPI } from '../services/registrationAPI';
 import { eventAPI } from '../services/eventAPI';
 import { ActivityResponse } from '../types/activity';
@@ -88,7 +88,9 @@ const ManagerRegistrations: React.FC = () => {
             }
 
             const response = await registrationAPI.checkIn({
-                ticketCode: validatedInfo.ticketCode
+                ticketCode: validatedInfo.ticketCode,
+                studentId: validatedInfo.studentId,
+                participationType: validatedInfo.canCheckIn ? ParticipationType.CHECKED_IN : ParticipationType.CHECKED_OUT
             });
 
             if (response.status) {

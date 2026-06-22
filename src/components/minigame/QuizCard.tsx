@@ -104,14 +104,7 @@ const QuizCard: React.FC<QuizCardProps> = ({ minigame, activity, onStart, hasAtt
                             </span>
                         </div>
                     )}
-                    {minigame.rewardPoints && (
-                        <div className="flex items-center">
-                            <span className="w-4 h-4 mr-2">🏆</span>
-                            <span className="truncate">
-                                Điểm thưởng: {parseFloat(minigame.rewardPoints).toFixed(1)}
-                            </span>
-                        </div>
-                    )}
+
                     {minigame.maxAttempts !== null && minigame.maxAttempts !== undefined ? (
                         <div className="flex items-center">
                             <span className="w-4 h-4 mr-2">🔄</span>

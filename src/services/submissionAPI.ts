@@ -39,6 +39,11 @@ export const submissionAPI = {
                 formData.append('files', file);
             });
         }
+        if (data.images) {
+            data.images.forEach(image => {
+                formData.append('images', image);
+            });
+        }
         const response = await api.post(`/api/submissions/task/${taskId}`, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
@@ -56,6 +61,11 @@ export const submissionAPI = {
         if (data.files) {
             data.files.forEach(file => {
                 formData.append('files', file);
+            });
+        }
+        if (data.images) {
+            data.images.forEach(image => {
+                formData.append('images', image);
             });
         }
         const response = await api.put(`/api/submissions/${submissionId}`, formData, {

@@ -14,7 +14,7 @@ interface QuizResultsProps {
 const QuizResults: React.FC<QuizResultsProps> = ({ result, minigame, attemptDetail, onClose, onRetry, attemptCount = 0 }) => {
     const percentage = (result.correctCount / result.totalQuestions) * 100;
     // Status is now a string from backend, check for 'PASSED'
-    const passed = result.status === 'PASSED' || result.passed === true;
+    const passed = result.status === 'PASSED';
     const [showDetails, setShowDetails] = useState(false);
     
     // Check if can retry (has attempts remaining)
@@ -180,22 +180,26 @@ const QuizResults: React.FC<QuizResultsProps> = ({ result, minigame, attemptDeta
                                     <div
                                         key={question.id}
                                         className={`border-2 rounded-lg p-4 ${
-                                            question.isCorrect
-                                                ? 'border-green-500 bg-green-50'
-                                                : 'border-red-500 bg-red-50'
+                                            attemptDetail.showAnswers === false
+                                                ? 'border-gray-200 bg-gray-50'
+                                                : question.isCorrect
+                                                    ? 'border-green-500 bg-green-50'
+                                                    : 'border-red-500 bg-red-50'
                                         }`}
                                     >
                                         <div className="flex items-start justify-between mb-3">
                                             <h4 className="font-semibold text-gray-900 flex-1">
                                                 Câu {index + 1}: {question.questionText}
                                             </h4>
-                                            <div className="ml-4">
-                                                {question.isCorrect ? (
-                                                    <span className="text-green-600 text-2xl">✓</span>
-                                                ) : (
-                                                    <span className="text-red-600 text-2xl">✗</span>
-                                                )}
-                                            </div>
+                                            {attemptDetail.showAnswers !== false && (
+                                                <div className="ml-4">
+                                                    {question.isCorrect ? (
+                                                        <span className="text-green-600 text-2xl">✓</span>
+                                                    ) : (
+                                                        <span className="text-red-600 text-2xl">✗</span>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                         
                                         {/* Question Image */}
@@ -219,14 +223,22 @@ const QuizResults: React.FC<QuizResultsProps> = ({ result, minigame, attemptDeta
                                                 let borderColor = 'border-gray-200';
                                                 let textColor = 'text-gray-900';
 
-                                                if (isCorrect) {
-                                                    bgColor = 'bg-green-100';
-                                                    borderColor = 'border-green-500';
-                                                    textColor = 'text-green-900';
-                                                } else if (isSelected) {
-                                                    bgColor = 'bg-red-100';
-                                                    borderColor = 'border-red-500';
-                                                    textColor = 'text-red-900';
+                                                if (attemptDetail.showAnswers === false) {
+                                                    if (isSelected) {
+                                                        bgColor = 'bg-blue-50';
+                                                        borderColor = 'border-blue-400';
+                                                        textColor = 'text-blue-900';
+                                                    }
+                                                } else {
+                                                    if (isCorrect) {
+                                                        bgColor = 'bg-green-100';
+                                                        borderColor = 'border-green-500';
+                                                        textColor = 'text-green-900';
+                                                    } else if (isSelected) {
+                                                        bgColor = 'bg-red-100';
+                                                        borderColor = 'border-red-500';
+                                                        textColor = 'text-red-900';
+                                                    }
                                                 }
 
                                                 return (
@@ -234,18 +246,28 @@ const QuizResults: React.FC<QuizResultsProps> = ({ result, minigame, attemptDeta
                                                         key={option.id}
                                                         className={`p-3 rounded-lg border-2 ${bgColor} ${borderColor} ${textColor} flex items-center space-x-2`}
                                                     >
-                                                        {isCorrect && (
-                                                            <span className="text-green-600 font-bold">✓ Đúng</span>
-                                                        )}
-                                                        {isSelected && !isCorrect && (
-                                                            <span className="text-red-600 font-bold">✗ Bạn chọn</span>
+                                                        {attemptDetail.showAnswers !== false ? (
+                                                            <>
+                                                                {isCorrect && (
+                                                                    <span className="text-green-600 font-bold">✓ Đúng</span>
+                                                                )}
+                                                                {isSelected && !isCorrect && (
+                                                                    <span className="text-red-600 font-bold">✗ Bạn chọn</span>
+                                                                )}
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                {isSelected && (
+                                                                    <span className="text-blue-600 font-bold">Bạn chọn</span>
+                                                                )}
+                                                            </>
                                                         )}
                                                         <span className="flex-1">{option.text}</span>
                                                     </div>
                                                 );
                                             })}
                                         </div>
-                                        {!question.isCorrect && question.selectedOptionId && (
+                                        {!question.isCorrect && question.selectedOptionId && attemptDetail.showAnswers !== false && (
                                             <div className="mt-2 text-sm text-gray-600">
                                                 Đáp án đúng: Câu {question.options.findIndex(o => o.id === question.correctOptionId) + 1}
                                             </div>

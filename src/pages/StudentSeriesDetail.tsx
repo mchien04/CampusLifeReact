@@ -4,7 +4,7 @@ import { seriesAPI } from '../services/seriesAPI';
 import { SeriesResponse, StudentSeriesProgress } from '../types/series';
 import { ActivityResponse } from '../types/activity';
 import { LoadingSpinner } from '../components/common';
-import { SeriesProgress, MilestoneDisplay } from '../components/series';
+import { SeriesProgress, MilestoneDisplay, SeriesProgressBanner } from '../components/series';
 import { SeriesActivityList } from '../components/series';
 import StudentLayout from '../components/layout/StudentLayout';
 import { toast } from 'react-toastify';
@@ -177,6 +177,11 @@ const StudentSeriesDetail: React.FC = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Main Content */}
                     <div className="lg:col-span-2 space-y-6">
+                        {/* Progress Banner */}
+                        {isRegistered && progress && (
+                            <SeriesProgressBanner progress={progress} />
+                        )}
+
                         {/* Series Info */}
                         <div className="card p-6">
                             <h3 className="text-lg font-semibold text-[#001C44] mb-4">Thông tin chuỗi sự kiện</h3>

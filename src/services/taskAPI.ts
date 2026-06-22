@@ -334,5 +334,43 @@ export const taskAPI = {
                 data: undefined
             };
         }
+    },
+
+    // Trigger check overdue tasks (Quartz)
+    checkOverdueTasks: async (): Promise<Response<{ updatedCount: number }>> => {
+        try {
+            const response = await api.post('/api/tasks/check-overdue');
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Error checking overdue tasks:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật trạng thái nhiệm vụ quá hạn',
+                data: undefined
+            };
+        }
+    },
+
+    // Trigger check overdue tasks for specific task
+    checkOverdueTaskById: async (taskId: number): Promise<Response<{ updatedCount: number }>> => {
+        try {
+            const response = await api.post(`/api/tasks/${taskId}/check-overdue`);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Error checking overdue task:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Có lỗi xảy ra khi kiểm tra nhiệm vụ quá hạn',
+                data: undefined
+            };
+        }
     }
 };

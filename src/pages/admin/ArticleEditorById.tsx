@@ -238,10 +238,10 @@ const ArticleEditorById: React.FC = () => {
             setUploadingThumbnail(true);
             const compressed = await compressImage(file, { maxWidth: 1600, quality: 0.82 });
             const response = await uploadAPI.uploadImage(compressed);
-            if (!response.status || !response.data?.bannerUrl) {
-                throw new Error(response.message || 'Không upload được thumbnail');
+            if (!response.status || !response.data) {
+                throw new Error(response.message || 'Upload failed');
             }
-            updateField('thumbnailUrl', response.data.bannerUrl);
+            updateField('thumbnailUrl', response.data);
         } catch (err: any) {
             setError(err?.message || 'Không upload được thumbnail');
         } finally {
@@ -262,11 +262,11 @@ const ArticleEditorById: React.FC = () => {
                 const file = fileArr[idx];
                 const compressed = await compressImage(file, { maxWidth: 1920, quality: 0.82 });
                 const uploadRes = await uploadAPI.uploadImage(compressed);
-                if (!uploadRes.status || !uploadRes.data?.bannerUrl) {
-                    throw new Error(uploadRes.message || 'Không upload được ảnh');
+                if (!uploadRes.status || !uploadRes.data) {
+                    throw new Error('Upload failed');
                 }
                 const addRes = await articleAPI.addArticleImage(article.id, {
-                    imageUrl: uploadRes.data.bannerUrl,
+                    imageUrl: uploadRes.data,
                     caption: null,
                     displayOrder: (galleryImages.length || 0) + idx,
                     isCover: false,

@@ -120,7 +120,7 @@ const StudentEvents: React.FC = () => {
         return labels[type] || type;
     };
 
-    const getScoreTypeLabel = (scoreType: ScoreType | null) => {
+    const getScoreTypeLabel = (scoreType: ScoreType | null | undefined) => {
         if (!scoreType) return 'N/A';
         const labels: Record<ScoreType, string> = {
             [ScoreType.REN_LUYEN]: 'Rèn luyện',
@@ -136,7 +136,8 @@ const StudentEvents: React.FC = () => {
             [RegistrationStatus.APPROVED]: 'Đã duyệt',
             [RegistrationStatus.REJECTED]: 'Từ chối',
             [RegistrationStatus.CANCELLED]: 'Đã hủy',
-            [RegistrationStatus.ATTENDED]: 'Đã tham dự'
+            [RegistrationStatus.ATTENDED]: 'Đã tham dự',
+            [RegistrationStatus.WAITLIST]: 'Danh sách chờ'
         };
         return labels[status] || status;
     };
@@ -147,7 +148,8 @@ const StudentEvents: React.FC = () => {
             [RegistrationStatus.APPROVED]: 'bg-green-100 text-green-800',
             [RegistrationStatus.REJECTED]: 'bg-red-100 text-red-800',
             [RegistrationStatus.CANCELLED]: 'bg-gray-100 text-gray-800',
-            [RegistrationStatus.ATTENDED]: 'bg-blue-100 text-blue-800'
+            [RegistrationStatus.ATTENDED]: 'bg-blue-100 text-blue-800',
+            [RegistrationStatus.WAITLIST]: 'bg-purple-100 text-purple-800'
         };
         return colors[status] || 'bg-gray-100 text-gray-800';
     };
@@ -166,7 +168,7 @@ const StudentEvents: React.FC = () => {
         const matchesSearch = event.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             event.description?.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesType = typeFilter === 'ALL' || event.type === typeFilter;
-        const matchesScoreType = scoreTypeFilter === 'ALL' || event.scoreType === scoreTypeFilter;
+        const matchesScoreType = scoreTypeFilter === 'ALL' || (event.scoreRules && event.scoreRules.some(r => r.scoreType === scoreTypeFilter));
         const matchesStatus = statusFilter === 'ALL' || getEventStatus(event) === statusFilter;
 
         return matchesSearch && matchesType && matchesScoreType && matchesStatus;
@@ -280,7 +282,11 @@ const StudentEvents: React.FC = () => {
                                     {getTypeLabel(event.type)}
                                 </span>
                                 <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#FFD66D] text-[#001C44] border-2 border-[#FFD66D] shadow-sm">
-                                    {getScoreTypeLabel(event.scoreType)}
+                                    {event.scoreRules && event.scoreRules.length > 0
+                                        ? Array.from(new Set(event.scoreRules.map(r => r.scoreType)))
+                                            .map(type => getScoreTypeLabel(type))
+                                            .join(', ')
+                                        : 'Không cộng điểm'}
                                 </span>
                                 {event.seriesId && (
                                     <Link
@@ -331,12 +337,7 @@ const StudentEvents: React.FC = () => {
                                 <span className="truncate font-medium text-gray-800">{event.participantCount} người tham gia</span>
                             </div>
                         )}
-                        {event.maxPoints && parseFloat(event.maxPoints) > 0 && (
-                            <div className="flex items-center">
-                                <span className="w-5 h-5 mr-2.5 text-[#FFD66D]">🏆</span>
-                                <span className="truncate font-semibold text-[#001C44]">{event.maxPoints} điểm</span>
-                            </div>
-                        )}
+                        
                         {event.mandatoryForFacultyStudents && (
                             <div className="flex items-center">
                                 <span className="w-5 h-5 mr-2.5 text-red-600">🎯</span>

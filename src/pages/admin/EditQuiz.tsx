@@ -49,8 +49,8 @@ const EditQuiz: React.FC = () => {
                 type: 'QUIZ' as any,
                 activityId: 0, // We'll get this from activity
                 requiredCorrectAnswers: editData.requiredCorrectAnswers,
-                rewardPoints: editData.rewardPoints,
-                maxAttempts: editData.maxAttempts ?? null // Include maxAttempts from API response
+                maxAttempts: editData.maxAttempts ?? null, // Include maxAttempts from API response
+                showAnswers: editData.showAnswers ?? false
             };
             setMinigame(minigameData);
 
@@ -115,10 +115,7 @@ const EditQuiz: React.FC = () => {
 
         setSaving(true);
         try {
-            // If activity is in series, don't send rewardPoints
-            const updateData: UpdateMiniGameRequest = activity.seriesId 
-                ? { ...data, rewardPoints: undefined }
-                : data;
+            const updateData: UpdateMiniGameRequest = data;
             
             const response = await minigameAPI.updateMiniGame(parseInt(miniGameId), updateData);
             if (response.status && response.data) {
@@ -172,8 +169,9 @@ const EditQuiz: React.FC = () => {
         questionCount: minigame.questionCount,
         timeLimit: minigame.timeLimit,
         requiredCorrectAnswers: minigame.requiredCorrectAnswers,
-        rewardPoints: minigame.rewardPoints,
+
         maxAttempts: minigame.maxAttempts !== undefined ? minigame.maxAttempts : null,
+        showAnswers: minigame.showAnswers,
         // Use loaded questions with correct answers
         questions: initialQuestions
     };

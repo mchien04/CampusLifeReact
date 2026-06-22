@@ -54,7 +54,10 @@ const EditSeries: React.FC = () => {
                 registrationStartDate: data.registrationStartDate,
                 registrationDeadline: data.registrationDeadline,
                 requiresApproval: data.requiresApproval,
-                ticketQuantity: data.ticketQuantity
+                ticketQuantity: data.ticketQuantity,
+                minimumRequirementEnabled: data.minimumRequirementEnabled,
+                minimumRequiredEvents: data.minimumRequiredEvents,
+                minimumPenaltyPoints: data.minimumPenaltyPoints
             };
             const response = await seriesAPI.updateSeries(parseInt(id), updateData);
             if (response.status && response.data) {
@@ -114,7 +117,10 @@ const EditSeries: React.FC = () => {
                     registrationStartDate: series.registrationStartDate || undefined,
                     registrationDeadline: series.registrationDeadline || undefined,
                     requiresApproval: series.requiresApproval,
-                    ticketQuantity: series.ticketQuantity || undefined
+                    ticketQuantity: series.ticketQuantity || undefined,
+                    minimumRequirementEnabled: series.minimumRequirementEnabled,
+                    minimumRequiredEvents: series.minimumRequiredEvents,
+                    minimumPenaltyPoints: series.minimumPenaltyPoints
                 }}
                 title="Chỉnh sửa chuỗi sự kiện"
                 onCancel={handleCancel}

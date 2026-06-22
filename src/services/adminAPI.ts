@@ -702,3 +702,33 @@ export const studentAccountAPI = {
         }
     }
 };
+
+// System Tools API
+export const systemAPI = {
+    triggerCheckOverdue: async (): Promise<Response<any>> => {
+        try {
+            const response = await api.post('/api/admin/system/trigger-check-overdue');
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('System API: triggerCheckOverdue failed:', error);
+            return { status: false, message: error.response?.data?.message || 'Failed to trigger check overdue', data: undefined };
+        }
+    },
+    cleanupOrphanData: async (): Promise<Response<any>> => {
+        try {
+            const response = await api.post('/api/admin/system/cleanup-orphan-data');
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('System API: cleanupOrphanData failed:', error);
+            return { status: false, message: error.response?.data?.message || 'Failed to cleanup orphan data', data: undefined };
+        }
+    }
+};
