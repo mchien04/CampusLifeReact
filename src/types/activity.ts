@@ -40,7 +40,6 @@ export enum ScoreRuleAudience {
 
 export enum ScoreSemesterPolicy {
     ACTIVITY_SEMESTER = 'ACTIVITY_SEMESTER',
-    CURRENT_OPEN_SEMESTER = 'CURRENT_OPEN_SEMESTER',
     EXPLICIT_SEMESTER = 'EXPLICIT_SEMESTER'
 }
 

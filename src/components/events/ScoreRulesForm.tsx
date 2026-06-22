@@ -165,7 +165,6 @@ export const ScoreRulesForm: React.FC<ScoreRulesFormProps> = ({ rules = [], onCh
                                     className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
                                     <option value={ScoreSemesterPolicy.ACTIVITY_SEMESTER}>Học kỳ của hoạt động</option>
-                                    <option value={ScoreSemesterPolicy.CURRENT_OPEN_SEMESTER}>Học kỳ hiện tại</option>
                                     <option value={ScoreSemesterPolicy.EXPLICIT_SEMESTER}>Chỉ định học kỳ</option>
                                 </select>
                             </div>
