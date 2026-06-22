@@ -303,7 +303,9 @@ const StudentMinigameHistory: React.FC = () => {
                                             <div
                                                 key={question.id}
                                                 className={`p-4 border-2 rounded-lg ${
-                                                    question.isCorrect
+                                                    selectedAttempt.showAnswers === false
+                                                        ? 'border-gray-200 bg-gray-50'
+                                                        : question.isCorrect
                                                         ? 'border-green-200 bg-green-50'
                                                         : 'border-red-200 bg-red-50'
                                                 }`}
@@ -312,10 +314,12 @@ const StudentMinigameHistory: React.FC = () => {
                                                     <h4 className="font-semibold text-gray-900 flex-1">
                                                         Câu {index + 1}: {question.questionText}
                                                     </h4>
-                                                    {question.isCorrect ? (
-                                                        <span className="ml-2 text-green-600 font-semibold">✓ Đúng</span>
-                                                    ) : (
-                                                        <span className="ml-2 text-red-600 font-semibold">✗ Sai</span>
+                                                    {selectedAttempt.showAnswers !== false && (
+                                                        question.isCorrect ? (
+                                                            <span className="ml-2 text-green-600 font-semibold">✓ Đúng</span>
+                                                        ) : (
+                                                            <span className="ml-2 text-red-600 font-semibold">✗ Sai</span>
+                                                        )
                                                     )}
                                                 </div>
                                                 <div className="space-y-2">
@@ -323,7 +327,11 @@ const StudentMinigameHistory: React.FC = () => {
                                                         <div
                                                             key={option.id}
                                                             className={`p-3 rounded-lg border-2 ${
-                                                                option.isCorrect
+                                                                selectedAttempt.showAnswers === false
+                                                                    ? option.isSelected
+                                                                        ? 'border-blue-400 bg-blue-50 text-blue-900'
+                                                                        : 'border-gray-200 bg-white'
+                                                                    : option.isCorrect
                                                                     ? 'border-green-400 bg-green-100'
                                                                     : option.isSelected
                                                                     ? 'border-red-400 bg-red-100'
@@ -333,11 +341,21 @@ const StudentMinigameHistory: React.FC = () => {
                                                             <div className="flex items-center justify-between">
                                                                 <span className="text-gray-900">{option.text}</span>
                                                                 <div className="flex items-center space-x-2">
-                                                                    {option.isCorrect && (
-                                                                        <span className="text-green-600 font-semibold text-sm">Đáp án đúng</span>
-                                                                    )}
-                                                                    {option.isSelected && !option.isCorrect && (
-                                                                        <span className="text-red-600 font-semibold text-sm">Bạn đã chọn</span>
+                                                                    {selectedAttempt.showAnswers !== false ? (
+                                                                        <>
+                                                                            {option.isCorrect && (
+                                                                                <span className="text-green-600 font-semibold text-sm">Đáp án đúng</span>
+                                                                            )}
+                                                                            {option.isSelected && !option.isCorrect && (
+                                                                                <span className="text-red-600 font-semibold text-sm">Bạn đã chọn</span>
+                                                                            )}
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            {option.isSelected && (
+                                                                                <span className="text-blue-600 font-semibold text-sm">Bạn đã chọn</span>
+                                                                            )}
+                                                                        </>
                                                                     )}
                                                                 </div>
                                                             </div>

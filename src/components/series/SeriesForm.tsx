@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CreateSeriesRequest, formatMilestonePoints, parseMilestonePoints } from '../../types/series';
+import { CreateSeriesRequest } from '../../types/series';
 import { ScoreType } from '../../types/activity';
 import { seriesAPI } from '../../services/seriesAPI';
 
@@ -22,7 +22,7 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
         const defaultData: CreateSeriesRequest = {
             name: '',
             description: '',
-            milestonePoints: '{}',
+            milestonePoints: {},
             scoreType: ScoreType.REN_LUYEN,
             registrationStartDate: '',
             registrationDeadline: '',
@@ -70,7 +70,7 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
                 setFormData(prev => ({
                     ...prev,
                     scoreType: presetData.scoreType,
-                    milestonePoints: formatMilestonePoints(presetData.milestonePoints),
+                    milestonePoints: presetData.milestonePoints,
                     minimumRequirementEnabled: presetData.minimumRequirementEnabled ?? false,
                     minimumRequiredEvents: presetData.minimumRequiredEvents ?? undefined,
                     minimumPenaltyPoints: presetData.minimumPenaltyPoints ?? undefined
@@ -89,16 +89,13 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
 
     useEffect(() => {
         if (formData.milestonePoints) {
-            try {
-                const parsed = parseMilestonePoints(formData.milestonePoints);
-                setMilestoneEntries(
-                    Object.entries(parsed)
-                        .map(([count, points]) => ({ count: parseInt(count), points: points as number }))
-                        .sort((a, b) => a.count - b.count)
-                );
-            } catch {
-                setMilestoneEntries([]);
-            }
+            setMilestoneEntries(
+                Object.entries(formData.milestonePoints)
+                    .map(([count, points]) => ({ count: parseInt(count), points: points as number }))
+                    .sort((a, b) => a.count - b.count)
+            );
+        } else {
+            setMilestoneEntries([]);
         }
     }, [formData.milestonePoints]);
 
@@ -154,7 +151,7 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
 
         setFormData(prev => ({
             ...prev,
-            milestonePoints: formatMilestonePoints(milestoneObj)
+            milestonePoints: milestoneObj
         }));
 
         setMilestoneInput({ count: '', points: '' });
@@ -171,7 +168,7 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
 
         setFormData(prev => ({
             ...prev,
-            milestonePoints: formatMilestonePoints(milestoneObj)
+            milestonePoints: milestoneObj
         }));
     };
 
@@ -182,22 +179,22 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
             newErrors.name = 'Tên chuỗi sự kiện là bắt buộc';
         }
 
-        if (!formData.milestonePoints || formData.milestonePoints === '{}') {
+        if (!formData.milestonePoints || Object.keys(formData.milestonePoints).length === 0) {
             newErrors.milestonePoints = 'Vui lòng thêm ít nhất một mốc điểm';
-        } else {
-            try {
-                const parsed = parseMilestonePoints(formData.milestonePoints);
-                if (Object.keys(parsed).length === 0) {
-                    newErrors.milestonePoints = 'Vui lòng thêm ít nhất một mốc điểm';
-                }
-            } catch {
-                newErrors.milestonePoints = 'Định dạng milestone points không hợp lệ';
-            }
         }
 
         if (formData.registrationStartDate && formData.registrationDeadline) {
             if (new Date(formData.registrationStartDate) >= new Date(formData.registrationDeadline)) {
                 newErrors.registrationDeadline = 'Hạn đăng ký phải sau ngày mở đăng ký';
+            }
+        }
+
+        if (formData.minimumRequirementEnabled) {
+            if (!formData.minimumRequiredEvents || formData.minimumRequiredEvents < 1) {
+                newErrors.minimumRequiredEvents = 'Số sự kiện tối thiểu phải lớn hơn hoặc bằng 1';
+            }
+            if (formData.minimumPenaltyPoints === undefined || formData.minimumPenaltyPoints === null || formData.minimumPenaltyPoints < 0) {
+                newErrors.minimumPenaltyPoints = 'Điểm phạt phải lớn hơn hoặc bằng 0';
             }
         }
 
@@ -482,9 +479,14 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
                                             min="1"
                                             value={formData.minimumRequiredEvents || ''}
                                             onChange={handleChange}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
+                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44] ${
+                                                errors.minimumRequiredEvents ? 'border-red-500' : 'border-gray-300'
+                                            }`}
                                             placeholder="Ví dụ: 2"
                                         />
+                                        {errors.minimumRequiredEvents && (
+                                            <p className="text-red-500 text-sm mt-1">{errors.minimumRequiredEvents}</p>
+                                        )}
                                     </div>
                                     <div>
                                         <label htmlFor="minimumPenaltyPoints" className="block text-sm font-medium text-gray-700 mb-2">
@@ -495,11 +497,16 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
                                             id="minimumPenaltyPoints"
                                             name="minimumPenaltyPoints"
                                             min="0"
-                                            value={formData.minimumPenaltyPoints || ''}
+                                            value={formData.minimumPenaltyPoints ?? ''}
                                             onChange={handleChange}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
+                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44] ${
+                                                errors.minimumPenaltyPoints ? 'border-red-500' : 'border-gray-300'
+                                            }`}
                                             placeholder="Ví dụ: 5"
                                         />
+                                        {errors.minimumPenaltyPoints && (
+                                            <p className="text-red-500 text-sm mt-1">{errors.minimumPenaltyPoints}</p>
+                                        )}
                                     </div>
                                 </div>
                             )}

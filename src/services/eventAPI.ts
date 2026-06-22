@@ -1,17 +1,17 @@
 import api from './api';
 import { CreateActivityRequest, ActivityResponse } from '../types/activity';
 import { Response } from '../types/auth';
-import { ActivityPresetPreviewResponse } from '../types/presets';
+import { ActivityPresetPreviewResponse, ActivityPresetDefinition } from '../types/presets';
 
 export const eventAPI = {
     // Activity Presets
-    getActivityPresets: async (): Promise<Response<any[]>> => {
+    getActivityPresets: async (): Promise<Response<ActivityPresetDefinition[]>> => {
         try {
             const response = await api.get('/api/activities/presets');
             return {
                 status: response.data.status,
                 message: response.data.message,
-                data: response.data.body || response.data.data
+                data: response.data.body || response.data.data || []
             };
         } catch (error: any) {
             console.error('Error fetching activity presets:', error);
@@ -219,20 +219,18 @@ export const eventAPI = {
     getEventsByDepartment: async (departmentId: number): Promise<Response<ActivityResponse[]>> => {
         try {
             const response = await api.get(`/api/activities/department/${departmentId}`);
-            if (Array.isArray(response.data)) {
-                return { status: true, message: 'Success', data: response.data };
-            }
+            const list = Array.isArray(response.data) ? response.data : (response.data.body || response.data.data || []);
             return {
-                status: response.data.status,
-                message: response.data.message,
-                data: response.data.body || response.data.data
+                status: true,
+                message: 'Success',
+                data: list
             };
         } catch (error: any) {
             console.error('Error fetching events by department:', error);
             return {
                 status: false,
                 message: 'Failed to fetch events by department',
-                data: undefined
+                data: []
             };
         }
     },
@@ -241,20 +239,18 @@ export const eventAPI = {
     getEventsByScoreType: async (scoreType: string): Promise<Response<ActivityResponse[]>> => {
         try {
             const response = await api.get(`/api/activities/score-type/${scoreType}`);
-            if (Array.isArray(response.data)) {
-                return { status: true, message: 'Success', data: response.data };
-            }
+            const list = Array.isArray(response.data) ? response.data : (response.data.body || response.data.data || []);
             return {
-                status: response.data.status,
-                message: response.data.message,
-                data: response.data.body || response.data.data
+                status: true,
+                message: 'Success',
+                data: list
             };
         } catch (error: any) {
             console.error('Error fetching events by score type:', error);
             return {
                 status: false,
                 message: 'Failed to fetch events by score type',
-                data: undefined
+                data: []
             };
         }
     },
@@ -267,20 +263,18 @@ export const eventAPI = {
             if (month) params.append('month', month.toString());
 
             const response = await api.get(`/api/activities/month?${params.toString()}`);
-            if (Array.isArray(response.data)) {
-                return { status: true, message: 'Success', data: response.data };
-            }
+            const list = Array.isArray(response.data) ? response.data : (response.data.body || response.data.data || []);
             return {
-                status: response.data.status,
-                message: response.data.message,
-                data: response.data.body || response.data.data
+                status: true,
+                message: 'Success',
+                data: list
             };
         } catch (error: any) {
             console.error('Error fetching events by month:', error);
             return {
                 status: false,
                 message: 'Failed to fetch events by month',
-                data: undefined
+                data: []
             };
         }
     },
@@ -289,20 +283,18 @@ export const eventAPI = {
     getMyEvents: async (): Promise<Response<ActivityResponse[]>> => {
         try {
             const response = await api.get('/api/activities/my');
-            if (Array.isArray(response.data)) {
-                return { status: true, message: 'Success', data: response.data };
-            }
+            const list = Array.isArray(response.data) ? response.data : (response.data.body || response.data.data || []);
             return {
-                status: response.data.status,
-                message: response.data.message,
-                data: response.data.body || response.data.data
+                status: true,
+                message: 'Success',
+                data: list
             };
         } catch (error: any) {
             console.error('Error fetching my events:', error);
             return {
                 status: false,
                 message: 'Failed to fetch my events',
-                data: undefined
+                data: []
             };
         }
     },

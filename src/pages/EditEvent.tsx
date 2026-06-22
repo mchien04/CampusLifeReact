@@ -120,7 +120,6 @@ const EditEvent: React.FC = () => {
     const initialData: Partial<CreateActivityRequest> = {
         name: event.name,
         type: event.type ?? undefined,
-        scoreType: event.scoreType ?? undefined,
         description: event.description,
         startDate: event.startDate,
         endDate: event.endDate,

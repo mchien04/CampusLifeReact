@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { QRCodeScanner } from '../components/qr';
 import { registrationAPI } from '../services/registrationAPI';
@@ -8,17 +8,30 @@ import StudentLayout from '../components/layout/StudentLayout';
 
 const QRCodeCheckIn: React.FC = () => {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [showScanner, setShowScanner] = useState(false);
     const [manualCode, setManualCode] = useState('');
     const [loading, setLoading] = useState(false);
     const [checkInResult, setCheckInResult] = useState<ActivityParticipationResponse | null>(null);
+    const initialCheckDone = useRef(false);
 
     const handleScan = async (code: string) => {
         if (loading) return;
         
         setLoading(true);
         try {
-            const response = await registrationAPI.checkInByQrCode(code);
+            let finalCode = code.trim();
+            try {
+                const url = new URL(finalCode);
+                const codeParam = url.searchParams.get('code') || url.searchParams.get('checkInCode');
+                if (codeParam) {
+                    finalCode = codeParam;
+                }
+            } catch (e) {
+                // Not a valid URL, use original code
+            }
+
+            const response = await registrationAPI.checkInByQrCode(finalCode);
             if (response.status && response.body) {
                 setCheckInResult(response.body);
                 toast.success('Điểm danh thành công!');
@@ -34,6 +47,16 @@ const QRCodeCheckIn: React.FC = () => {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        if (initialCheckDone.current) return;
+        
+        const code = searchParams.get('code') || searchParams.get('checkInCode');
+        if (code) {
+            initialCheckDone.current = true;
+            handleScan(code);
+        }
+    }, [searchParams]);
 
     const handleError = (message: string) => {
         if (message.includes('Không tìm thấy activity')) {

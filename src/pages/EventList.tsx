@@ -44,7 +44,7 @@ const EventList: React.FC = () => {
 
     const filteredEvents = events.filter(event => {
         const typeMatch = filter === 'ALL' || event.type === filter;
-        const scoreTypeMatch = scoreTypeFilter === 'ALL' || event.scoreType === scoreTypeFilter;
+        const scoreTypeMatch = scoreTypeFilter === 'ALL' || (event.scoreRules && event.scoreRules.some(r => r.scoreType === scoreTypeFilter));
         return typeMatch && scoreTypeMatch;
     });
 
@@ -344,7 +344,11 @@ const EventList: React.FC = () => {
                                     {getTypeLabel(event.type)}
                                 </span>
                                 <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#FFD66D] text-[#001C44] border-2 border-[#FFD66D] shadow-sm">
-                                    {getScoreTypeLabel(event.scoreType)}
+                                    {event.scoreRules && event.scoreRules.length > 0
+                                        ? Array.from(new Set(event.scoreRules.map(r => r.scoreType)))
+                                            .map(type => getScoreTypeLabel(type))
+                                            .join(', ')
+                                        : 'Không cộng điểm'}
                                 </span>
                             </div>
                         </div>

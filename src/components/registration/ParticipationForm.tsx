@@ -18,7 +18,7 @@ const ParticipationForm: React.FC<ParticipationFormProps> = ({
 }) => {
     const [formData, setFormData] = useState<ActivityParticipationRequest>({
         participationType: ParticipationType.ATTENDED,
-        pointsEarned: 0,
+        pointsEarned: '',
         notes: ''
     });
 
@@ -33,7 +33,7 @@ const ParticipationForm: React.FC<ParticipationFormProps> = ({
         const { name, value } = e.target;
         setFormData({
             ...formData,
-            [name]: name === 'pointsEarned' ? parseFloat(value) || 0 : value
+            [name]: value
         });
     };
 
@@ -42,7 +42,7 @@ const ParticipationForm: React.FC<ParticipationFormProps> = ({
             <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
                 <div className="mt-3">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-medium text-gray-900">
+                        <h3 className="text-lg font-semibold text-gray-900">
                             Ghi nhận tham gia
                         </h3>
                         <button
@@ -69,7 +69,7 @@ const ParticipationForm: React.FC<ParticipationFormProps> = ({
                             <select
                                 id="participationType"
                                 name="participationType"
-                                value={formData.participationType}
+                                value={formData.participationType || ''}
                                 onChange={handleChange}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                 required
@@ -90,7 +90,7 @@ const ParticipationForm: React.FC<ParticipationFormProps> = ({
                                 type="number"
                                 id="pointsEarned"
                                 name="pointsEarned"
-                                value={formData.pointsEarned}
+                                value={formData.pointsEarned || ''}
                                 onChange={handleChange}
                                 min="0"
                                 step="0.1"
@@ -107,7 +107,7 @@ const ParticipationForm: React.FC<ParticipationFormProps> = ({
                                 id="notes"
                                 name="notes"
                                 rows={3}
-                                value={formData.notes}
+                                value={formData.notes || ''}
                                 onChange={handleChange}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                 placeholder="Nhập ghi chú về sự tham gia..."

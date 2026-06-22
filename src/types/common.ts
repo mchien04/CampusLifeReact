@@ -3,3 +3,9 @@ export interface ApiResponse<T> {
     message: string;
     body: T | null;
 }
+
+export interface UploadImageApiResponse {
+    status: boolean;
+    message: string;
+    data: string;
+}

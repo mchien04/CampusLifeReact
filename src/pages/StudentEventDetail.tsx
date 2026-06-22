@@ -22,6 +22,9 @@ import { activityPhotoAPI } from '../services/activityPhotoAPI';
 import StudentLayout from '../components/layout/StudentLayout';
 import { minigameAPI } from '../services/minigameAPI';
 import { MiniGame } from '../types/minigame';
+import { seriesAPI } from '../services/seriesAPI';
+import { StudentSeriesProgress } from '../types/series';
+import SeriesProgressBanner from '../components/series/SeriesProgressBanner';
 
 const StudentEventDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -38,6 +41,8 @@ const StudentEventDetail: React.FC = () => {
     // Minigame state (for activities with type MINIGAME)
     const [minigame, setMinigame] = useState<MiniGame | null>(null);
     const [loadingMinigame, setLoadingMinigame] = useState(false);
+
+    const [seriesProgress, setSeriesProgress] = useState<StudentSeriesProgress | null>(null);
 
     // Tasks and submissions (within this event page)
     const [tasks, setTasks] = useState<TaskAssignmentResponse[]>([]);
@@ -106,6 +111,17 @@ const StudentEventDetail: React.FC = () => {
                     loadTasksByActivity(response.data.id),
                     checkSupervisorStatus(response.data.id)
                 ]);
+
+                if (response.data.seriesId) {
+                    try {
+                        const seriesProgressRes = await seriesAPI.getMySeriesProgress(response.data.seriesId);
+                        if (seriesProgressRes.status && seriesProgressRes.data) {
+                            setSeriesProgress(seriesProgressRes.data);
+                        }
+                    } catch (e) {
+                        console.error('Error loading series progress:', e);
+                    }
+                }
 
                 // If this is a minigame activity, load its quiz info
                 if (response.data.type === ActivityType.MINIGAME) {
@@ -274,7 +290,8 @@ const StudentEventDetail: React.FC = () => {
             [RegistrationStatus.APPROVED]: 'Đã duyệt',
             [RegistrationStatus.REJECTED]: 'Từ chối',
             [RegistrationStatus.CANCELLED]: 'Đã hủy',
-            [RegistrationStatus.ATTENDED]: 'Đã tham dự'
+            [RegistrationStatus.ATTENDED]: 'Đã tham dự',
+            [RegistrationStatus.WAITLIST]: 'Danh sách chờ'
         };
         return labels[status] || status;
     };
@@ -285,7 +302,8 @@ const StudentEventDetail: React.FC = () => {
             [RegistrationStatus.APPROVED]: 'bg-green-100 text-green-800',
             [RegistrationStatus.REJECTED]: 'bg-red-100 text-red-800',
             [RegistrationStatus.CANCELLED]: 'bg-gray-100 text-gray-800',
-            [RegistrationStatus.ATTENDED]: 'bg-blue-100 text-blue-800'
+            [RegistrationStatus.ATTENDED]: 'bg-blue-100 text-blue-800',
+            [RegistrationStatus.WAITLIST]: 'bg-purple-100 text-purple-800'
         };
         return colors[status] || 'bg-gray-100 text-gray-800';
     };
@@ -592,7 +610,13 @@ const StudentEventDetail: React.FC = () => {
                                     </div>
                                     <div className="flex items-center text-sm text-gray-500">
                                         <span className="mr-2">⭐</span>
-                                        <span>{getScoreTypeLabel(event.scoreType)}</span>
+                                        <span>
+                                            {event.scoreRules && event.scoreRules.length > 0
+                                                ? Array.from(new Set(event.scoreRules.map(r => r.scoreType)))
+                                                    .map(type => getScoreTypeLabel(type))
+                                                    .join(', ')
+                                                : 'Không cộng điểm'}
+                                        </span>
                                     </div>
                                     {event.seriesId && (
                                         <div className="flex items-center text-sm text-yellow-600">
@@ -613,7 +637,7 @@ const StudentEventDetail: React.FC = () => {
                                         <div className="flex items-center text-sm text-yellow-600">
                                             <span className="mr-2">🏆</span>
                                             <span>
-                                                Sự kiện thuộc chuỗi (Điểm tính theo mốc chuỗi)
+                                                Sự kiện thuộc chuỗi
                                             </span>
                                         </div>
                                     )}
@@ -668,6 +692,12 @@ const StudentEventDetail: React.FC = () => {
                                 )}
                             </div>
                         </div>
+
+                        {seriesProgress && (
+                            <div className="mb-6">
+                                <SeriesProgressBanner progress={seriesProgress} />
+                            </div>
+                        )}
 
                         {/* Actions */}
                         <div className="card">
@@ -821,23 +851,28 @@ const StudentEventDetail: React.FC = () => {
                         )}
 
                         {/* Event Tasks and Submission (Student) */}
-                        {event.requiresSubmission && (
+                        {tasks.length > 0 && (
                             <div className="card">
                                 <div className="p-6">
                                     <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-lg font-semibold text-[#001C44]">Nhiệm vụ cần nộp bài</h3>
+                                        <h3 className="text-lg font-semibold text-[#001C44]">Danh sách nhiệm vụ</h3>
                                     </div>
                                     {loadingTasks ? (
                                         <p className="text-sm text-gray-500">Đang tải nhiệm vụ...</p>
-                                    ) : tasks.length === 0 ? (
-                                        <p className="text-sm text-gray-500">Chưa có nhiệm vụ.</p>
                                     ) : (
                                         <div className="space-y-3">
                                             {tasks.map((t) => (
                                                 <div key={t.id} className="flex items-center justify-between">
                                                     <div>
-                                                        <p className="text-sm font-medium text-gray-900">{t.taskName}</p>
-                                                        {t.submissionDeadline && (
+                                                        <p className="text-sm font-medium text-gray-900">
+                                                            {t.taskName}
+                                                            {t.requiresSubmission === false && (
+                                                                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                                                    Tùy chọn
+                                                                </span>
+                                                            )}
+                                                        </p>
+                                                        {t.submissionDeadline && t.requiresSubmission !== false && (
                                                             <p className="text-xs text-gray-500">Hạn: {new Date(t.submissionDeadline).toLocaleString('vi-VN')}</p>
                                                         )}
                                                     </div>
@@ -871,7 +906,13 @@ const StudentEventDetail: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="mt-4 border-t pt-4">
-                                    <ScoreRulesDisplay rules={event.scoreRules} />
+                                    {event.seriesId ? (
+                                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
+                                            ℹ️ Hoạt động thuộc chuỗi sự kiện. Điểm số sẽ tính theo tiến độ của chuỗi sự kiện.
+                                        </div>
+                                    ) : (
+                                        <ScoreRulesDisplay rules={event.scoreRules} />
+                                    )}
                                 </div>
                             </div>
                         </div>

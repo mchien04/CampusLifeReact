@@ -1,6 +1,6 @@
 import React from 'react';
 import ProgressBar from '../common/ProgressBar';
-import { StudentSeriesProgress, parseMilestonePoints } from '../../types/series';
+import { StudentSeriesProgress } from '../../types/series';
 import { SeriesResponse } from '../../types/series';
 
 interface SeriesProgressProps {

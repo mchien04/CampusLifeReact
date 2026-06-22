@@ -46,24 +46,7 @@ const renderMinigameFields = (props: RenderFieldsProps & { isInSeries?: boolean 
                     {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
                 </div>
 
-                <div>
-                    <label htmlFor="scoreType" className="block text-sm font-medium text-[#001C44] mb-2">
-                        Kiểu tính điểm
-                    </label>
-                    <select
-                        id="scoreType"
-                        name="scoreType"
-                        value={formData.scoreType || ''}
-                        onChange={handleChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
-                    >
-                        <option value={ScoreType.REN_LUYEN}>Điểm rèn luyện</option>
-                        <option value={ScoreType.CONG_TAC_XA_HOI}>Điểm công tác xã hội</option>
-                        <option value={ScoreType.CHUYEN_DE}>Điểm chuyên đề doanh nghiệp</option>
-                    </select>
-                </div>
-
-                <div>
+                <div className="md:col-span-2">
                     <label htmlFor="location" className="block text-sm font-medium text-[#001C44] mb-2">
                         Địa điểm *
                     </label>

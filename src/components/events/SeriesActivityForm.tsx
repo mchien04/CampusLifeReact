@@ -363,7 +363,6 @@ const SeriesActivityForm: React.FC<SeriesActivityFormProps> = ({
         contactInfo: initialData.contactInfo || '',
         organizerIds: initialData.organizerIds || [],
         type: isMinigame ? ActivityType.MINIGAME : ActivityType.SUKIEN, // Set correct type based on prop
-        scoreType: undefined, // From series
         registrationStartDate: undefined, // From series
         registrationDeadline: undefined, // From series
         ticketQuantity: undefined, // From series

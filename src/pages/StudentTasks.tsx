@@ -210,6 +210,8 @@ const StudentTasks: React.FC = () => {
             case TaskStatus.COMPLETED:
                 return 'bg-green-100 text-green-800';
             case TaskStatus.CANCELLED:
+                return 'bg-gray-100 text-gray-800';
+            case TaskStatus.OVERDUE:
                 return 'bg-red-100 text-red-800';
             default:
                 return 'bg-gray-100 text-gray-800';
@@ -226,6 +228,8 @@ const StudentTasks: React.FC = () => {
                 return 'Hoàn thành';
             case TaskStatus.CANCELLED:
                 return 'Đã hủy';
+            case TaskStatus.OVERDUE:
+                return 'Quá hạn';
             default:
                 return status;
         }
@@ -364,13 +368,14 @@ const StudentTasks: React.FC = () => {
                         >
                             Tất cả ({assignments.length})
                         </button>
-                        {[TaskStatus.PENDING, TaskStatus.IN_PROGRESS, TaskStatus.COMPLETED, TaskStatus.CANCELLED].map(status => {
+                        {[TaskStatus.PENDING, TaskStatus.IN_PROGRESS, TaskStatus.COMPLETED, TaskStatus.OVERDUE, TaskStatus.CANCELLED].map(status => {
                             const count = assignments.filter(a => a.status === status).length;
                             const statusColors = {
                                 [TaskStatus.PENDING]: 'from-yellow-400 to-yellow-500',
                                 [TaskStatus.IN_PROGRESS]: 'from-blue-400 to-blue-500',
                                 [TaskStatus.COMPLETED]: 'from-green-400 to-green-500',
-                                [TaskStatus.CANCELLED]: 'from-red-400 to-red-500',
+                                [TaskStatus.OVERDUE]: 'from-red-400 to-red-500',
+                                [TaskStatus.CANCELLED]: 'from-gray-400 to-gray-500',
                             };
                             return (
                                 <button
@@ -408,7 +413,6 @@ const StudentTasks: React.FC = () => {
                         {filteredAssignments.map((assignment) => {
                             const nextStatus = getNextStatus(assignment.status);
                             const mySubmission = mySubmissionsByTask[assignment.taskId] || null;
-                            const isLate = assignment.submissionDeadline ? new Date() > new Date(assignment.submissionDeadline) : false;
 
                             return (
                                 <div key={assignment.id} className="bg-white rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 overflow-hidden">
@@ -422,6 +426,11 @@ const StudentTasks: React.FC = () => {
                                                     <div className="flex-1 min-w-0">
                                                         <h3 className="text-xl font-bold text-gray-900 mb-2 truncate">
                                                             {assignment.taskName}
+                                                            {assignment.requiresSubmission === false && (
+                                                                <span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200 align-middle">
+                                                                    Tùy chọn
+                                                                </span>
+                                                            )}
                                                         </h3>
                                                         {assignment.activityName && (
                                                             <div className="mb-3 flex items-center flex-wrap gap-2">
@@ -452,15 +461,15 @@ const StudentTasks: React.FC = () => {
                                                     </div>
                                                 </div>
                                                 
-                                                {assignment.submissionDeadline && (
+                                                {assignment.submissionDeadline && assignment.requiresSubmission !== false && (
                                                     <div className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-semibold ${
-                                                        isLate 
+                                                        assignment.status === TaskStatus.OVERDUE 
                                                             ? 'bg-red-50 text-red-700 border-2 border-red-200' 
                                                             : 'bg-blue-50 text-blue-700 border-2 border-blue-200'
                                                     }`}>
                                                         <span className="mr-2">⏰</span>
                                                         Hạn nộp: {formatDate(assignment.submissionDeadline)}
-                                                        {isLate && <span className="ml-2 font-bold">(Đã quá hạn)</span>}
+                                                        {assignment.status === TaskStatus.OVERDUE && <span className="ml-2 font-bold">(Đã quá hạn)</span>}
                                                     </div>
                                                 )}
                                             </div>

@@ -95,9 +95,12 @@ export const ScoreRulesForm: React.FC<ScoreRulesFormProps> = ({ rules = [], onCh
                                     className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
                                     <option value={ScoreRuleTrigger.PARTICIPATION_COMPLETED}>Hoàn thành tham gia</option>
+                                    <option value={ScoreRuleTrigger.NO_SHOW}>Không tham gia (Vắng)</option>
                                     <option value={ScoreRuleTrigger.SUBMISSION_GRADED}>Được chấm bài</option>
                                     <option value={ScoreRuleTrigger.MINIGAME_PASSED}>Đạt minigame</option>
                                     <option value={ScoreRuleTrigger.SERIES_MILESTONE_REACHED}>Đạt mốc chuỗi sự kiện</option>
+                                    <option value={ScoreRuleTrigger.TASK_OVERDUE}>Quá hạn nhiệm vụ</option>
+                                    <option value={ScoreRuleTrigger.MINIGAME_EXHAUSTED_ATTEMPTS}>Hết lượt minigame</option>
                                 </select>
                             </div>
 

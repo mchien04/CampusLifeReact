@@ -1,9 +1,8 @@
 import React from 'react';
-import { parseMilestonePoints } from '../../types/series';
 import { ScoreType } from '../../types/activity';
 
 interface MilestoneDisplayProps {
-    milestonePoints: string | Record<number, number>;
+    milestonePoints: Record<number, number>;
     scoreType: ScoreType;
     completedCount: number;
     currentPoints?: string;
@@ -22,13 +21,7 @@ const MilestoneDisplay: React.FC<MilestoneDisplayProps> = ({
     nextMilestoneCount: apiNextMilestoneCount,
     nextMilestonePoints: apiNextMilestonePoints
 }) => {
-    // Parse milestonePoints - can be string or object
-    let milestones: Record<number, number>;
-    if (typeof milestonePoints === 'string') {
-        milestones = parseMilestonePoints(milestonePoints);
-    } else {
-        milestones = milestonePoints;
-    }
+    const milestones = milestonePoints || {};
     
     const milestoneEntries = Object.entries(milestones)
         .map(([count, points]) => ({ count: parseInt(count), points: points as number }))

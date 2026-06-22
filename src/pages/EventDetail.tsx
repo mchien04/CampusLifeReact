@@ -734,7 +734,11 @@ const EventDetail: React.FC = () => {
                                         {getTypeLabel(event.type)}
                                     </span>
                                     <span className="inline-block px-3 py-1.5 text-sm font-medium rounded-full bg-[#FFD66D] bg-opacity-30 text-[#001C44] border border-[#FFD66D]">
-                                        {getScoreTypeLabel(event.scoreType)}
+                                        {event.scoreRules && event.scoreRules.length > 0
+                                            ? Array.from(new Set(event.scoreRules.map(r => r.scoreType)))
+                                                .map(type => getScoreTypeLabel(type))
+                                                .join(', ')
+                                            : 'Không cộng điểm'}
                                     </span>
                                     <span className="text-sm text-gray-500 font-mono">
                                         ID: {event.id}
@@ -838,7 +842,13 @@ const EventDetail: React.FC = () => {
                                             </p>
                                         </div>
                                     </div>
-                                    <ScoreRulesDisplay rules={event.scoreRules} />
+                                    {event.seriesId ? (
+                                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
+                                            ℹ️ Hoạt động thuộc chuỗi sự kiện. Điểm số sẽ tính theo tiến độ của chuỗi sự kiện.
+                                        </div>
+                                    ) : (
+                                        <ScoreRulesDisplay rules={event.scoreRules} />
+                                    )}
                                     <div className="flex items-center">
                                         <span className="w-5 h-5 mr-3 text-indigo-600">🎫</span>
                                         <div>

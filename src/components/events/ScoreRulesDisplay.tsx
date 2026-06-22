@@ -24,9 +24,12 @@ const getScoreTypeLabel = (type: ScoreType) => {
 const getTriggerLabel = (trigger: ScoreRuleTrigger) => {
     switch (trigger) {
         case ScoreRuleTrigger.PARTICIPATION_COMPLETED: return 'Hoàn thành tham gia';
+        case ScoreRuleTrigger.NO_SHOW: return 'Không tham gia (Vắng)';
         case ScoreRuleTrigger.SUBMISSION_GRADED: return 'Nộp bài và được chấm';
         case ScoreRuleTrigger.MINIGAME_PASSED: return 'Đạt Minigame';
         case ScoreRuleTrigger.SERIES_MILESTONE_REACHED: return 'Đạt mốc chuỗi sự kiện';
+        case ScoreRuleTrigger.TASK_OVERDUE: return 'Quá hạn nhiệm vụ';
+        case ScoreRuleTrigger.MINIGAME_EXHAUSTED_ATTEMPTS: return 'Hết lượt Minigame';
         default: return trigger;
     }
 };

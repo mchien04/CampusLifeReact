@@ -2,10 +2,13 @@ import React, { useState, useEffect, ChangeEvent } from 'react';
 import { CreateActivityRequest, ActivityType, ScoreType, ActivityScoreRuleRequest } from '../../types/activity';
 import { uploadAPI } from '../../services/uploadAPI';
 import { eventAPI } from '../../services/eventAPI';
+import { departmentAPI } from '../../services/adminAPI';
 import { getImageUrl } from '../../utils/imageUtils';
 import OrganizerSelector from './OrganizerSelector';
-import { ScoreRulesForm } from './ScoreRulesForm';
 import { ActivityPresetPreviewResponse } from '../../types/presets';
+import ActivityScoreRulePreview from './ActivityScoreRulePreview';
+import { ScoreRulesForm } from './ScoreRulesForm';
+import { Department } from '../../types/admin';
 
 interface EventFormProps {
     onSubmit: (data: CreateActivityRequest) => void;
@@ -27,7 +30,6 @@ const EventForm: React.FC<EventFormProps> = ({
         const defaultData: CreateActivityRequest = {
             name: '',
             type: ActivityType.SUKIEN,
-            scoreType: ScoreType.REN_LUYEN,
             description: '',
             startDate: '',
             endDate: '',
@@ -67,6 +69,8 @@ const EventForm: React.FC<EventFormProps> = ({
     const [unlimitedTickets, setUnlimitedTickets] = useState(false);
     const [presets, setPresets] = useState<any[]>([]);
     const [selectedPresetCode, setSelectedPresetCode] = useState<string>('');
+    const [presetPreview, setPresetPreview] = useState<ActivityPresetPreviewResponse | null>(null);
+    const [departments, setDepartments] = useState<Department[]>([]);
     const isEditing = !!(initialData && Object.keys(initialData).length > 0);
 
     // Load presets on mount
@@ -80,6 +84,21 @@ const EventForm: React.FC<EventFormProps> = ({
         fetchPresets();
     }, []);
 
+    // Load departments on mount
+    useEffect(() => {
+        const fetchDepartments = async () => {
+            try {
+                const res = await departmentAPI.getDepartments();
+                if (res.status && res.data) {
+                    setDepartments(res.data);
+                }
+            } catch (err) {
+                console.error('Error fetching departments:', err);
+            }
+        };
+        fetchDepartments();
+    }, []);
+
     const handlePresetChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
         const code = e.target.value;
         setSelectedPresetCode(code);
@@ -89,6 +108,7 @@ const EventForm: React.FC<EventFormProps> = ({
             const previewRes = await eventAPI.previewActivityPreset({ presetCode: code });
             if (previewRes.status && previewRes.data) {
                 const presetData = previewRes.data;
+                setPresetPreview(presetData);
                 setFormData(prev => ({
                     ...prev,
                     type: presetData.activityType,
@@ -98,6 +118,7 @@ const EventForm: React.FC<EventFormProps> = ({
             }
         } catch (error) {
             console.error('Lỗi khi tải mẫu cấu hình:', error);
+            setPresetPreview(null);
         }
     };
 
@@ -156,7 +177,21 @@ const EventForm: React.FC<EventFormProps> = ({
         }
 
         if (formData.requiresSubmission) {
-            // Legacy static-point validation removed
+            const hasPassFailWithFailPoints = formData.scoreRules?.some(
+                rule => rule.calculation === 'PASS_FAIL_POINTS' && rule.failPoints !== undefined && rule.failPoints !== null && rule.failPoints !== ''
+            );
+            if (!hasPassFailWithFailPoints) {
+                newErrors.scoreRules = 'Sự kiện yêu cầu nộp bài thu hoạch phải có ít nhất một luật tính điểm Đạt/Trượt và có cấu hình điểm trượt hợp lệ.';
+            }
+        }
+
+        if (formData.type === ActivityType.CHUYEN_DE_DOANH_NGHIEP) {
+            const hasInvalidNoShowPenalty = formData.scoreRules?.some(
+                rule => rule.triggerType === 'NO_SHOW' && rule.scoreType === ScoreType.CHUYEN_DE
+            );
+            if (hasInvalidNoShowPenalty) {
+                newErrors.scoreRules = 'Sự kiện Chuyên đề doanh nghiệp không được cấu hình luật phạt vắng mặt (No-show) bằng điểm Chuyên đề. Vui lòng chọn loại điểm phạt khác (ví dụ: Rèn luyện).';
+            }
         }
 
         if (!formData.organizerIds || formData.organizerIds.length === 0) {
@@ -317,6 +352,7 @@ const EventForm: React.FC<EventFormProps> = ({
                                         </option>
                                     ))}
                                 </select>
+                                <ActivityScoreRulePreview preview={presetPreview} />
                             </div>
                         )}
 
@@ -353,23 +389,6 @@ const EventForm: React.FC<EventFormProps> = ({
                                 <option value={ActivityType.CHUYEN_DE_DOANH_NGHIEP}>Chuyên đề doanh nghiệp</option>
                             </select>
                             {errors.type && <p className="text-red-500 text-sm mt-1">{errors.type}</p>}
-                        </div>
-
-                        <div>
-                            <label htmlFor="scoreType" className="block text-sm font-medium text-gray-700 mb-2">
-                                Kiểu tính điểm
-                            </label>
-                            <select
-                                id="scoreType"
-                                name="scoreType"
-                                value={formData.scoreType || ''}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                <option value={ScoreType.REN_LUYEN}>Điểm rèn luyện</option>
-                                <option value={ScoreType.CONG_TAC_XA_HOI}>Điểm công tác xã hội</option>
-                                <option value={ScoreType.CHUYEN_DE}>Điểm chuyên đề doanh nghiệp</option>
-                            </select>
                         </div>
 
                         <div>
@@ -664,8 +683,19 @@ const EventForm: React.FC<EventFormProps> = ({
                     <div className="pt-6 border-t border-gray-200">
                         <ScoreRulesForm
                             rules={formData.scoreRules || []}
-                            onChange={(rules) => setFormData(prev => ({ ...prev, scoreRules: rules }))}
+                            onChange={(rules) => {
+                                setFormData(prev => ({ ...prev, scoreRules: rules }));
+                                if (errors.scoreRules) {
+                                    setErrors(prev => ({ ...prev, scoreRules: '' }));
+                                }
+                            }}
+                            departments={departments}
                         />
+                        {errors.scoreRules && (
+                            <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded text-red-600 text-sm">
+                                <strong>Lỗi cấu hình điểm:</strong> {errors.scoreRules}
+                            </div>
+                        )}
                     </div>
 
                     {/* Requirements & Benefits */}

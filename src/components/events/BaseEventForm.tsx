@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { CreateActivityRequest, ActivityType, ScoreType } from '../../types/activity';
 import { uploadAPI } from '../../services/uploadAPI';
 import { eventAPI } from '../../services/eventAPI';
+import { departmentAPI } from '../../services/adminAPI';
 import { getImageUrl } from '../../utils/imageUtils';
 import OrganizerSelector from './OrganizerSelector';
 import { ScoreRulesForm } from './ScoreRulesForm';
+import { Department } from '../../types/admin';
 
 export type FormMode = 'normal' | 'minigame' | 'series';
 
@@ -44,7 +46,6 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
         const defaultData: CreateActivityRequest = {
             name: '',
             type: mode === 'minigame' ? ActivityType.MINIGAME : ActivityType.SUKIEN,
-            scoreType: ScoreType.REN_LUYEN,
             description: '',
             startDate: '',
             endDate: '',
@@ -84,6 +85,7 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
     const [isUploading, setIsUploading] = useState(false);
     const [presets, setPresets] = useState<any[]>([]);
     const [selectedPresetCode, setSelectedPresetCode] = useState<string>('');
+    const [departments, setDepartments] = useState<Department[]>([]);
     const isEditing = !!(initialData && initialData.name);
 
     // Load presets on mount
@@ -117,6 +119,21 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
         };
         fetchPresets();
     }, [mode, isEditing]);
+
+    // Load departments on mount
+    useEffect(() => {
+        const fetchDepartments = async () => {
+            try {
+                const res = await departmentAPI.getDepartments();
+                if (res.status && res.data) {
+                    setDepartments(res.data);
+                }
+            } catch (err) {
+                console.error('Error fetching departments:', err);
+            }
+        };
+        fetchDepartments();
+    }, []);
 
     const handlePresetChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
         const code = e.target.value;
@@ -324,7 +341,7 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
 
     const formContent = (
         <form onSubmit={handleSubmit} className={inline ? "space-y-6" : "p-6 space-y-6"}>
-            {!isEditing && mode !== 'series' && presets.length > 0 && (
+            {!isEditing && mode !== 'series' && mode !== 'minigame' && presets.length > 0 && (
                 <div className="p-4 bg-blue-50 rounded-md border border-blue-100">
                     <label htmlFor="preset" className="block text-sm font-medium text-[#001C44] mb-2">
                         Mẫu cấu hình (Preset) <span className="text-gray-500 font-normal">- Tự động điền yêu cầu nộp bài và các luật tính điểm</span>
@@ -337,7 +354,7 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
                     >
                         <option value="">-- Tự do cấu hình (Không dùng mẫu) --</option>
                         {presets
-                            .filter(preset => mode !== 'minigame' || preset.activityType === 'MINIGAME')
+                            .filter(preset => (mode as string) !== 'minigame' || preset.activityType === 'MINIGAME')
                             .map(preset => (
                                 <option key={preset.code} value={preset.code}>
                                     {preset.name} - {preset.description}
@@ -355,6 +372,7 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
                     <ScoreRulesForm 
                         rules={formData.scoreRules || []}
                         onChange={(rules) => setFormData(prev => ({ ...prev, scoreRules: rules }))}
+                        departments={departments}
                     />
                 </div>
             )}

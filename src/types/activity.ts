@@ -20,7 +20,8 @@ export enum ScoreRuleTrigger {
     SUBMISSION_GRADED = 'SUBMISSION_GRADED',
     MINIGAME_PASSED = 'MINIGAME_PASSED',
     SERIES_MILESTONE_REACHED = 'SERIES_MILESTONE_REACHED',
-    TASK_OVERDUE = 'TASK_OVERDUE'
+    TASK_OVERDUE = 'TASK_OVERDUE',
+    MINIGAME_EXHAUSTED_ATTEMPTS = 'MINIGAME_EXHAUSTED_ATTEMPTS'
 }
 
 export enum ScoreRuleCalculation {
@@ -94,9 +95,9 @@ export interface CreateActivityRequest {
     requiresApproval?: boolean | null;
     mandatoryForFacultyStudents?: boolean | null;
     organizerIds?: number[];
-    
-    // Legacy transition fields
-    scoreType?: ScoreType;}
+    presetCode?: string | null;
+    presetConfig?: any | null;
+}
 
 export interface ActivityResponse {
     id: number;
@@ -126,15 +127,15 @@ export interface ActivityResponse {
     organizerIds: number[];
     seriesId?: number | null;
     seriesOrder?: number | null;
+    presetCode?: string | null;
+    presetConfig?: any | null;
     createdAt?: string | null;
     updatedAt?: string | null;
     createdBy?: string | null;
     lastModifiedBy?: string | null;
     status?: string;
     participantCount?: number;
-
-    // Legacy transition fields
-    scoreType?: ScoreType | null;}
+}
 
 // Keeping legacy interface that is used across the app until fully removed
 export interface Activity {

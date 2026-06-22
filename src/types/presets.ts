@@ -30,3 +30,27 @@ export interface SeriesPresetPreviewResponse {
     minimumPenaltyPoints?: number | null;
     notes: string[];
 }
+
+export interface ActivityPresetDefinition {
+    code: ActivityPresetCode;
+    displayName: string;
+    description: string;
+    defaultRequiresSubmission: boolean;
+    recommendedActivityTypes: ActivityType[];
+    notes: string[];
+}
+
+export interface ActivityPresetConfig {
+    primaryScoreType?: ScoreType | null;
+    participationPoints?: string | null;
+    participationFailPoints?: string | null;
+    noShowPenaltyEnabled?: boolean | null;
+    noShowPenaltyPoints?: string | null;
+    noShowPenaltyScoreType?: ScoreType | null;
+    submissionPassPoints?: string | null;
+    submissionFailPoints?: string | null;
+    taskOverduePenaltyPoints?: string | null;
+    minigameExhaustedPenaltyPoints?: string | null;
+    bonusScoreType?: ScoreType | null;
+    bonusPoints?: string | null;
+}

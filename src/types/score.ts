@@ -57,7 +57,7 @@ export interface StudentRankingResponse {
     semesterId: number;
     semesterName: string;
     scoreType: ScoreType | null;
-    score: number; // BigDecimal as number
+    score: string; // BigDecimal as string
     scoreTypeLabel: string;
 }
 
@@ -70,6 +70,16 @@ export interface StudentRankingResponseData {
     sortOrder: "ASC" | "DESC";
     totalStudents: number;
     rankings: StudentRankingResponse[];
+}
+
+export interface StudentRankResponse {
+    rank: number;
+    studentId: number;
+    studentCode: string;
+    studentName: string;
+    departmentName: string;
+    className: string;
+    score: string;
 }
 
 // Score History Types

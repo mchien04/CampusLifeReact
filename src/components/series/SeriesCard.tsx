@@ -2,7 +2,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { SeriesResponse } from '../../types/series';
 import { ScoreType } from '../../types/activity';
-import { parseMilestonePoints } from '../../types/series';
 import ProgressBar from '../common/ProgressBar';
 
 interface SeriesCardProps {
@@ -21,7 +20,7 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
     onRegister,
     isRegistered
 }) => {
-    const milestones = parseMilestonePoints(series.milestonePoints);
+    const milestones = series.milestonePoints || {};
     const totalActivities = series.activities?.length || series.totalActivities || 0;
     const completedCount = progress?.completedCount || 0;
 

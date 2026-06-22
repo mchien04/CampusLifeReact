@@ -5,7 +5,7 @@ export interface ActivitySeries {
     id: number;
     name: string;
     description?: string;
-    milestonePoints: string; // JSON string: {"3": 5, "4": 7, "5": 10}
+    milestonePoints: Record<number, number>; // Map: {"3": 5, "4": 7, "5": 10}
     scoreType: ScoreType;
     mainActivityId?: number;
     registrationStartDate?: string;
@@ -20,6 +20,7 @@ export interface StudentSeriesProgress {
     id?: number;
     studentId?: number;
     seriesId?: number;
+    seriesName?: string;
     completedActivityIds?: string | number[]; // JSON array: [1,3,5] or array
     completedCount: number;
     totalActivities?: number;
@@ -29,7 +30,7 @@ export interface StudentSeriesProgress {
     currentMilestone?: number; // Mốc hiện tại đã đạt
     nextMilestoneCount?: number; // Số sự kiện cần để đạt mốc tiếp theo
     nextMilestonePoints?: string; // Điểm sẽ nhận khi đạt mốc tiếp theo
-    milestonePoints?: string | Record<number, number>; // Map các mốc điểm (JSON string or object)
+    milestonePoints?: Record<number, number>; // Map các mốc điểm
     scoreType?: ScoreType; // Loại điểm (REN_LUYEN, etc.)
     minimumRequirementEnabled?: boolean;
     minimumRequiredEvents?: number | null;
@@ -41,7 +42,7 @@ export interface StudentSeriesProgress {
 export interface CreateSeriesRequest {
     name: string;
     description?: string;
-    milestonePoints: string; // JSON string
+    milestonePoints: Record<number, number>;
     scoreType: ScoreType;
     mainActivityId?: number;
     registrationStartDate?: string;
@@ -58,7 +59,7 @@ export interface CreateSeriesRequest {
 export interface UpdateSeriesRequest {
     name?: string;
     description?: string;
-    milestonePoints?: string; // JSON string
+    milestonePoints?: Record<number, number>;
     scoreType?: ScoreType;
     mainActivityId?: number | null;
     registrationStartDate?: string;
@@ -95,7 +96,7 @@ export interface SeriesResponse {
     id: number;
     name: string;
     description?: string;
-    milestonePoints: string;
+    milestonePoints: Record<number, number>;
     scoreType: ScoreType;
     mainActivityId?: number;
     registrationStartDate?: string;
@@ -124,19 +125,7 @@ export interface SeriesRegistrationStatus {
     isRegistered: boolean;
 }
 
-// Helper to parse milestone points
-export const parseMilestonePoints = (milestonePoints: string): Record<number, number> => {
-    try {
-        return JSON.parse(milestonePoints);
-    } catch {
-        return {};
-    }
-};
-
-// Helper to format milestone points
-export const formatMilestonePoints = (points: Record<number, number>): string => {
-    return JSON.stringify(points);
-};
+// Parse and format helper functions removed as milestonePoints is now Record<number, number> directly.
 
 // Series Overview Response (Admin/Manager)
 export interface MilestoneProgressItem {
@@ -161,7 +150,7 @@ export interface SeriesOverviewResponse {
     seriesName: string;
     description?: string;
     scoreType: ScoreType;
-    milestonePoints: string; // JSON string
+    milestonePoints: Record<number, number>;
     milestonePointsMap: Record<string, number>; // Parsed milestone points
     registrationStartDate?: string;
     registrationDeadline?: string;
