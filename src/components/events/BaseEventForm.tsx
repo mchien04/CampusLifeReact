@@ -230,27 +230,30 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
 
     useEffect(() => {
         if (Object.keys(initialData).length > 0) {
-            setFormData(prev => ({
-                ...prev,
-                ...Object.fromEntries(
-                    Object.entries(initialData).map(([key, value]) => [
-                        key,
-                        value !== undefined ? value : prev[key as keyof CreateActivityRequest]
-                    ])
-                )
-            }));
-            if (initialData.bannerUrl) {
-                setOriginalBannerUrl(initialData.bannerUrl);
-                setFormData(prev => ({
+            setFormData(prev => {
+                const merged = {
                     ...prev,
-                    bannerUrl: ''
-                }));
-            }
-            if (initialData.ticketQuantity === undefined || initialData.ticketQuantity === null) {
-                setUnlimitedTickets(true);
-            } else {
-                setUnlimitedTickets(false);
-            }
+                    ...Object.fromEntries(
+                        Object.entries(initialData).map(([key, value]) => [
+                            key,
+                            value !== undefined ? value : prev[key as keyof CreateActivityRequest]
+                        ])
+                    )
+                };
+
+                if (initialData.bannerUrl) {
+                    setOriginalBannerUrl(initialData.bannerUrl);
+                    merged.bannerUrl = '';
+                }
+
+                if (initialData.ticketQuantity === undefined || initialData.ticketQuantity === null) {
+                    setUnlimitedTickets(true);
+                } else {
+                    setUnlimitedTickets(false);
+                }
+
+                return merged;
+            });
             setIsInitialLoad(false);
         } else {
             setIsInitialLoad(false);

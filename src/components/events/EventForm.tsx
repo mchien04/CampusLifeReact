@@ -207,30 +207,32 @@ const EventForm: React.FC<EventFormProps> = ({
     // Update formData when initialData changes
     useEffect(() => {
         if (Object.keys(initialData).length > 0) {
-            setFormData(prev => ({
-                ...prev,
-                ...Object.fromEntries(
-                    Object.entries(initialData).map(([key, value]) => [
-                        key,
-                        value !== undefined ? value : prev[key as keyof CreateActivityRequest]
-                    ])
-                )
-            }));
-            // Store original banner URL for comparison
-            if (initialData.bannerUrl) {
-                setOriginalBannerUrl(initialData.bannerUrl);
-                // Clear the bannerUrl field to avoid showing the upload path
-                setFormData(prev => ({
+            setFormData(prev => {
+                const merged = {
                     ...prev,
-                    bannerUrl: ''
-                }));
-            }
-            // Set unlimitedTickets based on ticketQuantity value
-            if (initialData.ticketQuantity === undefined || initialData.ticketQuantity === null) {
-                setUnlimitedTickets(true);
-            } else {
-                setUnlimitedTickets(false);
-            }
+                    ...Object.fromEntries(
+                        Object.entries(initialData).map(([key, value]) => [
+                            key,
+                            value !== undefined ? value : prev[key as keyof CreateActivityRequest]
+                        ])
+                    )
+                };
+                
+                // Handle bannerUrl
+                if (initialData.bannerUrl) {
+                    setOriginalBannerUrl(initialData.bannerUrl);
+                    merged.bannerUrl = '';
+                }
+                
+                // Handle ticketQuantity
+                if (initialData.ticketQuantity === undefined || initialData.ticketQuantity === null) {
+                    setUnlimitedTickets(true);
+                } else {
+                    setUnlimitedTickets(false);
+                }
+
+                return merged;
+            });
             // Mark initial load as complete after initialData is set
             setIsInitialLoad(false);
         } else {

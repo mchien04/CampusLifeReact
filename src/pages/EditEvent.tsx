@@ -6,6 +6,7 @@ import SeriesActivityForm from '../components/events/SeriesActivityForm';
 import { CreateActivityRequest, ActivityResponse, ActivityType } from '../types/activity';
 import { eventAPI } from '../services/eventAPI';
 import { useAuth } from '../contexts/AuthContext';
+import { mapScoreRuleResponseToRequest } from '../utils/scoreRuleMapper';
 
 const EditEvent: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -139,7 +140,9 @@ const EditEvent: React.FC = () => {
         contactInfo: event.contactInfo,
         requiresApproval: event.requiresApproval ?? false,
         mandatoryForFacultyStudents: event.mandatoryForFacultyStudents ?? false,
-        organizerIds: event.organizerIds || []
+        organizerIds: event.organizerIds || [],
+        scoreRules: event.scoreRules?.map(mapScoreRuleResponseToRequest) ?? [],
+        presetCode: 'CUSTOM' as any, // Tell backend to not regenerate rules from preset
     };
 
     return (

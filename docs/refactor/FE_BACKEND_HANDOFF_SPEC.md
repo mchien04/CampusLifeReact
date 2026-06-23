@@ -43,52 +43,6 @@ Tài liệu này đóng vai trò là **Source of Truth duy nhất** cho team Fro
 
 ---
 
-### 2.3 Cập Nhật Từ Việc Tích Hợp Frontend (Kết quả Phase 1, 2, 3 & 4)
-
-Dưới đây là danh sách chi tiết các file đã được cập nhật ở phía Frontend để đáp ứng backend handoff, chia theo hai nhóm chính: Admin/Manager và Student.
-
-#### Nhóm 1: Admin / Manager
-- **Cập nhật Types & Services**:
-  - Bổ sung `ActivityPresetPreviewResponse`, `ActivityPresetConfig` vào `src/types/presets.ts`.
-  - Cập nhật hàm gọi API `previewActivityPreset` trong `src/services/eventAPI.ts`.
-  - Bổ sung type và các API cập nhật/tính toán điểm (`recalculateAllScores`, `recalculateStudentScore`) trong `src/services/scoresAPI.ts`.
-- **Cập nhật Màn hình & Components**:
-  - **Quản lý Sự kiện (Events)**:
-    - Tạo mới component `ActivityScoreRulePreview.tsx` để xem trước cấu hình điểm từ Backend.
-    - Tích hợp preview vào `EventForm.tsx` và `EditEvent.tsx`.
-    - Bổ sung logic xác thực (validation): chặn không cho đặt phạt `NO_SHOW` bằng điểm `CHUYEN_DE` với sự kiện Chuyên đề doanh nghiệp, và bắt buộc có cấu hình điểm Đạt/Trượt nếu sự kiện yêu cầu nộp bài.
-  - **Quản lý Chuỗi sự kiện (Series)**:
-    - Bổ sung các field cấu hình điều kiện bắt buộc (`minimumRequirementEnabled`, `minimumRequiredEvents`, `minimumPenaltyPoints`) vào `SeriesForm.tsx`.
-    - Thêm validate yêu cầu nhập đầy đủ số liệu nếu bật cờ yêu cầu tối thiểu.
-  - **Quản lý Điểm số (Manager Scores)**:
-    - Thêm nút và tính năng "Tính lại toàn trường" vào `ManagerScores.tsx` với cửa sổ xác nhận và màn hình chờ full-screen.
-    - Thêm nút "Tính lại điểm SV này" trong modal xem chi tiết Lịch sử điểm của từng cá nhân.
-  - **Quản lý Luật điểm (Score Rules)**:
-    - Cập nhật `ScoreRulesDisplay.tsx` và `ScoreRulesForm.tsx` hỗ trợ hiển thị và nhập cấu hình cho các trigger mới (`NO_SHOW`, `TASK_OVERDUE`, `MINIGAME_EXHAUSTED_ATTEMPTS`).
-  - **Quản lý Chi tiết sự kiện (`EventDetail.tsx`)**:
-    - Điều chỉnh giao diện ẩn chi tiết bảng luật tính điểm đối với các sự kiện thuộc chuỗi, thay bằng chỉ dẫn trực quan rằng điểm tính theo mốc chuỗi.
-
-#### Nhóm 2: Student
-- **Cập nhật Types**:
-  - Chuẩn hóa kiểu dữ liệu `Record<number, number>` cho `milestonePoints` trong `src/types/series.ts`, loại bỏ logic parse chuỗi JSON.
-  - Cập nhật interface `SeriesStudentProgressView` để hỗ trợ hiển thị điều kiện hoàn thành chuỗi và phạt tối thiểu.
-- **Cập nhật Màn hình & Components**:
-  - **Chi tiết Chuỗi sự kiện (Student Series Detail)**:
-    - Tạo mới component `SeriesProgressBanner.tsx` để hiển thị thanh tiến độ trực quan về mốc hoàn thành.
-    - Bổ sung cảnh báo phạt vắng mặt nếu sinh viên chưa đạt mốc tham gia sự kiện tối thiểu (cảnh báo màu Vàng nếu `minimumRequirementMet` là `false`, thông báo thành công màu Xanh lá khi đã đạt).
-    - Tích hợp banner này vào ngay đầu màn hình `StudentSeriesDetail.tsx`.
-  - **Chi tiết Sự kiện & Nhiệm vụ (`StudentEventDetail.tsx`, `StudentTasks.tsx`)**:
-    - Hiển thị nhãn "Tùy chọn" cho các nhiệm vụ có `requiresSubmission = false`, không bắt lỗi quá hạn.
-    - Bổ sung trạng thái `OVERDUE` (Quá hạn) và hiển thị UI cảnh báo đỏ cho các nhiệm vụ quá hạn chưa nộp.
-    - Ẩn chi tiết tính điểm (bảng ScoreRules) đối với hoạt động thuộc chuỗi, thay bằng thông báo hướng dẫn.
-    - Tự động gọi API tiến độ chuỗi và render `SeriesProgressBanner` ngay trên trang chi tiết hoạt động con.
-  - **Điểm danh bằng QR (`QRCodeCheckIn.tsx`)**:
-    - Cập nhật luồng xử lý tự động phân giải tham số `data` từ URL, hỗ trợ quét mã QR URL trực tiếp qua camera native.
-  - **Lịch sử Minigame (`StudentMinigameHistory.tsx`, `QuizResults.tsx`)**:
-    - Tích hợp cờ `showAnswers` từ Backend: Ẩn/hiện chi tiết đáp án đúng/sai ở màn hình xem lại kết quả bài làm.
-
----
-
 ## 3. Quy Ước Chung
 
 ### 3.1 Wrapper response chuẩn
@@ -148,8 +102,7 @@ export type ScoreRuleAudience =
   | "OUTSIDE_DEPARTMENTS_ONLY";  // Chỉ áp dụng cho sinh viên ngoài khoa
 
 export type ScoreSemesterPolicy =
-  | "ACTIVITY_SEMESTER"      // Tính vào học kỳ của hoạt động
-  | "CURRENT_OPEN_SEMESTER"  // Tính vào học kỳ hiện tại đang mở
+  | "ACTIVITY_SEMESTER"      // Tính vào học kỳ mà sự kiện diễn ra
   | "EXPLICIT_SEMESTER";     // Tính vào một học kỳ cụ thể chỉ định sẵn
 
 export type ScoreEntrySourceType =
@@ -330,6 +283,7 @@ export interface SeriesPresetConfig {
   minimumRequirementEnabled?: boolean | null;
   minimumRequiredEvents?: number | null;
   minimumPenaltyPoints?: number | null;
+  targetSemesterId?: number | null;
 }
 
 export interface CreateSeriesRequest {
@@ -787,6 +741,7 @@ export interface AttemptDetailResponse {
         "minimumRequirementEnabled": true,
         "minimumRequiredEvents": 3,
         "minimumPenaltyPoints": 2,
+  "targetSemesterId": 1,
         "notes": ["Sinh viên sẽ bị trừ 2 điểm chuyên đề nếu tham gia dưới 3 buổi"]
       }
     }
@@ -1085,22 +1040,37 @@ export interface AttemptDetailResponse {
     ```json
     {
       "status": true,
-      "message": "success",
-      "body": [
-        {
-          "rank": 1,
-          "studentId": 12,
-          "studentCode": "SV0012",
-          "studentName": "Nguyễn Văn A",
-          "departmentName": "Công nghệ thông tin",
-          "className": "D19-CNTT1",
-          "score": "95.5"
-        }
-      ]
+      "message": "Bảng xếp hạng điểm sinh viên",
+      "body": {
+        "semesterId": 1,
+        "semesterName": "Học kỳ I 2025-2026",
+        "scoreType": "REN_LUYEN",
+        "departmentId": null,
+        "classId": null,
+        "sortOrder": "DESC",
+        "totalStudents": 1,
+        "rankings": [
+          {
+            "rank": 1,
+            "studentId": 12,
+            "studentCode": "SV0012",
+            "studentName": "Nguyễn Văn A",
+            "departmentId": 2,
+            "departmentName": "Công nghệ thông tin",
+            "classId": 5,
+            "className": "D19-CNTT1",
+            "semesterId": 1,
+            "semesterName": "Học kỳ I 2025-2026",
+            "scoreType": "REN_LUYEN",
+            "score": "95.5",
+            "scoreTypeLabel": "Điểm rèn luyện"
+          }
+        ]
+      }
     }
     ```
 
-#### 2. Trigger tính toán lại điểm thủ công cho một sinh viên
+#### 2. Trigger tính toán lại điểm thủ công cho một sinh viên (Recalculate)
 - **Mô tả nghiệp vụ:** Yêu cầu backend quét và tính toán lại điểm toàn bộ hoạt động & chuỗi sự kiện của 1 sinh viên trong học kỳ (thường dùng khi có khiếu nại hoặc dữ liệu đồng bộ chậm).
 - **API Endpoint:**
   - **Method:** `POST`
@@ -1111,7 +1081,53 @@ export interface AttemptDetailResponse {
   - **Query Parameters:**
     - `semesterId` (number, optional): Nếu bỏ trống, backend tự động lấy học kỳ hiện tại đang mở.
 - **Response:**
-  - **Success (200):** Trả về thông báo thành công.
+  - **Success (200):**
+    ```json
+    {
+      "status": true,
+      "message": "Score recalculated successfully",
+      "body": null
+    }
+    ```
+- **Documentation Notes:**
+  - > [!IMPORTANT]
+    > Đây là API chạy **Đồng bộ (Synchronous)**. Tác vụ tính toán lại điểm cho sinh viên sẽ được thực hiện trực tiếp trên luồng HTTP request này. FE nên hiển thị loading indicator cho đến khi nhận được response.
+
+#### 3. Trigger tính toán lại điểm cho tất cả sinh viên (Recalculate All)
+- **Mô tả nghiệp vụ:** Yêu cầu backend quét và tính toán lại điểm cho toàn bộ sinh viên trong một học kỳ.
+- **API Endpoint:**
+  - **Method:** `POST`
+  - **Path:** `/api/scores/recalculate/all`
+  - **Authentication:** Required (Admin / Manager)
+- **Request:**
+  - **Query Parameters:**
+    - `semesterId` (number, optional): Nếu bỏ trống, backend tự động lấy học kỳ hiện tại đang mở.
+- **Response:**
+  - **Success (200):**
+    ```json
+    {
+      "status": true,
+      "message": "Recalculated all student scores",
+      "body": {
+        "semesterId": 1,
+        "semesterName": "Học kỳ I 2025-2026",
+        "totalStudents": 1500,
+        "successCount": 1498,
+        "errorCount": 2,
+        "errors": [
+          {
+            "studentId": 45,
+            "studentCode": "SV0045",
+            "error": "Lỗi kết nối cơ sở dữ liệu khi cập nhật điểm"
+          }
+        ]
+      }
+    }
+    ```
+- **Documentation Notes:**
+  - > [!IMPORTANT]
+    > Đây là API chạy **Đồng bộ (Synchronous)**. Backend sẽ duyệt qua toàn bộ danh sách sinh viên để tính lại điểm. Thời gian phản hồi có thể kéo dài đáng kể (vài chục giây đến vài phút tùy theo quy mô dữ liệu). FE **bắt buộc** hiển thị màn hình loading chờ/khóa UI cho Admin và cảnh báo tác vụ đang xử lý.
+
 
 ---
 
@@ -1180,3 +1196,92 @@ Team Frontend nên phân chia các file TypeScript theo hướng module hóa đ�
    - Không tự động thêm prefix `/uploads` vào ảnh; backend trả về full link ảnh public.
    - Các API dạng raw list (`GET /api/activities/my`, `/upcoming`, `/month`, `/score-type/*`, `/department/*`) **không** dùng `ApiResponse` wrapper, hãy xử lý trực tiếp payload danh sách.
    - Luôn sử dụng kiểu dữ liệu `string` ở FE cho các trường chứa điểm (ví dụ: `pointsEarned: string`) để tương thích với `BigDecimal` phía backend, tránh bị làm tròn số không mong muốn ở trình duyệt.
+
+
+## 5. Danh Sách API Chi Tiết (Theo chuẩn apimapping)
+
+### 1. Mô tả nghiệp vụ
+
+Tạo và cập nhật cấu hình chuỗi sự kiện (Activity Series), bao gồm cấu hình điểm milestone, quy định số sự kiện tối thiểu, và thiết lập học kỳ cộng điểm (`targetSemesterId`). Điểm thưởng của chuỗi (milestone) sẽ không dựa trên `ActivityScoreRuleRequest` mà sẽ cấu hình trực tiếp trên thông tin Series thông qua `milestonePoints`.
+
+### 2. API Endpoint
+
+- **Method:** POST (Tạo mới) / PUT (Cập nhật)
+- **Path:** `/api/series` hoặc `/api/series/{seriesId}`
+- **Versioning:** Không
+- **Authentication:** Required (Quản trị viên / Ban tổ chức)
+
+### 3. Request
+
+- **Path Parameters:**
+  - `seriesId` (chỉ dùng cho method PUT): ID của chuỗi sự kiện
+- **Query Parameters:** Không
+- **Request Body:**
+  ```json
+  {
+    "name": "Workshop Doanh Nghiệp 2026",
+    "description": "Chuỗi workshop",
+    "scoreType": "CHUYEN_DE",
+    "milestonePoints": {
+      "1": 1,
+      "3": 3,
+      "5": 5
+    },
+    "minimumRequirementEnabled": true,
+    "minimumRequiredEvents": 3,
+    "minimumPenaltyPoints": 2,
+    "targetSemesterId": 1,
+    "registrationStartDate": "2026-06-01T00:00:00",
+    "registrationDeadline": "2026-06-30T23:59:59",
+    "requiresApproval": true,
+    "ticketQuantity": 200,
+    "presetCode": "ENTERPRISE_SERIES",
+    "presetConfig": null
+  }
+  ```
+
+### 4. Response
+
+- **Success (200/201):**
+
+  ```json
+  {
+    "status": true,
+    "message": "success",
+    "body": {
+      "id": 1,
+      "name": "Workshop Doanh Nghiệp 2026",
+      "description": "Chuỗi workshop",
+      "scoreType": "CHUYEN_DE",
+      "milestonePoints": {
+        "1": 1,
+        "3": 3,
+        "5": 5
+      },
+      "minimumRequirementEnabled": true,
+      "minimumRequiredEvents": 3,
+      "minimumPenaltyPoints": 2,
+      "targetSemesterId": 1,
+      "registrationStartDate": "2026-06-01T00:00:00",
+      "registrationDeadline": "2026-06-30T23:59:59",
+      "requiresApproval": true,
+      "ticketQuantity": 200,
+      "createdAt": "2026-06-24T00:00:00"
+    }
+  }
+  ```
+- **Error (JSON wrapper - đa số endpoint):**
+
+  ```json
+  {
+    "status": false,
+    "message": "error message",
+    "body": null
+  }
+  ```
+- **Error Responses:** `400 Bad Request` (thiếu dữ liệu), `403 Forbidden` (không đủ quyền), `404 Not Found` (không tìm thấy series)
+
+### 5. Documentation Notes
+
+- `targetSemesterId`: Xác định học kỳ cụ thể sẽ nhận điểm thưởng của chuỗi. Nếu bỏ qua (`null`), backend sẽ tự động suy ra học kỳ từ ngày bắt đầu của hoạt động con đầu tiên.
+- Không sử dụng `ActivityScoreRuleRequest` cho việc cấu hình điểm của chuỗi.

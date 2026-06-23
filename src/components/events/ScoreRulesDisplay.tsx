@@ -62,25 +62,41 @@ export const ScoreRulesDisplay: React.FC<ScoreRulesDisplayProps> = ({ rules }) =
                             <span className="font-semibold text-gray-800">
                                 {getScoreTypeLabel(rule.scoreType)}
                             </span>
-                            <span className="font-bold text-green-600">
-                                {rule.calculation === ScoreRuleCalculation.PENALTY_POINTS ? '-' : '+'}{rule.points}
-                            </span>
+                            {(() => {
+                                const isPenaltyOnly = [ScoreRuleTrigger.NO_SHOW, ScoreRuleTrigger.TASK_OVERDUE, ScoreRuleTrigger.MINIGAME_EXHAUSTED_ATTEMPTS].includes(rule.triggerType);
+                                const isPassFail = rule.calculation === ScoreRuleCalculation.PASS_FAIL_POINTS;
+                                
+                                if (isPassFail) {
+                                    return (
+                                        <div className="flex flex-col text-right">
+                                            <span className="font-bold text-green-600">+{rule.points || 0}</span>
+                                            {rule.failPoints && (
+                                                <span className="text-red-500 text-xs">Trượt: -{rule.failPoints}</span>
+                                            )}
+                                        </div>
+                                    );
+                                }
+                                
+                                if (isPenaltyOnly) {
+                                    return <span className="font-bold text-red-600">-{rule.failPoints || 0}</span>;
+                                }
+                                
+                                return <span className="font-bold text-green-600">+{rule.points || 0}</span>;
+                            })()}
                         </div>
                         <div className="text-gray-600 pl-2">
                             <span className="font-medium">Khi:</span> {getTriggerLabel(rule.triggerType)}
                         </div>
-                        {rule.failPoints && (
-                            <div className="text-red-500 pl-2 text-xs">
-                                <span className="font-medium">Trượt:</span> {rule.failPoints}
-                            </div>
-                        )}
                         <div className="flex justify-between items-center pl-2 pt-1 mt-1 border-t border-gray-100 text-xs text-gray-500">
                             <span>Đối tượng: {getAudienceLabel(rule.audience)}</span>
-                            {rule.targetDepartmentIds && rule.targetDepartmentIds.length > 0 && (
-                                <span title="Số lượng khoa áp dụng" className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">
-                                    {rule.targetDepartmentIds.length} khoa
-                                </span>
-                            )}
+                            {(() => {
+                                const deptIds = rule.targetDepartmentIds || (rule as any).departmentIds;
+                                return deptIds && deptIds.length > 0 ? (
+                                    <span title="Số lượng khoa áp dụng" className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">
+                                        {deptIds.length} khoa
+                                    </span>
+                                ) : null;
+                            })()}
                         </div>
                     </div>
                 ))}

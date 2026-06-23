@@ -112,7 +112,7 @@ const EditSeries: React.FC = () => {
                 initialData={{
                     name: series.name,
                     description: series.description,
-                    milestonePoints: series.milestonePoints,
+                    milestonePoints: series.milestonePoints ?? {},
                     scoreType: series.scoreType,
                     registrationStartDate: series.registrationStartDate || undefined,
                     registrationDeadline: series.registrationDeadline || undefined,
@@ -120,7 +120,7 @@ const EditSeries: React.FC = () => {
                     ticketQuantity: series.ticketQuantity || undefined,
                     minimumRequirementEnabled: series.minimumRequirementEnabled,
                     minimumRequiredEvents: series.minimumRequiredEvents,
-                    minimumPenaltyPoints: series.minimumPenaltyPoints
+                    minimumPenaltyPoints: series.minimumPenaltyPoints ?? null
                 }}
                 title="Chỉnh sửa chuỗi sự kiện"
                 onCancel={handleCancel}
