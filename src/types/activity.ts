@@ -71,6 +71,187 @@ export interface ActivityScoreRuleResponse {
     enabled?: boolean | null;
 }
 
+export interface StandardActivityCreateRequest {
+    name: string;
+    type: ActivityType;
+    description?: string | null;
+    startDate: string;
+    endDate: string;
+    requiresSubmission?: boolean | null;
+    scoreRules?: ActivityScoreRuleRequest[];
+    registrationStartDate?: string | null;
+    registrationDeadline?: string | null;
+    shareLink?: string | null;
+    isImportant?: boolean | null;
+    isDraft?: boolean | null;
+    bannerUrl?: string | null;
+    bannerFile?: File; // Frontend only
+    location?: string | null;
+    ticketQuantity?: number | null;
+    benefits?: string | null;
+    requirements?: string | null;
+    contactInfo?: string | null;
+    requiresApproval?: boolean | null;
+    mandatoryForFacultyStudents?: boolean | null;
+    organizerIds?: number[];
+    presetCode?: string | null;
+    presetConfig?: any | null;
+}
+
+export interface MinigameActivityCreateRequest {
+    name: string;
+    type: ActivityType;
+    description?: string | null;
+    startDate: string;
+    endDate: string;
+    requiresSubmission?: boolean | null;
+    scoreRules?: ActivityScoreRuleRequest[];
+    registrationStartDate?: string | null;
+    registrationDeadline?: string | null;
+    shareLink?: string | null;
+    isImportant?: boolean | null;
+    isDraft?: boolean | null;
+    bannerUrl?: string | null;
+    bannerFile?: File; // Frontend only
+    location?: string | null;
+    ticketQuantity?: number | null;
+    benefits?: string | null;
+    requirements?: string | null;
+    contactInfo?: string | null;
+    requiresApproval?: boolean | null;
+    mandatoryForFacultyStudents?: boolean | null;
+    organizerIds?: number[];
+    presetCode?: string | null;
+    presetConfig?: any | null;
+}
+
+export interface StandardActivityUpdateRequest extends Omit<StandardActivityCreateRequest, 'type'> {}
+export interface MinigameActivityUpdateRequest extends MinigameActivityCreateRequest {}
+
+export interface StandardActivityResponse {
+    id: number;
+    name: string;
+    type: ActivityType;
+    description?: string | null;
+    startDate: string;
+    endDate: string;
+    location?: string | null;
+    organizerIds: number[];
+    registrationStartDate?: string | null;
+    registrationDeadline?: string | null;
+    hasPreparation: boolean;
+    requiresSubmission: boolean;
+    requiresApproval: boolean;
+    ticketQuantity?: number | null;
+    isImportant: boolean;
+    mandatoryForFacultyStudents: boolean;
+    isDraft: boolean;
+    bannerUrl?: string | null;
+    shareLink?: string | null;
+    benefits?: string | null;
+    requirements?: string | null;
+    contactInfo?: string | null;
+    checkInCode?: string | null;
+    scoreRules: ActivityScoreRuleResponse[];
+    createdAt?: string | null;
+    updatedAt?: string | null;
+    createdBy?: string | null;
+    lastModifiedBy?: string | null;
+}
+
+export interface MinigameActivityResponse {
+    id: number;
+    name: string;
+    type: ActivityType; // Always MINIGAME
+    description?: string | null;
+    startDate: string;
+    endDate: string;
+    isDraft: boolean;
+    bannerUrl?: string | null;
+    shareLink?: string | null;
+    isImportant: boolean;
+    checkInCode?: string | null;
+    scoreRules: ActivityScoreRuleResponse[];
+    quiz?: {
+        id: number;
+        title: string;
+        questionCount: number;
+        timeLimit: number;
+        requiredCorrectAnswers: number;
+        maxAttempts: number;
+        showAnswers: boolean;
+        isActive: boolean;
+    } | null;
+    createdAt?: string | null;
+    updatedAt?: string | null;
+}
+
+export interface SeriesChildActivityCreateRequest {
+    name: string;
+    description?: string | null;
+    startDate: string;
+    endDate: string;
+    location?: string | null;
+    order?: number | null; // seriesOrder
+    bannerUrl?: string | null;
+    shareLink?: string | null;
+    benefits?: string | null;
+    requirements?: string | null;
+    contactInfo?: string | null;
+    organizerIds?: number[];
+    type: ActivityType;
+}
+
+export interface SeriesChildActivityUpdateRequest extends SeriesChildActivityCreateRequest {}
+
+export interface SeriesChildActivityResponse {
+    id: number;
+    name: string;
+    type: ActivityType;
+    description?: string | null;
+    startDate: string;
+    endDate: string;
+    hasPreparation: boolean;
+    requiresSubmission: boolean;
+    scoreRules: ActivityScoreRuleResponse[];
+    registrationStartDate?: string | null;
+    registrationDeadline?: string | null;
+    shareLink?: string | null;
+    isImportant: boolean;
+    isDraft: boolean;
+    bannerUrl?: string | null;
+    location?: string | null;
+    ticketQuantity?: number | null;
+    benefits?: string | null;
+    requirements?: string | null;
+    contactInfo?: string | null;
+    checkInCode?: string | null;
+    requiresApproval: boolean;
+    mandatoryForFacultyStudents: boolean;
+    organizerIds: number[];
+    seriesId?: number | null;
+    seriesOrder?: number | null;
+    seriesName?: string | null;
+    createdAt?: string | null;
+    updatedAt?: string | null;
+    createdBy?: string | null;
+    lastModifiedBy?: string | null;
+}
+
+export interface ActivitySummaryResponse {
+    id: number;
+    name: string;
+    type: ActivityType;
+    startDate: string;
+    endDate: string;
+    bannerUrl?: string | null;
+    isDraft: boolean;
+    isImportant: boolean;
+    location?: string | null;
+    variantTag: 'STANDARD' | 'MINIGAME' | 'SERIES_CHILD';
+    seriesId?: number | null;
+}
+
 export interface CreateActivityRequest {
     name: string;
     type: ActivityType;

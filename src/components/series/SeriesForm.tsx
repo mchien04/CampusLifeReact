@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { CreateSeriesRequest } from '../../types/series';
 import { ScoreType } from '../../types/activity';
 import { seriesAPI } from '../../services/seriesAPI';
+import { academicPublicAPI } from '../../services/academicPublicAPI';
 
 interface SeriesFormProps {
     onSubmit: (data: CreateSeriesRequest) => void;
@@ -30,7 +31,8 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
             ticketQuantity: undefined,
             minimumRequirementEnabled: false,
             minimumRequiredEvents: undefined,
-            minimumPenaltyPoints: undefined
+            minimumPenaltyPoints: undefined,
+            targetSemesterId: undefined
         };
 
         return {
@@ -45,6 +47,7 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
     const [unlimitedTickets, setUnlimitedTickets] = useState(!formData.ticketQuantity);
     const [presets, setPresets] = useState<any[]>([]);
     const [selectedPresetCode, setSelectedPresetCode] = useState<string>('');
+    const [semesters, setSemesters] = useState<Array<{ id: number; name: string }>>([]);
     const isEditing = !!(initialData && Object.keys(initialData).length > 0);
 
     // Load presets
@@ -56,6 +59,21 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
             }
         };
         fetchPresets();
+    }, []);
+
+    // Load semesters
+    useEffect(() => {
+        const fetchSemesters = async () => {
+            try {
+                const res = await academicPublicAPI.getSemesters();
+                if (res && Array.isArray(res)) {
+                    setSemesters(res.map((s: any) => ({ id: s.id, name: s.name })));
+                }
+            } catch (error) {
+                console.error('Lỗi khi tải danh sách học kỳ:', error);
+            }
+        };
+        fetchSemesters();
     }, []);
 
     const handlePresetChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -73,7 +91,8 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
                     milestonePoints: presetData.milestonePoints,
                     minimumRequirementEnabled: presetData.minimumRequirementEnabled ?? false,
                     minimumRequiredEvents: presetData.minimumRequiredEvents ?? undefined,
-                    minimumPenaltyPoints: presetData.minimumPenaltyPoints ?? undefined
+                    minimumPenaltyPoints: presetData.minimumPenaltyPoints ?? undefined,
+                    targetSemesterId: presetData.targetSemesterId ?? undefined
                 }));
                 // Tự động set entries cho giao diện
                 setMilestoneEntries(
@@ -115,6 +134,14 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
                 [name]: ''
             }));
         }
+    };
+
+    const handleSemesterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const value = e.target.value;
+        setFormData(prev => ({
+            ...prev,
+            targetSemesterId: value === '' ? null : parseInt(value)
+        }));
     };
 
     const handleUnlimitedTicketsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -298,6 +325,29 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
                                 <option value={ScoreType.CONG_TAC_XA_HOI}>Công tác xã hội</option>
                                 <option value={ScoreType.CHUYEN_DE}>Chuyên đề</option>
                             </select>
+                        </div>
+
+                        <div>
+                            <label htmlFor="targetSemesterId" className="block text-sm font-medium text-gray-700 mb-2">
+                                Học kỳ cộng điểm milestone
+                            </label>
+                            <select
+                                id="targetSemesterId"
+                                name="targetSemesterId"
+                                value={formData.targetSemesterId ?? ''}
+                                onChange={handleSemesterChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
+                            >
+                                <option value="">Tự động (theo thời gian sự kiện đầu tiên)</option>
+                                {semesters.map(semester => (
+                                    <option key={semester.id} value={semester.id}>
+                                        {semester.name}
+                                    </option>
+                                ))}
+                            </select>
+                            <p className="text-xs text-gray-500 mt-1">
+                                Chọn học kỳ để cộng điểm milestone. Bỏ trống để hệ thống tự suy luận.
+                            </p>
                         </div>
 
                         <div>

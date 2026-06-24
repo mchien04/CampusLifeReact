@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { eventAPI } from '../../services/eventAPI';
+import { minigameActivityAPI } from '../../services/minigameActivityAPI';
 import { minigameAPI } from '../../services/minigameAPI';
-import { CreateActivityRequest, ActivityResponse } from '../../types/activity';
+import { MinigameActivityCreateRequest, ActivityResponse } from '../../types/activity';
 import { CreateMiniGameRequest, UpdateMiniGameRequest } from '../../types/minigame';
 import MinigameActivityForm from '../../components/events/MinigameActivityForm';
 import { QuizForm } from '../../components/minigame';
@@ -18,10 +18,10 @@ const CreateMinigameWizard: React.FC = () => {
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    const handleActivitySubmit = async (data: CreateActivityRequest) => {
+    const handleActivitySubmit = async (data: MinigameActivityCreateRequest) => {
         setSaving(true);
         try {
-            const response = await eventAPI.createEvent(data);
+            const response = await minigameActivityAPI.createMinigameActivity(data);
             if (response.status && response.data) {
                 setCreatedActivity(response.data);
                 setCurrentStep('quiz');

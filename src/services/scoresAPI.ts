@@ -114,8 +114,13 @@ export const scoresAPI = {
         return normalize<string>(res.data);
     },
 
-    recalculateAllScores: async (): Promise<{ status: boolean; message: string; data?: string }> => {
-        const res = await api.post('/api/scores/recalculate/all');
+    recalculateAllScores: async (semesterId?: number): Promise<{ status: boolean; message: string; data?: string }> => {
+        const queryParams = new URLSearchParams();
+        if (semesterId) {
+            queryParams.append('semesterId', String(semesterId));
+        }
+        const url = `/api/scores/recalculate/all${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+        const res = await api.post(url);
         return normalize<string>(res.data);
     },
 };

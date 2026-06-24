@@ -28,6 +28,7 @@ export interface SeriesPresetPreviewResponse {
     minimumRequirementEnabled?: boolean | null;
     minimumRequiredEvents?: number | null;
     minimumPenaltyPoints?: number | null;
+    targetSemesterId?: number | null;
     notes: string[];
 }
 

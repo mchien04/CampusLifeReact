@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ActivityRegistrationResponse, RegistrationStatus, TicketCodeValidateResponse, getRegistrationStatusLabel, ParticipationType } from '../types/registration';
+import { ActivityRegistrationResponse, RegistrationStatus, TicketCodeValidateResponse, getRegistrationStatusLabel } from '../types/registration';
 import { registrationAPI } from '../services/registrationAPI';
 import { eventAPI } from '../services/eventAPI';
 import { ActivityResponse } from '../types/activity';
@@ -90,16 +90,16 @@ const ManagerRegistrations: React.FC = () => {
             const response = await registrationAPI.checkIn({
                 ticketCode: validatedInfo.ticketCode,
                 studentId: validatedInfo.studentId,
-                participationType: validatedInfo.canCheckIn ? ParticipationType.CHECKED_IN : ParticipationType.CHECKED_OUT
+                participationType: null // Let BE auto-transition: REGISTERED -> CHECKED_IN -> ATTENDED
             });
 
             if (response.status) {
                 const data = response.body;
                 let message = "";
                 if (data?.participationType === 'CHECKED_IN') {
-                    message = `✅ Check-in thành công cho sinh viên ${validatedInfo.studentName} (${validatedInfo.studentCode}).\nVui lòng check-out khi sinh viên rời khỏi sự kiện.`;
+                    message = `✅ Lần quét 1 thành công cho sinh viên ${validatedInfo.studentName} (${validatedInfo.studentCode}).\nTrạng thái: Đã điểm danh (CHECKED_IN). Vui lòng quét lần 2 khi sinh viên rời khỏi sự kiện.`;
                 } else if (data?.participationType === 'ATTENDED') {
-                    message = `✅ Check-out thành công cho sinh viên ${validatedInfo.studentName} (${validatedInfo.studentCode}).\nĐã hoàn thành tham gia sự kiện.`;
+                    message = `✅ Lần quét 2 thành công cho sinh viên ${validatedInfo.studentName} (${validatedInfo.studentCode}).\nTrạng thái: Hoàn thành tham gia (ATTENDED).`;
                 } else {
                     message = `✅ ${response.message || "Thành công"}`;
                 }

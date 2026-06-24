@@ -57,7 +57,8 @@ const EditSeries: React.FC = () => {
                 ticketQuantity: data.ticketQuantity,
                 minimumRequirementEnabled: data.minimumRequirementEnabled,
                 minimumRequiredEvents: data.minimumRequiredEvents,
-                minimumPenaltyPoints: data.minimumPenaltyPoints
+                minimumPenaltyPoints: data.minimumPenaltyPoints,
+                targetSemesterId: data.targetSemesterId
             };
             const response = await seriesAPI.updateSeries(parseInt(id), updateData);
             if (response.status && response.data) {
@@ -120,7 +121,8 @@ const EditSeries: React.FC = () => {
                     ticketQuantity: series.ticketQuantity || undefined,
                     minimumRequirementEnabled: series.minimumRequirementEnabled,
                     minimumRequiredEvents: series.minimumRequiredEvents,
-                    minimumPenaltyPoints: series.minimumPenaltyPoints ?? null
+                    minimumPenaltyPoints: series.minimumPenaltyPoints ?? null,
+                    targetSemesterId: series.targetSemesterId
                 }}
                 title="Chỉnh sửa chuỗi sự kiện"
                 onCancel={handleCancel}

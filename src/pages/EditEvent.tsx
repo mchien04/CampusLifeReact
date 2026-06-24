@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import EventForm from '../components/events/EventForm';
+import StandardActivityForm from '../components/events/StandardActivityForm';
 import MinigameActivityForm from '../components/events/MinigameActivityForm';
 import SeriesActivityForm from '../components/events/SeriesActivityForm';
 import { CreateActivityRequest, ActivityResponse, ActivityType } from '../types/activity';
 import { eventAPI } from '../services/eventAPI';
+import { standardActivityAPI } from '../services/standardActivityAPI';
+import { minigameActivityAPI } from '../services/minigameActivityAPI';
+import { seriesAPI } from '../services/seriesAPI';
 import { useAuth } from '../contexts/AuthContext';
 import { mapScoreRuleResponseToRequest } from '../utils/scoreRuleMapper';
 
@@ -50,12 +53,40 @@ const EditEvent: React.FC = () => {
             return;
         }
 
+        if (!event) {
+            setError('Không tìm thấy sự kiện');
+            return;
+        }
 
         setLoading(true);
         setError('');
 
         try {
-            const response = await eventAPI.updateEvent(parseInt(id), data);
+            let response;
+            const eventId = parseInt(id);
+
+            if (event.seriesId) {
+                // Use new series-scoped update endpoint
+                const seriesUpdateData = {
+                    name: data.name,
+                    type: event.type ?? ActivityType.SUKIEN,
+                    description: data.description || null,
+                    startDate: data.startDate || event.startDate,
+                    endDate: data.endDate || event.endDate,
+                    location: data.location || null,
+                    bannerUrl: data.bannerUrl || null,
+                    shareLink: data.shareLink || null,
+                    benefits: data.benefits || null,
+                    requirements: data.requirements || null,
+                    contactInfo: data.contactInfo || null,
+                    organizerIds: data.organizerIds && data.organizerIds.length > 0 ? data.organizerIds : undefined,
+                };
+                response = await seriesAPI.updateActivityInSeries(event.seriesId, eventId, seriesUpdateData);
+            } else if (event.type === ActivityType.MINIGAME) {
+                response = await minigameActivityAPI.updateMinigameActivity(eventId, data);
+            } else {
+                response = await standardActivityAPI.updateStandardActivity(eventId, data);
+            }
 
             if (response.status) {
                 alert('Cập nhật sự kiện thành công!');
@@ -223,7 +254,7 @@ const EditEvent: React.FC = () => {
                     onCancel={() => navigate('/manager/events')}
                 />
             ) : (
-                <EventForm
+                <StandardActivityForm
                     onSubmit={handleSubmit}
                     loading={loading}
                     initialData={initialData}

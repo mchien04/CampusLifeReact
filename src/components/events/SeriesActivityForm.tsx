@@ -1,14 +1,13 @@
 import React from 'react';
 import BaseEventForm, { RenderFieldsProps } from './BaseEventForm';
-import { CreateActivityRequest, ActivityType } from '../../types/activity';
-import { CreateActivityInSeriesRequest } from '../../types/series';
+import { CreateActivityRequest, ActivityType, SeriesChildActivityCreateRequest } from '../../types/activity';
 import OrganizerSelector from './OrganizerSelector';
 import { getImageUrl } from '../../utils/imageUtils';
 
 interface SeriesActivityFormProps {
-    onSubmit: (data: CreateActivityInSeriesRequest) => void;
+    onSubmit: (data: SeriesChildActivityCreateRequest) => void;
     loading?: boolean;
-    initialData?: Partial<CreateActivityInSeriesRequest>;
+    initialData?: Partial<SeriesChildActivityCreateRequest>;
     title?: string;
     onCancel?: () => void;
     isMinigame?: boolean;
@@ -329,22 +328,21 @@ const SeriesActivityForm: React.FC<SeriesActivityFormProps> = ({
 }) => {
     const handleSubmit = (data: CreateActivityRequest) => {
         // BaseEventForm already handles banner upload, so bannerUrl is already set
-        // Convert to CreateActivityInSeriesRequest
-        const seriesActivityData: CreateActivityInSeriesRequest = {
+        // Convert to SeriesChildActivityCreateRequest
+        const seriesActivityData: SeriesChildActivityCreateRequest = {
             name: data.name,
-            description: data.description || undefined,
-            startDate: data.startDate || undefined,
-            endDate: data.endDate || undefined,
-            location: data.location || undefined,
-            order: (data as any).order || undefined,
-            shareLink: data.shareLink || undefined,
-            bannerUrl: data.bannerUrl || undefined,
-            benefits: data.benefits || undefined,
-            requirements: data.requirements || undefined,
-            contactInfo: data.contactInfo || undefined,
+            type: isMinigame ? ActivityType.MINIGAME : ActivityType.SUKIEN,
+            description: data.description || null,
+            startDate: data.startDate || '',
+            endDate: data.endDate || '',
+            location: data.location || null,
+            order: (data as any).order || null,
+            shareLink: data.shareLink || null,
+            bannerUrl: data.bannerUrl || null,
+            benefits: data.benefits || null,
+            requirements: data.requirements || null,
+            contactInfo: data.contactInfo || null,
             organizerIds: data.organizerIds && data.organizerIds.length > 0 ? data.organizerIds : undefined,
-            // If creating minigame, add type field
-            ...(isMinigame && { type: "MINIGAME" as const })
         };
         onSubmit(seriesActivityData);
     };

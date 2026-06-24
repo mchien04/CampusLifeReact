@@ -734,11 +734,13 @@ const EventDetail: React.FC = () => {
                                         {getTypeLabel(event.type)}
                                     </span>
                                     <span className="inline-block px-3 py-1.5 text-sm font-medium rounded-full bg-[#FFD66D] bg-opacity-30 text-[#001C44] border border-[#FFD66D]">
-                                        {event.scoreRules && event.scoreRules.length > 0
-                                            ? Array.from(new Set(event.scoreRules.map(r => r.scoreType)))
-                                                .map(type => getScoreTypeLabel(type))
-                                                .join(', ')
-                                            : 'Không cộng điểm'}
+                                        {event.seriesId
+                                            ? 'Chuỗi sự kiện'
+                                            : event.scoreRules && event.scoreRules.length > 0
+                                                ? Array.from(new Set(event.scoreRules.map(r => r.scoreType)))
+                                                    .map(type => getScoreTypeLabel(type))
+                                                    .join(', ')
+                                                : 'Không cộng điểm'}
                                     </span>
                                     <span className="text-sm text-gray-500 font-mono">
                                         ID: {event.id}

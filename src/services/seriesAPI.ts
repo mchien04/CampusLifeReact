@@ -1,11 +1,9 @@
 import api from './api';
 import { Response } from '../types/auth';
 import {
-    ActivitySeries,
     SeriesResponse,
     CreateSeriesRequest,
     UpdateSeriesRequest,
-    CreateActivityInSeriesRequest,
     AddActivityToSeriesRequest,
     SeriesRegistrationResponse,
     StudentSeriesProgress,
@@ -13,7 +11,7 @@ import {
     SeriesOverviewResponse,
     SeriesProgressListResponse
 } from '../types/series';
-import { ActivityResponse } from '../types/activity';
+import { ActivityResponse, SeriesChildActivityResponse, SeriesChildActivityCreateRequest, SeriesChildActivityUpdateRequest } from '../types/activity';
 import { SeriesPresetPreviewResponse } from '../types/presets';
 
 export const seriesAPI = {
@@ -143,10 +141,10 @@ export const seriesAPI = {
     // Create activity in series
     createActivityInSeries: async (
         seriesId: number,
-        data: CreateActivityInSeriesRequest
-    ): Promise<Response<ActivityResponse>> => {
+        data: SeriesChildActivityCreateRequest
+    ): Promise<Response<SeriesChildActivityResponse>> => {
         try {
-            const response = await api.post(`/api/series/${seriesId}/activities/create`, data);
+            const response = await api.post(`/api/series/${seriesId}/activities`, data);
             return {
                 status: response.data.status,
                 message: response.data.message,
@@ -162,13 +160,54 @@ export const seriesAPI = {
         }
     },
 
+    // Update activity in series
+    updateActivityInSeries: async (
+        seriesId: number,
+        activityId: number,
+        data: SeriesChildActivityUpdateRequest
+    ): Promise<Response<SeriesChildActivityResponse>> => {
+        try {
+            const response = await api.put(`/api/series/${seriesId}/activities/${activityId}`, data);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Error updating activity in series:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật sự kiện trong chuỗi',
+                data: undefined
+            };
+        }
+    },
+
+    // Get activity detail in series
+    getActivityInSeries: async (
+        seriesId: number,
+        activityId: number
+    ): Promise<Response<SeriesChildActivityResponse>> => {
+        try {
+            const response = await api.get(`/api/series/${seriesId}/activities/${activityId}`);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Error fetching activity in series:', error);
+            throw error;
+        }
+    },
+
     // Add existing activity to series
     addActivityToSeries: async (
         seriesId: number,
         data: AddActivityToSeriesRequest
     ): Promise<Response<ActivityResponse>> => {
         try {
-            const response = await api.post(`/api/series/${seriesId}/activities`, data);
+            const response = await api.post(`/api/series/${seriesId}/activities/attach`, data);
             return {
                 status: response.data.status,
                 message: response.data.message,

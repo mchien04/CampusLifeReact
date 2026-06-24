@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { seriesAPI } from '../../services/seriesAPI';
-import { eventAPI } from '../../services/eventAPI';
-import { SeriesResponse, CreateActivityInSeriesRequest, SeriesOverviewResponse, SeriesProgressListResponse } from '../../types/series';
-import { ActivityResponse } from '../../types/activity';
+import { SeriesResponse, SeriesOverviewResponse, SeriesProgressListResponse } from '../../types/series';
+import { ActivityResponse, SeriesChildActivityCreateRequest, SeriesChildActivityResponse } from '../../types/activity';
 import { LoadingSpinner } from '../../components/common';
 import { SeriesActivityList } from '../../components/series';
 import { toast } from 'react-toastify';
@@ -22,11 +21,13 @@ const SeriesDetail: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [showAddActivityModal, setShowAddActivityModal] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
-    const [activityType, setActivityType] = useState<'normal' | 'minigame' | null>(null);
+    const [activityType, setActivityType] = useState<'normal' | 'minigame' | 'attach' | null>(null);
     const [createdActivityId, setCreatedActivityId] = useState<number | null>(null);
     const [showQuizForm, setShowQuizForm] = useState(false);
-    const [createdActivity, setCreatedActivity] = useState<ActivityResponse | null>(null);
+    const [createdActivity, setCreatedActivity] = useState<SeriesChildActivityResponse | null>(null);
     const [isCreatingQuiz, setIsCreatingQuiz] = useState(false);
+    const [attachActivityId, setAttachActivityId] = useState('');
+    const [attachOrder, setAttachOrder] = useState<number>(0);
 
     // Overview and Progress states
     const [overview, setOverview] = useState<SeriesOverviewResponse | null>(null);
@@ -103,17 +104,13 @@ const SeriesDetail: React.FC = () => {
         }
     };
 
-    const handleCreateActivity = async (data: CreateActivityInSeriesRequest) => {
+    const handleCreateActivity = async (data: SeriesChildActivityCreateRequest) => {
         if (!id) return;
 
         try {
             setIsCreating(true);
-            // If creating minigame, ensure type field is set to MINIGAME
-            const requestData: CreateActivityInSeriesRequest = activityType === 'minigame'
-                ? { ...data, type: "MINIGAME" as const }
-                : data;
 
-            const response = await seriesAPI.createActivityInSeries(parseInt(id), requestData);
+            const response = await seriesAPI.createActivityInSeries(parseInt(id), data);
             if (response.status && response.data) {
                 if (activityType === 'minigame') {
                     // Save activity ID and show quiz form
@@ -186,6 +183,29 @@ const SeriesDetail: React.FC = () => {
         setActivityType(null);
         setCreatedActivityId(null);
         setCreatedActivity(null);
+    };
+
+    const handleAttachActivity = async (activityId: number, order: number) => {
+        if (!id) return;
+        try {
+            setIsCreating(true);
+            const response = await seriesAPI.addActivityToSeries(parseInt(id), {
+                activityId,
+                order
+            });
+            if (response.status) {
+                toast.success('Gắn sự kiện vào chuỗi thành công!');
+                handleCloseModal();
+                await loadSeries();
+            } else {
+                toast.error(response.message || 'Gắn sự kiện thất bại');
+            }
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi gắn sự kiện');
+            console.error('Error attaching activity:', err);
+        } finally {
+            setIsCreating(false);
+        }
     };
 
     const loadOverview = async () => {
@@ -395,6 +415,26 @@ const SeriesDetail: React.FC = () => {
                                     </div>
                                 </div>
                             </div>
+                            <div className="flex items-start p-4 bg-indigo-50 rounded-lg">
+                                <span className="text-2xl mr-3">🎓</span>
+                                <div>
+                                    <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Học kỳ cộng điểm</div>
+                                    <div className="text-sm font-medium text-gray-700">
+                                        {series.targetSemesterId ? `Học kỳ ID: ${series.targetSemesterId}` : 'Tự động (theo sự kiện đầu tiên)'}
+                                    </div>
+                                </div>
+                            </div>
+                            {series.minimumRequirementEnabled && (
+                                <div className="flex items-start p-4 bg-red-50 rounded-lg md:col-span-2">
+                                    <span className="text-2xl mr-3">⚠️</span>
+                                    <div>
+                                        <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Yêu cầu tối thiểu</div>
+                                        <div className="text-sm font-medium text-gray-700">
+                                            Phải hoàn thành <strong>{series.minimumRequiredEvents}</strong> sự kiện, nếu không bị trừ <strong>{series.minimumPenaltyPoints}</strong> điểm
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -785,7 +825,7 @@ const SeriesDetail: React.FC = () => {
 
                             {/* Activity Type Selection */}
                             {!activityType && !showQuizForm && (
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-3 gap-4">
                                     <button
                                         onClick={() => setActivityType('normal')}
                                         className="p-6 border-2 border-gray-300 rounded-lg hover:border-[#001C44] hover:bg-[#001C44] hover:text-white transition-all text-left group"
@@ -806,6 +846,16 @@ const SeriesDetail: React.FC = () => {
                                             Tạo quiz/minigame với câu hỏi và đáp án
                                         </p>
                                     </button>
+                                    <button
+                                        onClick={() => setActivityType('attach')}
+                                        className="p-6 border-2 border-gray-300 rounded-lg hover:border-[#001C44] hover:bg-[#001C44] hover:text-white transition-all text-left group"
+                                    >
+                                        <div className="text-4xl mb-2">🔗</div>
+                                        <h4 className="font-semibold text-lg mb-1">Gắn sự kiện có sẵn</h4>
+                                        <p className="text-sm text-gray-600 group-hover:text-gray-200">
+                                            Gắn một sự kiện đã tồn tại vào chuỗi này
+                                        </p>
+                                    </button>
                                 </div>
                             )}
                         </div>
@@ -823,6 +873,67 @@ const SeriesDetail: React.FC = () => {
                                         setCreatedActivity(null);
                                     }}
                                 />
+                            ) : activityType === 'attach' ? (
+                                <div className="space-y-6">
+                                    <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                                        <p className="text-sm text-blue-800">
+                                            Gắn một sự kiện đã tồn tại vào chuỗi này. Sự kiện sẽ kế thừa cấu hình đăng ký và điểm từ chuỗi.
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            ID sự kiện *
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={attachActivityId}
+                                            onChange={(e) => setAttachActivityId(e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
+                                            placeholder="Nhập ID sự kiện"
+                                            min={1}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Thứ tự trong chuỗi *
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={attachOrder || (activities.length > 0 ? Math.max(...activities.map(a => a.seriesOrder || 0), 0) + 1 : 1)}
+                                            onChange={(e) => setAttachOrder(parseInt(e.target.value) || 0)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
+                                            placeholder="Nhập thứ tự"
+                                            min={1}
+                                        />
+                                    </div>
+                                    <div className="flex space-x-3 pt-4">
+                                        <button
+                                            onClick={() => {
+                                                const activityId = parseInt(attachActivityId);
+                                                const order = attachOrder || (activities.length > 0 ? Math.max(...activities.map(a => a.seriesOrder || 0), 0) + 1 : 1);
+                                                if (!activityId || activityId <= 0) {
+                                                    toast.error('Vui lòng nhập ID sự kiện hợp lệ');
+                                                    return;
+                                                }
+                                                handleAttachActivity(activityId, order);
+                                            }}
+                                            disabled={isCreating}
+                                            className="flex-1 px-4 py-2 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66] transition-colors disabled:opacity-50"
+                                        >
+                                            {isCreating ? 'Đang gắn...' : 'Gắn sự kiện'}
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setActivityType(null);
+                                                setAttachActivityId('');
+                                                setAttachOrder(0);
+                                            }}
+                                            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                                        >
+                                            Quay lại
+                                        </button>
+                                    </div>
+                                </div>
                             ) : activityType && (
                                 <SeriesActivityForm
                                     onSubmit={handleCreateActivity}

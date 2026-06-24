@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import EventForm from '../components/events/EventForm';
-import { CreateActivityRequest } from '../types/activity';
-import { eventAPI } from '../services/eventAPI';
+import StandardActivityForm from '../components/events/StandardActivityForm';
+import { StandardActivityCreateRequest } from '../types/activity';
+import { standardActivityAPI } from '../services/standardActivityAPI';
 
 const CreateEvent: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const navigate = useNavigate();
 
-    const handleSubmit = async (data: CreateActivityRequest) => {
+    const handleSubmit = async (data: StandardActivityCreateRequest) => {
         setLoading(true);
         setError('');
         console.log('🔍 CreateEvent: handleSubmit called with data:', data);
@@ -17,8 +17,8 @@ const CreateEvent: React.FC = () => {
         console.log('🔍 CreateEvent: bannerUrl type:', typeof data.bannerUrl);
 
         try {
-            console.log('🔍 CreateEvent: Calling eventAPI.createEvent...');
-            const response = await eventAPI.createEvent(data);
+            console.log('🔍 CreateEvent: Calling standardActivityAPI.createStandardActivity...');
+            const response = await standardActivityAPI.createStandardActivity(data);
             console.log('🔍 CreateEvent: API response:', response);
 
             if (response.status) {
@@ -62,7 +62,7 @@ const CreateEvent: React.FC = () => {
             )}
 
             {/* Form */}
-            <EventForm
+            <StandardActivityForm
                 onSubmit={handleSubmit}
                 loading={loading}
                 title="Tạo sự kiện thường mới"
