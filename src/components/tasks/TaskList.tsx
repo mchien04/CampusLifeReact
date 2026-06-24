@@ -30,8 +30,10 @@ const TaskList: React.FC<TaskListProps> = ({
                 return 'bg-blue-100 text-blue-800';
             case TaskStatus.COMPLETED:
                 return 'bg-green-100 text-green-800';
-            case TaskStatus.CANCELLED:
+            case TaskStatus.OVERDUE:
                 return 'bg-red-100 text-red-800';
+            case TaskStatus.CANCELLED:
+                return 'bg-gray-100 text-gray-500';
             default:
                 return 'bg-gray-100 text-gray-800';
         }
@@ -45,6 +47,8 @@ const TaskList: React.FC<TaskListProps> = ({
                 return 'Đang thực hiện';
             case TaskStatus.COMPLETED:
                 return 'Hoàn thành';
+            case TaskStatus.OVERDUE:
+                return 'Quá hạn';
             case TaskStatus.CANCELLED:
                 return 'Đã hủy';
             default:
@@ -61,7 +65,7 @@ const TaskList: React.FC<TaskListProps> = ({
         });
     };
 
-    const isOverdue = (deadline?: string): boolean => {
+    const isDeadlinePast = (deadline?: string): boolean => {
         if (!deadline) return false;
         return new Date(deadline) < new Date();
     };
@@ -145,7 +149,7 @@ const TaskList: React.FC<TaskListProps> = ({
                                 <span className="w-6 h-6 mr-3 text-[#001C44] text-lg">📅</span>
                                 <div>
                                     <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Hạn chót</p>
-                                    <p className={`font-bold text-sm mt-1 ${isOverdue(task.deadline) ? 'text-red-600' : 'text-[#001C44]'}`}>
+                                    <p className={`font-bold text-sm mt-1 ${isDeadlinePast(task.deadline) ? 'text-red-600' : 'text-[#001C44]'}`}>
                                         {formatDate(task.deadline)}
                                     </p>
                                 </div>

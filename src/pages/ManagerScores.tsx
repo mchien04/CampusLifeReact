@@ -208,7 +208,7 @@ const ManagerScores: React.FC = () => {
         setShowRecalculateConfirm(false);
         setIsRecalculatingAll(true);
         try {
-            const response = await scoresAPI.recalculateAllScores();
+            const response = await scoresAPI.recalculateAllScores(semesterId);
             if (response.status) {
                 toast.success(response.message || 'Tính lại điểm toàn trường thành công');
                 loadRanking();

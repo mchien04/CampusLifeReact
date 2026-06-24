@@ -1,21 +1,6 @@
 import { ScoreType } from './activity';
 import { ActivityResponse } from './activity';
 
-export interface ActivitySeries {
-    id: number;
-    name: string;
-    description?: string;
-    milestonePoints: Record<number, number>; // Map: {"3": 5, "4": 7, "5": 10}
-    scoreType: ScoreType;
-    mainActivityId?: number;
-    registrationStartDate?: string;
-    registrationDeadline?: string;
-    requiresApproval: boolean;
-    ticketQuantity?: number;
-    createdAt: string;
-    activities?: ActivityResponse[];
-}
-
 export interface StudentSeriesProgress {
     id?: number;
     studentId?: number;
@@ -52,8 +37,7 @@ export interface CreateSeriesRequest {
     minimumRequirementEnabled?: boolean | null;
     minimumRequiredEvents?: number | null;
     minimumPenaltyPoints?: number | null;
-    presetCode?: string | null;
-    presetConfig?: any | null;
+    targetSemesterId?: number | null;
 }
 
 export interface UpdateSeriesRequest {
@@ -69,22 +53,7 @@ export interface UpdateSeriesRequest {
     minimumRequirementEnabled?: boolean | null;
     minimumRequiredEvents?: number | null;
     minimumPenaltyPoints?: number | null;
-}
-
-export interface CreateActivityInSeriesRequest {
-    name: string; // bắt buộc
-    description?: string;
-    startDate?: string;
-    endDate?: string;
-    location?: string;
-    order?: number;
-    shareLink?: string;
-    bannerUrl?: string;
-    benefits?: string;
-    requirements?: string;
-    contactInfo?: string;
-    organizerIds?: number[]; // Danh sách ID các khoa/ban tổ chức
-    type?: "MINIGAME"; // Optional, chỉ set khi tạo minigame
+    targetSemesterId?: number | null;
 }
 
 export interface AddActivityToSeriesRequest {
@@ -106,6 +75,7 @@ export interface SeriesResponse {
     minimumRequirementEnabled?: boolean;
     minimumRequiredEvents?: number | null;
     minimumPenaltyPoints?: number | null;
+    targetSemesterId?: number | null;
     createdAt: string;
     activities?: ActivityResponse[];
     totalActivities?: number;
@@ -156,6 +126,10 @@ export interface SeriesOverviewResponse {
     registrationDeadline?: string;
     requiresApproval: boolean;
     ticketQuantity?: number;
+    minimumRequirementEnabled?: boolean;
+    minimumRequiredEvents?: number | null;
+    minimumPenaltyPoints?: number | null;
+    targetSemesterId?: number | null;
     createdAt: string;
     
     // Statistics

@@ -224,6 +224,26 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
             }
         }
 
+        // Port from EventForm: requiresSubmission must have PASS_FAIL_POINTS with failPoints
+        if (formData.requiresSubmission) {
+            const hasPassFailWithFailPoints = formData.scoreRules?.some(
+                rule => rule.calculation === 'PASS_FAIL_POINTS' && rule.failPoints !== undefined && rule.failPoints !== null && rule.failPoints !== ''
+            );
+            if (!hasPassFailWithFailPoints) {
+                newErrors.scoreRules = 'Sự kiện yêu cầu nộp bài thu hoạch phải có ít nhất một luật tính điểm Đạt/Trượt và có cấu hình điểm trượt hợp lệ.';
+            }
+        }
+
+        // Port from EventForm: CHUYEN_DE events cannot have NO_SHOW penalty with CHUYEN_DE score type
+        if (formData.type === ActivityType.CHUYEN_DE_DOANH_NGHIEP) {
+            const hasInvalidNoShowPenalty = formData.scoreRules?.some(
+                rule => rule.triggerType === 'NO_SHOW' && rule.scoreType === ScoreType.CHUYEN_DE
+            );
+            if (hasInvalidNoShowPenalty) {
+                newErrors.scoreRules = 'Sự kiện Chuyên đề doanh nghiệp không được cấu hình luật phạt vắng mặt (No-show) bằng điểm Chuyên đề. Vui lòng chọn loại điểm phạt khác (ví dụ: Rèn luyện).';
+            }
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };

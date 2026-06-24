@@ -611,11 +611,13 @@ const StudentEventDetail: React.FC = () => {
                                     <div className="flex items-center text-sm text-gray-500">
                                         <span className="mr-2">⭐</span>
                                         <span>
-                                            {event.scoreRules && event.scoreRules.length > 0
-                                                ? Array.from(new Set(event.scoreRules.map(r => r.scoreType)))
-                                                    .map(type => getScoreTypeLabel(type))
-                                                    .join(', ')
-                                                : 'Không cộng điểm'}
+                                            {event.seriesId
+                                                ? 'Chuỗi sự kiện'
+                                                : event.scoreRules && event.scoreRules.length > 0
+                                                    ? Array.from(new Set(event.scoreRules.map(r => r.scoreType)))
+                                                        .map(type => getScoreTypeLabel(type))
+                                                        .join(', ')
+                                                    : 'Không cộng điểm'}
                                         </span>
                                     </div>
                                     {event.seriesId && (
