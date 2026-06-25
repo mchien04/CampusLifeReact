@@ -213,11 +213,12 @@ export interface SeriesPresetPreviewResponse {
 **Frontend:** All point fields typed as `number | null` (e.g., `participationPoints?: number | null`).  
 **Remediation:** ✅ Changed to `number | null` as part of P1-1 BigDecimal fix.
 
-### 2.8 `QuizForm` Sends `showAnswers` — P2 (Ambiguity)
+### 2.8 `QuizForm` Sends `showAnswers` — ✅ Confirmed by Backend
 **File:** `src/components/minigame/QuizForm.tsx` (line 34, 560)  
-**Backend Contract:** The backend docs do not explicitly list `showAnswers` in `CreateMiniGameRequest` or `UpdateMiniGameRequest`. However, `MinigameActivityResponse` (frontend type) includes `quiz?.showAnswers`, suggesting the backend does store it.  
-**Impact:** If the backend does not accept `showAnswers`, it will be silently ignored or cause a 400.  
-**Remediation:** Verify with backend team whether `showAnswers` is a valid field on `CreateMiniGameRequest`/`UpdateMiniGameRequest`. If not, remove it from the payload.
+**Backend Contract:** `CreateMiniGameRequest.java` (line 24) has `private Boolean showAnswers;`. Confirmed by backend source code.  
+**Frontend:** `MinigameActivityResponse` (frontend type) includes `quiz?.showAnswers`, suggesting the backend does store it.  
+**Impact:** ✅ No issue. Field is valid and accepted by backend.  
+**Remediation:** None required. Mark as resolved.
 
 ---
 
@@ -337,10 +338,11 @@ export interface SeriesPresetPreviewResponse {
 
 ## Part 6: Series Feature Audit
 
-### 6.1 `SeriesChildActivityCreateRequest` Includes `type` — P2
-**File:** `src/types/activity.ts` (line 202)  
-**Issue:** `SeriesChildActivityCreateRequest` has `type: ActivityType`. Backend docs do not explicitly list this DTO's fields, but the `SeriesChildActivityUpdateRequest` does not have `type`. It's ambiguous whether `type` should be in the create request.  
-**Remediation:** Verify with backend if `type` is required for child creation. If not, remove it.
+### 6.1 `SeriesChildActivityCreateRequest` Includes `type` — ✅ Confirmed by Backend
+**File:** `src/types/activity.ts` (line 229)  
+**Issue:** `SeriesChildActivityCreateRequest` has `type: ActivityType`. Backend `SeriesChildActivityCreateRequest.java` (line 27) has `private ActivityType type;`. Validator `SeriesChildActivityValidator` does not enforce `type` (only validates `seriesId`, `name`, `startDate`, `endDate`). Backend accepts null or auto-assigns default.  
+**Impact:** ✅ No issue. Field is valid and optional.  
+**Remediation:** None required. Mark as resolved. Keep `type` in interface as it matches backend DTO.
 
 ### 6.2 `SeriesChildActivityUpdateRequest` Extends Create Request — P0
 **File:** `src/types/activity.ts` (line 205)  
@@ -408,7 +410,7 @@ export interface SeriesPresetPreviewResponse {
 | P1-2 | ✅ **DONE** — Added runtime guarding in `SeriesProgressBanner` with optional chaining and default values for all Map fields | `src/components/series/SeriesProgressBanner.tsx` | 15 min | `tsc --noEmit` passes; component handles missing keys gracefully |
 | P1-3 | ~~Verify status of legacy filter endpoints~~ — **RESOLVED** ✅ Backend confirmed all endpoints are still active. | `src/services/eventAPI.ts` | N/A | Backend confirmation received |
 | P1-4 | ✅ **DONE** — Removed `targetSemesterId` from `SeriesPresetPreviewResponse`; updated `SeriesForm.tsx` to not populate from preset | `src/types/presets.ts:31`, `src/components/series/SeriesForm.tsx:95` | 5 min | `tsc --noEmit` passes; series preset loading works |
-| P1-5 | Verify `showAnswers` field validity in `CreateMiniGameRequest` with backend | `src/components/minigame/QuizForm.tsx` | N/A (coordination) | Backend confirmation |
+| P1-5 | ✅ **CONFIRMED** — `showAnswers` field exists in `CreateMiniGameRequest.java` (line 24). `QuizForm` payload is valid. | `src/components/minigame/QuizForm.tsx` | N/A | Backend source code verified |
 | P1-6 | ✅ **DONE** — Parse `points`/`failPoints` as numbers in `ScoreRulesForm` using `parseFloat()` with NaN handling | `src/components/events/ScoreRulesForm.tsx:193,211` | 10 min | `tsc --noEmit` passes; score rule payload now sends JSON numbers |
 | P1-7 | ✅ **DONE** — Added JSDoc comments to `*UpdateRequest` types clarifying that `id` must NOT be included in the request body | `src/types/activity.ts` | 5 min | `tsc --noEmit` passes; documentation complete |
 
@@ -418,9 +420,9 @@ export interface SeriesPresetPreviewResponse {
 |---|--------|---------|-------------|--------------|
 | P2-1 | ~~Work around `SeriesResponse.targetSemesterId` backend bug~~ — **RESOLVED** ✅ Backend fixed `toSeriesResponse()` to include `targetSemesterId`. No frontend workaround needed. | `src/pages/admin/EditSeries.tsx` | N/A | N/A |
 | P2-2 | ✅ **DONE** — Deleted dead `eventAPI.createEvent` and `eventAPI.updateEvent` methods; no references found across codebase | `src/services/eventAPI.ts:95-139` | 10 min | Global search confirms no references; `tsc --noEmit` passes |
-| P2-3 | Remove `type` from `SeriesChildActivityCreateRequest` if backend doesn't require it | `src/types/activity.ts:202` | 5 min | Backend confirmation |
+| P2-3 | ✅ **CONFIRMED** — `type` field exists in `SeriesChildActivityCreateRequest.java` (line 27). Validator does not enforce it. No frontend change needed. | `src/types/activity.ts:229` | N/A | Backend source code verified |
 | P2-4 | ✅ **DONE** — Added TODO comment for legacy `ScoreHistorySourceType` values with migration guidance | `src/types/score.ts:86` | 5 min | N/A |
-| P2-5 | Verify `publishActivity`, `unpublishActivity`, `copyActivity`, `deleteEvent` endpoints still exist | `src/services/eventAPI.ts` | N/A (coordination) | Backend confirmation |
+| P2-5 | ✅ **CONFIRMED** — `publish`, `unpublish`, `copy`, `delete` endpoints confirmed active in `ActivityController.java` (lines 110, 124, 130, 136). Behavior unchanged. | `src/services/eventAPI.ts` | N/A | Backend source code verified |
 
 ### P3 — Cleanup (Backlog)
 
