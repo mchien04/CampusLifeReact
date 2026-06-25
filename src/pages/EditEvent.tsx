@@ -67,25 +67,30 @@ const EditEvent: React.FC = () => {
 
             if (event.seriesId) {
                 // Use new series-scoped update endpoint
+                // Strip 'type' — backend SeriesChildActivityUpdateRequest does not accept it
+                const { type: _, ...restData } = data;
                 const seriesUpdateData = {
-                    name: data.name,
-                    type: event.type ?? ActivityType.SUKIEN,
-                    description: data.description || null,
-                    startDate: data.startDate || event.startDate,
-                    endDate: data.endDate || event.endDate,
-                    location: data.location || null,
-                    bannerUrl: data.bannerUrl || null,
-                    shareLink: data.shareLink || null,
-                    benefits: data.benefits || null,
-                    requirements: data.requirements || null,
-                    contactInfo: data.contactInfo || null,
-                    organizerIds: data.organizerIds && data.organizerIds.length > 0 ? data.organizerIds : undefined,
+                    name: restData.name,
+                    description: restData.description || null,
+                    startDate: restData.startDate || event.startDate,
+                    endDate: restData.endDate || event.endDate,
+                    location: restData.location || null,
+                    bannerUrl: restData.bannerUrl || null,
+                    shareLink: restData.shareLink || null,
+                    benefits: restData.benefits || null,
+                    requirements: restData.requirements || null,
+                    contactInfo: restData.contactInfo || null,
+                    organizerIds: restData.organizerIds && restData.organizerIds.length > 0 ? restData.organizerIds : undefined,
                 };
                 response = await seriesAPI.updateActivityInSeries(event.seriesId, eventId, seriesUpdateData);
             } else if (event.type === ActivityType.MINIGAME) {
-                response = await minigameActivityAPI.updateMinigameActivity(eventId, data);
+                // Strip scoreRules — backend MinigameActivityUpdateRequest is standalone and does not accept it
+                const { scoreRules: _, ...updateData } = data;
+                response = await minigameActivityAPI.updateMinigameActivity(eventId, updateData as any);
             } else {
-                response = await standardActivityAPI.updateStandardActivity(eventId, data);
+                // Strip scoreRules — backend StandardActivityUpdateRequest is standalone and does not accept it
+                const { scoreRules: _, ...updateData } = data;
+                response = await standardActivityAPI.updateStandardActivity(eventId, updateData as any);
             }
 
             if (response.status) {

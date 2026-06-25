@@ -299,6 +299,29 @@ export const eventAPI = {
         }
     },
 
+    // Get upcoming events with optional keyword search
+    getUpcomingActivities: async (keyword?: string): Promise<Response<ActivityResponse[]>> => {
+        try {
+            const params = new URLSearchParams();
+            if (keyword) params.append('keyword', keyword);
+
+            const response = await api.get(`/api/activities/upcoming?${params.toString()}`);
+            const list = Array.isArray(response.data) ? response.data : (response.data.body || response.data.data || []);
+            return {
+                status: true,
+                message: 'Success',
+                data: list
+            };
+        } catch (error: any) {
+            console.error('Error fetching upcoming activities:', error);
+            return {
+                status: false,
+                message: 'Failed to fetch upcoming activities',
+                data: []
+            };
+        }
+    },
+
     // Register for event
     registerForEvent: async (eventId: number): Promise<Response<void>> => {
         try {
