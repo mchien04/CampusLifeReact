@@ -28,7 +28,6 @@ export interface SeriesPresetPreviewResponse {
     minimumRequirementEnabled?: boolean | null;
     minimumRequiredEvents?: number | null;
     minimumPenaltyPoints?: number | null;
-    targetSemesterId?: number | null;
     notes: string[];
 }
 
@@ -43,15 +42,15 @@ export interface ActivityPresetDefinition {
 
 export interface ActivityPresetConfig {
     primaryScoreType?: ScoreType | null;
-    participationPoints?: string | null;
-    participationFailPoints?: string | null;
+    participationPoints?: number | null;
+    participationFailPoints?: number | null;
     noShowPenaltyEnabled?: boolean | null;
-    noShowPenaltyPoints?: string | null;
+    noShowPenaltyPoints?: number | null;
     noShowPenaltyScoreType?: ScoreType | null;
-    submissionPassPoints?: string | null;
-    submissionFailPoints?: string | null;
-    taskOverduePenaltyPoints?: string | null;
-    minigameExhaustedPenaltyPoints?: string | null;
+    submissionPassPoints?: number | null;
+    submissionFailPoints?: number | null;
+    taskOverduePenaltyPoints?: number | null;
+    minigameExhaustedPenaltyPoints?: number | null;
     bonusScoreType?: ScoreType | null;
-    bonusPoints?: string | null;
+    bonusPoints?: number | null;
 }

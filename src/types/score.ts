@@ -24,7 +24,7 @@ export interface TrainingCalculateResponse {
 }
 
 export interface ScoreItem {
-    score: string; // BigDecimal as string
+    score: number; // BigDecimal as number
     sourceType: ScoreSourceType;
     activityId?: number;
     taskId?: number;
@@ -35,7 +35,7 @@ export interface ScoreItem {
 
 export interface ScoreTypeSummary {
     scoreType: ScoreType;
-    total: string; // BigDecimal as string
+    total: number; // BigDecimal as number
     items: ScoreItem[];
 }
 
@@ -57,7 +57,7 @@ export interface StudentRankingResponse {
     semesterId: number;
     semesterName: string;
     scoreType: ScoreType | null;
-    score: string; // BigDecimal as string
+    score: number; // BigDecimal as number
     scoreTypeLabel: string;
 }
 
@@ -83,6 +83,9 @@ export interface StudentRankResponse {
 }
 
 // Score History Types
+// TODO: Remove legacy values ('ACTIVITY', 'MINIGAME', 'MILESTONE', 'RECALCULATED')
+// after backend data migration is confirmed complete. New canonical values are
+// ACTIVITY_PARTICIPATION, MINIGAME_ATTEMPT, SERIES_PROGRESS, RECALCULATION.
 export type ScoreHistorySourceType = 'ACTIVITY' | 'MINIGAME' | 'MILESTONE' | 'RECALCULATED'; // Legacy
 
 export interface ActivityParticipationDetailResponse {
@@ -92,7 +95,7 @@ export interface ActivityParticipationDetailResponse {
     activityType: string | null; // ActivityType
     seriesId: number | null;
     seriesName: string | null;
-    pointsEarned: string; // BigDecimal as string
+    pointsEarned: number; // BigDecimal as number
     participationType: string; // ParticipationType
     date: string; // LocalDateTime as string
     isCompleted: boolean;
@@ -101,8 +104,8 @@ export interface ActivityParticipationDetailResponse {
 
 export interface ScoreHistoryDetailResponse {
     id: number;
-    oldScore: string; // BigDecimal as string
-    newScore: string; // BigDecimal as string
+    oldScore: number; // BigDecimal as number
+    newScore: number; // BigDecimal as number
     changeDate: string; // LocalDateTime as string
     reason: string;
     activityId: number | null;
@@ -121,7 +124,7 @@ export interface ScoreHistoryViewResponse {
     semesterId: number;
     semesterName: string;
     scoreType: ScoreType | null;
-    currentScore: string; // BigDecimal as string
+    currentScore: number; // BigDecimal as number
     scoreHistories: ScoreHistoryDetailResponse[];
     activityParticipations: ActivityParticipationDetailResponse[];
     totalRecords: number;

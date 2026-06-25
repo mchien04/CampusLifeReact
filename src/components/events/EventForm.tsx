@@ -178,7 +178,7 @@ const EventForm: React.FC<EventFormProps> = ({
 
         if (formData.requiresSubmission) {
             const hasPassFailWithFailPoints = formData.scoreRules?.some(
-                rule => rule.calculation === 'PASS_FAIL_POINTS' && rule.failPoints !== undefined && rule.failPoints !== null && rule.failPoints !== ''
+                rule => rule.calculation === 'PASS_FAIL_POINTS' && rule.failPoints !== undefined && rule.failPoints !== null
             );
             if (!hasPassFailWithFailPoints) {
                 newErrors.scoreRules = 'Sự kiện yêu cầu nộp bài thu hoạch phải có ít nhất một luật tính điểm Đạt/Trượt và có cấu hình điểm trượt hợp lệ.';

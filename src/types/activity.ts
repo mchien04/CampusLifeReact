@@ -47,8 +47,8 @@ export interface ActivityScoreRuleRequest {
     scoreType: ScoreType;
     triggerType: ScoreRuleTrigger;
     calculation: ScoreRuleCalculation;
-    points: string;
-    failPoints?: string | null;
+    points: number;
+    failPoints?: number | null;
     audience: ScoreRuleAudience;
     semesterPolicy: ScoreSemesterPolicy;
     explicitSemesterId?: number | null;
@@ -62,8 +62,8 @@ export interface ActivityScoreRuleResponse {
     scoreType: ScoreType;
     triggerType: ScoreRuleTrigger;
     calculation: ScoreRuleCalculation;
-    points: string;
-    failPoints?: string | null;
+    points: number;
+    failPoints?: number | null;
     audience: ScoreRuleAudience;
     semesterPolicy: ScoreSemesterPolicy;
     explicitSemesterId?: number | null;
@@ -126,6 +126,7 @@ export interface MinigameActivityCreateRequest {
 }
 
 // Standalone update request per backend contract (no extends, no scoreRules, no type)
+// IMPORTANT: The activity `id` is provided in the URL path; do NOT include it in the request body.
 export interface StandardActivityUpdateRequest {
     name: string;
     description?: string | null;
@@ -141,6 +142,7 @@ export interface StandardActivityUpdateRequest {
 }
 
 // Standalone update request per backend contract (no extends, no scoreRules, no type)
+// IMPORTANT: The activity `id` is provided in the URL path; do NOT include it in the request body.
 export interface MinigameActivityUpdateRequest {
     name: string;
     description?: string | null;
@@ -230,6 +232,7 @@ export interface SeriesChildActivityCreateRequest {
 }
 
 // Standalone update request per backend contract (no extends, no type field)
+// IMPORTANT: The activity `id` is provided in the URL path; do NOT include it in the request body.
 export interface SeriesChildActivityUpdateRequest {
     name: string;
     description?: string | null;

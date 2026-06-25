@@ -1,5 +1,5 @@
 import api from './api';
-import { CreateActivityRequest, ActivityResponse } from '../types/activity';
+import { ActivityResponse } from '../types/activity';
 import { Response } from '../types/auth';
 import { ActivityPresetPreviewResponse, ActivityPresetDefinition } from '../types/presets';
 
@@ -88,53 +88,6 @@ export const eventAPI = {
         } catch (error: any) {
             console.error('Error fetching event:', error);
             throw error;
-        }
-    },
-
-    // Create new event
-    createEvent: async (data: CreateActivityRequest): Promise<Response<ActivityResponse>> => {
-        try {
-            console.log('🔍 eventAPI: createEvent called with data:', data);
-            console.log('🔍 eventAPI: bannerUrl in request:', data.bannerUrl);
-
-            const response = await api.post('/api/activities', data);
-            console.log('🔍 eventAPI: Backend response:', response.data);
-
-            // Process response format
-            return {
-                status: response.data.status,
-                message: response.data.message,
-                data: response.data.body || response.data.data
-            };
-        } catch (error: any) {
-            console.error('🔍 eventAPI: Error creating event:', error);
-            console.error('🔍 eventAPI: Error response:', error.response?.data);
-            // Return error response in expected format
-            return {
-                status: false,
-                message: error.response?.data?.message || 'Có lỗi xảy ra khi tạo sự kiện',
-                data: undefined
-            };
-        }
-    },
-
-    // Update event
-    updateEvent: async (id: number, data: Partial<CreateActivityRequest>): Promise<Response<ActivityResponse>> => {
-        try {
-            const response = await api.put(`/api/activities/${id}`, data);
-            // Process response format
-            return {
-                status: response.data.status,
-                message: response.data.message,
-                data: response.data.body || response.data.data
-            };
-        } catch (error: any) {
-            console.error('Error updating event:', error);
-            return {
-                status: false,
-                message: error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật sự kiện',
-                data: undefined
-            };
         }
     },
 

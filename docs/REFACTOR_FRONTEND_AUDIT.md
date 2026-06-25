@@ -167,19 +167,19 @@ If the backend Jackson mapper is configured with `DeserializationFeature.FAIL_ON
 **Impact:** Backend will receive an unknown field `type`. Depending on Jackson config, this may cause 400.  
 **Remediation:** ✅ Removed `type` from the payload in `EditEvent.tsx` by destructuring `const { type: _, ...restData } = data` before constructing `seriesUpdateData`.
 
-### 2.3 `BigDecimal` Fields Typed as `string` — P1
-**Files:** `src/types/activity.ts` (lines 50, 51, 65, 66), `src/types/presets.ts` (lines 46, 48, 49, 51, 52, 53, 54, 56)  
+### 2.3 `BigDecimal` Fields Typed as `string` — ✅ Fixed
+**Files:** `src/types/activity.ts` (lines 50, 51, 65, 66), `src/types/presets.ts` (lines 46, 48, 49, 51, 52, 53, 54, 56), `src/types/score.ts` (lines 27, 38, 60, 82, 95, 104, 105, 124)  
 **Backend Contract:** Backend uses `java.math.BigDecimal`. Jackson typically serializes `BigDecimal` as **JSON number** (e.g., `5.0`) not string.  
 **Frontend Types:**
 ```typescript
-points: string;
-failPoints?: string | null;
-participationPoints?: string | null;
+points: number;
+failPoints?: number | null;
+participationPoints?: number | null;
 ```
-**Impact:**
-1. **Serialization direction (frontend → backend):** `ScoreRulesForm` binds `<input type="number">` values to `string` type. When JSON is serialized, `"5.0"` (string) is sent instead of `5.0` (number). Backend `BigDecimal` may parse strings, but this is fragile and depends on Jackson configuration.
-2. **Deserialization direction (backend → frontend):** Backend sends `5.0` (number). Frontend type says `string`. TypeScript compiles anyway, but runtime type is wrong. If any frontend code does `rule.points.toFixed(2)`, it will fail because `5.0` is a number, not a string.
-**Remediation:** Change all `BigDecimal` fields from `string` to `number` (or `number | string` for safety). Update `ScoreRulesForm` to bind to `number` values. Verify `formatScore` helper in `src/types/score.ts` already handles both.
+**Impact:**  
+1. **Serialization direction (frontend → backend):** `ScoreRulesForm` now binds `<input type="number">` values to `number` type. JSON serializes as `5.0` (number). ✅
+2. **Deserialization direction (backend → frontend):** Backend sends `5.0` (number). Frontend type now says `number`. ✅  
+**Remediation:** ✅ Changed all `BigDecimal` fields from `string` to `number` across `activity.ts`, `presets.ts`, and `score.ts`. Updated `ScoreRulesForm` to parse inputs with `parseFloat()` before updating state.
 
 ### 2.4 `SeriesResponse` `targetSemesterId` — ✅ Fixed by Backend
 **File:** `src/types/series.ts`  
@@ -188,32 +188,30 @@ participationPoints?: string | null;
 **Impact:** ✅ No longer an issue. The field is now reliably returned on all series read/write operations.  
 **Remediation:** None required. Remove P2-1 workaround from action plan if it was added.
 
-### 2.5 `SeriesPresetPreviewResponse` Includes Nonexistent `targetSemesterId` — P1
+### 2.5 `SeriesPresetPreviewResponse` Includes Nonexistent `targetSemesterId` — ✅ Fixed
 **File:** `src/types/presets.ts` (line 31)  
 **Backend Contract:** Docs explicitly state `targetSemesterId` **does NOT exist** in `SeriesPresetPreviewResponse`.  
 **Frontend:**
 ```typescript
 export interface SeriesPresetPreviewResponse {
     ...
-    targetSemesterId?: number | null; // ❌ Does not exist in backend
+    // targetSemesterId removed — not returned by backend
 }
 ```
-**Impact:** `SeriesForm.tsx` (line 95) accesses `presetData.targetSemesterId`. If the backend returns it anyway, it works. If not, preset loading silently fails to populate the semester dropdown.  
-**Remediation:** Remove `targetSemesterId` from `SeriesPresetPreviewResponse` type. If preset needs to suggest a semester, backend must add it to the contract.
+**Remediation:** ✅ Removed `targetSemesterId` from `SeriesPresetPreviewResponse` type. Updated `SeriesForm.tsx` to no longer populate `targetSemesterId` from preset preview; user selects semester manually.
 
-### 2.6 `StudentSeriesProgress` Assumes Fixed DTO — P1
-**File:** `src/types/series.ts`  
+### 2.6 `StudentSeriesProgress` Assumes Fixed DTO — ✅ Fixed
+**File:** `src/components/series/SeriesProgressBanner.tsx`  
 **Backend Contract:** `GET /api/series/{id}/progress/my` returns `Map<String, Object>` with **no fixed DTO**.  
 **Frontend:** Defines a rich typed interface `StudentSeriesProgress` with fields like `minimumRequirementEnabled`, `minimumRequiredEvents`, `minimumRequirementMet`, `remainingToAvoidPenalty`, etc. `SeriesProgressBanner.tsx` consumes this interface.  
 **Impact:** If the backend Map keys change or are missing, the frontend will crash or show incorrect data. The `Map` contract is unstable by design.  
-**Remediation:** Treat the response as `Record<string, any>` and add runtime validation/guarding before accessing fields. Or ask backend to formalize a `StudentSeriesProgress` DTO.
+**Remediation:** ✅ Added runtime guarding with optional chaining (`?.`) and default values for all fields consumed by `SeriesProgressBanner`. Component now gracefully handles missing keys.
 
-### 2.7 `ActivityPresetConfig` Point Fields as `string` — P2
+### 2.7 `ActivityPresetConfig` Point Fields as `string` — ✅ Fixed (part of P1-1)
 **File:** `src/types/presets.ts` (lines 46-56)  
 **Backend Contract:** Uses `BigDecimal` for all point fields.  
-**Frontend:** All point fields typed as `string | null` (e.g., `participationPoints?: string | null`).  
-**Impact:** Same `BigDecimal` string/number mismatch as 2.3. These fields are less actively used than score rules, but will cause the same serialization ambiguity.  
-**Remediation:** Change to `number | null`.
+**Frontend:** All point fields typed as `number | null` (e.g., `participationPoints?: number | null`).  
+**Remediation:** ✅ Changed to `number | null` as part of P1-1 BigDecimal fix.
 
 ### 2.8 `QuizForm` Sends `showAnswers` — P2 (Ambiguity)
 **File:** `src/components/minigame/QuizForm.tsx` (line 34, 560)  
@@ -262,11 +260,11 @@ export interface SeriesPresetPreviewResponse {
 **Backend Contract:** The backend docs do not provide the detailed field list for `CreateMiniGameRequest`/`UpdateMiniGameRequest`. The payload shape looks reasonable, but `showAnswers` is flagged in 2.8.  
 **Remediation:** Verify `CreateMiniGameRequest` field list with backend team.
 
-### 3.7 `ScoreRulesForm` Sends `points`/`failPoints` as Strings — P1
+### 3.7 `ScoreRulesForm` Sends `points`/`failPoints` as Strings — ✅ Fixed (part of P1-6)
 **File:** `src/components/events/ScoreRulesForm.tsx` (lines 193, 211)  
-**Issue:** `type="number"` inputs are bound to `rule.points` and `rule.failPoints` which are typed as `string`. The HTML input returns a string, which is stored as a string, and serialized as a JSON string.  
+**Issue:** `type="number"` inputs were bound to `rule.points` and `rule.failPoints` which were typed as `string`. The HTML input returned a string, which was stored as a string, and serialized as a JSON string.  
 **Backend Contract:** `BigDecimal` expects JSON number.  
-**Remediation:** Change `points`/`failPoints` to `number` type. Parse inputs with `parseFloat(e.target.value)` before updating state.
+**Remediation:** ✅ Changed `points`/`failPoints` to `number` type (P1-1). Updated input handlers to parse with `parseFloat(e.target.value)` before updating state. Empty string → `null` for `failPoints`. NaN → `0` for `points`.
 
 ---
 
@@ -406,22 +404,22 @@ export interface SeriesPresetPreviewResponse {
 
 | # | Action | File(s) | Est. Effort | Verification |
 |---|--------|---------|-------------|--------------|
-| P1-1 | Change `BigDecimal` fields from `string` → `number` in `ActivityScoreRuleRequest`, `ActivityScoreRuleResponse`, `ActivityPresetConfig` | `src/types/activity.ts`, `src/types/presets.ts` | 20 min | Test score rule CRUD; verify `ScoreRulesForm` binds correctly |
-| P1-2 | Add runtime guarding in `SeriesProgressBanner` for `Map<String, Object>` response | `src/components/series/SeriesProgressBanner.tsx` | 15 min | Test with malformed backend response |
-| P1-3 | ~~Verify status of legacy filter endpoints~~ — **RESOLVED** ✅ Backend confirmed all endpoints (`getEventsByDepartment`, `getEventsByScoreType`, `getEventsByMonth`, `getMyEvents`) are still active. | `src/services/eventAPI.ts` | N/A | Backend confirmation received |
-| P1-4 | Remove `targetSemesterId` from `SeriesPresetPreviewResponse` | `src/types/presets.ts:31` | 5 min | Test series preset loading |
+| P1-1 | ✅ **DONE** — Changed `BigDecimal` fields from `string` → `number` in `ActivityScoreRuleRequest`, `ActivityScoreRuleResponse`, `ActivityPresetConfig`, `ScoreItem`, `ScoreTypeSummary`, `StudentRankingResponse`, `StudentRankResponse`, `ActivityParticipationDetailResponse`, `ScoreHistoryDetailResponse`, `ScoreHistoryViewResponse` | `src/types/activity.ts`, `src/types/presets.ts`, `src/types/score.ts` | 20 min | `tsc --noEmit` passes; `ScoreRulesForm` binds correctly |
+| P1-2 | ✅ **DONE** — Added runtime guarding in `SeriesProgressBanner` with optional chaining and default values for all Map fields | `src/components/series/SeriesProgressBanner.tsx` | 15 min | `tsc --noEmit` passes; component handles missing keys gracefully |
+| P1-3 | ~~Verify status of legacy filter endpoints~~ — **RESOLVED** ✅ Backend confirmed all endpoints are still active. | `src/services/eventAPI.ts` | N/A | Backend confirmation received |
+| P1-4 | ✅ **DONE** — Removed `targetSemesterId` from `SeriesPresetPreviewResponse`; updated `SeriesForm.tsx` to not populate from preset | `src/types/presets.ts:31`, `src/components/series/SeriesForm.tsx:95` | 5 min | `tsc --noEmit` passes; series preset loading works |
 | P1-5 | Verify `showAnswers` field validity in `CreateMiniGameRequest` with backend | `src/components/minigame/QuizForm.tsx` | N/A (coordination) | Backend confirmation |
-| P1-6 | Parse `points`/`failPoints` as numbers in `ScoreRulesForm` | `src/components/events/ScoreRulesForm.tsx:193,211` | 10 min | Test score rule submission payload in DevTools |
-| P1-7 | Add `id` exclusion to `*UpdateRequest` types (ensure `id` is not in body) | `src/types/activity.ts` | 10 min | Verify update payloads in DevTools |
+| P1-6 | ✅ **DONE** — Parse `points`/`failPoints` as numbers in `ScoreRulesForm` using `parseFloat()` with NaN handling | `src/components/events/ScoreRulesForm.tsx:193,211` | 10 min | `tsc --noEmit` passes; score rule payload now sends JSON numbers |
+| P1-7 | ✅ **DONE** — Added JSDoc comments to `*UpdateRequest` types clarifying that `id` must NOT be included in the request body | `src/types/activity.ts` | 5 min | `tsc --noEmit` passes; documentation complete |
 
 ### P2 — Medium Risk (Fix in Next Sprint)
 
 | # | Action | File(s) | Est. Effort | Verification |
 |---|--------|---------|-------------|--------------|
 | P2-1 | ~~Work around `SeriesResponse.targetSemesterId` backend bug~~ — **RESOLVED** ✅ Backend fixed `toSeriesResponse()` to include `targetSemesterId`. No frontend workaround needed. | `src/pages/admin/EditSeries.tsx` | N/A | N/A |
-| P2-2 | Delete dead `eventAPI.createEvent` and `eventAPI.updateEvent` | `src/services/eventAPI.ts:95-139` | 10 min | Global search for references; compile passes |
+| P2-2 | ✅ **DONE** — Deleted dead `eventAPI.createEvent` and `eventAPI.updateEvent` methods; no references found across codebase | `src/services/eventAPI.ts:95-139` | 10 min | Global search confirms no references; `tsc --noEmit` passes |
 | P2-3 | Remove `type` from `SeriesChildActivityCreateRequest` if backend doesn't require it | `src/types/activity.ts:202` | 5 min | Backend confirmation |
-| P2-4 | Add TODO comment for legacy `ScoreHistorySourceType` values | `src/types/score.ts:86` | 5 min | N/A |
+| P2-4 | ✅ **DONE** — Added TODO comment for legacy `ScoreHistorySourceType` values with migration guidance | `src/types/score.ts:86` | 5 min | N/A |
 | P2-5 | Verify `publishActivity`, `unpublishActivity`, `copyActivity`, `deleteEvent` endpoints still exist | `src/services/eventAPI.ts` | N/A (coordination) | Backend confirmation |
 
 ### P3 — Cleanup (Backlog)

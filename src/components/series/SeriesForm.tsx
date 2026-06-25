@@ -91,8 +91,8 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
                     milestonePoints: presetData.milestonePoints,
                     minimumRequirementEnabled: presetData.minimumRequirementEnabled ?? false,
                     minimumRequiredEvents: presetData.minimumRequiredEvents ?? undefined,
-                    minimumPenaltyPoints: presetData.minimumPenaltyPoints ?? undefined,
-                    targetSemesterId: presetData.targetSemesterId ?? undefined
+                    minimumPenaltyPoints: presetData.minimumPenaltyPoints ?? undefined
+                    // Note: targetSemesterId is NOT provided by preset preview; user selects manually
                 }));
                 // Tự động set entries cho giao diện
                 setMilestoneEntries(
