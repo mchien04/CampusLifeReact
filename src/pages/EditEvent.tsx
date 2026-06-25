@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import StandardActivityForm from '../components/events/StandardActivityForm';
 import MinigameActivityForm from '../components/events/MinigameActivityForm';
 import SeriesActivityForm from '../components/events/SeriesActivityForm';
-import { CreateActivityRequest, ActivityResponse, ActivityType } from '../types/activity';
+import { BaseEventFormData } from '../components/events/BaseEventForm';
+import { ActivityResponse, ActivityType } from '../types/activity';
 import { eventAPI } from '../services/eventAPI';
 import { standardActivityAPI } from '../services/standardActivityAPI';
 import { minigameActivityAPI } from '../services/minigameActivityAPI';
@@ -47,7 +48,7 @@ const EditEvent: React.FC = () => {
     }, [id]);
 
 
-    const handleSubmit = async (data: CreateActivityRequest) => {
+    const handleSubmit = async (data: BaseEventFormData) => {
         if (!id) {
             setError('ID sự kiện không hợp lệ');
             return;
@@ -153,8 +154,8 @@ const EditEvent: React.FC = () => {
         );
     }
 
-    // Convert ActivityResponse to CreateActivityRequest format
-    const initialData: Partial<CreateActivityRequest> = {
+    // Convert ActivityResponse to BaseEventFormData format
+    const initialData: Partial<BaseEventFormData> = {
         name: event.name,
         type: event.type ?? undefined,
         description: event.description,
@@ -235,7 +236,7 @@ const EditEvent: React.FC = () => {
             {event.seriesId ? (
                 <SeriesActivityForm
                     onSubmit={(data) => {
-                        const updateData: CreateActivityRequest = {
+                        const updateData: BaseEventFormData = {
                             ...initialData,
                             ...data,
                             type: event.type ?? ActivityType.SUKIEN,
@@ -245,7 +246,7 @@ const EditEvent: React.FC = () => {
                         handleSubmit(updateData);
                     }}
                     loading={loading}
-                    initialData={initialData as any}
+                    initialData={initialData}
                     title={event.type === ActivityType.MINIGAME ? "Chỉnh sửa Mini Game trong chuỗi" : "Chỉnh sửa sự kiện trong chuỗi"}
                     onCancel={() => navigate('/manager/events')}
                     isMinigame={event.type === ActivityType.MINIGAME}

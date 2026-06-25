@@ -1,6 +1,6 @@
 import React from 'react';
-import BaseEventForm, { RenderFieldsProps } from './BaseEventForm';
-import { CreateActivityRequest, ActivityType, SeriesChildActivityCreateRequest } from '../../types/activity';
+import BaseEventForm, { BaseEventFormData, RenderFieldsProps } from './BaseEventForm';
+import { ActivityType, SeriesChildActivityCreateRequest } from '../../types/activity';
 import OrganizerSelector from './OrganizerSelector';
 import { getImageUrl } from '../../utils/imageUtils';
 
@@ -326,7 +326,7 @@ const SeriesActivityForm: React.FC<SeriesActivityFormProps> = ({
     onCancel,
     isMinigame = false
 }) => {
-    const handleSubmit = (data: CreateActivityRequest) => {
+    const handleSubmit = (data: BaseEventFormData) => {
         // BaseEventForm already handles banner upload, so bannerUrl is already set
         // Convert to SeriesChildActivityCreateRequest
         const seriesActivityData: SeriesChildActivityCreateRequest = {
@@ -336,7 +336,7 @@ const SeriesActivityForm: React.FC<SeriesActivityFormProps> = ({
             startDate: data.startDate || '',
             endDate: data.endDate || '',
             location: data.location || null,
-            order: (data as any).order || null,
+            order: data.order || null,
             shareLink: data.shareLink || null,
             bannerUrl: data.bannerUrl || null,
             benefits: data.benefits || null,
@@ -348,7 +348,7 @@ const SeriesActivityForm: React.FC<SeriesActivityFormProps> = ({
     };
 
     // Process initial data - only include fields needed for series activity
-    const processedInitialData: Partial<CreateActivityRequest> = {
+    const processedInitialData: Partial<BaseEventFormData> = {
         name: initialData.name || '',
         description: initialData.description || '',
         startDate: initialData.startDate || '',
@@ -365,11 +365,11 @@ const SeriesActivityForm: React.FC<SeriesActivityFormProps> = ({
         registrationDeadline: undefined, // From series
         ticketQuantity: undefined, // From series
         requiresApproval: undefined, // From series
-        ...(initialData.order && { order: initialData.order } as any)
+        ...(initialData.order !== undefined && initialData.order !== null ? { order: initialData.order } : {})
     };
 
     return (
-        <BaseEventForm
+        <BaseEventForm<BaseEventFormData>
             mode="series"
             onSubmit={handleSubmit}
             loading={loading}

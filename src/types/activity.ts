@@ -282,46 +282,6 @@ export interface SeriesChildActivityResponse {
     lastModifiedBy?: string | null;
 }
 
-export interface ActivitySummaryResponse {
-    id: number;
-    name: string;
-    type: ActivityType;
-    startDate: string;
-    endDate: string;
-    bannerUrl?: string | null;
-    isDraft: boolean;
-    isImportant: boolean;
-    location?: string | null;
-    variantTag: 'STANDARD' | 'MINIGAME' | 'SERIES_CHILD';
-    seriesId?: number | null;
-}
-
-export interface CreateActivityRequest {
-    name: string;
-    type: ActivityType;
-    description?: string | null;
-    startDate: string;
-    endDate: string;
-    requiresSubmission?: boolean | null;
-    scoreRules?: ActivityScoreRuleRequest[];
-    registrationStartDate?: string | null;
-    registrationDeadline?: string | null;
-    shareLink?: string | null;
-    isImportant?: boolean | null;
-    isDraft?: boolean | null;
-    bannerUrl?: string | null;
-    bannerFile?: File; // Frontend only
-    location?: string | null;
-    ticketQuantity?: number | null;
-    benefits?: string | null;
-    requirements?: string | null;
-    contactInfo?: string | null;
-    requiresApproval?: boolean | null;
-    mandatoryForFacultyStudents?: boolean | null;
-    organizerIds?: number[];
-    presetCode?: string | null;
-    presetConfig?: any | null;
-}
 
 export interface ActivityResponse {
     id: number;
@@ -359,28 +319,6 @@ export interface ActivityResponse {
     lastModifiedBy?: string | null;
     status?: string;
     participantCount?: number;
-}
-
-// Keeping legacy interface that is used across the app until fully removed
-export interface Activity {
-    id: number;
-    name: string;
-    description?: string;
-    type: string;
-    location?: string;
-    startDate: string;
-    endDate: string;
-    registrationDeadline: string;
-    maxParticipants?: number;
-    currentParticipants: number;
-    isImportant: boolean;
-    bannerUrl?: string;
-    requiresSubmission: boolean;    ticketQuantity?: number;
-    mandatoryForFacultyStudents: boolean;
-    department: Department;
-    createdBy: User;
-    createdAt: string;
-    updatedAt: string;
 }
 
 export interface ActivityPhotoResponse {
