@@ -1,4 +1,4 @@
-import { Activity } from './activity';
+import { ActivityResponse } from './activity';
 import { Student } from './student';
 import { User } from './auth';
 
@@ -14,7 +14,7 @@ export enum RegistrationStatus {
 // New ActivityRegistration interface matching backend
 export interface ActivityRegistration {
     id: number;
-    activity: Activity;
+    activity: ActivityResponse;
     student: Student;
     registrationDate: string;
     status: RegistrationStatus;

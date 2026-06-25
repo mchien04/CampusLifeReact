@@ -1,11 +1,11 @@
-import { Activity } from './activity';
+import { ActivityResponse } from './activity';
 import { Student } from './student';
 import { User } from './auth';
 
 // New ActivityTask interface matching backend
 export interface ActivityTask {
     id: number;
-    activity: Activity;
+    activity: ActivityResponse;
     title: string;
     description?: string;
     requiresSubmission: boolean;    dueDate?: string;

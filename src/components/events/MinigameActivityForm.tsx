@@ -1,19 +1,19 @@
 import React from 'react';
 import BaseEventForm, { RenderFieldsProps } from './BaseEventForm';
-import { CreateActivityRequest, ActivityType, ScoreType } from '../../types/activity';
+import { MinigameActivityCreateRequest, ActivityType, ScoreType } from '../../types/activity';
 import { getImageUrl } from '../../utils/imageUtils';
 import OrganizerSelector from './OrganizerSelector';
 
 interface MinigameActivityFormProps {
-    onSubmit: (data: CreateActivityRequest) => void;
+    onSubmit: (data: MinigameActivityCreateRequest) => void;
     loading?: boolean;
-    initialData?: Partial<CreateActivityRequest>;
+    initialData?: Partial<MinigameActivityCreateRequest>;
     title?: string;
     onCancel?: () => void;
     isInSeries?: boolean; // Nếu true, không hiển thị field slot (mặc định null)
 }
 
-const renderMinigameFields = (props: RenderFieldsProps & { isInSeries?: boolean }) => {
+const renderMinigameFields = (props: RenderFieldsProps<MinigameActivityCreateRequest> & { isInSeries?: boolean }) => {
     const {
         formData,
         errors,
@@ -388,7 +388,7 @@ const MinigameActivityForm: React.FC<MinigameActivityFormProps> = ({
     };
 
     return (
-        <BaseEventForm
+        <BaseEventForm<MinigameActivityCreateRequest>
             mode="minigame"
             onSubmit={onSubmit}
             loading={loading}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { CreateActivityRequest, ActivityType, ScoreType } from '../../types/activity';
+import { ActivityType, ScoreType, ActivityScoreRuleRequest } from '../../types/activity';
+import { ActivityPresetPreviewResponse } from '../../types/presets';
 import { uploadAPI } from '../../services/uploadAPI';
 import { eventAPI } from '../../services/eventAPI';
 import { departmentAPI } from '../../services/adminAPI';
@@ -7,22 +8,53 @@ import { getImageUrl } from '../../utils/imageUtils';
 import OrganizerSelector from './OrganizerSelector';
 import { ScoreRulesForm } from './ScoreRulesForm';
 import { Department } from '../../types/admin';
+import ActivityScoreRulePreview from './ActivityScoreRulePreview';
 
 export type FormMode = 'normal' | 'minigame' | 'series';
 
-interface BaseEventFormProps {
+export interface BaseEventFormData {
+    name: string;
+    type: ActivityType;
+    description?: string | null;
+    startDate: string;
+    endDate: string;
+    location?: string | null;
+    bannerUrl?: string | null;
+    shareLink?: string | null;
+    benefits?: string | null;
+    requirements?: string | null;
+    contactInfo?: string | null;
+    organizerIds?: number[];
+    
+    // Optional fields used by some modes
+    requiresSubmission?: boolean | null;
+    scoreRules?: ActivityScoreRuleRequest[];
+    registrationStartDate?: string | null;
+    registrationDeadline?: string | null;
+    isImportant?: boolean | null;
+    isDraft?: boolean | null;
+    ticketQuantity?: number | null;
+    requiresApproval?: boolean | null;
+    mandatoryForFacultyStudents?: boolean | null;
+    presetCode?: string | null;
+    presetConfig?: any | null;
+    order?: number | null;
+    bannerFile?: File;
+}
+
+interface BaseEventFormProps<T extends BaseEventFormData = BaseEventFormData> {
     mode: FormMode;
-    onSubmit: (data: CreateActivityRequest) => void;
+    onSubmit: (data: T) => void;
     loading?: boolean;
-    initialData?: Partial<CreateActivityRequest>;
+    initialData?: Partial<T>;
     title?: string;
     onCancel?: () => void;
-    renderFields?: (props: RenderFieldsProps) => React.ReactNode;
+    renderFields?: (props: RenderFieldsProps<T>) => React.ReactNode;
     inline?: boolean; // If true, render without wrapper (for modals)
 }
 
-export interface RenderFieldsProps {
-    formData: CreateActivityRequest;
+export interface RenderFieldsProps<T extends BaseEventFormData = BaseEventFormData> {
+    formData: T;
     errors: Record<string, string>;
     handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
     handleOrganizerChange: (ids: number[]) => void;
@@ -32,7 +64,7 @@ export interface RenderFieldsProps {
     mode: FormMode;
 }
 
-const BaseEventForm: React.FC<BaseEventFormProps> = ({
+const BaseEventForm = <T extends BaseEventFormData>({
     mode,
     onSubmit,
     loading = false,
@@ -41,30 +73,30 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
     onCancel,
     renderFields,
     inline = false
-}) => {
-    const [formData, setFormData] = useState<CreateActivityRequest>(() => {
-        const defaultData: CreateActivityRequest = {
+}: BaseEventFormProps<T>) => {
+    const [formData, setFormData] = useState<T>(() => {
+        const defaultData: BaseEventFormData = {
             name: '',
             type: mode === 'minigame' ? ActivityType.MINIGAME : ActivityType.SUKIEN,
             description: '',
             startDate: '',
             endDate: '',
-            requiresSubmission: false,
-            scoreRules: [],
-            registrationStartDate: mode === 'series' ? undefined : '',
-            registrationDeadline: mode === 'series' ? undefined : '',
-            shareLink: '',
-            isImportant: false,
-            isDraft: true,
-            bannerUrl: '',
             location: '',
-            ticketQuantity: mode === 'series' ? undefined : (mode === 'minigame' ? 0 : 0),
+            bannerUrl: '',
+            shareLink: '',
             benefits: '',
             requirements: '',
             contactInfo: '',
+            organizerIds: [],
+            requiresSubmission: mode === 'series' ? undefined : false,
+            scoreRules: mode === 'series' ? undefined : [],
+            registrationStartDate: mode === 'series' ? undefined : '',
+            registrationDeadline: mode === 'series' ? undefined : '',
+            isImportant: false,
+            isDraft: true,
+            ticketQuantity: mode === 'series' ? undefined : (mode === 'minigame' ? 0 : 0),
             requiresApproval: mode === 'series' ? undefined : true,
             mandatoryForFacultyStudents: false,
-            organizerIds: [],
         };
 
         return {
@@ -72,10 +104,10 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
             ...Object.fromEntries(
                 Object.entries(initialData).map(([key, value]) => [
                     key,
-                    value !== undefined ? value : defaultData[key as keyof CreateActivityRequest]
+                    value !== undefined ? value : (defaultData as any)[key]
                 ])
             )
-        };
+        } as T;
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -85,6 +117,7 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
     const [isUploading, setIsUploading] = useState(false);
     const [presets, setPresets] = useState<any[]>([]);
     const [selectedPresetCode, setSelectedPresetCode] = useState<string>('');
+    const [presetPreview, setPresetPreview] = useState<ActivityPresetPreviewResponse | null>(null);
     const [departments, setDepartments] = useState<Department[]>([]);
     const isEditing = !!(initialData && initialData.name);
 
@@ -108,7 +141,7 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
                                     ...prev,
                                     requiresSubmission: presetData.requiresSubmission,
                                     scoreRules: presetData.scoreRules || []
-                                }));
+                                } as T));
                             }
                         }
                     }
@@ -138,17 +171,21 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
     const handlePresetChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
         const code = e.target.value;
         setSelectedPresetCode(code);
-        if (!code) return;
+        if (!code) {
+            setPresetPreview(null);
+            return;
+        }
 
         try {
             const previewRes = await eventAPI.previewActivityPreset({ presetCode: code });
             if (previewRes.status && previewRes.data) {
                 const presetData = previewRes.data;
+                setPresetPreview(presetData);
                 setFormData(prev => ({
                     ...prev,
                     requiresSubmission: presetData.requiresSubmission,
                     scoreRules: presetData.scoreRules || []
-                }));
+                } as T));
             }
         } catch (error) {
             console.error('Lỗi khi tải mẫu cấu hình:', error);
@@ -175,9 +212,9 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
         const checked = e.target.checked;
         setUnlimitedTickets(checked);
         if (checked) {
-            setFormData(prev => ({ ...prev, ticketQuantity: undefined }));
+            setFormData(prev => ({ ...prev, ticketQuantity: undefined } as T));
         } else {
-            setFormData(prev => ({ ...prev, ticketQuantity: 0 }));
+            setFormData(prev => ({ ...prev, ticketQuantity: 0 } as T));
         }
     };
 
@@ -256,7 +293,7 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
                     ...Object.fromEntries(
                         Object.entries(initialData).map(([key, value]) => [
                             key,
-                            value !== undefined ? value : prev[key as keyof CreateActivityRequest]
+                            value !== undefined ? value : prev[key as keyof T]
                         ])
                     )
                 };
@@ -272,7 +309,7 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
                     setUnlimitedTickets(false);
                 }
 
-                return merged;
+                return merged as T;
             });
             setIsInitialLoad(false);
         } else {
@@ -288,7 +325,7 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
             setFormData(prev => ({
                 ...prev,
                 ticketQuantity: undefined
-            }));
+            } as T));
         }
     }, [formData.isImportant, formData.mandatoryForFacultyStudents, isInitialLoad]);
 
@@ -298,7 +335,7 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
             setFormData(prev => ({
                 ...prev,
                 requiresApproval: false
-            }));
+            } as T));
         }
     }, [formData.isImportant, formData.mandatoryForFacultyStudents, isInitialLoad]);
 
@@ -306,7 +343,7 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
         setFormData(prev => ({
             ...prev,
             organizerIds: ids
-        }));
+        } as T));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -323,7 +360,7 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
                             ...formData,
                             bannerUrl: uploadResponse.data,
                             bannerFile: undefined
-                        };
+                        } as T;
                         onSubmit(updatedFormData);
                     } else {
                         setErrors(prev => ({
@@ -337,7 +374,7 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
                     const submitData = {
                         ...formData,
                         bannerUrl: formData.bannerUrl || (originalBannerUrl && formData.bannerUrl === '' ? originalBannerUrl : undefined)
-                    };
+                    } as T;
                     onSubmit(submitData);
                 }
             } catch (error) {
@@ -351,7 +388,7 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
         }
     };
 
-    const renderFieldsProps: RenderFieldsProps = {
+    const renderFieldsProps: RenderFieldsProps<T> = {
         formData,
         errors,
         handleChange,
@@ -384,6 +421,7 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
                                 </option>
                             ))}
                     </select>
+                    <ActivityScoreRulePreview preview={presetPreview} />
                 </div>
             )}
 
@@ -394,7 +432,7 @@ const BaseEventForm: React.FC<BaseEventFormProps> = ({
                 <div className="pt-6 border-t border-gray-200">
                     <ScoreRulesForm 
                         rules={formData.scoreRules || []}
-                        onChange={(rules) => setFormData(prev => ({ ...prev, scoreRules: rules }))}
+                        onChange={(rules) => setFormData(prev => ({ ...prev, scoreRules: rules } as T))}
                         departments={departments}
                     />
                 </div>
