@@ -6,12 +6,20 @@ interface SeriesProgressBannerProps {
 }
 
 const SeriesProgressBanner: React.FC<SeriesProgressBannerProps> = ({ progress }) => {
+    // Defensive: backend returns Map<String, Object> with no fixed DTO contract
+    // Guard against missing or undefined fields
+    const minimumRequirementEnabled = progress?.minimumRequirementEnabled ?? false;
+    const minimumRequirementMet = progress?.minimumRequirementMet ?? false;
+    const minimumRequiredEvents = progress?.minimumRequiredEvents ?? 0;
+    const remainingToAvoidPenalty = progress?.remainingToAvoidPenalty ?? 0;
+    const minimumPenaltyPoints = progress?.minimumPenaltyPoints ?? 0;
+
     // Only show banner if minimum requirement is enabled
-    if (!progress.minimumRequirementEnabled) {
+    if (!minimumRequirementEnabled) {
         return null;
     }
 
-    if (progress.minimumRequirementMet) {
+    if (minimumRequirementMet) {
         return (
             <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-6 rounded-r-lg">
                 <div className="flex">
@@ -23,7 +31,7 @@ const SeriesProgressBanner: React.FC<SeriesProgressBannerProps> = ({ progress })
                             Đã đạt điều kiện tối thiểu
                         </h3>
                         <p className="mt-1 text-sm text-green-700">
-                            Chúc mừng! Bạn đã tham gia đủ số lượng sự kiện tối thiểu yêu cầu ({progress.minimumRequiredEvents} sự kiện).
+                            Chúc mừng! Bạn đã tham gia đủ số lượng sự kiện tối thiểu yêu cầu ({minimumRequiredEvents} sự kiện).
                         </p>
                     </div>
                 </div>
@@ -42,8 +50,8 @@ const SeriesProgressBanner: React.FC<SeriesProgressBannerProps> = ({ progress })
                         Chưa đạt điều kiện tối thiểu
                     </h3>
                     <p className="mt-1 text-sm text-yellow-700">
-                        Bạn cần tham gia thêm <strong>{progress.remainingToAvoidPenalty}</strong> sự kiện nữa để đạt điều kiện tối thiểu ({progress.minimumRequiredEvents} sự kiện).
-                        Nếu không hoàn thành, bạn sẽ bị phạt <strong>{progress.minimumPenaltyPoints}</strong> điểm.
+                        Bạn cần tham gia thêm <strong>{remainingToAvoidPenalty}</strong> sự kiện nữa để đạt điều kiện tối thiểu ({minimumRequiredEvents} sự kiện).
+                        Nếu không hoàn thành, bạn sẽ bị phạt <strong>{minimumPenaltyPoints}</strong> điểm.
                     </p>
                 </div>
             </div>

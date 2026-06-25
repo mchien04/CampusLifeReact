@@ -47,8 +47,8 @@ export interface ActivityScoreRuleRequest {
     scoreType: ScoreType;
     triggerType: ScoreRuleTrigger;
     calculation: ScoreRuleCalculation;
-    points: string;
-    failPoints?: string | null;
+    points: number;
+    failPoints?: number | null;
     audience: ScoreRuleAudience;
     semesterPolicy: ScoreSemesterPolicy;
     explicitSemesterId?: number | null;
@@ -62,8 +62,8 @@ export interface ActivityScoreRuleResponse {
     scoreType: ScoreType;
     triggerType: ScoreRuleTrigger;
     calculation: ScoreRuleCalculation;
-    points: string;
-    failPoints?: string | null;
+    points: number;
+    failPoints?: number | null;
     audience: ScoreRuleAudience;
     semesterPolicy: ScoreSemesterPolicy;
     explicitSemesterId?: number | null;
@@ -125,8 +125,37 @@ export interface MinigameActivityCreateRequest {
     presetConfig?: any | null;
 }
 
-export interface StandardActivityUpdateRequest extends Omit<StandardActivityCreateRequest, 'type'> {}
-export interface MinigameActivityUpdateRequest extends MinigameActivityCreateRequest {}
+// Standalone update request per backend contract (no extends, no scoreRules, no type)
+// IMPORTANT: The activity `id` is provided in the URL path; do NOT include it in the request body.
+export interface StandardActivityUpdateRequest {
+    name: string;
+    description?: string | null;
+    startDate: string;
+    endDate: string;
+    location?: string | null;
+    bannerUrl?: string | null;
+    shareLink?: string | null;
+    benefits?: string | null;
+    requirements?: string | null;
+    contactInfo?: string | null;
+    organizerIds?: number[];
+}
+
+// Standalone update request per backend contract (no extends, no scoreRules, no type)
+// IMPORTANT: The activity `id` is provided in the URL path; do NOT include it in the request body.
+export interface MinigameActivityUpdateRequest {
+    name: string;
+    description?: string | null;
+    startDate: string;
+    endDate: string;
+    location?: string | null;
+    bannerUrl?: string | null;
+    shareLink?: string | null;
+    benefits?: string | null;
+    requirements?: string | null;
+    contactInfo?: string | null;
+    organizerIds?: number[];
+}
 
 export interface StandardActivityResponse {
     id: number;
@@ -202,7 +231,22 @@ export interface SeriesChildActivityCreateRequest {
     type: ActivityType;
 }
 
-export interface SeriesChildActivityUpdateRequest extends SeriesChildActivityCreateRequest {}
+// Standalone update request per backend contract (no extends, no type field)
+// IMPORTANT: The activity `id` is provided in the URL path; do NOT include it in the request body.
+export interface SeriesChildActivityUpdateRequest {
+    name: string;
+    description?: string | null;
+    startDate: string;
+    endDate: string;
+    location?: string | null;
+    order?: number | null;
+    bannerUrl?: string | null;
+    shareLink?: string | null;
+    benefits?: string | null;
+    requirements?: string | null;
+    contactInfo?: string | null;
+    organizerIds?: number[];
+}
 
 export interface SeriesChildActivityResponse {
     id: number;

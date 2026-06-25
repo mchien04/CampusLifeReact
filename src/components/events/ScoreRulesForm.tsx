@@ -45,7 +45,7 @@ export const ScoreRulesForm: React.FC<ScoreRulesFormProps> = ({ rules = [], onCh
             scoreType: ScoreType.REN_LUYEN,
             triggerType: ScoreRuleTrigger.PARTICIPATION_COMPLETED,
             calculation: ScoreRuleCalculation.FIXED_POINTS,
-            points: '0',
+            points: 0,
             audience: ScoreRuleAudience.ALL_PARTICIPANTS,
             semesterPolicy: ScoreSemesterPolicy.ACTIVITY_SEMESTER,
             enabled: true
@@ -70,7 +70,7 @@ export const ScoreRulesForm: React.FC<ScoreRulesFormProps> = ({ rules = [], onCh
             ...updated[index], 
             triggerType: trigger,
             calculation: calc,
-            points: PENALTY_ONLY_TRIGGERS.includes(trigger) ? '0' : updated[index].points,
+            points: PENALTY_ONLY_TRIGGERS.includes(trigger) ? 0 : updated[index].points,
             failPoints: POSITIVE_ONLY_TRIGGERS.includes(trigger) ? null : updated[index].failPoints
         };
         onChange(updated);
@@ -190,7 +190,10 @@ export const ScoreRulesForm: React.FC<ScoreRulesFormProps> = ({ rules = [], onCh
                                                     type="number"
                                                     step="0.1"
                                                     value={rule.points}
-                                                    onChange={(e) => updateRule(index, 'points', e.target.value)}
+                                                    onChange={(e) => {
+                                                        const val = parseFloat(e.target.value);
+                                                        updateRule(index, 'points', isNaN(val) ? 0 : val);
+                                                    }}
                                                     className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                     placeholder="Ví dụ: 5.0"
                                                 />
@@ -209,7 +212,10 @@ export const ScoreRulesForm: React.FC<ScoreRulesFormProps> = ({ rules = [], onCh
                                                     type="number"
                                                     step="0.1"
                                                     value={rule.failPoints || ''}
-                                                    onChange={(e) => updateRule(index, 'failPoints', e.target.value)}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value ? parseFloat(e.target.value) : null;
+                                                        updateRule(index, 'failPoints', val !== null && isNaN(val) ? null : val);
+                                                    }}
                                                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                                                         !rule.failPoints && REQUIRES_FAIL_POINTS.includes(rule.triggerType) ? 'border-red-500' : ''
                                                     }`}
