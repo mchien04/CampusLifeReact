@@ -13,7 +13,7 @@ This handoff documents the major frontend refactor that transitions CampusLife f
 - **Split activity creation flows** with distinct forms and API endpoints for each activity variant.
 - **Dynamic score rules engine** with preset-based configuration, live preview, and trigger-aware validation.
 - **Series-first UX** where series child activities hide per-activity scoring and delegate to series milestone/penalty logic.
-- **Backend-contract-driven TypeScript types** matching the new API surface (BigDecimal as `string`, `ApiResponse` wrapper normalization, explicit DTOs).
+- **Backend-contract-driven TypeScript types** matching the new API surface (BigDecimal as `number`, `ApiResponse` wrapper normalization, explicit DTOs).
 
 Key architectural changes include 54 modified files (+1,927 / −739 lines), zero remaining legacy write calls (`eventAPI.createEvent` / `updateEvent` are fully retired), and full TypeScript compilation (`tsc --noEmit`) with zero errors.
 
@@ -27,13 +27,13 @@ Key architectural changes include 54 modified files (+1,927 / −739 lines), zer
 
 | Variant | Page / Component | API Endpoint | DTO |
 |---------|------------------|-------------|-----|
-| **Standard Activity** | `pages/CreateEvent.tsx` → `EventForm` | `POST /api/activities/standard` | `StandardActivityCreateRequest` |
+| **Standard Activity** | `pages/CreateEvent.tsx` → `StandardActivityForm` | `POST /api/activities/standard` | `StandardActivityCreateRequest` |
 | **Minigame Activity** | `pages/CreateMinigameWizard.tsx` → `MinigameActivityForm` | `POST /api/activities/minigames` | `MinigameActivityCreateRequest` |
 | **Series Child** | `components/series/SeriesDetail.tsx` → `SeriesActivityForm` | `POST /api/series/{seriesId}/activities` | `SeriesChildActivityCreateRequest` |
 
-- **CreateEvent** (`EventForm`) now has a preset selector dropdown that auto-fills `type`, `requiresSubmission`, and `scoreRules` from the selected preset. It is explicitly labeled for **standard events only** (no Mini Game creation from this form).
-- **MinigameActivityForm** (`BaseEventForm` with `mode='minigame'`) auto-selects the `MINIGAME_PASS_ONLY` preset on initial load if available.
-- **SeriesActivityForm** (`BaseEventForm` with `mode='series'`) omits the score rules section entirely because series children do not have per-activity scoring. The form shows a read-only `type` field (SUKIEN or MINIGAME) set from the wizard step.
+- **CreateEvent** (`StandardActivityForm`) renders a `renderStandardFields` callback into `BaseEventForm<StandardActivityCreateRequest>`. It has a preset selector dropdown that auto-fills `type`, `requiresSubmission`, and `scoreRules` from the selected preset. It is explicitly labeled for **standard events only** (no Mini Game creation from this form).
+- **MinigameActivityForm** (`BaseEventForm<MinigameActivityCreateRequest>` with `mode='minigame'`) auto-selects the `MINIGAME_PASS_ONLY` preset on initial load if available.
+- **SeriesActivityForm** (`BaseEventForm<BaseEventFormData>` with `mode='series'`) omits the score rules section entirely because series children do not have per-activity scoring. The form shows a read-only `type` field (SUKIEN or MINIGAME) set from the wizard step.
 
 #### 1.2 Edit Flows
 
@@ -42,7 +42,7 @@ Key architectural changes include 54 modified files (+1,927 / −739 lines), zer
 ```tsx
 if (event.seriesId)       → <SeriesActivityForm />
 else if (event.type === MINIGAME) → <MinigameActivityForm />
-else                              → <EventForm />
+else                              → <StandardActivityForm />
 ```
 
 - **Series children** are edited via `seriesAPI.updateActivityInSeries(seriesId, activityId, data)` (new endpoint).
@@ -68,17 +68,16 @@ else                              → <EventForm />
 
 #### 2.2 Preset Integration
 
-- **Activity presets**: `GET /api/activities/presets` → dropdown in `EventForm` and `BaseEventForm`. Selecting a preset calls `POST /api/activities/presets/preview` to fetch the implied rules and auto-fill the form.
+- **Activity presets**: `GET /api/activities/presets` → dropdown in `StandardActivityForm` / `BaseEventForm`. Selecting a preset calls `POST /api/activities/presets/preview` to fetch the implied rules and auto-fill the form.
 - **Series presets**: `GET /api/series/presets` → dropdown in `SeriesForm`. Selecting a preset calls `POST /api/series/presets/preview` to auto-fill `milestonePoints`, `scoreType`, and minimum requirement fields.
 - **Preview component**: `ActivityScoreRulePreview.tsx` renders a table of the preset’s implied score rules before the manager commits.
 
-#### 2.3 Validation Rules (Enforced in `BaseEventForm` / `EventForm`)
+#### 2.3 Validation Rules (Enforced in `BaseEventForm`)
 
 | Rule | Error Message |
 |------|--------------|
 | `requiresSubmission = true` but no `PASS_FAIL_POINTS` rule with `failPoints` | "Sự kiện yêu cầu nộp bài thu hoạch phải có ít nhất một luật tính điểm Đạt/Trượt và có cấu hình điểm trượt hợp lệ." |
 | `CHUYEN_DE_DOANH_NGHIEP` type with `NO_SHOW` + `CHUYEN_DE` scoreType | "Sự kiện Chuyên đề doanh nghiệp không được cấu hình luật phạt vắng mặt (No-show) bằng điểm Chuyên đề. Vui lòng chọn loại điểm phạt khác." |
-| `MINIGAME` type in standard `EventForm` | "Không thể tạo hoặc lưu Mini Game từ form sự kiện thường này." |
 
 #### 2.4 Score Rules Display (`ScoreRulesDisplay.tsx`)
 
@@ -93,7 +92,7 @@ else                              → <EventForm />
 
 - **Score rule mapping**: When loading an activity for edit, `scoreRules` from the response are mapped through `mapScoreRuleResponseToRequest` to convert `targetDepartmentIds` (response) → `departmentIds` (request) so the form can pre-populate correctly.
 - **Preset override**: `presetCode: 'CUSTOM'` is injected into edit payloads to tell the backend **not** to regenerate rules from the original preset.
-- **Split form rendering**: As described in §1.2, the edit page now renders the correct specialized form instead of a one-size-fits-all `EventForm`.
+- **Split form rendering**: As described in §1.2, the edit page now renders the correct specialized form instead of a generic one-size-fits-all form.
 
 ---
 
@@ -112,7 +111,7 @@ Both actions show loading spinners and toast notifications.
 
 - **Recalculate all students**: New button opens a confirmation dialog, then calls `POST /api/scores/recalculate/all`. A full-screen overlay blocks the UI while the backend processes (can take minutes). Requires a semester to be selected.
 - **Recalculate single student**: Inside the score history modal, a per-student button calls `POST /api/scores/recalculate/student/{studentId}?semesterId={id}` and invalidates the React Query cache for that student’s history.
-- **Ranking format fix**: `StudentRankingResponse.score` changed from `number` to `string` (BigDecimal compatibility). The `formatScore()` utility is used for display.
+- **Ranking format fix**: `StudentRankingResponse.score` is now `number` (Jackson serializes BigDecimal as JSON number). Use `formatScore()` utility for display only.
 
 ---
 
@@ -186,7 +185,7 @@ The banner only renders if `minimumRequirementEnabled` is `true`.
 When creating a series child activity, the form:
 - Shows a read-only activity type field (set from the wizard step).
 - Disables `scoreRules` section entirely (mode === `'series'`).
-- Uses `SeriesChildActivityCreateRequest` type, which omits registration/ticket fields (inherited from the series).
+- Uses `BaseEventForm<BaseEventFormData>` internally; the `onSubmit` callback converts the generic form data to `SeriesChildActivityCreateRequest`, which omits registration/ticket fields (inherited from the series).
 
 ---
 
@@ -196,7 +195,7 @@ When creating a series child activity, the form:
 
 | Component | Path | Purpose |
 |-----------|------|---------|
-| `StandardActivityForm` | `components/events/StandardActivityForm.tsx` | Thin wrapper over `EventForm` for standard activity creation (dedicated route/semantics). |
+| `StandardActivityForm` | `components/events/StandardActivityForm.tsx` | Renders `renderStandardFields` callback into `BaseEventForm<StandardActivityCreateRequest>`. Contains all standard-event-specific UI (type selector, ticket quantity, checkboxes, etc.). |
 | `ActivityScoreRulePreview` | `components/events/ActivityScoreRulePreview.tsx` | Table-based preview of a preset’s implied score rules. |
 | `SeriesProgressBanner` | `components/series/SeriesProgressBanner.tsx` | Student-facing banner for series minimum requirement status. |
 | `AdminTools` | `pages/admin/AdminTools.tsx` | Admin system maintenance page (overdue trigger, cleanup). |
@@ -205,7 +204,7 @@ When creating a series child activity, the form:
 
 | Component | Key Changes |
 |-----------|-------------|
-| `EventForm` | Added preset selector, removed `scoreType` field, removed `MINIGAME` from `<select>`, added `failPoints` validation for submission events, added `CHUYEN_DE` no-show validation. |
+| `EventForm` | **DELETED** (replaced by `StandardActivityForm` using `BaseEventForm`). All logic (preset selector, validation, score rules) now lives in `BaseEventForm` or `StandardActivityForm`. |
 | `BaseEventForm` | Added preset loading + auto-fill for minigame mode, removed `scoreType` from default data, added `ScoreRulesForm` with `departments` prop, removed `scoreRules` section when `mode === 'series'`. |
 | `MinigameActivityForm` | Removed `scoreType` field, expanded `location` to `md:col-span-2`. |
 | `SeriesActivityForm` | Added read-only type field, fixed `type` to respect `isMinigame` prop, removed `scoreType` from default data. |
@@ -227,25 +226,32 @@ When creating a series child activity, the form:
 
 ### 3. Shared Components
 
-- `ScoreRulesForm` and `ScoreRulesDisplay` are now shared across `EventForm`, `BaseEventForm`, and `MinigameActivityForm`.
+- `ScoreRulesForm` and `ScoreRulesDisplay` are now shared across `BaseEventForm`, `StandardActivityForm`, and `MinigameActivityForm`.
 - `OrganizerSelector` is unchanged but continues to be used by all form variants.
 - `LoadingSpinner` is reused in `AdminTools`.
 
 ### 4. Form Architecture
 
 ```
-BaseEventForm (mode: 'normal' | 'minigame' | 'series')
-├── renderFields() callback
-├── Preset selector (mode !== 'series' && mode !== 'minigame' in edit)
+BaseEventForm<T extends BaseEventFormData>
+├── renderFields(formData, errors, handleChange, ...) callback → ReactNode
+├── Preset selector (mode !== 'series' && mode !== 'minigame')
+├── ActivityScoreRulePreview (when preset selected)
 ├── ScoreRulesForm (mode !== 'series')
 │   ├── Live preview (ScoreRulesDisplay)
 │   ├── Dynamic trigger/calculation mapping
 │   └── Department + semester targeting
 └── Standard validation (dates, tickets, organizers)
 
-EventForm extends BaseEventForm (mode='normal')
-MinigameActivityForm extends BaseEventForm (mode='minigame')
-SeriesActivityForm extends BaseEventForm (mode='series')
+StandardActivityForm
+└── BaseEventForm<StandardActivityCreateRequest> + renderStandardFields
+
+MinigameActivityForm
+└── BaseEventForm<MinigameActivityCreateRequest> + renderMinigameFields
+
+SeriesActivityForm
+└── BaseEventForm<BaseEventFormData> + renderSeriesActivityFields
+   → onSubmit converts BaseEventFormData → SeriesChildActivityCreateRequest
 ```
 
 ### 5. API Service Layer
@@ -279,9 +285,9 @@ SeriesActivityForm extends BaseEventForm (mode='series')
 | File | New Types |
 |------|-----------|
 | `presets.ts` | `ActivityPresetCode`, `SeriesPresetCode`, `ActivityPresetPreviewResponse`, `SeriesPresetPreviewResponse`, `ActivityPresetDefinition`, `ActivityPresetConfig` |
-| `activity.ts` | `StandardActivityCreateRequest`, `StandardActivityUpdateRequest`, `StandardActivityResponse`, `MinigameActivityCreateRequest`, `MinigameActivityUpdateRequest`, `MinigameActivityResponse`, `SeriesChildActivityCreateRequest`, `SeriesChildActivityUpdateRequest`, `SeriesChildActivityResponse`, `ActivitySummaryResponse` |
-| `score.ts` | `StudentRankResponse` (added), `score` changed to `string` in `StudentRankingResponse` |
-| `registration.ts` | `WAITLIST` added to `RegistrationStatus` enum, `ActivityParticipationRequest` updated (`participationType?: ParticipationType \| null`, `pointsEarned?: string \| null`) |
+| `activity.ts` | `BaseEventFormData`, `StandardActivityCreateRequest`, `StandardActivityUpdateRequest`, `StandardActivityResponse`, `MinigameActivityCreateRequest`, `MinigameActivityUpdateRequest`, `MinigameActivityResponse`, `SeriesChildActivityCreateRequest`, `SeriesChildActivityUpdateRequest`, `SeriesChildActivityResponse` |
+| `score.ts` | `StudentRankResponse` (added), `score` is `number` in `StudentRankingResponse` (Jackson serializes BigDecimal as JSON number) |
+| `registration.ts` | `WAITLIST` added to `RegistrationStatus` enum, `ActivityParticipationRequest` updated (`participationType?: ParticipationType \| null`, `pointsEarned?: number \| null`) |
 | `task.ts` | `OVERDUE` added to `TaskStatus` enum and helpers |
 | `series.ts` | `milestonePoints` changed from `string` → `Record<number, number>`, added `minimumRequirementEnabled`, `minimumRequiredEvents`, `minimumPenaltyPoints`, `targetSemesterId`, `presetCode`, `presetConfig`, `StudentSeriesProgress` fields for minimum requirements. Removed `parseMilestonePoints` / `formatMilestonePoints` helpers. |
 
@@ -317,8 +323,8 @@ Validation rules are split between forms and the new `scoreRuleHelpers.ts` utili
 
 | Method | Endpoint | Used In |
 |--------|----------|---------|
-| `GET` | `/api/activities/presets` | `EventForm`, `BaseEventForm` |
-| `POST` | `/api/activities/presets/preview` | `EventForm`, `BaseEventForm` |
+| `GET` | `/api/activities/presets` | `StandardActivityForm`, `BaseEventForm` |
+| `POST` | `/api/activities/presets/preview` | `StandardActivityForm`, `BaseEventForm` |
 | `POST` | `/api/activities/standard` | `CreateEvent` (via `standardActivityAPI`) |
 | `PUT` | `/api/activities/standard/{id}` | `EditEvent` (via `standardActivityAPI`) |
 | `POST` | `/api/activities/minigames` | `CreateMinigameWizard` (via `minigameActivityAPI`) |
@@ -343,13 +349,12 @@ Validation rules are split between forms and the new `scoreRuleHelpers.ts` utili
 | `POST /api/minigames` | Request now includes `showAnswers`. |
 | `PUT /api/minigames/{id}` | Same as above. |
 | `POST /api/registrations/checkin` | Request now sends `studentId` and `participationType` (can be `null` for backend auto-transition). |
-| `GET /api/scores/ranking` | `score` field is now `string` (BigDecimal). |
+| `GET /api/scores/ranking` | `score` field is `number` (Jackson serializes BigDecimal as JSON number). |
 
 ### 3. Pending / Not Yet Adopted
 
 | Endpoint / Type | Status | Notes |
 |-----------------|--------|-------|
-| `ActivitySummaryResponse` | Type added, no consumers yet | Waiting for backend to provide summary-specific list endpoints (e.g., `GET /api/activities/summary`). Currently all list endpoints still return `ActivityResponse[]`. |
 | `GET /api/activities/standard/{id}` | Not used yet | `EditEvent` still loads via `eventAPI.getEventById` (returns `ActivityResponse`). Should migrate once backend provides dedicated read endpoints. |
 | `GET /api/activities/minigame/{id}` | Not used yet | Same as above. |
 | `POST /api/series/{id}/activities/attach` | Available in `seriesAPI` | Not yet used in UI (no “attach existing activity” flow yet). |
@@ -368,7 +373,7 @@ Validation rules are split between forms and the new `scoreRuleHelpers.ts` utili
 | **Department targeting field mismatch** | `mapScoreRuleResponseToRequest` bridges `targetDepartmentIds` (response) ↔ `departmentIds` (request). |
 | **Ticket QR dual-scan confusion** | `ManagerRegistrations` now passes `participationType: null` so the backend auto-transitions `REGISTERED → CHECKED_IN → ATTENDED`. UI copy clarifies "Lần quét 1" (CHECKED_IN) vs "Lần quét 2" (ATTENDED). |
 | **Mock data in production** | Removed `mockSemesterScores` from `scoresAPI`. Manager ranking now always hits the real backend. |
-| **BigDecimal precision loss** | `StudentRankingResponse.score` and all score fields are now typed as `string` to avoid JavaScript floating-point rounding. |
+| **BigDecimal precision loss** | `StudentRankingResponse.score` and all score fields are now typed as `number` (Jackson serializes BigDecimal as JSON number). Use `parseFloat` only for arithmetic, never for display. |
 | **Milestone points JSON parsing** | Removed manual `JSON.parse`/`JSON.stringify` for `milestonePoints`. It is now a native `Record<number, number>` throughout the frontend. |
 
 ---
@@ -377,7 +382,6 @@ Validation rules are split between forms and the new `scoreRuleHelpers.ts` utili
 
 | Task | Priority | Notes |
 |------|----------|-------|
-| **Adopt `ActivitySummaryResponse`** | Medium | Backend needs to expose summary endpoints; frontend type is ready. Update all list pages to use the lighter payload. |
 | **Split read endpoints** | Medium | Migrate `EditEvent` detail load from `eventAPI.getEventById` to `GET /api/activities/standard/{id}` / `GET /api/activities/minigame/{id}` / `GET /api/series/{id}/activities/{id}` once backend provides them. |
 | **Organizer dashboard for Series** | Low | Build a page using `GET /api/series/{id}/overview` to show `minimumRequirementMetCount`, milestone distribution charts, and per-activity participation rates. |
 | **Attach existing activity to series** | Low | UI flow for `POST /api/series/{id}/activities/attach` does not exist yet. |
@@ -394,14 +398,16 @@ Validation rules are split between forms and the new `scoreRuleHelpers.ts` utili
 
 - **Always use `scoreRuleHelpers.ts`** when adding new triggers or calculations. The helper functions centralize the business logic for which calculations are valid per trigger.
 - **Never hardcode `points` or `failPoints` display logic** in new components; reuse `ScoreRulesDisplay` which already handles penalty-only, pass/fail, and positive-only rendering.
-- **Remember `BigDecimal` → `string`**: All score fields (`points`, `failPoints`, `pointsEarned`, `score`, etc.) are `string` in TypeScript. Use `parseFloat` only for arithmetic, never for display.
+- **Remember `BigDecimal` → `number`**: All score fields (`points`, `failPoints`, `pointsEarned`, `score`, etc.) are `number` in TypeScript. Use `parseFloat` only for arithmetic, never for display.
 
 ### 2. Form Mode Pattern
 
-When adding a new activity variant, use `BaseEventForm` with the appropriate `mode`:
-- `mode='normal'` — standard event with full score rules.
-- `mode='minigame'` — event + quiz, auto-loads minigame preset.
-- `mode='series'` — child activity, hides score rules and registration fields.
+When adding a new activity variant, use `BaseEventForm<T>` with the appropriate type parameter and `mode`:
+- `BaseEventForm<StandardActivityCreateRequest>` + `mode='normal'` — standard event with full score rules.
+- `BaseEventForm<MinigameActivityCreateRequest>` + `mode='minigame'` — event + quiz, auto-loads minigame preset.
+- `BaseEventForm<BaseEventFormData>` + `mode='series'` — child activity, hides score rules and registration fields.
+
+Provide a `renderFields` callback that returns the variant-specific JSX (inputs, selectors, etc.). `BaseEventForm` handles the shared shell (preset selector, score rules, validation, banner upload, submit/cancel buttons).
 
 ### 3. Preset Integration
 
@@ -432,7 +438,7 @@ When adding a new activity variant, use `BaseEventForm` with the appropriate `mo
 
 - **Do not** compare `new Date() > new Date(deadline)` to determine overdue status. Trust `TaskStatus.OVERDUE` from the backend.
 - **Do not** render `isCorrect` for quiz questions unless the attempt detail response explicitly includes it (which only happens when `showAnswers` is `true`).
-- **Do not** pass `pointsEarned` as a number to the backend. Always send `string` (even if it looks like a number).
+- **Do not** pass `pointsEarned` as a number to the backend. Jackson serializes BigDecimal as JSON number, so the frontend sends/receives `number`.
 - **Do not** use `eventAPI.createEvent` or `eventAPI.updateEvent` for new code. They are retired. Use the variant-specific APIs instead.
 
 ---
