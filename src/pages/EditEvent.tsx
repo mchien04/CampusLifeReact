@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import StandardActivityForm from '../components/events/StandardActivityForm';
 import MinigameActivityForm from '../components/events/MinigameActivityForm';
@@ -12,6 +12,33 @@ import { seriesAPI } from '../services/seriesAPI';
 import { useAuth } from '../contexts/AuthContext';
 import { mapScoreRuleResponseToRequest } from '../utils/scoreRuleMapper';
 
+const coerceBoolean = (value: unknown, fallback = false) => {
+    if (value === undefined || value === null) return fallback;
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value !== 0;
+    if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        if (normalized === 'true' || normalized === '1') return true;
+        if (normalized === 'false' || normalized === '0' || normalized === '') return false;
+    }
+    return Boolean(value);
+};
+
+const normalizeOrganizerIds = (event: ActivityResponse) => {
+    const directIds = Array.isArray(event.organizerIds) ? event.organizerIds : [];
+
+    if (directIds.length > 0) {
+        return directIds
+            .map((id) => Number(id))
+            .filter((id) => Number.isFinite(id));
+    }
+
+    const organizerObjects = Array.isArray((event as any).organizers) ? (event as any).organizers : [];
+    return organizerObjects
+        .map((organizer: any) => Number(organizer?.id ?? organizer?.departmentId))
+        .filter((id: number) => Number.isFinite(id));
+};
+
 const EditEvent: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const { isAuthenticated, userRole, username } = useAuth();
@@ -20,6 +47,40 @@ const EditEvent: React.FC = () => {
     const [error, setError] = useState('');
     const [event, setEvent] = useState<ActivityResponse | null>(null);
     const navigate = useNavigate();
+
+    const initialData: Partial<BaseEventFormData> = useMemo(() => {
+        if (!event) {
+            return {};
+        }
+
+        const draftValue = event.draft !== undefined ? event.draft : event.isDraft;
+        const importantValue = event.important !== undefined ? event.important : event.isImportant;
+
+        return {
+            name: event.name,
+            type: event.type ?? undefined,
+            description: event.description,
+            startDate: event.startDate,
+            endDate: event.endDate,
+            requiresSubmission: coerceBoolean(event.requiresSubmission, false),
+            registrationStartDate: event.registrationStartDate ?? undefined,
+            registrationDeadline: event.registrationDeadline ?? undefined,
+            shareLink: event.shareLink,
+            isImportant: coerceBoolean(importantValue, false),
+            isDraft: coerceBoolean(draftValue, false),
+            bannerUrl: event.bannerUrl || '',
+            location: event.location,
+            ticketQuantity: event.ticketQuantity ?? undefined,
+            benefits: event.benefits,
+            requirements: event.requirements,
+            contactInfo: event.contactInfo,
+            requiresApproval: coerceBoolean(event.requiresApproval, false),
+            mandatoryForFacultyStudents: coerceBoolean(event.mandatoryForFacultyStudents, false),
+            organizerIds: normalizeOrganizerIds(event),
+            scoreRules: event.scoreRules?.map(mapScoreRuleResponseToRequest) ?? [],
+            presetCode: 'CUSTOM' as any,
+        };
+    }, [event]);
 
     useEffect(() => {
         const fetchEvent = async () => {
@@ -154,34 +215,6 @@ const EditEvent: React.FC = () => {
         );
     }
 
-    // Convert ActivityResponse to BaseEventFormData format
-    const initialData: Partial<BaseEventFormData> = {
-        name: event.name,
-        type: event.type ?? undefined,
-        description: event.description,
-        startDate: event.startDate,
-        endDate: event.endDate,
-        requiresSubmission: event.requiresSubmission ?? false,
-        
-        
-        registrationStartDate: event.registrationStartDate ?? undefined,
-        registrationDeadline: event.registrationDeadline ?? undefined,
-        shareLink: event.shareLink,
-        isImportant: event.isImportant ?? false,
-        isDraft: event.isDraft ?? false,
-        bannerUrl: event.bannerUrl || '', // Keep existing banner URL when editing
-        location: event.location,
-        ticketQuantity: event.ticketQuantity ?? undefined, // undefined = unlimited
-        benefits: event.benefits,
-        requirements: event.requirements,
-        contactInfo: event.contactInfo,
-        requiresApproval: event.requiresApproval ?? false,
-        mandatoryForFacultyStudents: event.mandatoryForFacultyStudents ?? false,
-        organizerIds: event.organizerIds || [],
-        scoreRules: event.scoreRules?.map(mapScoreRuleResponseToRequest) ?? [],
-        presetCode: 'CUSTOM' as any, // Tell backend to not regenerate rules from preset
-    };
-
     return (
         <div className="min-h-screen bg-gray-50">
 
@@ -258,6 +291,7 @@ const EditEvent: React.FC = () => {
                     initialData={initialData}
                     title="Chỉnh sửa thông tin Mini Game"
                     onCancel={() => navigate('/manager/events')}
+                    lockApprovalWhenImportant={false}
                 />
             ) : (
                 <StandardActivityForm
@@ -266,6 +300,7 @@ const EditEvent: React.FC = () => {
                     initialData={initialData}
                     title="Chỉnh sửa sự kiện"
                     onCancel={() => navigate('/manager/events')}
+                    lockApprovalWhenImportant={false}
                 />
             )}
 

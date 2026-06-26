@@ -1,7 +1,7 @@
 export { default as Home } from './Home';
 export { default as Dashboard } from './Dashboard';
 export { default as CreateEvent } from './CreateEvent';
-export { default as EventList } from './EventList';
+export { default as EventList } from './ManagerEventListCompact';
 export { default as EditEvent } from './EditEvent';
 export { default as EventDetail } from './EventDetail';
 export { default as StudentEvents } from './StudentEvents';
@@ -10,7 +10,7 @@ export { default as StudentParticipationHistory } from './StudentParticipationHi
 export { default as StudentProfile } from './StudentProfile';
 export { default as StudentRegistrations } from './StudentRegistrations';
 export { default as StudentTasks } from './StudentTasks';
-export { default as ManagerRegistrations } from './ManagerRegistrations';
+export { default as ManagerRegistrations } from './ManagerRegistrationsSplit';
 export { default as UserManagement } from './admin/UserManagement';
 export { default as Statistics } from './admin/Statistics';
 export { default as StudentReadingHistory } from './StudentReadingHistory';

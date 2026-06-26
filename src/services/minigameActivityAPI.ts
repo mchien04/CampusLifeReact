@@ -5,7 +5,7 @@ import { Response } from '../types/auth';
 export const minigameActivityAPI = {
     createMinigameActivity: async (data: MinigameActivityCreateRequest): Promise<Response<ActivityResponse>> => {
         try {
-            const response = await api.post('/api/activities/minigames', data);
+            const response = await api.post('/api/activities/minigame', data);
             return {
                 status: response.data.status,
                 message: response.data.message,
@@ -23,7 +23,7 @@ export const minigameActivityAPI = {
 
     updateMinigameActivity: async (id: number, data: MinigameActivityUpdateRequest): Promise<Response<ActivityResponse>> => {
         try {
-            const response = await api.patch(`/api/activities/minigames/${id}`, data);
+            const response = await api.patch(`/api/activities/minigame/${id}`, data);
             return {
                 status: response.data.status,
                 message: response.data.message,
