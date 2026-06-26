@@ -6,7 +6,6 @@ import { ActivityRegistrationResponse, RegistrationStatus, ActivityParticipation
 import { eventAPI } from '../services/eventAPI';
 import { taskAPI } from '../services/taskAPI';
 import { registrationAPI } from '../services/registrationAPI';
-import { getImageUrl } from '../utils/imageUtils';
 import { TaskList, TaskForm, TaskAssignmentsList } from '../components/tasks';
 
 import { ScoreRulesDisplay } from '../components/events/ScoreRulesDisplay';
@@ -15,7 +14,7 @@ import { submissionAPI } from '../services/submissionAPI';
 import { TaskAssignmentModal } from '../components/task/TaskAssignmentModal';
 import { RegistrationForm, ParticipationForm } from '../components/registration';
 import { useAuth } from '../contexts/AuthContext';
-import { PhotoUploadForm, PhotoGrid } from '../components/events';
+import { EventBannerImage, PhotoUploadForm, PhotoGrid } from '../components/events';
 import { activityPhotoAPI } from '../services/activityPhotoAPI';
 import { ActivityPhotoResponse } from '../types/activity';
 import { minigameAPI } from '../services/minigameAPI';
@@ -708,11 +707,12 @@ const EventDetail: React.FC = () => {
             <div className="max-w-4xl mx-auto">
                 <div className="bg-white shadow-lg rounded-lg overflow-hidden">
                     {/* Banner */}
-                    {event.bannerUrl && (
-                        <div className="h-64 bg-gray-200 bg-cover bg-center"
-                            style={{ backgroundImage: `url(${getImageUrl(event.bannerUrl)})` }}>
-                        </div>
-                    )}
+                    <EventBannerImage
+                        bannerUrl={event.bannerUrl}
+                        alt={`Banner ${event.name}`}
+                        wrapperClassName="h-64 bg-gray-200"
+                        imageClassName="h-full w-full object-cover"
+                    />
 
                     <div className="p-8">
                         {/* Header Info */}
