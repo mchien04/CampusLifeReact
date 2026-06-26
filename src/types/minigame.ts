@@ -84,6 +84,18 @@ export interface CreateOptionRequest {
     isCorrect: boolean;
 }
 
+// QuizConfigRequest - nested in MinigameActivityCreateRequest for 1-step creation
+// Matches backend vn.campuslife.activity.dto.MinigameActivityCreateRequest.QuizConfigRequest
+export interface QuizConfigRequest {
+    title: string;
+    questionCount: number;
+    timeLimit?: number;
+    requiredCorrectAnswers?: number;
+    maxAttempts?: number | null;
+    showAnswers?: boolean | null;
+    questions: CreateQuestionRequest[];
+}
+
 // UpdateMiniGameRequest - matches backend DTO
 export interface UpdateMiniGameRequest {
     title?: string;

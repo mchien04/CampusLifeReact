@@ -18,7 +18,7 @@ const ParticipationForm: React.FC<ParticipationFormProps> = ({
 }) => {
     const [formData, setFormData] = useState<ActivityParticipationRequest>({
         participationType: ParticipationType.ATTENDED,
-        pointsEarned: '',
+        pointsEarned: null,
         notes: ''
     });
 
@@ -30,10 +30,10 @@ const ParticipationForm: React.FC<ParticipationFormProps> = ({
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
+        const { name, value, type } = e.target;
         setFormData({
             ...formData,
-            [name]: value
+            [name]: type === 'number' ? (value ? parseFloat(value) : null) : value
         });
     };
 

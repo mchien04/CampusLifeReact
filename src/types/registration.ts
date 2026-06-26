@@ -63,7 +63,7 @@ export interface ActivityParticipationRequest {
     ticketCode?: string;
     studentId?: number;
     participationType?: ParticipationType | null;
-    pointsEarned?: string | null;
+    pointsEarned?: number | null;
     notes?: string;
 }
 
@@ -75,7 +75,7 @@ export interface ActivityParticipationResponse {
     studentName: string;
     studentCode: string;
     participationType: ParticipationType;
-    pointsEarned?: string | null;
+    pointsEarned?: number | null;
     date: string; // LocalDateTime in backend, so string
     notes?: string;
 }

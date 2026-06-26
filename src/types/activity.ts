@@ -1,5 +1,6 @@
 import { Department } from './admin';
 import { User } from './auth';
+import { QuizConfigRequest } from './minigame';
 
 export enum ActivityType {
     SUKIEN = 'SUKIEN',
@@ -123,6 +124,7 @@ export interface MinigameActivityCreateRequest {
     organizerIds?: number[];
     presetCode?: string | null;
     presetConfig?: any | null;
+    quiz?: QuizConfigRequest;
 }
 
 // Standalone update request per backend contract (no extends, no scoreRules, no type)
