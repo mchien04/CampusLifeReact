@@ -10,7 +10,26 @@ interface StandardActivityFormProps {
     initialData?: Partial<StandardActivityCreateRequest>;
     title?: string;
     onCancel?: () => void;
+    lockApprovalWhenImportant?: boolean;
 }
+
+const formatAmPmPreview = (value?: string | null) => {
+    if (!value) return '';
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours24 = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const period = hours24 >= 12 ? 'PM' : 'AM';
+    const hours12 = hours24 % 12 || 12;
+    const hour = String(hours12).padStart(2, '0');
+
+    return `${day}/${month}/${year}, ${hour}:${minutes} ${period}`;
+};
 
 const renderStandardFields = (props: RenderFieldsProps<StandardActivityCreateRequest>) => {
     const {
@@ -21,7 +40,10 @@ const renderStandardFields = (props: RenderFieldsProps<StandardActivityCreateReq
         unlimitedTickets,
         handleUnlimitedChange,
         originalBannerUrl,
+        lockApprovalWhenImportant,
     } = props;
+
+    const isApprovalLocked = lockApprovalWhenImportant && (!!formData.isImportant || !!formData.mandatoryForFacultyStudents);
 
     return (
         <>
@@ -111,6 +133,11 @@ const renderStandardFields = (props: RenderFieldsProps<StandardActivityCreateReq
                         className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.startDate ? 'border-red-500' : 'border-gray-300'
                             }`}
                     />
+                    {formData.startDate && (
+                        <p className="mt-1 text-xs text-gray-500">
+                            {formatAmPmPreview(formData.startDate)}
+                        </p>
+                    )}
                     {errors.startDate && <p className="text-red-500 text-sm mt-1">{errors.startDate}</p>}
                 </div>
 
@@ -127,6 +154,11 @@ const renderStandardFields = (props: RenderFieldsProps<StandardActivityCreateReq
                         className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.endDate ? 'border-red-500' : 'border-gray-300'
                             }`}
                     />
+                    {formData.endDate && (
+                        <p className="mt-1 text-xs text-gray-500">
+                            {formatAmPmPreview(formData.endDate)}
+                        </p>
+                    )}
                     {errors.endDate && <p className="text-red-500 text-sm mt-1">{errors.endDate}</p>}
                 </div>
 
@@ -142,6 +174,11 @@ const renderStandardFields = (props: RenderFieldsProps<StandardActivityCreateReq
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
+                    {formData.registrationStartDate && (
+                        <p className="mt-1 text-xs text-gray-500">
+                            {formatAmPmPreview(formData.registrationStartDate)}
+                        </p>
+                    )}
                 </div>
 
                 <div>
@@ -156,6 +193,11 @@ const renderStandardFields = (props: RenderFieldsProps<StandardActivityCreateReq
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
+                    {formData.registrationDeadline && (
+                        <p className="mt-1 text-xs text-gray-500">
+                            {formatAmPmPreview(formData.registrationDeadline)}
+                        </p>
+                    )}
                 </div>
             </div>
 
@@ -413,14 +455,14 @@ const renderStandardFields = (props: RenderFieldsProps<StandardActivityCreateReq
                         name="requiresApproval"
                         checked={!!formData.requiresApproval}
                         onChange={handleChange}
-                        disabled={!!formData.isImportant || !!formData.mandatoryForFacultyStudents}
-                        className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${(formData.isImportant || formData.mandatoryForFacultyStudents) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        disabled={isApprovalLocked}
+                        className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${isApprovalLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                     />
-                    <label htmlFor="requiresApproval" className={`ml-2 block text-sm ${(formData.isImportant || formData.mandatoryForFacultyStudents) ? 'text-gray-500' : 'text-gray-900'}`}>
+                    <label htmlFor="requiresApproval" className={`ml-2 block text-sm ${isApprovalLocked ? 'text-gray-500' : 'text-gray-900'}`}>
                         Đăng ký cần duyệt (tắt để auto-approve)
                     </label>
                 </div>
-                {(formData.isImportant || formData.mandatoryForFacultyStudents) && (
+                {isApprovalLocked && (
                     <p className="text-xs text-gray-500 ml-6 -mt-2">Tự động duyệt cho sự kiện quan trọng/bắt buộc</p>
                 )}
 
@@ -463,7 +505,8 @@ const StandardActivityForm: React.FC<StandardActivityFormProps> = ({
     loading = false,
     initialData = {},
     title = "Tạo sự kiện mới",
-    onCancel
+    onCancel,
+    lockApprovalWhenImportant = true
 }) => {
     return (
         <BaseEventForm<StandardActivityCreateRequest>
@@ -473,6 +516,7 @@ const StandardActivityForm: React.FC<StandardActivityFormProps> = ({
             initialData={initialData}
             title={title}
             onCancel={onCancel}
+            lockApprovalWhenImportant={lockApprovalWhenImportant}
             renderFields={renderStandardFields}
         />
     );

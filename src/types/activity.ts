@@ -297,6 +297,7 @@ export interface ActivityResponse {
     registrationDeadline?: string | null;
     shareLink?: string | null;
     isImportant: boolean;
+    important?: boolean; // API may return this field name
     isDraft: boolean;
     draft?: boolean; // API returns this field name
     bannerUrl?: string | null;

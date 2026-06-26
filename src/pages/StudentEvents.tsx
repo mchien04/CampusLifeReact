@@ -6,7 +6,7 @@ import { registrationAPI } from '../services/registrationAPI';
 import { ActivityResponse, ActivityType, ScoreType } from '../types';
 import { RegistrationStatus } from '../types/registration';
 import { LoadingSpinner } from '../components/common';
-import { getImageUrl } from '../utils/imageUtils';
+import { EventBannerImage } from '../components/events';
 import StudentLayout from '../components/layout/StudentLayout';
 
 const StudentEvents: React.FC = () => {
@@ -249,11 +249,12 @@ const StudentEvents: React.FC = () => {
         return (
             <div key={event.id} className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col h-full border-2 overflow-hidden group relative border-gray-100 hover:border-[#001C44]">
                 {/* Event Banner */}
-                {event.bannerUrl && (
-                    <div className="h-56 bg-gray-200 rounded-t-xl bg-cover bg-center flex-shrink-0 group-hover:scale-105 transition-transform duration-300"
-                        style={{ backgroundImage: `url(${getImageUrl(event.bannerUrl)})` }}>
-                    </div>
-                )}
+                <EventBannerImage
+                    bannerUrl={event.bannerUrl}
+                    alt={`Banner ${event.name}`}
+                    wrapperClassName="h-56 bg-gray-200 rounded-t-xl flex-shrink-0 overflow-hidden"
+                    imageClassName="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
 
                 <div className="p-6 flex flex-col flex-grow">
                     {/* Header */}
@@ -275,8 +276,8 @@ const StudentEvents: React.FC = () => {
                                     eventStatus === 'ONGOING' ? 'bg-green-100 text-green-800 border-2 border-green-300' :
                                     'bg-gray-100 text-gray-800 border-2 border-gray-300'
                                 }`}>
-                                    {eventStatus === 'UPCOMING' ? '⏰ Sắp diễn ra' :
-                                        eventStatus === 'ONGOING' ? '🟢 Đang diễn ra' : '✅ Đã kết thúc'}
+                                    {eventStatus === 'UPCOMING' ? 'Sắp diễn ra' :
+                                        eventStatus === 'ONGOING' ? 'Đang diễn ra' : 'Đã kết thúc'}
                                 </span>
                                 <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border-2 shadow-sm bg-purple-100 text-purple-800 border-purple-300">
                                     {getTypeLabel(event.type)}
@@ -540,7 +541,7 @@ const StudentEvents: React.FC = () => {
                                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                     }`}
                             >
-                                <span>📋</span>
+                        
                                 <span>Tất cả</span>
                             </button>
                             <button
@@ -550,7 +551,7 @@ const StudentEvents: React.FC = () => {
                                     : 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200'
                                     }`}
                             >
-                                <span>🟢</span>
+                                
                                 <span>Đang diễn ra</span>
                             </button>
                             <button
@@ -560,7 +561,7 @@ const StudentEvents: React.FC = () => {
                                     : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
                                     }`}
                             >
-                                <span>⏰</span>
+                    
                                 <span>Sắp diễn ra</span>
                             </button>
                             <button
@@ -570,7 +571,7 @@ const StudentEvents: React.FC = () => {
                                     : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
                                     }`}
                             >
-                                <span>✅</span>
+                            
                                 <span>Đã diễn ra</span>
                             </button>
                         </div>

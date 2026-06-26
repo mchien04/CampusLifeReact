@@ -90,6 +90,8 @@ export interface TicketCodeValidateResponse {
     currentStatus: RegistrationStatus;
     canCheckIn: boolean;
     canCheckOut: boolean;
+    checkInOpenAt?: string | null;
+    checkInClosedAt?: string | null;
 }
 
 // Helper function to get Vietnamese labels

@@ -17,7 +17,7 @@ import { RegistrationStatus, ParticipationType, ActivityRegistrationResponse } f
 import { LoadingSpinner } from '../components/common';
 
 import { ScoreRulesDisplay } from '../components/events/ScoreRulesDisplay';
-import { PhotoGrid } from '../components/events';
+import { EventBannerImage, PhotoGrid } from '../components/events';
 import { activityPhotoAPI } from '../services/activityPhotoAPI';
 import StudentLayout from '../components/layout/StudentLayout';
 import { minigameAPI } from '../services/minigameAPI';
@@ -565,15 +565,12 @@ const StudentEventDetail: React.FC = () => {
                                 <h1 className="text-3xl font-bold text-[#001C44] mt-2 mb-4">{event.name}</h1>
 
                                 {/* Event Banner */}
-                                {event.bannerUrl && (
-                                    <div className="mb-6">
-                                        <img
-                                            src={event.bannerUrl}
-                                            alt={`Banner ${event.name}`}
-                                            className="w-full h-64 object-cover rounded-lg shadow-md"
-                                        />
-                                    </div>
-                                )}
+                                <EventBannerImage
+                                    bannerUrl={event.bannerUrl}
+                                    alt={`Banner ${event.name}`}
+                                    wrapperClassName="mb-6"
+                                    imageClassName="w-full h-64 object-cover rounded-lg shadow-md"
+                                />
 
                                 {event.description && (
                                     <p className="text-gray-600 mb-6">{event.description}</p>

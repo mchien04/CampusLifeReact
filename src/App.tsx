@@ -51,7 +51,7 @@ import TaskManagement from './pages/admin/TaskManagement';
 import PreparationManagement from './pages/admin/PreparationManagement';
 import PreparationDetail from './pages/admin/PreparationDetail';
 import StudentRegistrations from './pages/StudentRegistrations';
-import ManagerRegistrations from './pages/ManagerRegistrations';
+import ManagerRegistrations from './pages/ManagerRegistrationsSplit';
 import StudentTasks from './pages/StudentTasks';
 import { Role } from './types';
 import TaskSubmissionsRoute from './pages/TaskSubmissionsRoute';

@@ -1,10 +1,15 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
 import { ActivityRegistrationResponse, getRegistrationStatusLabel } from '../../types/registration';
 
 interface RegistrationListProps {
     registrations: ActivityRegistrationResponse[];
     onCancelRegistration?: (activityId: number) => void;
-    onUpdateStatus?: (registrationId: number, status: string) => void;
+    onUpdateStatus?: (registrationId: number, status: string) => Promise<boolean | void> | boolean | void;
+    onBulkUpdateStatus?: (
+        registrationIds: number[],
+        status: string
+    ) => Promise<{ successCount: number; failedCount: number } | void> | { successCount: number; failedCount: number } | void;
     showActions?: boolean;
     isAdmin?: boolean;
 }
@@ -13,36 +18,71 @@ const RegistrationList: React.FC<RegistrationListProps> = ({
     registrations,
     onCancelRegistration,
     onUpdateStatus,
+    onBulkUpdateStatus,
     showActions = true,
     isAdmin = false
 }) => {
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const [isBulkUpdating, setIsBulkUpdating] = useState(false);
+
+    useEffect(() => {
+        setSelectedIds([]);
+    }, [registrations]);
 
     const toggleSelect = (id: number) => {
-        setSelectedIds(prev =>
-            prev.indexOf(id) !== -1
-                ? prev.filter(x => x !== id)
-                : [...prev, id]
+        setSelectedIds((prev) =>
+            prev.indexOf(id) !== -1 ? prev.filter((x) => x !== id) : [...prev, id]
         );
     };
 
     const toggleSelectAll = () => {
-        // Chọn tất cả các registration có thể thao tác (không phải ATTENDED)
         const selectableIds = registrations
-            .filter(r => r.status !== 'ATTENDED')
-            .map(r => r.id);
-        
+            .filter((r) => r.status !== 'ATTENDED')
+            .map((r) => r.id);
+
         if (selectedIds.length === selectableIds.length && selectedIds.length > 0) {
-            setSelectedIds([]); // bỏ chọn tất cả
+            setSelectedIds([]);
         } else {
-            setSelectedIds(selectableIds); // chọn tất cả có thể chọn
+            setSelectedIds(selectableIds);
         }
     };
 
-    const handleBulkUpdate = (status: string) => {
-        if (onUpdateStatus) {
-            selectedIds.forEach(id => onUpdateStatus(id, status));
-            setSelectedIds([]); // clear sau khi xử lý
+    const handleBulkUpdate = async (status: string) => {
+        if (selectedIds.length === 0) return;
+
+        setIsBulkUpdating(true);
+
+        try {
+            if (onBulkUpdateStatus) {
+                const result = await onBulkUpdateStatus(selectedIds, status);
+                const successCount = result?.successCount ?? selectedIds.length;
+                const failedCount = result?.failedCount ?? 0;
+
+                if (failedCount > 0) {
+                    toast.warn(`Da xu ly ${successCount}/${selectedIds.length} dang ky. ${failedCount} muc that bai.`);
+                } else {
+                    toast.success(`Da xu ly ${successCount} dang ky.`);
+                }
+            } else if (onUpdateStatus) {
+                const results = await Promise.all(
+                    selectedIds.map(async (id) => {
+                        const result = await onUpdateStatus(id, status);
+                        return result !== false;
+                    })
+                );
+                const successCount = results.filter(Boolean).length;
+                const failedCount = results.length - successCount;
+
+                if (failedCount > 0) {
+                    toast.warn(`Da xu ly ${successCount}/${results.length} dang ky. ${failedCount} muc that bai.`);
+                } else {
+                    toast.success(`Da xu ly ${successCount} dang ky.`);
+                }
+            }
+
+            setSelectedIds([]);
+        } finally {
+            setIsBulkUpdating(false);
         }
     };
 
@@ -63,52 +103,45 @@ const RegistrationList: React.FC<RegistrationListProps> = ({
         <div className="space-y-4">
             {registrations.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
-                    <p className="text-gray-500 text-lg">Chưa có đăng ký nào</p>
+                    <p className="text-gray-500 text-lg">Chua co dang ky nao</p>
                 </div>
             ) : (
                 <>
-                    {/* Checkbox chọn tất cả - hiển thị nếu có registration có thể thao tác */}
-                    {isAdmin && registrations.some(r => r.status !== 'ATTENDED') && (
+                    {isAdmin && registrations.some((r) => r.status !== 'ATTENDED') && (
                         <div className="flex items-center justify-between bg-gradient-to-r from-[#FFD66D] to-[#FFC947] p-4 rounded-lg border-2 border-[#FFD66D] shadow-sm">
                             <div className="flex items-center space-x-3">
                                 <input
                                     type="checkbox"
-                                    checked={selectedIds.length === registrations.filter(r => r.status !== 'ATTENDED').length && selectedIds.length > 0}
+                                    checked={selectedIds.length === registrations.filter((r) => r.status !== 'ATTENDED').length && selectedIds.length > 0}
                                     onChange={toggleSelectAll}
                                     className="h-5 w-5 text-[#001C44] rounded focus:ring-2 focus:ring-[#001C44] cursor-pointer"
                                 />
                                 <span className="text-sm font-bold text-[#001C44]">
-                                    Chọn tất cả ({registrations.filter(r => r.status !== 'ATTENDED').length} đăng ký có thể thao tác)
+                                    Chon tat ca ({registrations.filter((r) => r.status !== 'ATTENDED').length} dang ky co the thao tac)
                                 </span>
                             </div>
                             <div className="flex items-center space-x-4 text-xs font-semibold text-[#001C44]">
-                                <span>PENDING: {registrations.filter(r => r.status === 'PENDING').length}</span>
-                                <span>APPROVED: {registrations.filter(r => r.status === 'APPROVED').length}</span>
-                                <span>REJECTED: {registrations.filter(r => r.status === 'REJECTED').length}</span>
-                                <span>CANCELLED: {registrations.filter(r => r.status === 'CANCELLED').length}</span>
+                                <span>PENDING: {registrations.filter((r) => r.status === 'PENDING').length}</span>
+                                <span>APPROVED: {registrations.filter((r) => r.status === 'APPROVED').length}</span>
+                                <span>REJECTED: {registrations.filter((r) => r.status === 'REJECTED').length}</span>
+                                <span>CANCELLED: {registrations.filter((r) => r.status === 'CANCELLED').length}</span>
                             </div>
                         </div>
                     )}
 
-                    {/* Danh sách sinh viên */}
                     <div className="space-y-3">
                         {registrations.map((registration) => {
                             const attended = isAttended(registration.status);
-                            // Có thể thao tác nếu không phải ATTENDED
                             const canAction = isAdmin && !attended;
-                            // Có thể chọn checkbox nếu là PENDING
-                            const canSelect = isAdmin && registration.status === 'PENDING';
-                            
-                            // Xác định actions có sẵn dựa trên status
                             const canApprove = canAction && (registration.status === 'PENDING' || registration.status === 'REJECTED' || registration.status === 'CANCELLED');
                             const canReject = canAction && (registration.status === 'PENDING' || registration.status === 'APPROVED');
-                            
+
                             return (
                                 <div
                                     key={registration.id}
                                     className={`bg-white border-2 rounded-xl p-5 flex items-center space-x-4 transition-all ${
-                                        attended 
-                                            ? 'border-gray-300 bg-gray-50 opacity-75' 
+                                        attended
+                                            ? 'border-gray-300 bg-gray-50 opacity-75'
                                             : 'border-gray-200 hover:border-[#001C44] hover:shadow-md'
                                     }`}
                                 >
@@ -123,7 +156,7 @@ const RegistrationList: React.FC<RegistrationListProps> = ({
                                     {attended && (
                                         <div className="flex-shrink-0">
                                             <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                                <span className="text-xl">✓</span>
+                                                <span className="text-xl">?</span>
                                             </div>
                                         </div>
                                     )}
@@ -137,19 +170,18 @@ const RegistrationList: React.FC<RegistrationListProps> = ({
                                             </span>
                                         </div>
                                         <p className={`text-sm ${attended ? 'text-gray-500' : 'text-gray-600'}`}>
-                                            Mã SV: <span className="font-semibold">{registration.studentCode}</span>
+                                            Ma SV: <span className="font-semibold">{registration.studentCode}</span>
                                         </p>
                                         {registration.ticketCode && (
                                             <p className={`text-xs mt-1 ${attended ? 'text-gray-400' : 'text-gray-500'}`}>
-                                                Mã vé: <span className="font-mono font-semibold">{registration.ticketCode}</span>
+                                                Ma ve: <span className="font-mono font-semibold">{registration.ticketCode}</span>
                                             </p>
                                         )}
                                     </div>
 
-                                    {/* Individual Actions - Hiển thị dựa trên status */}
                                     {attended ? (
                                         <div className="px-4 py-2 bg-gray-100 text-gray-500 text-sm font-medium rounded-lg border border-gray-200">
-                                            Đã hoàn thành
+                                            Da hoan thanh
                                         </div>
                                     ) : canAction && (canApprove || canReject) ? (
                                         <div className="flex space-x-2">
@@ -158,7 +190,7 @@ const RegistrationList: React.FC<RegistrationListProps> = ({
                                                     onClick={() => onUpdateStatus && onUpdateStatus(registration.id, 'APPROVED')}
                                                     className="px-4 py-2 bg-emerald-50 text-emerald-700 text-sm font-medium rounded-lg hover:bg-emerald-100 border border-emerald-200 transition-all shadow-sm hover:shadow"
                                                 >
-                                                    ✅ Duyệt
+                                                    Duyet
                                                 </button>
                                             )}
                                             {canReject && (
@@ -166,7 +198,7 @@ const RegistrationList: React.FC<RegistrationListProps> = ({
                                                     onClick={() => onUpdateStatus && onUpdateStatus(registration.id, 'REJECTED')}
                                                     className="px-4 py-2 bg-rose-50 text-rose-700 text-sm font-medium rounded-lg hover:bg-rose-100 border border-rose-200 transition-all shadow-sm hover:shadow"
                                                 >
-                                                    ❌ {registration.status === 'APPROVED' ? 'Hủy duyệt' : 'Từ chối'}
+                                                    {registration.status === 'APPROVED' ? 'Huy duyet' : 'Tu choi'}
                                                 </button>
                                             )}
                                         </div>
@@ -176,43 +208,45 @@ const RegistrationList: React.FC<RegistrationListProps> = ({
                         })}
                     </div>
 
-                    {/* Nút xử lý nhiều - hiển thị nếu có selection */}
                     {isAdmin && selectedIds.length > 0 && (
                         <div className="mt-6 p-5 bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl flex items-center justify-between shadow-lg">
                             <div className="flex items-center space-x-4">
                                 <span className="text-white font-bold text-lg">
-                                    Đã chọn {selectedIds.length} đăng ký
+                                    Da chon {selectedIds.length} dang ky
                                 </span>
                                 <div className="flex items-center space-x-2 text-sm text-gray-200">
                                     <span className="px-2 py-1 bg-white bg-opacity-20 rounded">
-                                        PENDING: {selectedIds.filter(id => registrations.find(r => r.id === id)?.status === 'PENDING').length}
+                                        PENDING: {selectedIds.filter((id) => registrations.find((r) => r.id === id)?.status === 'PENDING').length}
                                     </span>
                                     <span className="px-2 py-1 bg-white bg-opacity-20 rounded">
-                                        APPROVED: {selectedIds.filter(id => registrations.find(r => r.id === id)?.status === 'APPROVED').length}
+                                        APPROVED: {selectedIds.filter((id) => registrations.find((r) => r.id === id)?.status === 'APPROVED').length}
                                     </span>
                                     <span className="px-2 py-1 bg-white bg-opacity-20 rounded">
-                                        REJECTED: {selectedIds.filter(id => registrations.find(r => r.id === id)?.status === 'REJECTED').length}
+                                        REJECTED: {selectedIds.filter((id) => registrations.find((r) => r.id === id)?.status === 'REJECTED').length}
                                     </span>
                                 </div>
                             </div>
                             <div className="flex space-x-3">
                                 <button
-                                    onClick={() => handleBulkUpdate('APPROVED')}
-                                    className="px-6 py-2.5 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 border border-emerald-200 font-medium transition-all shadow-sm hover:shadow transform hover:scale-[1.02]"
+                                    onClick={() => void handleBulkUpdate('APPROVED')}
+                                    disabled={isBulkUpdating}
+                                    className="px-6 py-2.5 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 border border-emerald-200 font-medium transition-all shadow-sm hover:shadow transform hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
                                 >
-                                    ✅ Duyệt {selectedIds.length}
+                                    {isBulkUpdating ? 'Dang xu ly...' : `Duyet ${selectedIds.length}`}
                                 </button>
                                 <button
-                                    onClick={() => handleBulkUpdate('REJECTED')}
-                                    className="px-6 py-2.5 bg-rose-50 text-rose-700 rounded-lg hover:bg-rose-100 border border-rose-200 font-medium transition-all shadow-sm hover:shadow transform hover:scale-[1.02]"
+                                    onClick={() => void handleBulkUpdate('REJECTED')}
+                                    disabled={isBulkUpdating}
+                                    className="px-6 py-2.5 bg-rose-50 text-rose-700 rounded-lg hover:bg-rose-100 border border-rose-200 font-medium transition-all shadow-sm hover:shadow transform hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
                                 >
-                                    ❌ Từ chối {selectedIds.length}
+                                    {isBulkUpdating ? 'Dang xu ly...' : `Tu choi ${selectedIds.length}`}
                                 </button>
                                 <button
                                     onClick={() => setSelectedIds([])}
-                                    className="px-4 py-2.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 border border-gray-300 font-medium transition-all shadow-sm hover:shadow"
+                                    disabled={isBulkUpdating}
+                                    className="px-4 py-2.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 border border-gray-300 font-medium transition-all shadow-sm hover:shadow disabled:opacity-60 disabled:cursor-not-allowed"
                                 >
-                                    Hủy chọn
+                                    Huy chon
                                 </button>
                             </div>
                         </div>

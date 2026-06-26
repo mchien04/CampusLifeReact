@@ -51,6 +51,7 @@ interface BaseEventFormProps<T extends BaseEventFormData = BaseEventFormData> {
     onCancel?: () => void;
     renderFields?: (props: RenderFieldsProps<T>) => React.ReactNode;
     inline?: boolean; // If true, render without wrapper (for modals)
+    lockApprovalWhenImportant?: boolean;
 }
 
 export interface RenderFieldsProps<T extends BaseEventFormData = BaseEventFormData> {
@@ -62,6 +63,7 @@ export interface RenderFieldsProps<T extends BaseEventFormData = BaseEventFormDa
     handleUnlimitedChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     originalBannerUrl: string;
     mode: FormMode;
+    lockApprovalWhenImportant: boolean;
 }
 
 const BaseEventForm = <T extends BaseEventFormData>({
@@ -72,7 +74,8 @@ const BaseEventForm = <T extends BaseEventFormData>({
     title = "Tạo sự kiện mới",
     onCancel,
     renderFields,
-    inline = false
+    inline = false,
+    lockApprovalWhenImportant = true
 }: BaseEventFormProps<T>) => {
     const [formData, setFormData] = useState<T>(() => {
         const defaultData: BaseEventFormData = {
@@ -331,13 +334,13 @@ const BaseEventForm = <T extends BaseEventFormData>({
 
     useEffect(() => {
         if (isInitialLoad) return;
-        if (formData.isImportant || formData.mandatoryForFacultyStudents) {
+        if (lockApprovalWhenImportant && (formData.isImportant || formData.mandatoryForFacultyStudents)) {
             setFormData(prev => ({
                 ...prev,
                 requiresApproval: false
             } as T));
         }
-    }, [formData.isImportant, formData.mandatoryForFacultyStudents, isInitialLoad]);
+    }, [formData.isImportant, formData.mandatoryForFacultyStudents, isInitialLoad, lockApprovalWhenImportant]);
 
     const handleOrganizerChange = (ids: number[]) => {
         setFormData(prev => ({
@@ -396,7 +399,8 @@ const BaseEventForm = <T extends BaseEventFormData>({
         unlimitedTickets,
         handleUnlimitedChange,
         originalBannerUrl,
-        mode
+        mode,
+        lockApprovalWhenImportant
     };
 
     const formContent = (
@@ -454,7 +458,7 @@ const BaseEventForm = <T extends BaseEventFormData>({
                     disabled={loading || isUploading}
                     className="px-6 py-2 bg-[#001C44] text-white rounded-md hover:bg-[#002A66] focus:outline-none focus:ring-2 focus:ring-[#001C44] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    {isUploading ? 'Đang upload ảnh...' : loading ? 'Đang tạo...' : 'Tạo sự kiện'}
+                    {isUploading ? 'Dang upload anh...' : loading ? (isEditing ? 'Dang luu...' : 'Dang tao...') : (isEditing ? 'Luu thay doi' : 'Tao su kien')}
                 </button>
             </div>
         </form>
