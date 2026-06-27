@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ActivityType, ScoreType, ActivityScoreRuleRequest } from '../../types/activity';
-import { ActivityPresetPreviewResponse } from '../../types/presets';
+import { ActivityPresetPreviewResponse, ActivityPresetDefinition, ActivityPresetCode } from '../../types/presets';
+import { ActivityPresetConfig } from '../../types/activity';
 import { uploadAPI } from '../../services/uploadAPI';
 import { eventAPI } from '../../services/eventAPI';
 import { departmentAPI } from '../../services/adminAPI';
@@ -9,6 +10,7 @@ import OrganizerSelector from './OrganizerSelector';
 import { ScoreRulesForm } from './ScoreRulesForm';
 import { Department } from '../../types/admin';
 import ActivityScoreRulePreview from './ActivityScoreRulePreview';
+import PresetConfigPanel from '../presets/PresetConfigPanel';
 
 export type FormMode = 'normal' | 'minigame' | 'series';
 
@@ -118,11 +120,62 @@ const BaseEventForm = <T extends BaseEventFormData>({
     const [isInitialLoad, setIsInitialLoad] = useState(true);
     const [unlimitedTickets, setUnlimitedTickets] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
-    const [presets, setPresets] = useState<any[]>([]);
+    const [presets, setPresets] = useState<ActivityPresetDefinition[]>([]);
     const [selectedPresetCode, setSelectedPresetCode] = useState<string>('');
     const [presetPreview, setPresetPreview] = useState<ActivityPresetPreviewResponse | null>(null);
+    const [enabledRules, setEnabledRules] = useState<Record<string, boolean>>({});
+    const [presetConfigErrors, setPresetConfigErrors] = useState<Record<string, string>>({});
     const [departments, setDepartments] = useState<Department[]>([]);
     const isEditing = !!(initialData && initialData.name);
+
+    // Sync selectedPresetCode and enabledRules when formData.presetCode changes (e.g. from initialData or preset selection)
+    useEffect(() => {
+        if (formData.presetCode && formData.presetCode !== 'CUSTOM') {
+            setSelectedPresetCode(formData.presetCode);
+            const preset = presets.find(p => p.code === formData.presetCode);
+            if (preset) {
+                const newRules: Record<string, boolean> = {};
+                for (const rule of preset.supportedRules) {
+                    newRules[rule.ruleKey] = rule.required ? true : rule.enabledByDefault;
+                }
+                setEnabledRules(newRules);
+            }
+        } else {
+            setSelectedPresetCode('');
+            setEnabledRules({});
+        }
+    }, [formData.presetCode, presets]);
+
+    // Automatically load preview whenever presetCode changes (not on every presetConfig change)
+    useEffect(() => {
+        const loadPresetPreview = async () => {
+            if (formData.presetCode && formData.presetCode !== 'CUSTOM') {
+                try {
+                    const previewRes = await eventAPI.previewActivityPreset({ 
+                        presetCode: formData.presetCode,
+                        presetConfig: formData.presetConfig || {}
+                    });
+                    if (previewRes.status && previewRes.data) {
+                        const presetData = previewRes.data;
+                        setPresetPreview(presetData);
+                        // Also sync requiresSubmission from preset data if it differs
+                        if (presetData.requiresSubmission !== formData.requiresSubmission) {
+                            setFormData(prev => ({
+                                ...prev,
+                                requiresSubmission: presetData.requiresSubmission
+                            } as T));
+                        }
+                    }
+                } catch (error) {
+                    console.error('Lỗi khi tải bản xem trước preset:', error);
+                }
+            } else {
+                setPresetPreview(null);
+            }
+        };
+        loadPresetPreview();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [formData.presetCode]);
 
     // Load presets on mount
     useEffect(() => {
@@ -136,16 +189,12 @@ const BaseEventForm = <T extends BaseEventFormData>({
                     if (mode === 'minigame' && !isEditing) {
                         const hasMinigamePreset = res.data.some(p => p.code === 'MINIGAME_PASS_ONLY');
                         if (hasMinigamePreset) {
-                            setSelectedPresetCode('MINIGAME_PASS_ONLY');
-                            const previewRes = await eventAPI.previewActivityPreset({ presetCode: 'MINIGAME_PASS_ONLY' });
-                            if (previewRes.status && previewRes.data) {
-                                const presetData = previewRes.data;
-                                setFormData(prev => ({
-                                    ...prev,
-                                    requiresSubmission: presetData.requiresSubmission,
-                                    scoreRules: presetData.scoreRules || []
-                                } as T));
-                            }
+                            setFormData(prev => ({
+                                ...prev,
+                                presetCode: 'MINIGAME_PASS_ONLY',
+                                presetConfig: {},
+                                scoreRules: []
+                            } as T));
                         }
                     }
                 }
@@ -171,27 +220,101 @@ const BaseEventForm = <T extends BaseEventFormData>({
         fetchDepartments();
     }, []);
 
-    const handlePresetChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const code = e.target.value;
+    const buildEnabledRules = useCallback((preset: ActivityPresetDefinition): Record<string, boolean> => {
+        const rules: Record<string, boolean> = {};
+        for (const rule of preset.supportedRules) {
+            rules[rule.ruleKey] = rule.required ? true : rule.enabledByDefault;
+        }
+        return rules;
+    }, []);
+
+    const buildInitialConfig = useCallback((preset: ActivityPresetDefinition): ActivityPresetConfig => {
+        const config: Record<string, unknown> = {};
+        for (const rule of preset.supportedRules) {
+            for (const field of rule.fieldDefinitions) {
+                if (field.defaultValue !== undefined && field.defaultValue !== null) {
+                    config[field.fieldName] = field.defaultValue;
+                }
+            }
+        }
+        return config as ActivityPresetConfig;
+    }, []);
+
+    const handlePresetChange = (code: string) => {
         setSelectedPresetCode(code);
+        setPresetConfigErrors({});
+
         if (!code) {
+            setFormData(prev => ({
+                ...prev,
+                presetCode: 'CUSTOM',
+                presetConfig: null,
+                scoreRules: presetPreview?.scoreRules || prev.scoreRules || []
+            } as T));
+            setEnabledRules({});
             setPresetPreview(null);
             return;
         }
 
+        const preset = presets.find(p => p.code === code);
+        if (preset) {
+            const newEnabledRules = buildEnabledRules(preset);
+            const newConfig = buildInitialConfig(preset);
+            setEnabledRules(newEnabledRules);
+            setFormData(prev => ({
+                ...prev,
+                presetCode: code as ActivityPresetCode,
+                presetConfig: newConfig,
+                scoreRules: undefined
+            } as T));
+        }
+    };
+
+    const handleRuleToggle = (ruleKey: string, enabled: boolean) => {
+        setEnabledRules(prev => ({ ...prev, [ruleKey]: enabled }));
+        // Update formData to reflect toggle state for special fields like noShowPenaltyEnabled
+        const selectedPreset = presets.find(p => p.code === selectedPresetCode);
+        if (selectedPreset) {
+            const rule = selectedPreset.supportedRules.find(r => r.ruleKey === ruleKey);
+            if (rule) {
+                const toggleField = rule.fieldDefinitions.find(f => f.fieldName.toLowerCase().includes('enabled'));
+                if (toggleField) {
+                    setFormData(prev => ({
+                        ...prev,
+                        presetConfig: { ...(prev.presetConfig || {}), [toggleField.fieldName]: enabled }
+                    } as T));
+                }
+            }
+        }
+    };
+
+    const handlePresetConfigFieldChange = (fieldName: string, value: unknown) => {
+        setFormData(prev => ({
+            ...prev,
+            presetConfig: { ...(prev.presetConfig || {}), [fieldName]: value }
+        } as T));
+    };
+
+    const handlePreview = async () => {
+        if (!selectedPresetCode || selectedPresetCode === 'CUSTOM') return;
         try {
-            const previewRes = await eventAPI.previewActivityPreset({ presetCode: code });
-            if (previewRes.status && previewRes.data) {
-                const presetData = previewRes.data;
-                setPresetPreview(presetData);
-                setFormData(prev => ({
-                    ...prev,
-                    requiresSubmission: presetData.requiresSubmission,
-                    scoreRules: presetData.scoreRules || []
-                } as T));
+            const res = await eventAPI.previewActivityPreset({
+                presetCode: selectedPresetCode as ActivityPresetCode,
+                type: formData.type,
+                requiresSubmission: formData.requiresSubmission,
+                presetConfig: formData.presetConfig || {}
+            });
+            if (res.status && res.data) {
+                setPresetPreview(res.data);
+                if (res.data.requiresSubmission !== formData.requiresSubmission) {
+                    setFormData(prev => ({
+                        ...prev,
+                        requiresSubmission: res.data!.requiresSubmission
+                    } as T));
+                }
             }
         } catch (error) {
-            console.error('Lỗi khi tải mẫu cấu hình:', error);
+            console.error('Lỗi khi xem trước preset:', error);
         }
     };
 
@@ -264,8 +387,10 @@ const BaseEventForm = <T extends BaseEventFormData>({
             }
         }
 
-        // Port from EventForm: requiresSubmission must have PASS_FAIL_POINTS with failPoints
-        if (formData.requiresSubmission) {
+        // Port from EventForm: requiresSubmission must have PASS_FAIL_POINTS with failPoints.
+        // Chỉ áp dụng cho chế độ CUSTOM (preset mode do backend quyết định rule).
+        const isCustomMode = !formData.presetCode || formData.presetCode === 'CUSTOM';
+        if (isCustomMode && formData.requiresSubmission) {
             const hasPassFailWithFailPoints = formData.scoreRules?.some(
                 rule => rule.calculation === 'PASS_FAIL_POINTS' && rule.failPoints !== undefined && rule.failPoints !== null
             );
@@ -274,8 +399,9 @@ const BaseEventForm = <T extends BaseEventFormData>({
             }
         }
 
-        // Port from EventForm: CHUYEN_DE events cannot have NO_SHOW penalty with CHUYEN_DE score type
-        if (formData.type === ActivityType.CHUYEN_DE_DOANH_NGHIEP) {
+        // Port from EventForm: CHUYEN_DE events cannot have NO_SHOW penalty with CHUYEN_DE score type.
+        // Chỉ áp dụng cho chế độ CUSTOM.
+        if (isCustomMode && formData.type === ActivityType.CHUYEN_DE_DOANH_NGHIEP) {
             const hasInvalidNoShowPenalty = formData.scoreRules?.some(
                 rule => rule.triggerType === 'NO_SHOW' && rule.scoreType === ScoreType.CHUYEN_DE
             );
@@ -284,8 +410,35 @@ const BaseEventForm = <T extends BaseEventFormData>({
             }
         }
 
+        // Validate preset config fields when using a preset
+        const isPresetMode = formData.presetCode && formData.presetCode !== 'CUSTOM';
+        if (isPresetMode) {
+            const selectedPreset = presets.find(p => p.code === formData.presetCode);
+            if (selectedPreset) {
+                for (const rule of selectedPreset.supportedRules) {
+                    const isRuleEnabled = enabledRules[rule.ruleKey] ?? rule.enabledByDefault;
+                    for (const field of rule.fieldDefinitions) {
+                        if (field.required) {
+                            const fieldValue = formData.presetConfig?.[field.fieldName as keyof ActivityPresetConfig];
+                            const isVisible = field.visibility === 'ALWAYS' || (field.visibility === 'rule_enabled' && isRuleEnabled);
+                            if (isVisible && (fieldValue === undefined || fieldValue === null || fieldValue === '')) {
+                                presetConfigErrors[field.fieldName] = `${field.label} là bắt buộc`;
+                            }
+                        }
+                        if (field.inputType === 'NUMBER' && formData.presetConfig?.[field.fieldName as keyof ActivityPresetConfig] !== undefined) {
+                            const numVal = Number(formData.presetConfig?.[field.fieldName as keyof ActivityPresetConfig]);
+                            if (isNaN(numVal) || numVal < 0) {
+                                presetConfigErrors[field.fieldName] = `${field.label} phải >= 0`;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+        setPresetConfigErrors(presetConfigErrors);
+        return Object.keys(newErrors).length === 0 && Object.keys(presetConfigErrors).length === 0;
     };
 
     useEffect(() => {
@@ -355,12 +508,20 @@ const BaseEventForm = <T extends BaseEventFormData>({
             try {
                 setIsUploading(true);
 
+                const isPresetMode = formData.presetCode && formData.presetCode !== 'CUSTOM';
+                const baseSubmitData = {
+                    ...formData,
+                    scoreRules: isPresetMode ? undefined : formData.scoreRules,
+                    presetConfig: isPresetMode ? formData.presetConfig : undefined,
+                    presetCode: isPresetMode ? formData.presetCode : 'CUSTOM'
+                };
+
                 if (formData.bannerFile) {
                     const uploadResponse = await uploadAPI.uploadImage(formData.bannerFile);
 
                     if (uploadResponse.status && uploadResponse.data) {
                         const updatedFormData = {
-                            ...formData,
+                            ...baseSubmitData,
                             bannerUrl: uploadResponse.data,
                             bannerFile: undefined
                         } as T;
@@ -375,7 +536,7 @@ const BaseEventForm = <T extends BaseEventFormData>({
                     }
                 } else {
                     const submitData = {
-                        ...formData,
+                        ...baseSubmitData,
                         bannerUrl: formData.bannerUrl || (originalBannerUrl && formData.bannerUrl === '' ? originalBannerUrl : undefined)
                     } as T;
                     onSubmit(submitData);
@@ -405,39 +566,41 @@ const BaseEventForm = <T extends BaseEventFormData>({
 
     const formContent = (
         <form onSubmit={handleSubmit} className={inline ? "space-y-6" : "p-6 space-y-6"}>
-            {!isEditing && mode !== 'series' && mode !== 'minigame' && presets.length > 0 && (
-                <div className="p-4 bg-blue-50 rounded-md border border-blue-100">
-                    <label htmlFor="preset" className="block text-sm font-medium text-[#001C44] mb-2">
-                        Mẫu cấu hình (Preset) <span className="text-gray-500 font-normal">- Tự động điền yêu cầu nộp bài và các luật tính điểm</span>
-                    </label>
-                    <select
-                        id="preset"
-                        value={selectedPresetCode}
-                        onChange={handlePresetChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
-                    >
-                        <option value="">-- Tự do cấu hình (Không dùng mẫu) --</option>
-                        {presets
-                            .filter(preset => (mode as string) !== 'minigame' || preset.activityType === 'MINIGAME')
-                            .map(preset => (
-                                <option key={preset.code} value={preset.code}>
-                                    {preset.name} - {preset.description}
-                                </option>
-                            ))}
-                    </select>
-                    <ActivityScoreRulePreview preview={presetPreview} />
-                </div>
+            {/* Preset Config Panel (Standard & Minigame) */}
+            {mode !== 'series' && presets.length > 0 && (
+                <PresetConfigPanel
+                    presets={presets}
+                    selectedPresetCode={selectedPresetCode}
+                    onPresetChange={handlePresetChange}
+                    config={(formData.presetConfig || {}) as Record<string, unknown>}
+                    onConfigChange={(config) => {
+                        setFormData(prev => ({
+                            ...prev,
+                            presetConfig: config as ActivityPresetConfig
+                        } as T));
+                    }}
+                    enabledRules={enabledRules}
+                    onRuleToggle={handleRuleToggle}
+                    onPreview={handlePreview}
+                    previewResponse={presetPreview}
+                    previewLoading={false}
+                    mode="activity"
+                    activityType={formData.type}
+                    requiresSubmission={formData.requiresSubmission}
+                    errors={presetConfigErrors}
+                />
             )}
 
             {renderFields ? renderFields(renderFieldsProps) : null}
 
-            {/* Score Rules Section */}
-            {mode !== 'series' && (
+            {/* Score Rules Section - only shown in CUSTOM mode */}
+            {mode !== 'series' && (!formData.presetCode || formData.presetCode === 'CUSTOM') && (
                 <div className="pt-6 border-t border-gray-200">
-                    <ScoreRulesForm 
+                    <ScoreRulesForm
                         rules={formData.scoreRules || []}
                         onChange={(rules) => setFormData(prev => ({ ...prev, scoreRules: rules } as T))}
                         departments={departments}
+                        disabled={false}
                     />
                 </div>
             )}
@@ -458,7 +621,7 @@ const BaseEventForm = <T extends BaseEventFormData>({
                     disabled={loading || isUploading}
                     className="px-6 py-2 bg-[#001C44] text-white rounded-md hover:bg-[#002A66] focus:outline-none focus:ring-2 focus:ring-[#001C44] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    {isUploading ? 'Dang upload anh...' : loading ? (isEditing ? 'Dang luu...' : 'Dang tao...') : (isEditing ? 'Luu thay doi' : 'Tao su kien')}
+                    {isUploading ? 'Đang upload ảnh...' : loading ? (isEditing ? 'Đang lưu...' : 'Đang tạo...') : (isEditing ? 'Lưu thay đổi' : 'Tạo sự kiện')}
                 </button>
             </div>
         </form>

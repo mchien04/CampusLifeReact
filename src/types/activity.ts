@@ -44,6 +44,21 @@ export enum ScoreSemesterPolicy {
     EXPLICIT_SEMESTER = 'EXPLICIT_SEMESTER'
 }
 
+export interface ActivityPresetConfig {
+    primaryScoreType?: ScoreType | null;
+    participationPoints?: number | string | null;
+    participationFailPoints?: number | string | null;
+    noShowPenaltyEnabled?: boolean | null;
+    noShowPenaltyPoints?: number | string | null;
+    noShowPenaltyScoreType?: ScoreType | null;
+    submissionPassPoints?: number | string | null;
+    submissionFailPoints?: number | string | null;
+    taskOverduePenaltyPoints?: number | string | null;
+    minigameExhaustedPenaltyPoints?: number | string | null;
+    bonusScoreType?: ScoreType | null;
+    bonusPoints?: number | string | null;
+}
+
 export interface ActivityScoreRuleRequest {
     scoreType: ScoreType;
     triggerType: ScoreRuleTrigger;
@@ -55,6 +70,8 @@ export interface ActivityScoreRuleRequest {
     explicitSemesterId?: number | null;
     departmentIds?: number[];
     enabled?: boolean | null;
+    /** true nếu rule do preset sinh ra (KHÔNG gửi kèm `scoreRules` khi dùng preset thật). */
+    isPresetGenerated?: boolean | null;
 }
 
 export interface ActivityScoreRuleResponse {
@@ -70,6 +87,8 @@ export interface ActivityScoreRuleResponse {
     explicitSemesterId?: number | null;
     targetDepartmentIds: number[];
     enabled?: boolean | null;
+    /** true nếu rule do preset sinh ra — dùng để hiển thị badge "Mẫu" trên UI. */
+    isPresetGenerated?: boolean | null;
 }
 
 export interface StandardActivityCreateRequest {
@@ -96,7 +115,7 @@ export interface StandardActivityCreateRequest {
     mandatoryForFacultyStudents?: boolean | null;
     organizerIds?: number[];
     presetCode?: string | null;
-    presetConfig?: any | null;
+    presetConfig?: ActivityPresetConfig | null;
 }
 
 export interface MinigameActivityCreateRequest {
@@ -123,7 +142,7 @@ export interface MinigameActivityCreateRequest {
     mandatoryForFacultyStudents?: boolean | null;
     organizerIds?: number[];
     presetCode?: string | null;
-    presetConfig?: any | null;
+    presetConfig?: ActivityPresetConfig | null;
     quiz?: QuizConfigRequest;
 }
 
@@ -315,7 +334,7 @@ export interface ActivityResponse {
     seriesId?: number | null;
     seriesOrder?: number | null;
     presetCode?: string | null;
-    presetConfig?: any | null;
+    presetConfig?: ActivityPresetConfig | null;
     createdAt?: string | null;
     updatedAt?: string | null;
     createdBy?: string | null;

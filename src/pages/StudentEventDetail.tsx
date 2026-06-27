@@ -910,7 +910,14 @@ const StudentEventDetail: React.FC = () => {
                                             ℹ️ Hoạt động thuộc chuỗi sự kiện. Điểm số sẽ tính theo tiến độ của chuỗi sự kiện.
                                         </div>
                                     ) : (
-                                        <ScoreRulesDisplay rules={event.scoreRules} />
+                                        <div>
+                                            {event.presetCode && event.presetCode !== 'CUSTOM' && (
+                                                <div className="mb-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                                    <span>Mẫu cấu hình: {event.presetCode}</span>
+                                                </div>
+                                            )}
+                                            <ScoreRulesDisplay rules={event.scoreRules} />
+                                        </div>
                                     )}
                                 </div>
                             </div>

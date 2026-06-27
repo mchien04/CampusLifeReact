@@ -38,6 +38,15 @@ const ManagerScores: React.FC = () => {
     const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
     const [historyPage, setHistoryPage] = useState(0);
     const historyPageSize = 20;
+    // Score history filters (new — backend DB-level filter)
+    const [historyStartDate, setHistoryStartDate] = useState<string>('');
+    const [historyEndDate, setHistoryEndDate] = useState<string>('');
+    const [historyKeyword, setHistoryKeyword] = useState<string>('');
+    
+    // Temporary states for filters
+    const [tempStartDate, setTempStartDate] = useState<string>('');
+    const [tempEndDate, setTempEndDate] = useState<string>('');
+    const [tempKeyword, setTempKeyword] = useState<string>('');
 
     // Recalculate states
     const [isRecalculatingAll, setIsRecalculatingAll] = useState(false);
@@ -174,7 +183,7 @@ const ManagerScores: React.FC = () => {
     // Query for score history
     const { data: historyData, isFetching: isHistoryFetching } = useQuery({
         enabled: Boolean(selectedStudentId && semesterId),
-        queryKey: ['scoreHistory', selectedStudentId, semesterId, scoreType, historyPage],
+        queryKey: ['scoreHistory', selectedStudentId, semesterId, scoreType, historyPage, historyStartDate, historyEndDate, historyKeyword],
         queryFn: async () => {
             const response = await scoresAPI.getScoreHistory({
                 studentId: selectedStudentId!,
@@ -182,6 +191,9 @@ const ManagerScores: React.FC = () => {
                 scoreType: scoreType || null,
                 page: historyPage,
                 size: historyPageSize,
+                startDate: historyStartDate ? new Date(historyStartDate).toISOString() : null,
+                endDate: historyEndDate ? new Date(historyEndDate).toISOString() : null,
+                keyword: historyKeyword.trim() || null,
             });
             if (!response.status || !response.data) {
                 throw new Error(response.message || 'Không lấy được lịch sử điểm');
@@ -193,11 +205,23 @@ const ManagerScores: React.FC = () => {
     const handleViewHistory = (studentId: number) => {
         setSelectedStudentId(studentId);
         setHistoryPage(0);
+        setHistoryStartDate('');
+        setHistoryEndDate('');
+        setHistoryKeyword('');
+        setTempStartDate('');
+        setTempEndDate('');
+        setTempKeyword('');
     };
 
     const handleCloseHistory = () => {
         setSelectedStudentId(null);
         setHistoryPage(0);
+        setHistoryStartDate('');
+        setHistoryEndDate('');
+        setHistoryKeyword('');
+        setTempStartDate('');
+        setTempEndDate('');
+        setTempKeyword('');
     };
 
     const handleRecalculateAll = async () => {
@@ -512,6 +536,51 @@ const ManagerScores: React.FC = () => {
                                 </div>
                             ) : historyData ? (
                                 <div className="space-y-6">
+                                    {/* Score History Filters */}
+                                    <div className="bg-white border border-gray-200 rounded-lg p-4 flex flex-wrap gap-4 items-end">
+                                        <div className="flex-1 min-w-[200px]">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Từ ngày</label>
+                                            <input 
+                                                type="datetime-local" 
+                                                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-[#001C44] focus:border-[#001C44] px-3 py-2 border sm:text-sm"
+                                                value={tempStartDate}
+                                                onChange={(e) => setTempStartDate(e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="flex-1 min-w-[200px]">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Đến ngày</label>
+                                            <input 
+                                                type="datetime-local" 
+                                                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-[#001C44] focus:border-[#001C44] px-3 py-2 border sm:text-sm"
+                                                value={tempEndDate}
+                                                onChange={(e) => setTempEndDate(e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="flex-1 min-w-[200px]">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Từ khóa (Hoạt động)</label>
+                                            <input 
+                                                type="text" 
+                                                placeholder="Tên hoạt động..."
+                                                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-[#001C44] focus:border-[#001C44] px-3 py-2 border sm:text-sm"
+                                                value={tempKeyword}
+                                                onChange={(e) => setTempKeyword(e.target.value)}
+                                            />
+                                        </div>
+                                        <div>
+                                            <button 
+                                                onClick={() => {
+                                                    setHistoryStartDate(tempStartDate);
+                                                    setHistoryEndDate(tempEndDate);
+                                                    setHistoryKeyword(tempKeyword);
+                                                    setHistoryPage(0);
+                                                }}
+                                                className="px-4 py-2 bg-[#001C44] text-white rounded-md hover:bg-[#002A66] transition-colors text-sm font-medium shadow-sm"
+                                            >
+                                                Lọc
+                                            </button>
+                                        </div>
+                                    </div>
+
                                     {/* Current Score */}
                                     <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] text-white p-6 rounded-lg">
                                         <div className="flex justify-between items-center">

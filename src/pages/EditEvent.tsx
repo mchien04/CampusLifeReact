@@ -78,7 +78,8 @@ const EditEvent: React.FC = () => {
             mandatoryForFacultyStudents: coerceBoolean(event.mandatoryForFacultyStudents, false),
             organizerIds: normalizeOrganizerIds(event),
             scoreRules: event.scoreRules?.map(mapScoreRuleResponseToRequest) ?? [],
-            presetCode: 'CUSTOM' as any,
+            presetCode: event.presetCode || 'CUSTOM',
+            presetConfig: event.presetConfig || null,
         };
     }, [event]);
 

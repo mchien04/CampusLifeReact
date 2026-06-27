@@ -5,6 +5,7 @@ import { QRCodeScanner } from '../components/qr';
 import { registrationAPI } from '../services/registrationAPI';
 import { ActivityParticipationResponse } from '../types/registration';
 import StudentLayout from '../components/layout/StudentLayout';
+import ScoreAwardList from '../components/presets/ScoreAwardList';
 
 const QRCodeCheckIn: React.FC = () => {
     const navigate = useNavigate();
@@ -136,10 +137,20 @@ const QRCodeCheckIn: React.FC = () => {
                                             {new Date(checkInResult.date).toLocaleString('vi-VN')}
                                         </span>
                                     </div>
-                                    {checkInResult.pointsEarned !== undefined && (
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-600">Điểm nhận được:</span>
-                                            <span className="font-medium text-green-600">{checkInResult.pointsEarned} điểm</span>
+                                    {checkInResult.scoreAwards && checkInResult.scoreAwards.length > 0 ? (
+                                        <div className="border-t border-gray-200 pt-3 mt-3">
+                                            <span className="block text-gray-600 font-medium mb-2">Điểm nhận được:</span>
+                                            <ScoreAwardList
+                                                awards={checkInResult.scoreAwards}
+                                                showIcons={true}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="border-t border-gray-200 pt-3 mt-3">
+                                            <span className="block text-gray-600 font-medium mb-2">Điểm nhận được:</span>
+                                            <p className="text-sm text-gray-500">
+                                                Điểm danh thành công. Không có điểm thưởng cho hoạt động này.
+                                            </p>
                                         </div>
                                     )}
                                 </div>

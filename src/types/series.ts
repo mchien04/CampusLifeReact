@@ -1,5 +1,6 @@
 import { ScoreType } from './activity';
 import { ActivityResponse } from './activity';
+import { SeriesPresetCode, SeriesPresetConfig } from './presets';
 
 export interface StudentSeriesProgress {
     id?: number;
@@ -38,6 +39,8 @@ export interface CreateSeriesRequest {
     minimumRequiredEvents?: number | null;
     minimumPenaltyPoints?: number | null;
     targetSemesterId?: number | null;
+    presetCode?: SeriesPresetCode | null;
+    presetConfig?: SeriesPresetConfig | null;
 }
 
 export interface UpdateSeriesRequest {
@@ -54,6 +57,8 @@ export interface UpdateSeriesRequest {
     minimumRequiredEvents?: number | null;
     minimumPenaltyPoints?: number | null;
     targetSemesterId?: number | null;
+    presetCode?: SeriesPresetCode | null;
+    presetConfig?: SeriesPresetConfig | null;
 }
 
 export interface AddActivityToSeriesRequest {
@@ -173,4 +178,3 @@ export interface SeriesProgressListResponse {
     totalPages: number;
     totalElements: number;
 }
-

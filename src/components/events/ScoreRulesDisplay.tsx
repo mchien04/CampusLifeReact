@@ -59,8 +59,16 @@ export const ScoreRulesDisplay: React.FC<ScoreRulesDisplayProps> = ({ rules }) =
                             rule.scoreType === ScoreType.CONG_TAC_XA_HOI ? 'bg-blue-500' : 'bg-purple-500'
                         }`} />
                         <div className="flex justify-between items-start pl-2">
-                            <span className="font-semibold text-gray-800">
+                            <span className="font-semibold text-gray-800 flex items-center gap-2">
                                 {getScoreTypeLabel(rule.scoreType)}
+                                {rule.isPresetGenerated === true && (
+                                    <span
+                                        title="Luật này được sinh ra từ mẫu cấu hình (preset)"
+                                        className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-100 text-indigo-700 uppercase tracking-wide"
+                                    >
+                                        Mẫu
+                                    </span>
+                                )}
                             </span>
                             {(() => {
                                 const isPenaltyOnly = [ScoreRuleTrigger.NO_SHOW, ScoreRuleTrigger.TASK_OVERDUE, ScoreRuleTrigger.MINIGAME_EXHAUSTED_ATTEMPTS].includes(rule.triggerType);
