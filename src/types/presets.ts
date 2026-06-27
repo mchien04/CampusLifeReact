@@ -1,4 +1,4 @@
-import { ActivityType, ScoreType, ActivityScoreRuleRequest, ActivityPresetConfig } from './activity';
+import { ActivityType, ScoreType, ActivityScoreRuleRequest, ActivityPresetConfig, ScoreRuleTrigger } from './activity';
 
 export type ActivityPresetCode =
     | "EVENT_BASIC"
@@ -13,8 +13,8 @@ export type SeriesPresetCode =
     | "ENTERPRISE_SERIES"
     | "CUSTOM";
 
-export type InputType = 'NUMBER' | 'BOOLEAN' | 'SELECT' | 'MAP';
-export type VisibilityType = 'ALWAYS' | 'rule_enabled';
+export type InputType = 'NUMBER' | 'BOOLEAN' | 'SELECT' | 'MAP' | 'MULTI_SELECT';
+export type VisibilityType = 'ALWAYS' | 'rule_enabled' | 'audience_department_scoped' | 'semester_policy_explicit';
 
 export interface FieldDefinition {
     fieldName: string;
@@ -23,7 +23,7 @@ export interface FieldDefinition {
     required: boolean;
     defaultValue: any;
     visibility: VisibilityType;
-    options?: string[];
+    options?: string[] | null;
 }
 
 export interface PresetRuleDescriptor {
@@ -33,6 +33,8 @@ export interface PresetRuleDescriptor {
     required: boolean;
     enabledByDefault: boolean;
     fieldDefinitions: FieldDefinition[];
+    /** P5.2: suggested trigger combinations for CUSTOM mode */
+    suggestedCombinations?: ScoreRuleTrigger[];
 }
 
 export interface ActivityPresetDefinition {
@@ -74,6 +76,8 @@ export interface SeriesPresetConfig {
     minimumRequirementEnabled?: boolean | null;
     minimumRequiredEvents?: number | null;
     minimumPenaltyPoints?: number | string | null;
+    audience?: import('./activity').ScoreRuleAudience | null;
+    departmentIds?: number[] | null;
 }
 
 export interface SeriesPresetPreviewRequest {

@@ -1,5 +1,6 @@
 import api from './api';
 import { Response } from '../types';
+import { ScoreBreakdownResponse } from '../types/score';
 import {
     DashboardStatisticsResponse,
     ActivityStatisticsResponse,
@@ -178,6 +179,33 @@ export const statisticsAPI = {
             return {
                 status: false,
                 message: error.response?.data?.message || 'Failed to fetch minigame statistics',
+                data: undefined
+            };
+        }
+    },
+
+    getScoreBreakdown: async (params: {
+        semesterId?: number;
+        studentId?: number;
+        departmentId?: number;
+    } = {}): Promise<Response<ScoreBreakdownResponse>> => {
+        try {
+            const queryParts: string[] = [];
+            if (params.semesterId) queryParts.push(`semesterId=${params.semesterId}`);
+            if (params.studentId) queryParts.push(`studentId=${params.studentId}`);
+            if (params.departmentId) queryParts.push(`departmentId=${params.departmentId}`);
+            const qs = queryParts.length > 0 ? '?' + queryParts.join('&') : '';
+            const response = await api.get(`/api/statistics/scores/breakdown${qs}`);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.data || response.data.body
+            };
+        } catch (error: any) {
+            console.error('Error fetching score breakdown:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Failed to fetch score breakdown',
                 data: undefined
             };
         }

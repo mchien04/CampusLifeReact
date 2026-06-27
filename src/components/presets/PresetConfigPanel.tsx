@@ -23,6 +23,7 @@ interface PresetConfigPanelProps {
     activityType?: ActivityType;
     requiresSubmission?: boolean | null;
     errors?: Record<string, string>;
+    externalOptions?: Record<string, Array<{ value: string | number; label: string }>>;
 }
 
 const buildEnabledRules = (preset: PresetDefinition): Record<string, boolean> => {
@@ -59,7 +60,8 @@ const PresetConfigPanel: React.FC<PresetConfigPanelProps> = ({
     mode,
     activityType,
     requiresSubmission,
-    errors = {}
+    errors = {},
+    externalOptions
 }) => {
     const selectedPreset = presets.find(p => p.code === selectedPresetCode);
 
@@ -123,6 +125,8 @@ const PresetConfigPanel: React.FC<PresetConfigPanelProps> = ({
                             fieldValues={config}
                             onFieldChange={handleFieldChange}
                             errors={errors}
+                            externalOptions={externalOptions}
+                            presetCode={selectedPreset.code}
                         />
                     ))}
 
@@ -140,18 +144,41 @@ const PresetConfigPanel: React.FC<PresetConfigPanelProps> = ({
                             <h4 className="text-sm font-semibold text-green-900">
                                 Xem trước: {previewResponse.presetCode}
                             </h4>
-                            <div className="space-y-2">
-                                {previewResponse.scoreRules.map((rule: ActivityScoreRuleRequest, idx: number) => (
-                                    <div key={idx} className="text-sm text-green-800 flex items-center gap-2">
-                                        <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                                        <span>{rule.triggerType}</span>
-                                        <span className="text-green-600">|</span>
-                                        <span>{rule.scoreType}</span>
-                                        <span className="text-green-600">|</span>
-                                        <span>{rule.points} điểm</span>
+                            {(() => {
+                                const hasAnyFailPoints = previewResponse.scoreRules.some(
+                                    (r: ActivityScoreRuleRequest) => r.failPoints !== null && r.failPoints !== undefined
+                                );
+                                return (
+                                    <div className="overflow-x-auto">
+                                        <table className="min-w-full text-xs text-left">
+                                            <thead className="text-gray-600 bg-green-100">
+                                                <tr>
+                                                    <th className="px-2 py-1">Trigger</th>
+                                                    <th className="px-2 py-1">Loại điểm</th>
+                                                    <th className="px-2 py-1 text-right">Điểm</th>
+                                                    {hasAnyFailPoints && (
+                                                        <th className="px-2 py-1 text-right">Điểm trừ</th>
+                                                    )}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {previewResponse.scoreRules.map((rule: ActivityScoreRuleRequest, idx: number) => (
+                                                    <tr key={idx} className="border-t border-green-200">
+                                                        <td className="px-2 py-1 text-green-800">{rule.triggerType}</td>
+                                                        <td className="px-2 py-1 text-green-700">{rule.scoreType}</td>
+                                                        <td className="px-2 py-1 text-right text-green-700 font-semibold">{rule.points}</td>
+                                                        {hasAnyFailPoints && (
+                                                            <td className="px-2 py-1 text-right text-red-600">
+                                                                {rule.failPoints != null ? rule.failPoints : '-'}
+                                                            </td>
+                                                        )}
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
                                     </div>
-                                ))}
-                            </div>
+                                );
+                            })()}
                             {previewResponse.notes.length > 0 && (
                                 <ul className="list-disc list-inside text-xs text-green-700">
                                     {previewResponse.notes.map((note, idx) => (

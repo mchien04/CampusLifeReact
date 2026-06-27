@@ -1,5 +1,5 @@
 import api from './api';
-import { TrainingCalculateResponse, ScoreViewResponse, StudentRankingResponseData, ScoreHistoryViewResponse, ScoreType } from '../types/score';
+import { TrainingCalculateResponse, ScoreViewResponse, StudentRankingResponseData, ScoreHistoryViewResponse, ScoreType, RecalculationJobResponse } from '../types/score';
 
 // Normalize response format
 const normalize = <T>(data: any): { status: boolean; message: string; data?: T } => {
@@ -137,5 +137,25 @@ export const scoresAPI = {
         const url = `/api/scores/recalculate/all${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
         const res = await api.post(url);
         return normalize<string>(res.data);
+    },
+
+    recalculateAsync: async (semesterId?: number): Promise<{ status: boolean; message: string; data?: { jobId: number; semesterId: number; totalStudents: number; status: string } }> => {
+        const queryParams = new URLSearchParams();
+        if (semesterId) {
+            queryParams.append('semesterId', String(semesterId));
+        }
+        const url = `/api/scores/recalculate/async${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+        const res = await api.post(url);
+        return normalize(res.data);
+    },
+
+    getRecalculationStatus: async (jobId: number): Promise<{ status: boolean; message: string; data?: RecalculationJobResponse }> => {
+        const res = await api.get(`/api/scores/recalculate/status/${jobId}`);
+        return normalize<RecalculationJobResponse>(res.data);
+    },
+
+    retryRecalculation: async (jobId: number): Promise<{ status: boolean; message: string; data?: { jobId: number } }> => {
+        const res = await api.post(`/api/scores/recalculate/retry/${jobId}`);
+        return normalize(res.data);
     },
 };

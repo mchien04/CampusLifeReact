@@ -204,4 +204,35 @@ export const formatDateTime = (dateTime: string): string => {
     }
 };
 
+export type RecalculationJobStatus = "PENDING" | "RUNNING" | "COMPLETED" | "FAILED" | "TIMEOUT";
+
+export interface RecalculationJobResponse {
+    id: number;
+    semesterId: number;
+    status: RecalculationJobStatus;
+    totalStudents: number;
+    processedStudents: number;
+    errorCount: number;
+    progressPercent: number;
+    startedAt?: string | null;
+    completedAt?: string | null;
+    createdAt: string;
+    errorDetails?: string | null;
+}
+
+export interface ScoreBreakdownItem {
+    sourceType: string;
+    totalPoints: number | string;
+    entryCount: number;
+    percentage: number;
+}
+
+export interface ScoreBreakdownResponse {
+    studentId: number;
+    semesterId: number;
+    scoreType?: string | null;
+    totalScore: number | string;
+    breakdown: ScoreBreakdownItem[];
+}
+
 

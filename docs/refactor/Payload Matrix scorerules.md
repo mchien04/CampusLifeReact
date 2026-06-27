@@ -240,6 +240,8 @@ Series không dùng `ActivityScoreRuleRequest` cho milestone. FE gửi trực ti
   "minimumRequirementEnabled": true,
   "minimumRequiredEvents": 3,
   "minimumPenaltyPoints": 2,
+  "audience": "ALL_PARTICIPANTS",
+  "departmentIds": [],
   "registrationStartDate": "2026-06-01T00:00:00",
   "registrationDeadline": "2026-06-30T23:59:59",
   "requiresApproval": true,
@@ -248,6 +250,18 @@ Series không dùng `ActivityScoreRuleRequest` cho milestone. FE gửi trực ti
   "presetConfig": null
 }
 ```
+
+**Tính năng mới: Series audience**
+
+| audience | Hành vi |
+|----------|---------|
+| `ALL_PARTICIPANTS` (default) | Tất cả student có progress đều nhận milestone/penalty điểm |
+| `DEPARTMENT_ONLY` | Chỉ student thuộc khoa trong `departmentIds` mới nhận điểm |
+| `OUTSIDE_DEPARTMENTS_ONLY` | Chỉ student KHÔNG thuộc khoa trong `departmentIds` mới nhận điểm |
+
+- Audience chỉ ảnh hưởng scoring (milestone + penalty), KHÔNG ảnh hưởng enrollment (student vẫn đăng ký được).
+- FE gửi `departmentIds` khi `audience != ALL_PARTICIPANTS`.
+- GET response có `audience` và `targetDepartmentIds`.
 
 Preset default:
 
@@ -264,7 +278,35 @@ Series engine hiện tại:
 - Activity con trong series không ghi điểm riêng cho `PARTICIPATION_COMPLETED`, `SUBMISSION_GRADED`, `TASK_OVERDUE`, `NO_SHOW`, `MINIGAME_PASSED`, `MINIGAME_EXHAUSTED_ATTEMPTS`.
 - Học kỳ của series hiện resolve theo activity đầu tiên trong series; nếu không có activity thì fallback học kỳ đang mở/đầu tiên. Series request hiện **chưa có** `explicitSemesterId`, nên UI chọn học kỳ cụ thể chỉ áp dụng cho `scoreRules` của activity standalone.
 
-#### 4.3.5 Ma trận case engine để FE hiển thị đúng
+#### 4.3.6 Preset Form: Dynamic Render từ supportedRules
+
+FE gọi `GET /api/activities/presets` và `GET /api/series/presets` để lấy metadata `supportedRules`. Mỗi descriptor có `ruleKey` và danh sách `FieldDefinition`. FE render form động theo metadata này.
+
+**Rule-key mới (P4):**
+
+| ruleKey | Áp dụng | fieldName cần render |
+|---------|---------|---------------------|
+| `ACTIVITY_AUDIENCE` | Activity | `audience` (SELECT), `departmentIds` (MULTI_SELECT), `semesterPolicy` (SELECT), `explicitSemesterId` (SELECT) |
+| `SERIES_AUDIENCE` | Series | `audience` (SELECT), `departmentIds` (MULTI_SELECT) |
+
+**Visibility rules cho FE:**
+
+| visibility | Điều kiện hiện |
+|------------|---------------|
+| `ALWAYS` | Luôn hiện |
+| `rule_enabled` | Hiện khi rule descriptor được bật |
+| `audience_department_scoped` | Hiện khi `audience != ALL_PARTICIPANTS` |
+| `semester_policy_explicit` | Hiện khi `semesterPolicy == EXPLICIT_SEMESTER` |
+
+**inputType mới:**
+- `MULTI_SELECT` — render thành multi-select dropdown (VD: react-select) để chọn danh sách khoa. Gửi `presetConfig.departmentIds: [1, 2, 3]`.
+
+**Flow render form Activity:**
+1. User chọn preset → FE load `supportedRules` từ GET /presets
+2. Với mỗi `PresetRuleDescriptor`, FE render 1 section tương ứng `ruleKey`
+3. Mỗi section chứa các input theo `fieldDefinitions`, dùng `inputType`, `visibility`, `defaultValue` để render đúng
+4. Khi user thay đổi giá trị → cập nhật `presetConfig` tương ứng (map `fieldName` → value)
+5. Gửi `presetCode` + `presetConfig` khi create/update. BE sinh rules từ config.
 
 | Case | Trigger/Source | Điểm FE gửi | Điểm BE ghi | Ghi chú UI |
 | --- | --- | --- | --- | --- |
@@ -293,14 +335,21 @@ Series engine hiện tại:
 | Copy activity | `POST /api/activities/{id}/copy?offsetDays=...` | Đã có; score rules copy sang activity mới với `ACTIVITY_SEMESTER` |
 
 > [!IMPORTANT]
-> Edit activity đã áp dụng engine mới: `PUT /api/activities/{id}` gọi lại preset resolver nếu có `presetCode/presetConfig`, sau đó `replaceRules(activityId, request.scoreRules)`. Nếu `presetCode` khác `CUSTOM`, backend sẽ sinh lại `scoreRules` từ preset và overwrite danh sách FE gửi. Nếu FE muốn lưu bảng rule custom, gửi `presetCode: "CUSTOM"` hoặc không gửi `presetCode`, đồng thời gửi toàn bộ `scoreRules` mong muốn sau chỉnh sửa. Nếu gửi `scoreRules: []` hoặc `null` trong custom mode, rules cũ sẽ bị xóa/replaced theo backend hiện tại.
+> **Edit activity behavior (updated):**
+> - `PUT /api/activities/{id}` và `PUT /api/activities/standard/{id}`: gọi preset resolver nếu có `presetCode/presetConfig`, sau đó merge-by-key thay vì delete-all+recreate. Rule ID được giữ nguyên → score entries hiện có không bị gãy FK.
+> - Nếu activity đã có ACTIVE score entries và không phải draft → **backend từ chối sửa score rules** (IllegalStateException). Admin phải unpublish trước khi sửa.
+> - Nếu activity đã có ACTIVE score entries và không phải draft → **backend từ chối đổi type** (chỉ Standard path vì có field `type`).
+> - Nếu gửi update KHÔNG có `scoreRules`, rules hiện tại được giữ nguyên (null guard fix).
+> - Nếu FE muốn lưu bảng rule custom, gửi `presetCode: "CUSTOM"` hoặc không gửi `presetCode`, đồng thời gửi toàn bộ `scoreRules` mong muốn.
+> - ActivityResponse giờ có `presetCode` để FE biết preset nào đã dùng.
 
 Read-back để hiển thị lại form:
 
 - `POST /api/activities`, `PUT /api/activities/{id}`, `POST /api/activities/{id}/copy`, `PUT /publish`, `PUT /unpublish` đều trả `ApiResponse<ActivityResponse>`.
-- `ActivityResponse` hiện trả lại các field cần dựng form: `requiresSubmission`, `requiresApproval`, `mandatoryForFacultyStudents`, `requirements`, `benefits`, `contactInfo`, `registrationStartDate`, `registrationDeadline`, `ticketQuantity`, `location`, `bannerUrl`, `organizerIds`, `seriesId`, `seriesOrder`, `isDraft`, `isImportant`, `scoreRules`.
+- `ActivityResponse` hiện trả lại các field cần dựng form: `requiresSubmission`, `requiresApproval`, `mandatoryForFacultyStudents`, `requirements`, `benefits`, `contactInfo`, `registrationStartDate`, `registrationDeadline`, `ticketQuantity`, `location`, `bannerUrl`, `organizerIds`, `seriesId`, `seriesOrder`, `isDraft`, `isImportant`, `scoreRules`, **`presetCode`**.
 - `GET /api/activities/{id}` cũng trả cùng `ActivityResponse`, nên FE có thể reload detail sau mỗi CRUD/copy để đồng bộ UI.
-- Caveat hiện tại: `copyActivity` copy thông tin và score rules, nhưng activity copy được set `isDraft=true`, clear `explicitSemesterId` của copied rules về `ACTIVITY_SEMESTER`, và hiện chưa auto-generate `checkInCode` mới trong copy flow. Nếu FE cần QR ngay cho bản copy, publish/backfill hoặc BE nên bổ sung generate code trong copy flow.
+- `presetCode` cho phép FE pre-select preset khi mở form edit. `presetConfig` hiện để `null`, FE nên reconstruct từ `scoreRules` hiện có hoặc dùng default của preset.
+- Caveat: `copyActivity` copy thông tin và score rules, activity copy được set `isDraft=true`, clear `explicitSemesterId` của copied rules về `ACTIVITY_SEMESTER`, và hiện chưa auto-generate `checkInCode` mới trong copy flow. Nếu FE cần QR ngay cho bản copy, publish/backfill hoặc BE nên bổ sung generate code trong copy flow.
 
 ---
 #### 6. CRUD coverage của Series
@@ -322,8 +371,9 @@ Lưu ý cho FE: activity con tạo qua `/activities/create` là payload tối gi
 Read-back để hiển thị lại form series:
 
 - `POST /api/series`, `PUT /api/series/{seriesId}`, `GET /api/series/{seriesId}` trả `ApiResponse<SeriesResponse>`.
-- `SeriesResponse` hiện trả lại `name`, `description`, `milestonePoints`, `scoreType`, `mainActivityId`, `registrationStartDate`, `registrationDeadline`, `requiresApproval`, `ticketQuantity`, `minimumRequirementEnabled`, `minimumRequiredEvents`, `minimumPenaltyPoints`, `createdAt`.
-- Các trường preset (`presetCode`, `presetConfig`) là input helper để sinh config, không được lưu/trả lại như một phần `SeriesResponse`; FE nên hiển thị lại từ config resolved (`milestonePoints`, minimum fields, `scoreType`).
+- `SeriesResponse` hiện trả lại `name`, `description`, `milestonePoints`, `scoreType`, `mainActivityId`, `registrationStartDate`, `registrationDeadline`, `requiresApproval`, `ticketQuantity`, `minimumRequirementEnabled`, `minimumRequiredEvents`, `minimumPenaltyPoints`, **`audience`**, **`targetDepartmentIds`**, **`presetCode`**, `createdAt`.
+- `presetCode` cho phép FE pre-select preset khi mở form edit series. `presetConfig` hiện để `null`.
+- `audience` và `targetDepartmentIds` hiển thị trên màn hình chi tiết series: đối tượng nào được nhận milestone/penalty điểm.
 
 ---
 #### 6. CRUD coverage của MiniGame

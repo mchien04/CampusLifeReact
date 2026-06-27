@@ -88,6 +88,7 @@ export interface CreateOptionRequest {
 // Matches backend vn.campuslife.activity.dto.MinigameActivityCreateRequest.QuizConfigRequest
 export interface QuizConfigRequest {
     title: string;
+    description?: string | null;
     questionCount: number;
     timeLimit?: number;
     requiredCorrectAnswers?: number;

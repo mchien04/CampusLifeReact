@@ -3,8 +3,12 @@ import { CreateSeriesRequest } from '../../types/series';
 import { ScoreType } from '../../types/activity';
 import { seriesAPI } from '../../services/seriesAPI';
 import { academicPublicAPI } from '../../services/academicPublicAPI';
+import { departmentAPI } from '../../services/adminAPI';
 import { SeriesPresetPreviewResponse, SeriesPresetDefinition, SeriesPresetCode, SeriesPresetConfig } from '../../types/presets';
 import PresetConfigPanel from '../presets/PresetConfigPanel';
+import MultiSelectField from '../presets/MultiSelectField';
+import { Department } from '../../types/admin';
+import { validateSeriesPresetConfig } from '../../utils/presetValidation';
 
 // Helper functions for preset initialization
 const buildEnabledRules = (preset: SeriesPresetDefinition): Record<string, boolean> => {
@@ -56,6 +60,11 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
             minimumRequiredEvents: undefined,
             minimumPenaltyPoints: undefined,
             targetSemesterId: undefined,
+            audience: 'ALL_PARTICIPANTS',
+            departmentIds: [],
+            isImportant: false,
+            mandatoryForFacultyStudents: false,
+            isDraft: true,
             presetCode: (initialData.presetCode ?? '') as SeriesPresetCode,
             presetConfig: initialData.presetConfig ?? undefined
         };
@@ -78,6 +87,7 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
     const [presetPreview, setPresetPreview] = useState<SeriesPresetPreviewResponse | null>(null);
     const [previewLoading, setPreviewLoading] = useState(false);
     const [semesters, setSemesters] = useState<Array<{ id: number; name: string }>>([]);
+    const [departments, setDepartments] = useState<Department[]>([]);
     const isEditing = !!(initialData && Object.keys(initialData).length > 0);
     const hasInitializedPreset = useRef(false);
 
@@ -162,6 +172,25 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
         fetchSemesters();
     }, []);
 
+    // Load departments
+    useEffect(() => {
+        const fetchDepartments = async () => {
+            try {
+                const res = await departmentAPI.getDepartments();
+                if (res.status && res.data) {
+                    setDepartments(res.data);
+                }
+            } catch (error) {
+                console.error('Lỗi khi tải danh sách khoa:', error);
+            }
+        };
+        fetchDepartments();
+    }, []);
+
+    const externalOptions = {
+        departmentIds: departments.map(d => ({ value: d.id, label: d.name })),
+    };
+
     // Sync milestoneEntries from formData.milestonePoints
     useEffect(() => {
         if (formData.milestonePoints) {
@@ -214,6 +243,12 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
             }
             if (config.minimumPenaltyPoints !== undefined) {
                 updates.minimumPenaltyPoints = config.minimumPenaltyPoints as number;
+            }
+            if (config.audience !== undefined) {
+                updates.audience = config.audience as string;
+            }
+            if (config.departmentIds !== undefined) {
+                updates.departmentIds = config.departmentIds as number[];
             }
             return { ...prev, ...updates };
         });
@@ -346,52 +381,32 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
             // Validate preset config fields using supportedRules metadata
             const selectedPreset = presets.find(p => p.code === selectedPresetCode);
             if (selectedPreset) {
-                for (const rule of selectedPreset.supportedRules) {
-                    const ruleEnabled = enabledRules[rule.ruleKey] ?? rule.enabledByDefault;
-                    if (!ruleEnabled) continue;
-
-                    for (const field of rule.fieldDefinitions) {
-                        if (!field.required) continue;
-                        // Skip fields hidden because the rule is disabled (shouldn't happen since we skip disabled rules above)
-                        if (field.visibility === 'rule_enabled' && !ruleEnabled) continue;
-
-                        const configValue = (formData.presetConfig as Record<string, unknown> | undefined)?.[field.fieldName];
-
-                        if (field.inputType === 'NUMBER') {
-                            if (configValue === undefined || configValue === null || configValue === '' || Number(configValue) < 0) {
-                                newErrors[field.fieldName] = `${field.label} là bắt buộc và phải >= 0`;
-                            }
-                        } else if (field.inputType === 'MAP') {
-                            if (!configValue || typeof configValue !== 'object' || Object.keys(configValue as object).length === 0) {
-                                newErrors[field.fieldName] = `${field.label} không được để trống`;
-                            }
-                        } else if (field.inputType === 'SELECT') {
-                            if (!configValue || configValue === '') {
-                                newErrors[field.fieldName] = `Vui lòng chọn ${field.label.toLowerCase()}`;
-                            }
-                        }
-                    }
+                const result = validateSeriesPresetConfig(
+                    selectedPreset,
+                    enabledRules,
+                    (formData.presetConfig as Record<string, unknown>) || {}
+                );
+                for (const err of result.errors) {
+                    newErrors[err.fieldName] = err.message;
                 }
             }
         } else {
-            // CUSTOM mode validation (keep existing behavior)
+            // CUSTOM mode validation (milestone only — minimum requirements are in presetConfig)
             if (!formData.milestonePoints || Object.keys(formData.milestonePoints).length === 0) {
                 newErrors.milestonePoints = 'Vui lòng thêm ít nhất một mốc điểm';
-            }
-
-            if (formData.minimumRequirementEnabled) {
-                if (!formData.minimumRequiredEvents || Number(formData.minimumRequiredEvents) < 1) {
-                    newErrors.minimumRequiredEvents = 'Số sự kiện tối thiểu phải lớn hơn hoặc bằng 1';
-                }
-                if (formData.minimumPenaltyPoints === undefined || formData.minimumPenaltyPoints === null || Number(formData.minimumPenaltyPoints) < 0) {
-                    newErrors.minimumPenaltyPoints = 'Điểm phạt phải lớn hơn hoặc bằng 0';
-                }
             }
         }
 
         if (formData.registrationStartDate && formData.registrationDeadline) {
             if (new Date(formData.registrationStartDate) >= new Date(formData.registrationDeadline)) {
                 newErrors.registrationDeadline = 'Hạn đăng ký phải sau ngày mở đăng ký';
+            }
+        }
+
+        // Cross-field validation: departmentIds required when audience scoped
+        if (formData.audience && formData.audience !== 'ALL_PARTICIPANTS') {
+            if (!formData.departmentIds || formData.departmentIds.length === 0) {
+                newErrors.departmentIds = 'Vui lòng chọn ít nhất một khoa khi giới hạn đối tượng';
             }
         }
 
@@ -406,7 +421,7 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
         const isCustomMode = !selectedPresetCode;
 
         if (!isCustomMode) {
-            // Preset mode: strip direct fields to avoid backend conflict
+            // Preset mode: BE applySeriesPreset fills milestone + minimum fields from presetConfig
             const payload = {
                 ...formData,
                 presetCode: selectedPresetCode as SeriesPresetCode,
@@ -418,11 +433,14 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
             } as unknown as CreateSeriesRequest;
             onSubmit(payload);
         } else {
-            // CUSTOM mode: keep current behavior
+            // CUSTOM mode: presetConfig carries minimum requirement fields (rendered by PresetConfigPanel)
             const payload: CreateSeriesRequest = {
                 ...formData,
                 presetCode: 'CUSTOM' as SeriesPresetCode,
-                presetConfig: undefined
+                presetConfig: formData.presetConfig,
+                minimumRequirementEnabled: undefined,
+                minimumRequiredEvents: undefined,
+                minimumPenaltyPoints: undefined
             };
             onSubmit(payload);
         }
@@ -466,6 +484,7 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
                                     previewLoading={previewLoading}
                                     mode="series"
                                     errors={errors}
+                                    externalOptions={externalOptions}
                                 />
                             </div>
                         )}
@@ -640,9 +659,43 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
                                     onChange={handleChange}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
                                 />
-                            </div>
+                        </div>
 
-                            <div>
+                        {/* Audience / Department — shown in CUSTOM mode */}
+                        {isCustomMode && (
+                            <>
+                                <div>
+                                    <label htmlFor="audience" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Đối tượng nhận điểm
+                                    </label>
+                                    <select
+                                        id="audience"
+                                        name="audience"
+                                        value={formData.audience || 'ALL_PARTICIPANTS'}
+                                        onChange={handleChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
+                                    >
+                                        <option value="ALL_PARTICIPANTS">Tất cả người tham gia</option>
+                                        <option value="DEPARTMENT_ONLY">Chỉ sinh viên thuộc khoa được chọn</option>
+                                        <option value="OUTSIDE_DEPARTMENTS_ONLY">Chỉ sinh viên ngoài khoa được chọn</option>
+                                    </select>
+                                </div>
+                                {formData.audience && formData.audience !== 'ALL_PARTICIPANTS' && (
+                                    <div className="md:col-span-2">
+                                        <MultiSelectField
+                                            label="Danh sách Khoa"
+                                            options={departments.map(d => ({ value: d.id, label: d.name }))}
+                                            value={formData.departmentIds || []}
+                                            onChange={(val) => setFormData(prev => ({ ...prev, departmentIds: val as number[] }))}
+                                            required={formData.audience !== 'ALL_PARTICIPANTS'}
+                                            error={errors.departmentIds}
+                                        />
+                                    </div>
+                                )}
+                            </>
+                        )}
+
+                        <div>
                                 <label htmlFor="registrationDeadline" className="block text-sm font-medium text-gray-700 mb-2">
                                     Hạn đăng ký
                                 </label>
@@ -696,69 +749,45 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
                         </div>
                     </div>
 
-                    {/* Minimum Requirements - only show in CUSTOM mode */}
-                    {isCustomMode && (
-                        <div className="border-t pt-6">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Điều kiện tối thiểu</h3>
-                            <div className="space-y-4">
-                                <label className="flex items-center space-x-2">
-                                    <input
-                                        type="checkbox"
-                                        name="minimumRequirementEnabled"
-                                        checked={formData.minimumRequirementEnabled || false}
-                                        onChange={handleChange}
-                                        className="rounded border-gray-300 text-[#001C44] focus:ring-[#001C44]"
-                                    />
-                                    <span className="text-sm font-medium text-gray-700">Bật yêu cầu tối thiểu (Minimum Requirements)</span>
-                                </label>
+                    {/* Minimum Requirements are now part of the preset system (SeriesPresetConfig).
+                        The PresetConfigPanel renders these fields via the series preset descriptor. */}
 
-                                {formData.minimumRequirementEnabled && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                                        <div>
-                                            <label htmlFor="minimumRequiredEvents" className="block text-sm font-medium text-gray-700 mb-2">
-                                                Số sự kiện tối thiểu cần hoàn thành
-                                            </label>
-                                            <input
-                                                type="number"
-                                                id="minimumRequiredEvents"
-                                                name="minimumRequiredEvents"
-                                                min="1"
-                                                value={formData.minimumRequiredEvents || ''}
-                                                onChange={handleChange}
-                                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44] ${
-                                                    errors.minimumRequiredEvents ? 'border-red-500' : 'border-gray-300'
-                                                }`}
-                                                placeholder="Ví dụ: 2"
-                                            />
-                                            {errors.minimumRequiredEvents && (
-                                                <p className="text-red-500 text-sm mt-1">{errors.minimumRequiredEvents}</p>
-                                            )}
-                                        </div>
-                                        <div>
-                                            <label htmlFor="minimumPenaltyPoints" className="block text-sm font-medium text-gray-700 mb-2">
-                                                Điểm phạt nếu không hoàn thành (điểm dương)
-                                            </label>
-                                            <input
-                                                type="number"
-                                                id="minimumPenaltyPoints"
-                                                name="minimumPenaltyPoints"
-                                                min="0"
-                                                value={formData.minimumPenaltyPoints ?? ''}
-                                                onChange={handleChange}
-                                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44] ${
-                                                    errors.minimumPenaltyPoints ? 'border-red-500' : 'border-gray-300'
-                                                }`}
-                                                placeholder="Ví dụ: 5"
-                                            />
-                                            {errors.minimumPenaltyPoints && (
-                                                <p className="text-red-500 text-sm mt-1">{errors.minimumPenaltyPoints}</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                    {/* Auto-register & Draft Flags */}
+                    <div className="border-t pt-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Đăng ký tự động & Trạng thái</h3>
+                        <div className="space-y-3">
+                            <label className="flex items-center space-x-2">
+                                <input
+                                    type="checkbox"
+                                    name="isImportant"
+                                    checked={!!formData.isImportant}
+                                    onChange={handleChange}
+                                    className="rounded border-gray-300 text-[#001C44] focus:ring-[#001C44]"
+                                />
+                                <span className="text-sm text-gray-700">Sự kiện quan trọng (tự động đăng ký tất cả sinh viên active)</span>
+                            </label>
+                            <label className="flex items-center space-x-2">
+                                <input
+                                    type="checkbox"
+                                    name="mandatoryForFacultyStudents"
+                                    checked={!!formData.mandatoryForFacultyStudents}
+                                    onChange={handleChange}
+                                    className="rounded border-gray-300 text-[#001C44] focus:ring-[#001C44]"
+                                />
+                                <span className="text-sm text-gray-700">Bắt buộc với sinh viên khoa tổ chức (tự động đăng ký SV các khoa tổ chức)</span>
+                            </label>
+                            <label className="flex items-center space-x-2">
+                                <input
+                                    type="checkbox"
+                                    name="isDraft"
+                                    checked={!!formData.isDraft}
+                                    onChange={handleChange}
+                                    className="rounded border-gray-300 text-[#001C44] focus:ring-[#001C44]"
+                                />
+                                <span className="text-sm text-gray-700">Bản nháp (chưa công bố, không tự động đăng ký)</span>
+                            </label>
                         </div>
-                    )}
+                    </div>
 
                     {/* Form Actions */}
                     <div className="flex justify-end space-x-3 pt-6 border-t">

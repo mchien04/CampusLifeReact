@@ -11,6 +11,7 @@ interface StandardActivityFormProps {
     title?: string;
     onCancel?: () => void;
     lockApprovalWhenImportant?: boolean;
+    activeScoreEntryCount?: number;
 }
 
 const formatAmPmPreview = (value?: string | null) => {
@@ -41,6 +42,7 @@ const renderStandardFields = (props: RenderFieldsProps<StandardActivityCreateReq
         handleUnlimitedChange,
         originalBannerUrl,
         lockApprovalWhenImportant,
+        isScoreLocked
     } = props;
 
     const isApprovalLocked = lockApprovalWhenImportant && (!!formData.isImportant || !!formData.mandatoryForFacultyStudents);
@@ -75,12 +77,16 @@ const renderStandardFields = (props: RenderFieldsProps<StandardActivityCreateReq
                         name="type"
                         value={formData.type || ''}
                         onChange={handleChange}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.type ? 'border-red-500' : 'border-gray-300'}`}
+                        disabled={isScoreLocked}
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.type ? 'border-red-500' : 'border-gray-300'} ${isScoreLocked ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                     >
                         <option value={ActivityType.SUKIEN}>Sự kiện</option>
                         <option value={ActivityType.CONG_TAC_XA_HOI}>Công tác xã hội</option>
                         <option value={ActivityType.CHUYEN_DE_DOANH_NGHIEP}>Chuyên đề doanh nghiệp</option>
                     </select>
+                    {isScoreLocked && (
+                        <p className="text-xs text-amber-600 mt-1">Đã có lượt tính điểm, không thể đổi loại sự kiện</p>
+                    )}
                     {errors.type && <p className="text-red-500 text-sm mt-1">{errors.type}</p>}
                 </div>
 
@@ -506,7 +512,8 @@ const StandardActivityForm: React.FC<StandardActivityFormProps> = ({
     initialData = {},
     title = "Tạo sự kiện mới",
     onCancel,
-    lockApprovalWhenImportant = true
+    lockApprovalWhenImportant = true,
+    activeScoreEntryCount = 0
 }) => {
     return (
         <BaseEventForm<StandardActivityCreateRequest>
@@ -517,6 +524,7 @@ const StandardActivityForm: React.FC<StandardActivityFormProps> = ({
             title={title}
             onCancel={onCancel}
             lockApprovalWhenImportant={lockApprovalWhenImportant}
+            activeScoreEntryCount={activeScoreEntryCount}
             renderFields={renderStandardFields}
         />
     );

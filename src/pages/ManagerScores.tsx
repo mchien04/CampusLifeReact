@@ -8,7 +8,7 @@ import { departmentAPI } from '../services/api';
 import { classAPI } from '../services/classAPI';
 import { Semester } from '../types/admin';
 import { StudentClass } from '../types/class';
-import { ScoreType, StudentRankingResponse, ScoreHistoryViewResponse, getSourceTypeLabel, getSourceTypeColor, formatScore, formatDateTime } from '../types/score';
+import { ScoreType, StudentRankingResponse, ScoreHistoryViewResponse, getSourceTypeLabel, getSourceTypeColor, formatScore, formatDateTime, RecalculationJobResponse } from '../types/score';
 
 const ManagerScores: React.FC = () => {
     const queryClient = useQueryClient();
@@ -52,6 +52,8 @@ const ManagerScores: React.FC = () => {
     const [isRecalculatingAll, setIsRecalculatingAll] = useState(false);
     const [showRecalculateConfirm, setShowRecalculateConfirm] = useState(false);
     const [isRecalculatingStudent, setIsRecalculatingStudent] = useState(false);
+    const [recalculationJob, setRecalculationJob] = useState<RecalculationJobResponse | null>(null);
+    const pollingRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
 
     // Load initial data
     useEffect(() => {
@@ -231,19 +233,94 @@ const ManagerScores: React.FC = () => {
         }
         setShowRecalculateConfirm(false);
         setIsRecalculatingAll(true);
+        setRecalculationJob(null);
+
         try {
-            const response = await scoresAPI.recalculateAllScores(semesterId);
-            if (response.status) {
-                toast.success(response.message || 'Tính lại điểm toàn trường thành công');
-                loadRanking();
+            const response = await scoresAPI.recalculateAsync(semesterId);
+            if (response.status && response.data) {
+                const { jobId } = response.data;
+                toast.info('Job tính lại điểm đã được khởi tạo. Đang theo dõi tiến độ...');
+
+                const poll = async () => {
+                    try {
+                        const statusRes = await scoresAPI.getRecalculationStatus(jobId);
+                        if (statusRes.status && statusRes.data) {
+                            setRecalculationJob(statusRes.data);
+                            const s = statusRes.data.status;
+                            if (s === 'COMPLETED') {
+                                stopPolling();
+                                setIsRecalculatingAll(false);
+                                toast.success('Tính lại điểm toàn trường hoàn tất!');
+                                loadRanking();
+                            } else if (s === 'FAILED' || s === 'TIMEOUT') {
+                                stopPolling();
+                                toast.error(`Job thất bại: ${statusRes.data.errorDetails || s}`);
+                            }
+                        }
+                    } catch (_e) {
+                        // keep polling on network errors
+                    }
+                };
+
+                pollingRef.current = setInterval(poll, 3000);
+                poll(); // initial immediate poll
             } else {
-                toast.error(response.message || 'Tính lại điểm toàn trường thất bại');
+                toast.error(response.message || 'Không thể khởi tạo job tính lại điểm');
+                setIsRecalculatingAll(false);
             }
         } catch (error: any) {
             toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi tính lại điểm');
-        } finally {
             setIsRecalculatingAll(false);
         }
+    };
+
+    const handleRetryRecalculation = async () => {
+        if (!recalculationJob) return;
+        setIsRecalculatingAll(true);
+        try {
+            const response = await scoresAPI.retryRecalculation(recalculationJob.id);
+            if (response.status && response.data) {
+                const newJobId = (response.data as any).jobId || response.data;
+                toast.info('Đang retry job...');
+                setRecalculationJob(null);
+                const poll = async () => {
+                    try {
+                        const statusRes = await scoresAPI.getRecalculationStatus(newJobId);
+                        if (statusRes.status && statusRes.data) {
+                            setRecalculationJob(statusRes.data);
+                            const s = statusRes.data.status;
+                            if (s === 'COMPLETED') {
+                                stopPolling();
+                                setIsRecalculatingAll(false);
+                                toast.success('Tính lại điểm toàn trường hoàn tất!');
+                                loadRanking();
+                            } else if (s === 'FAILED' || s === 'TIMEOUT') {
+                                stopPolling();
+                                toast.error(`Job thất bại: ${statusRes.data.errorDetails || s}`);
+                            }
+                        }
+                    } catch (_e) { }
+                };
+                pollingRef.current = setInterval(poll, 3000);
+                poll();
+            } else {
+                toast.error(response.message || 'Retry thất bại');
+                setIsRecalculatingAll(false);
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi retry');
+            setIsRecalculatingAll(false);
+        }
+    };
+
+    const stopPolling = () => {
+        if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
+    };
+
+    const handleDismissRecalculation = () => {
+        stopPolling();
+        setIsRecalculatingAll(false);
+        setRecalculationJob(null);
     };
 
     const handleRecalculateStudent = async () => {
@@ -726,12 +803,67 @@ const ManagerScores: React.FC = () => {
                 </div>
             )}
 
-            {/* Fullscreen Loading Overlay */}
+            {/* Recalculation Progress Overlay */}
             {isRecalculatingAll && (
-                <div className="fixed inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center z-[9999]">
-                    <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-white mb-4"></div>
-                    <h2 className="text-2xl font-bold text-white mb-2">Đang tính lại điểm toàn trường...</h2>
-                    <p className="text-gray-300">Vui lòng không đóng trình duyệt. Quá trình này có thể mất vài phút.</p>
+                <div className="fixed inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center z-[9999] p-4">
+                    <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
+                        <h2 className="text-xl font-bold text-[#001C44] mb-4 text-center">
+                            {recalculationJob
+                                ? 'Đang tính lại điểm toàn trường...'
+                                : 'Đang khởi tạo job tính điểm...'}
+                        </h2>
+                        {recalculationJob ? (
+                            <div className="space-y-4">
+                                <div className="w-full bg-gray-200 rounded-full h-4">
+                                    <div
+                                        className="bg-[#001C44] h-4 rounded-full transition-all duration-500"
+                                        style={{ width: `${recalculationJob.progressPercent}%` }}
+                                    ></div>
+                                </div>
+                                <div className="flex justify-between text-sm text-gray-600">
+                                    <span>{recalculationJob.processedStudents} / {recalculationJob.totalStudents} sinh viên</span>
+                                    <span>{recalculationJob.progressPercent}%</span>
+                                </div>
+                                <div className="flex justify-center">
+                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                        recalculationJob.status === 'RUNNING' ? 'bg-blue-100 text-blue-800' :
+                                        recalculationJob.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                                        recalculationJob.status === 'FAILED' || recalculationJob.status === 'TIMEOUT' ? 'bg-red-100 text-red-800' :
+                                        'bg-gray-100 text-gray-800'
+                                    }`}>
+                                        {recalculationJob.status === 'RUNNING' ? 'Đang chạy' :
+                                         recalculationJob.status === 'PENDING' ? 'Chờ xử lý' :
+                                         recalculationJob.status === 'FAILED' ? 'Thất bại' :
+                                         recalculationJob.status === 'TIMEOUT' ? 'Quá thời gian' : recalculationJob.status}
+                                    </span>
+                                </div>
+                                {recalculationJob.errorCount > 0 && (
+                                    <p className="text-sm text-red-600 text-center">{recalculationJob.errorCount} lỗi</p>
+                                )}
+                                {(recalculationJob.status === 'FAILED' || recalculationJob.status === 'TIMEOUT') && (
+                                    <div className="flex justify-center space-x-4">
+                                        <button
+                                            onClick={handleRetryRecalculation}
+                                            className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700"
+                                        >
+                                            Thử lại
+                                        </button>
+                                        <button
+                                            onClick={handleDismissRecalculation}
+                                            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                                        >
+                                            Đóng
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center">
+                                <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-[#001C44] mb-4"></div>
+                                <p className="text-gray-600">Vui lòng chờ trong giây lát...</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
         </div>

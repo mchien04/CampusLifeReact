@@ -12,6 +12,7 @@ interface MinigameActivityFormProps {
     onCancel?: () => void;
     isInSeries?: boolean; // Nếu true, không hiển thị field slot (mặc định null)
     lockApprovalWhenImportant?: boolean;
+    activeScoreEntryCount?: number;
 }
 
 const renderMinigameFields = (props: RenderFieldsProps<MinigameActivityCreateRequest> & { isInSeries?: boolean }) => {
@@ -379,7 +380,8 @@ const MinigameActivityForm: React.FC<MinigameActivityFormProps> = ({
     title = "Tạo Mini Game",
     onCancel,
     isInSeries = false,
-    lockApprovalWhenImportant = true
+    lockApprovalWhenImportant = true,
+    activeScoreEntryCount = 0
 }) => {
     // Ensure type is MINIGAME
     // Nếu trong series, ticketQuantity mặc định là undefined (null = không giới hạn)
@@ -398,6 +400,7 @@ const MinigameActivityForm: React.FC<MinigameActivityFormProps> = ({
             title={title}
             onCancel={onCancel}
             lockApprovalWhenImportant={lockApprovalWhenImportant}
+            activeScoreEntryCount={activeScoreEntryCount}
             renderFields={(props) => renderMinigameFields({ ...props, isInSeries })}
         />
     );

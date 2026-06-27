@@ -13,17 +13,31 @@ export interface PresetValidationResult {
 function validateField(
     field: FieldDefinition,
     value: unknown,
-    isRuleEnabled: boolean
+    isRuleEnabled: boolean,
+    configValues: Record<string, unknown>
 ): string | null {
     // Check visibility
     if (field.visibility === 'rule_enabled' && !isRuleEnabled) {
-        return null; // Field hidden, no validation needed
+        return null;
+    }
+    if (field.visibility === 'audience_department_scoped') {
+        if (configValues.audience === 'ALL_PARTICIPANTS' || configValues.audience == null) {
+            return null;
+        }
+    }
+    if (field.visibility === 'semester_policy_explicit') {
+        if (configValues.semesterPolicy !== 'EXPLICIT_SEMESTER') {
+            return null;
+        }
     }
 
     // Required check
     if (field.required) {
         if (value === undefined || value === null || value === '') {
             return `${field.label} là bắt buộc`;
+        }
+        if (field.inputType === 'MULTI_SELECT' && Array.isArray(value) && value.length === 0) {
+            return `Vui lòng chọn ít nhất một ${field.label.toLowerCase()}`;
         }
     }
 
@@ -65,7 +79,7 @@ function validateField(
                 break;
             }
             case 'SELECT': {
-                if (field.required && field.options && !field.options.includes(String(value))) {
+                if (field.required && field.options && field.options.length > 0 && !field.options.includes(String(value))) {
                     return `${field.label} phải chọn một giá trị hợp lệ`;
                 }
                 break;
@@ -74,10 +88,51 @@ function validateField(
                 // No additional validation for boolean
                 break;
             }
+            case 'MULTI_SELECT': {
+                if (!Array.isArray(value)) {
+                    return `${field.label} phải là danh sách`;
+                }
+                break;
+            }
         }
     }
 
     return null;
+}
+
+function validateCrossFields(
+    rule: PresetRuleDescriptor,
+    config: Record<string, unknown>
+): ValidationError[] {
+    const errors: ValidationError[] = [];
+    const departmentField = rule.fieldDefinitions.find(f => f.fieldName.endsWith('DepartmentIds'));
+    const explicitSemesterField = rule.fieldDefinitions.find(f => f.fieldName.endsWith('ExplicitSemesterId'));
+
+    if (departmentField) {
+        // Derive the per-rule audience field name from the DepartmentIds field name.
+        const audienceKey = departmentField.fieldName.replace(/DepartmentIds$/, 'Audience');
+        const audience = config[audienceKey];
+        const deptIds = config[departmentField.fieldName];
+        if (audience && audience !== 'ALL_PARTICIPANTS') {
+            if (!Array.isArray(deptIds) || deptIds.length === 0) {
+                errors.push({ fieldName: departmentField.fieldName, message: 'Vui lòng chọn ít nhất một khoa khi giới hạn đối tượng' });
+            }
+        }
+    }
+
+    if (explicitSemesterField) {
+        // Derive the per-rule semesterPolicy field name from the ExplicitSemesterId field name.
+        const policyKey = explicitSemesterField.fieldName.replace(/ExplicitSemesterId$/, 'SemesterPolicy');
+        const semesterPolicy = config[policyKey];
+        const explicitSemesterId = config[explicitSemesterField.fieldName];
+        if (semesterPolicy === 'EXPLICIT_SEMESTER') {
+            if (explicitSemesterId === null || explicitSemesterId === undefined || explicitSemesterId === '') {
+                errors.push({ fieldName: explicitSemesterField.fieldName, message: 'Vui lòng chọn học kỳ chỉ định khi chính sách là EXPLICIT_SEMESTER' });
+            }
+        }
+    }
+
+    return errors;
 }
 
 export function validateActivityPresetConfig(
@@ -90,11 +145,13 @@ export function validateActivityPresetConfig(
     for (const rule of preset.supportedRules) {
         const isRuleEnabled = enabledRules[rule.ruleKey] ?? rule.enabledByDefault;
         for (const field of rule.fieldDefinitions) {
-            const error = validateField(field, config[field.fieldName], isRuleEnabled);
+            const error = validateField(field, config[field.fieldName], isRuleEnabled, config);
             if (error) {
                 errors.push({ fieldName: field.fieldName, message: error });
             }
         }
+        const crossErrors = validateCrossFields(rule, config);
+        errors.push(...crossErrors);
     }
 
     return { valid: errors.length === 0, errors };
@@ -110,11 +167,13 @@ export function validateSeriesPresetConfig(
     for (const rule of preset.supportedRules) {
         const isRuleEnabled = enabledRules[rule.ruleKey] ?? rule.enabledByDefault;
         for (const field of rule.fieldDefinitions) {
-            const error = validateField(field, config[field.fieldName], isRuleEnabled);
+            const error = validateField(field, config[field.fieldName], isRuleEnabled, config);
             if (error) {
                 errors.push({ fieldName: field.fieldName, message: error });
             }
         }
+        const crossErrors = validateCrossFields(rule, config);
+        errors.push(...crossErrors);
     }
 
     return { valid: errors.length === 0, errors };

@@ -10,7 +10,7 @@ import { standardActivityAPI } from '../services/standardActivityAPI';
 import { minigameActivityAPI } from '../services/minigameActivityAPI';
 import { seriesAPI } from '../services/seriesAPI';
 import { useAuth } from '../contexts/AuthContext';
-import { mapScoreRuleResponseToRequest } from '../utils/scoreRuleMapper';
+import { mapScoreRuleResponseToRequest, reconstructActivityPresetConfig } from '../utils/scoreRuleMapper';
 
 const coerceBoolean = (value: unknown, fallback = false) => {
     if (value === undefined || value === null) return fallback;
@@ -293,6 +293,7 @@ const EditEvent: React.FC = () => {
                     title="Chỉnh sửa thông tin Mini Game"
                     onCancel={() => navigate('/manager/events')}
                     lockApprovalWhenImportant={false}
+                    activeScoreEntryCount={event?.activeScoreEntryCount ?? 0}
                 />
             ) : (
                 <StandardActivityForm
@@ -302,6 +303,7 @@ const EditEvent: React.FC = () => {
                     title="Chỉnh sửa sự kiện"
                     onCancel={() => navigate('/manager/events')}
                     lockApprovalWhenImportant={false}
+                    activeScoreEntryCount={event?.activeScoreEntryCount ?? 0}
                 />
             )}
 
