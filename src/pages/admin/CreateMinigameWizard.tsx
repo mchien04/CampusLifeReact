@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { minigameActivityAPI } from '../../services/minigameActivityAPI';
-import { minigameAPI } from '../../services/minigameAPI';
 import { MinigameActivityCreateRequest, ActivityResponse } from '../../types/activity';
-import { CreateMiniGameRequest, UpdateMiniGameRequest } from '../../types/minigame';
+import { CreateMiniGameRequest, UpdateMiniGameRequest, QuizConfigRequest } from '../../types/minigame';
 import MinigameActivityForm from '../../components/events/MinigameActivityForm';
 import { QuizForm } from '../../components/minigame';
 import { LoadingSpinner } from '../../components/common';
@@ -14,41 +13,39 @@ type WizardStep = 'activity' | 'quiz';
 const CreateMinigameWizard: React.FC = () => {
     const navigate = useNavigate();
     const [currentStep, setCurrentStep] = useState<WizardStep>('activity');
-    const [createdActivity, setCreatedActivity] = useState<ActivityResponse | null>(null);
+    const [activityData, setActivityData] = useState<MinigameActivityCreateRequest | null>(null);
     const [saving, setSaving] = useState(false);
-    const [loading, setLoading] = useState(false);
 
-    const handleActivitySubmit = async (data: MinigameActivityCreateRequest) => {
-        setSaving(true);
-        try {
-            const response = await minigameActivityAPI.createMinigameActivity(data);
-            if (response.status && response.data) {
-                setCreatedActivity(response.data);
-                setCurrentStep('quiz');
-                toast.success('Tạo activity thành công! Bây giờ hãy tạo quiz.');
-            } else {
-                toast.error(response.message || 'Tạo activity thất bại');
-            }
-        } catch (err: any) {
-            toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi tạo activity');
-            console.error('Error creating activity:', err);
-        } finally {
-            setSaving(false);
-        }
+    // Step 1: collect activity data (NO API call — quiz will be sent together in 1-step)
+    const handleActivitySubmit = (data: MinigameActivityCreateRequest) => {
+        setActivityData(data);
+        setCurrentStep('quiz');
+        toast.info('Đã lưu thông tin activity. Giờ hãy cấu hình quiz.');
     };
 
+    // Step 2: combine activity + quiz → single POST /api/activities/minigame (1-step creation)
     const handleQuizSubmit = async (data: CreateMiniGameRequest | UpdateMiniGameRequest) => {
-        if (!createdActivity) return;
+        if (!activityData) return;
 
         setSaving(true);
         try {
-            // For create, we need CreateMiniGameRequest with activityId
-            const createData: CreateMiniGameRequest = {
-                ...data,
-                activityId: createdActivity.id
-            } as CreateMiniGameRequest;
-            
-            const response = await minigameAPI.createMiniGame(createData);
+            const quizConfig: QuizConfigRequest = {
+                title: (data as CreateMiniGameRequest).title,
+                description: (data as CreateMiniGameRequest).description ?? null,
+                questionCount: (data as CreateMiniGameRequest).questionCount,
+                timeLimit: (data as CreateMiniGameRequest).timeLimit,
+                requiredCorrectAnswers: (data as CreateMiniGameRequest).requiredCorrectAnswers,
+                maxAttempts: (data as CreateMiniGameRequest).maxAttempts,
+                showAnswers: (data as CreateMiniGameRequest).showAnswers ?? false,
+                questions: (data as CreateMiniGameRequest).questions || []
+            };
+
+            const createRequest: MinigameActivityCreateRequest = {
+                ...activityData,
+                quiz: quizConfig
+            };
+
+            const response = await minigameActivityAPI.createMinigameActivity(createRequest);
             if (response.status && response.data) {
                 toast.success('Tạo minigame thành công!');
                 navigate('/manager/minigames');
@@ -64,11 +61,9 @@ const CreateMinigameWizard: React.FC = () => {
     };
 
     const handleCancel = () => {
-        if (currentStep === 'quiz' && createdActivity) {
-            // Go back to activity step
+        if (currentStep === 'quiz' && activityData) {
             setCurrentStep('activity');
         } else {
-            // Cancel completely
             navigate('/manager/minigames');
         }
     };
@@ -77,6 +72,8 @@ const CreateMinigameWizard: React.FC = () => {
         setCurrentStep('activity');
     };
 
+    const hasActivity = !!activityData;
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -84,9 +81,9 @@ const CreateMinigameWizard: React.FC = () => {
                 <div>
                     <h1 className="text-3xl font-bold text-[#001C44]">Tạo Mini Game</h1>
                     <p className="text-gray-600 mt-1">
-                        {currentStep === 'activity' 
-                            ? 'Bước 1: Tạo Activity cho Mini Game'
-                            : 'Bước 2: Tạo Quiz cho Mini Game'}
+                        {currentStep === 'activity'
+                            ? 'Bước 1: Thông tin Activity cho Mini Game'
+                            : 'Bước 2: Cấu hình Quiz cho Mini Game'}
                     </p>
                 </div>
                 <button
@@ -107,21 +104,21 @@ const CreateMinigameWizard: React.FC = () => {
                                 className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
                                     currentStep === 'activity'
                                         ? 'bg-[#001C44] text-white'
-                                        : createdActivity
+                                        : hasActivity
                                         ? 'bg-green-500 text-white'
                                         : 'bg-gray-200 text-gray-600'
                                 }`}
                             >
-                                {createdActivity ? '✓' : '1'}
+                                {hasActivity ? '✓' : '1'}
                             </div>
                             <div className="flex-1">
-                                <div className="font-medium text-gray-900">Tạo Activity</div>
-                                <div className="text-sm text-gray-500">Thông tin cơ bản</div>
+                                <div className="font-medium text-gray-900">Thông tin Activity</div>
+                                <div className="text-sm text-gray-500">Tên, ngày, loại điểm</div>
                             </div>
                         </div>
 
                         {/* Connector */}
-                        <div className={`h-1 flex-1 ${createdActivity ? 'bg-green-500' : 'bg-gray-200'}`} />
+                        <div className={`h-1 flex-1 ${hasActivity ? 'bg-green-500' : 'bg-gray-200'}`} />
 
                         {/* Step 2 */}
                         <div className="flex items-center space-x-2 flex-1">
@@ -129,7 +126,7 @@ const CreateMinigameWizard: React.FC = () => {
                                 className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
                                     currentStep === 'quiz'
                                         ? 'bg-[#001C44] text-white'
-                                        : createdActivity
+                                        : hasActivity
                                         ? 'bg-gray-200 text-gray-600'
                                         : 'bg-gray-100 text-gray-400'
                                 }`}
@@ -137,7 +134,7 @@ const CreateMinigameWizard: React.FC = () => {
                                 2
                             </div>
                             <div className="flex-1">
-                                <div className="font-medium text-gray-900">Tạo Quiz</div>
+                                <div className="font-medium text-gray-900">Cấu hình Quiz</div>
                                 <div className="text-sm text-gray-500">Câu hỏi và đáp án</div>
                             </div>
                         </div>
@@ -150,19 +147,19 @@ const CreateMinigameWizard: React.FC = () => {
                 <div className="card p-6">
                     <MinigameActivityForm
                         onSubmit={handleActivitySubmit}
-                        loading={saving}
+                        loading={false}
                         title="Thông tin Activity"
                         onCancel={handleCancel}
                     />
                 </div>
-            ) : createdActivity ? (
+            ) : hasActivity ? (
                 <div className="space-y-4">
                     {/* Activity Summary */}
                     <div className="card p-4 bg-blue-50 border border-blue-200">
                         <div className="flex items-center justify-between">
                             <div>
-                                <div className="text-sm text-gray-600">Activity đã tạo:</div>
-                                <div className="font-semibold text-[#001C44]">{createdActivity.name}</div>
+                                <div className="text-sm text-gray-600">Activity sẽ tạo:</div>
+                                <div className="font-semibold text-[#001C44]">{activityData.name}</div>
                             </div>
                             <button
                                 onClick={handleBackToActivity}
@@ -176,7 +173,6 @@ const CreateMinigameWizard: React.FC = () => {
                     {/* Quiz Form */}
                     <div className="card p-6">
                         <QuizForm
-                            activity={createdActivity}
                             onSubmit={handleQuizSubmit}
                             loading={saving}
                             title="Thông tin Quiz"
@@ -194,4 +190,3 @@ const CreateMinigameWizard: React.FC = () => {
 };
 
 export default CreateMinigameWizard;
-

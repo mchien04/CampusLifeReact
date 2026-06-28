@@ -5,6 +5,7 @@ import { eventAPI } from '../services/eventAPI';
 import { registrationAPI } from '../services/registrationAPI';
 import { ActivityResponse, ActivityType, ScoreType } from '../types';
 import { RegistrationStatus } from '../types/registration';
+import { findCancelledActivityIds } from '../utils/registrationRules';
 import { LoadingSpinner } from '../components/common';
 import { EventBannerImage } from '../components/events';
 import StudentLayout from '../components/layout/StudentLayout';
@@ -19,6 +20,10 @@ const StudentEvents: React.FC = () => {
     const [scoreTypeFilter, setScoreTypeFilter] = useState<ScoreType | 'ALL'>('ALL');
     const [statusFilter, setStatusFilter] = useState<'ALL' | 'ONGOING' | 'UPCOMING' | 'ENDED'>('ALL');
     const [registrationStatuses, setRegistrationStatuses] = useState<Map<number, RegistrationStatus>>(new Map());
+    // P7-3: canCancel từ BE (/registration-status) — /my không trả canCancel (Q2).
+    const [canCancelMap, setCanCancelMap] = useState<Map<number, boolean>>(new Map());
+    // P7-5 (Q3): cache /my để chặn re-register sau khi huỷ.
+    const [cancelledIds, setCancelledIds] = useState<Set<number>>(new Set());
 
     useEffect(() => {
         loadEvents();
@@ -45,13 +50,27 @@ const StudentEvents: React.FC = () => {
     };
 
     const loadRegistrationStatuses = async (events: ActivityResponse[]) => {
+        // P7-3: dùng /registration-status cho đồng nhất + có canCancel (Q2 — /my không trả canCancel).
         const statusMap = new Map<number, RegistrationStatus>();
+        const cancelMap = new Map<number, boolean>();
+
+        // Tái dùng /my một lần để build tập đã huỷ (Q3 — chặn re-register).
+        let myRegs: import('../types/registration').ActivityRegistrationResponse[] = [];
+        try {
+            myRegs = await registrationAPI.getMyRegistrations();
+            setCancelledIds(findCancelledActivityIds(myRegs));
+        } catch (err) {
+            console.error('Error loading my registrations:', err);
+        }
 
         for (const event of events) {
             try {
-                const registration = await registrationAPI.checkRegistrationStatus(event.id);
-                if (registration) {
-                    statusMap.set(event.id, registration.status);
+                const regStatus = await registrationAPI.getActivityRegistrationStatus(event.id);
+                if (regStatus?.isRegistered && regStatus?.status) {
+                    statusMap.set(event.id, regStatus.status);
+                }
+                if (regStatus?.canCancel === true) {
+                    cancelMap.set(event.id, true);
                 }
             } catch (err) {
                 console.error(`Error checking registration status for event ${event.id}:`, err);
@@ -59,6 +78,7 @@ const StudentEvents: React.FC = () => {
         }
 
         setRegistrationStatuses(statusMap);
+        setCanCancelMap(cancelMap);
     };
 
     const handleRegister = async (eventId: number) => {
@@ -72,6 +92,7 @@ const StudentEvents: React.FC = () => {
                     ? RegistrationStatus.APPROVED
                     : RegistrationStatus.PENDING;
                 setRegistrationStatuses(prev => new Map(prev.set(eventId, newStatus)));
+                setCancelledIds(prev => { const n = new Set(prev); n.delete(eventId); return n; });
 
                 if (newStatus === RegistrationStatus.APPROVED) {
                     alert('Đăng ký thành công! Bạn đã được duyệt tự động.');
@@ -84,6 +105,11 @@ const StudentEvents: React.FC = () => {
         } catch (err: any) {
             console.error('Registration error details:', err);
             console.error('Error response:', err.response?.data);
+            // P7-5 safety net refresh cache để nút đăng ký ẩn đi sau khi BE chặn re-register.
+            try {
+                const myRegs = await registrationAPI.getMyRegistrations();
+                setCancelledIds(findCancelledActivityIds(myRegs));
+            } catch { /* ignore */ }
             alert('Có lỗi xảy ra khi đăng ký: ' + (err.response?.data?.message || err.message));
         }
     };
@@ -102,6 +128,10 @@ const StudentEvents: React.FC = () => {
         try {
             await registrationAPI.cancelRegistration(eventId);
             setRegistrationStatuses(prev => new Map(prev.set(eventId, RegistrationStatus.CANCELLED)));
+            // P7-5: refresh canCancel + cache đã huỷ.
+            setCanCancelMap(prev => { const n = new Map(prev); n.delete(eventId); return n; });
+            const myRegs = await registrationAPI.getMyRegistrations();
+            setCancelledIds(findCancelledActivityIds(myRegs));
             alert('Hủy đăng ký thành công!');
         } catch (err: any) {
             alert('Có lỗi xảy ra khi hủy đăng ký: ' + (err.response?.data?.message || err.message));
@@ -216,7 +246,9 @@ const StudentEvents: React.FC = () => {
         // Kiểm tra có thể đăng ký: trong thời gian đăng ký và chưa đăng ký
         const canRegister = (() => {
             if (isRegistered) return false; // Đã đăng ký rồi (bao gồm cả ATTENDED)
-            
+            // P7-5: đã huỷ trước đó → không cho đăng ký lại.
+            if (cancelledIds.has(event.id)) return false;
+
             const now = new Date();
             const registrationStartDate = event.registrationStartDate ? new Date(event.registrationStartDate) : null;
             const registrationDeadline = event.registrationDeadline ? new Date(event.registrationDeadline) : null;
@@ -233,8 +265,9 @@ const StudentEvents: React.FC = () => {
             return eventStatus === 'UPCOMING' || eventStatus === 'ONGOING';
         })();
         
-        const canCancel = isRegistered && eventStatus === 'UPCOMING' &&
-            registrationStatus !== RegistrationStatus.APPROVED;
+        // P7-3: canCancel lấy từ BE (/registration-status) thay vì tự tính.
+        const canCancel = canCancelMap.get(event.id) === true;
+        const alreadyCancelled = cancelledIds.has(event.id);
 
         const formatDate = (dateString: string): string => {
             return new Date(dateString).toLocaleDateString('vi-VN', {
@@ -380,6 +413,13 @@ const StudentEvents: React.FC = () => {
                             >
                                 Đăng ký
                             </button>
+                        )}
+
+                        {/* P7-5: đã huỷ trước đó → ẩn nút đăng ký, hiện text thông báo. */}
+                        {!canRegister && alreadyCancelled && !isRegistered && (
+                            <span className="flex-1 min-w-[100px] text-center py-2 px-3 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                                Bạn đã huỷ, không đăng ký lại được
+                            </span>
                         )}
 
                         {canCancel && (

@@ -5,7 +5,9 @@ import { uploadAPI } from '../../services/uploadAPI';
 import { getImageUrl } from '../../utils/imageUtils';
 
 interface QuizFormProps {
-    activity: ActivityResponse;
+    activity?: ActivityResponse;
+    activityId?: number;
+    defaultTitle?: string;
     onSubmit: (data: CreateMiniGameRequest | UpdateMiniGameRequest) => void;
     loading?: boolean;
     initialData?: Partial<CreateMiniGameRequest | UpdateMiniGameRequest>;
@@ -16,6 +18,8 @@ interface QuizFormProps {
 
 const QuizForm: React.FC<QuizFormProps> = ({
     activity,
+    activityId,
+    defaultTitle,
     onSubmit,
     loading = false,
     initialData = {},
@@ -25,8 +29,8 @@ const QuizForm: React.FC<QuizFormProps> = ({
 }) => {
     const [formData, setFormData] = useState<CreateMiniGameRequest>(() => {
         const defaultData: CreateMiniGameRequest = {
-            activityId: activity.id,
-            title: activity.name || '',
+            activityId: activity?.id ?? activityId ?? 0,
+            title: activity?.name || defaultTitle || '',
             description: '',
             questionCount: 0,
             timeLimit: undefined,
@@ -40,7 +44,7 @@ const QuizForm: React.FC<QuizFormProps> = ({
         const merged = {
             ...defaultData,
             ...initialData,
-            activityId: activity.id
+            activityId: activity?.id ?? activityId ?? 0
         };
 
         // Ensure maxAttempts is properly set (can be null, undefined, or number)
@@ -110,7 +114,7 @@ const QuizForm: React.FC<QuizFormProps> = ({
                 const updated = {
                     ...prev,
                     ...initialData,
-                    activityId: activity.id // Always keep activityId from activity prop
+                    activityId: activity?.id ?? activityId ?? 0 // Always keep activityId from activity prop or fallback
                 };
                 // Ensure maxAttempts is properly set (can be null, undefined, or number)
                 if ('maxAttempts' in initialData) {
@@ -135,7 +139,7 @@ const QuizForm: React.FC<QuizFormProps> = ({
                 setTimeLimitDisplay(secondsToTimeString(initialData.timeLimit));
             }
         }
-    }, [initialData, activity.id]);
+    }, [initialData, activity?.id, activityId]);
 
     // Cleanup preview URLs on unmount
     useEffect(() => {
@@ -338,7 +342,7 @@ const QuizForm: React.FC<QuizFormProps> = ({
             // Ensure activityId is always included
             const dataWithActivityId = {
                 ...formData,
-                activityId: activity.id
+                activityId: activity?.id ?? activityId ?? 0
             };
             onSubmit(dataWithActivityId as CreateMiniGameRequest | UpdateMiniGameRequest);
         }
@@ -349,7 +353,7 @@ const QuizForm: React.FC<QuizFormProps> = ({
             <div className="bg-white shadow-lg rounded-lg">
                 <div className="px-6 py-4 border-b border-gray-200">
                     <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
-                    <p className="text-gray-600 mt-1">Tạo quiz cho activity: {activity.name}</p>
+                    <p className="text-gray-600 mt-1">{activity ? `Tạo quiz cho activity: ${activity.name}` : 'Tạo quiz cho mini game'}</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">

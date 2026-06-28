@@ -1,5 +1,6 @@
 import { Department } from './admin';
 import { User } from './auth';
+import { QuizConfigRequest } from './minigame';
 
 export enum ActivityType {
     SUKIEN = 'SUKIEN',
@@ -43,8 +44,69 @@ export enum ScoreSemesterPolicy {
     EXPLICIT_SEMESTER = 'EXPLICIT_SEMESTER'
 }
 
+export interface ActivityPresetConfig {
+    primaryScoreType?: ScoreType | null;
+    participationPoints?: number | string | null;
+    participationFailPoints?: number | string | null; // legacy — PARTICIPATION_COMPLETED descriptor không còn expose (P6.1)
+    noShowPenaltyEnabled?: boolean | null;
+    noShowPenaltyPoints?: number | string | null;
+    noShowPenaltyScoreType?: ScoreType | null;
+    submissionPassPoints?: number | string | null;
+    submissionFailPoints?: number | string | null;
+    submissionFailScoreType?: ScoreType | null; // P6.1: chỉ expose cho enterprise SUBMISSION_GRADED; null → BE fallback về primaryScoreType
+    taskOverduePenaltyPoints?: number | string | null;
+    taskOverduePenaltyScoreType?: ScoreType | null; // P6.1: optional; null → BE fallback về scoreType chính; enterprise default REN_LUYEN
+    minigameExhaustedPenaltyPoints?: number | string | null;
+    bonusScoreType?: ScoreType | null;
+    bonusPoints?: number | string | null;
+    audience?: ScoreRuleAudience | null;
+    semesterPolicy?: ScoreSemesterPolicy | null;
+    explicitSemesterId?: number | null;
+    departmentIds?: number[] | null;
+
+    // Per-rule overrides (P5.1) — ưu tiên hơn top-level fields
+    submissionAudience?: ScoreRuleAudience | null;
+    submissionSemesterPolicy?: ScoreSemesterPolicy | null;
+    submissionExplicitSemesterId?: number | null;
+    submissionDepartmentIds?: number[] | null;
+
+    participationAudience?: ScoreRuleAudience | null;
+    participationSemesterPolicy?: ScoreSemesterPolicy | null;
+    participationExplicitSemesterId?: number | null;
+    participationDepartmentIds?: number[] | null;
+
+    noShowAudience?: ScoreRuleAudience | null;
+    noShowSemesterPolicy?: ScoreSemesterPolicy | null;
+    noShowExplicitSemesterId?: number | null;
+    noShowDepartmentIds?: number[] | null;
+
+    taskOverdueAudience?: ScoreRuleAudience | null;
+    taskOverdueSemesterPolicy?: ScoreSemesterPolicy | null;
+    taskOverdueExplicitSemesterId?: number | null;
+    taskOverdueDepartmentIds?: number[] | null;
+
+    bonusAudience?: ScoreRuleAudience | null;
+    bonusSemesterPolicy?: ScoreSemesterPolicy | null;
+    bonusExplicitSemesterId?: number | null;
+    bonusDepartmentIds?: number[] | null;
+
+    minigamePassedAudience?: ScoreRuleAudience | null;
+    minigamePassedSemesterPolicy?: ScoreSemesterPolicy | null;
+    minigamePassedExplicitSemesterId?: number | null;
+    minigamePassedDepartmentIds?: number[] | null;
+
+    minigameExhaustedAudience?: ScoreRuleAudience | null;
+    minigameExhaustedSemesterPolicy?: ScoreSemesterPolicy | null;
+    minigameExhaustedExplicitSemesterId?: number | null;
+    minigameExhaustedDepartmentIds?: number[] | null;
+
+    /** P6-4: derive từ enabledRules.SUBMISSION_GRADED — true khi rule đó bật. */
+    submissionEnabled?: boolean | null;
+}
+
 export interface ActivityScoreRuleRequest {
     scoreType: ScoreType;
+    failScoreType?: ScoreType | null; // P6.1: loại điểm khi fail; null → fallback về scoreType
     triggerType: ScoreRuleTrigger;
     calculation: ScoreRuleCalculation;
     points: number;
@@ -54,12 +116,15 @@ export interface ActivityScoreRuleRequest {
     explicitSemesterId?: number | null;
     departmentIds?: number[];
     enabled?: boolean | null;
+    /** true nếu rule do preset sinh ra (KHÔNG gửi kèm `scoreRules` khi dùng preset thật). */
+    isPresetGenerated?: boolean | null;
 }
 
 export interface ActivityScoreRuleResponse {
     id: number;
     activityId: number;
     scoreType: ScoreType;
+    failScoreType?: ScoreType | null; // P6.1
     triggerType: ScoreRuleTrigger;
     calculation: ScoreRuleCalculation;
     points: number;
@@ -69,6 +134,8 @@ export interface ActivityScoreRuleResponse {
     explicitSemesterId?: number | null;
     targetDepartmentIds: number[];
     enabled?: boolean | null;
+    /** true nếu rule do preset sinh ra — dùng để hiển thị badge "Mẫu" trên UI. */
+    isPresetGenerated?: boolean | null;
 }
 
 export interface StandardActivityCreateRequest {
@@ -95,7 +162,7 @@ export interface StandardActivityCreateRequest {
     mandatoryForFacultyStudents?: boolean | null;
     organizerIds?: number[];
     presetCode?: string | null;
-    presetConfig?: any | null;
+    presetConfig?: ActivityPresetConfig | null;
 }
 
 export interface MinigameActivityCreateRequest {
@@ -122,39 +189,58 @@ export interface MinigameActivityCreateRequest {
     mandatoryForFacultyStudents?: boolean | null;
     organizerIds?: number[];
     presetCode?: string | null;
-    presetConfig?: any | null;
+    presetConfig?: ActivityPresetConfig | null;
+    quiz?: QuizConfigRequest;
 }
 
-// Standalone update request per backend contract (no extends, no scoreRules, no type)
-// IMPORTANT: The activity `id` is provided in the URL path; do NOT include it in the request body.
 export interface StandardActivityUpdateRequest {
     name: string;
+    type?: ActivityType | null;
     description?: string | null;
     startDate: string;
     endDate: string;
     location?: string | null;
-    bannerUrl?: string | null;
+    requiresSubmission?: boolean | null;
+    scoreRules?: ActivityScoreRuleRequest[];
+    registrationStartDate?: string | null;
+    registrationDeadline?: string | null;
     shareLink?: string | null;
+    isImportant?: boolean | null;
+    isDraft?: boolean | null;
+    bannerUrl?: string | null;
+    ticketQuantity?: number | null;
     benefits?: string | null;
     requirements?: string | null;
     contactInfo?: string | null;
+    requiresApproval?: boolean | null;
+    mandatoryForFacultyStudents?: boolean | null;
     organizerIds?: number[];
+    presetCode?: string | null;
+    presetConfig?: ActivityPresetConfig | null;
 }
 
-// Standalone update request per backend contract (no extends, no scoreRules, no type)
+// Standalone update request per backend contract (no extends)
 // IMPORTANT: The activity `id` is provided in the URL path; do NOT include it in the request body.
 export interface MinigameActivityUpdateRequest {
-    name: string;
+    name?: string | null;
     description?: string | null;
-    startDate: string;
-    endDate: string;
+    startDate?: string | null;
+    endDate?: string | null;
     location?: string | null;
+    organizerIds?: number[];
+    requiresApproval?: boolean | null;
+    ticketQuantity?: number | null;
+    isImportant?: boolean | null;
+    mandatoryForFacultyStudents?: boolean | null;
+    isDraft?: boolean | null;
+    registrationStartDate?: string | null;
+    registrationDeadline?: string | null;
     bannerUrl?: string | null;
     shareLink?: string | null;
-    benefits?: string | null;
-    requirements?: string | null;
-    contactInfo?: string | null;
-    organizerIds?: number[];
+    scoreRules?: ActivityScoreRuleRequest[];
+    presetCode?: string | null;
+    presetConfig?: ActivityPresetConfig | null;
+    quiz?: import('./minigame').QuizConfigRequest | null;
 }
 
 export interface StandardActivityResponse {
@@ -182,6 +268,9 @@ export interface StandardActivityResponse {
     contactInfo?: string | null;
     checkInCode?: string | null;
     scoreRules: ActivityScoreRuleResponse[];
+    presetCode?: string | null;
+    presetConfig?: ActivityPresetConfig | null;
+    activeScoreEntryCount?: number;
     createdAt?: string | null;
     updatedAt?: string | null;
     createdBy?: string | null;
@@ -199,11 +288,20 @@ export interface MinigameActivityResponse {
     bannerUrl?: string | null;
     shareLink?: string | null;
     isImportant: boolean;
+    mandatoryForFacultyStudents?: boolean;
     checkInCode?: string | null;
+    location?: string | null;
+    organizerIds?: number[];
+    ticketQuantity?: number | null;
+    requiresApproval?: boolean;
     scoreRules: ActivityScoreRuleResponse[];
+    presetCode?: string | null;
+    presetConfig?: ActivityPresetConfig | null;
+    activeScoreEntryCount?: number;
     quiz?: {
         id: number;
         title: string;
+        description?: string | null;
         questionCount: number;
         timeLimit: number;
         requiredCorrectAnswers: number;
@@ -313,7 +411,8 @@ export interface ActivityResponse {
     seriesId?: number | null;
     seriesOrder?: number | null;
     presetCode?: string | null;
-    presetConfig?: any | null;
+    presetConfig?: ActivityPresetConfig | null;
+    activeScoreEntryCount?: number;
     createdAt?: string | null;
     updatedAt?: string | null;
     createdBy?: string | null;

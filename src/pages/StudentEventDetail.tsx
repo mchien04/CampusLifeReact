@@ -13,7 +13,8 @@ import { getSubmissionStatusColor, getSubmissionStatusLabel } from '../utils/sub
 import { ActivityResponse, ActivityType, ScoreType, ActivityPhotoResponse } from '../types';
 import { ActivityTaskResponse, TaskAssignmentResponse } from '../types/task';
 import { TaskSubmissionResponse, SubmissionAttachment } from '../types/submission';
-import { RegistrationStatus, ParticipationType, ActivityRegistrationResponse } from '../types/registration';
+import { RegistrationStatus, ParticipationType, ActivityRegistrationResponse, ActivityRegistrationStatusResponse } from '../types/registration';
+import { hasCancelledBefore } from '../utils/registrationRules';
 import { LoadingSpinner } from '../components/common';
 
 import { ScoreRulesDisplay } from '../components/events/ScoreRulesDisplay';
@@ -35,6 +36,10 @@ const StudentEventDetail: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [registration, setRegistration] = useState<ActivityRegistrationResponse | null>(null);
+    // P7-1: registration-status Map (canCancel + isRegistered + status) từ BE.
+    const [regStatus, setRegStatus] = useState<ActivityRegistrationStatusResponse | null>(null);
+    // P7-5 (Q3): cache /my để chặn re-register sau khi huỷ.
+    const [myRegistrations, setMyRegistrations] = useState<ActivityRegistrationResponse[]>([]);
     const [showRegistrationForm, setShowRegistrationForm] = useState(false);
     const [feedback, setFeedback] = useState('');
 
@@ -109,7 +114,8 @@ const StudentEventDetail: React.FC = () => {
                 await Promise.all([
                     checkRegistrationStatus(response.data.id),
                     loadTasksByActivity(response.data.id),
-                    checkSupervisorStatus(response.data.id)
+                    checkSupervisorStatus(response.data.id),
+                    loadMyRegistrations()
                 ]);
 
                 if (response.data.seriesId) {
@@ -172,17 +178,17 @@ const StudentEventDetail: React.FC = () => {
     const loadTasksByActivity = async (activityId: number) => {
         try {
             setLoadingTasks(true);
-            // Get student's assigned tasks instead of all tasks in activity
-            const studentProfile = await studentAPI.getMyProfile();
-            const studentId = studentProfile.id;
-
-            const assignmentsRes = await taskAPI.getStudentTasksNew(studentId);
-            if (assignmentsRes.status && assignmentsRes.data) {
-                // Filter assignments that belong to this activity
-                const myTasksInThisActivity = assignmentsRes.data.filter(
-                    (assignment: any) => assignment.activityId === activityId
-                );
-                setTasks(myTasksInThisActivity);
+            // Tải tất cả task của activity này từ BE (lọc server-side), tìm assignment của student hiện tại.
+            const tasksRes = await taskAPI.getTasksByActivity(activityId);
+            if (tasksRes.status && tasksRes.data) {
+                const studentProfile = await studentAPI.getMyProfile();
+                const studentId = studentProfile.id;
+                const myAssignments = tasksRes.data
+                    .map((t: ActivityTaskResponse) =>
+                        t.assignments?.find((a: any) => a.studentId === studentId)
+                    )
+                    .filter(Boolean) as TaskAssignmentResponse[];
+                setTasks(myAssignments);
             } else {
                 setTasks([]);
             }
@@ -196,13 +202,32 @@ const StudentEventDetail: React.FC = () => {
 
     const checkRegistrationStatus = async (eventId: number) => {
         try {
-            const registrationData = await registrationAPI.checkRegistrationStatus(eventId);
+            // P7-2: song song /check/{id} (ticketCode) + /registration-status (canCancel).
+            const [registrationData, statusData] = await Promise.all([
+                registrationAPI.checkRegistrationStatus(eventId),
+                registrationAPI.getActivityRegistrationStatus(eventId).catch(() => null)
+            ]);
             setRegistration(registrationData);
+            setRegStatus(statusData);
         } catch (err) {
             console.error('Error checking registration status:', err);
             setRegistration(null);
+            setRegStatus(null);
         }
     };
+
+    const loadMyRegistrations = async () => {
+        try {
+            // P7-5: tái dùng /my để build cache đã huỷ (chặn re-register).
+            const myRegs = await registrationAPI.getMyRegistrations();
+            setMyRegistrations(myRegs || []);
+        } catch (err) {
+            console.error('Error loading my registrations:', err);
+            setMyRegistrations([]);
+        }
+    };
+
+    const isCancelledBefore = (activityId: number) => hasCancelledBefore(activityId, myRegistrations);
 
     const handleRegister = async () => {
         if (!event) return;
@@ -223,6 +248,11 @@ const StudentEventDetail: React.FC = () => {
                 // Store full registration response which includes ticketCode
                 setRegistration(response);
                 setShowRegistrationForm(false);
+                // P7-5: refresh reg-status + /my cache sau khi đăng ký thành công.
+                await Promise.all([
+                    checkRegistrationStatus(event.id),
+                    loadMyRegistrations()
+                ]);
 
                 if (response.status === RegistrationStatus.APPROVED) {
                     alert('Đăng ký thành công! Bạn đã được duyệt tự động.');
@@ -233,6 +263,7 @@ const StudentEventDetail: React.FC = () => {
         } catch (err: any) {
             console.error('Registration error details:', err);
             console.error('Error response:', err.response?.data);
+            // P7-5: safety net — /my chưa kịp refetch thì BE vẫn chặn re-register.
             alert('Có lỗi xảy ra khi đăng ký: ' + (err.response?.data?.message || err.message));
         }
     };
@@ -252,7 +283,11 @@ const StudentEventDetail: React.FC = () => {
 
         try {
             await registrationAPI.cancelRegistration(event.id);
-            setRegistration(null);
+            // P7-5: refresh registration-status + /my cache để chặn re-register chính xác.
+            await Promise.all([
+                checkRegistrationStatus(event.id),
+                loadMyRegistrations()
+            ]);
             alert('Hủy đăng ký thành công!');
         } catch (err: any) {
             alert('Có lỗi xảy ra khi hủy đăng ký: ' + (err.response?.data?.message || err.message));
@@ -321,7 +356,10 @@ const StudentEventDetail: React.FC = () => {
 
     const canRegister = () => {
         if (!event) return false;
-        // Đã đăng ký rồi nếu có registration với status APPROVED, PENDING, hoặc ATTENDED
+        // P7-5: đã huỷ trước đó → không cho đăng ký lại (safety net ở BE).
+        if (isCancelledBefore(event.id)) return false;
+        // Đã đăng ký rồi nếu có registration với status APPROVED, PENDING, hoặc ATTENDED,
+        // hoặc BE trả isRegistered:true qua /registration-status.
         if (registration) {
             const registeredStatuses = [
                 RegistrationStatus.APPROVED,
@@ -332,6 +370,7 @@ const StudentEventDetail: React.FC = () => {
                 return false; // Đã đăng ký rồi (bao gồm cả ATTENDED)
             }
         }
+        if (regStatus?.isRegistered === true) return false;
 
         const now = new Date();
         const registrationStartDate = event.registrationStartDate ? new Date(event.registrationStartDate) : null;
@@ -372,9 +411,8 @@ const StudentEventDetail: React.FC = () => {
 
     const canCancel = () => {
         if (!event) return false;
-        const eventStatus = getEventStatus();
-        return eventStatus === 'UPCOMING' &&
-            registration?.status === RegistrationStatus.PENDING;
+        // P7-2: dùng canCancel từ BE (/registration-status) thay vì tự tính (line 413, L715).
+        return regStatus?.canCancel === true;
     };
 
     const canRecordParticipation = () => {
@@ -393,7 +431,7 @@ const StudentEventDetail: React.FC = () => {
         setFilePreviews([]);
         setImagePreviews([]);
         try {
-            const res = await submissionAPI.getMySubmissionForTask(task.id);
+            const res = await submissionAPI.getMySubmissionForTask(task.taskId);
             if (res.status && res.data) {
                 setMySubmission(res.data);
                 setSubmitContent(res.data.content || '');
@@ -474,7 +512,7 @@ const StudentEventDetail: React.FC = () => {
                 if (!res.status) throw new Error(res.message || 'Cập nhật bài nộp thất bại');
                 alert('Cập nhật bài nộp thành công');
             } else {
-                const res = await submissionAPI.submitTask(selectedTask.id, {
+                const res = await submissionAPI.submitTask(selectedTask.taskId, {
                     content: submitContent || undefined,
                     files: submitFiles.length > 0 ? submitFiles : undefined,
                     images: submitImages.length > 0 ? submitImages : undefined,
@@ -483,7 +521,7 @@ const StudentEventDetail: React.FC = () => {
                 alert('Nộp bài thành công');
             }
             // Refresh my submission
-            const latest = await submissionAPI.getMySubmissionForTask(selectedTask.id);
+            const latest = await submissionAPI.getMySubmissionForTask(selectedTask.taskId);
             if (latest.status && latest.data) {
                 setMySubmission(latest.data);
                 const attachments = getSubmissionAttachments(latest.data);
@@ -712,6 +750,15 @@ const StudentEventDetail: React.FC = () => {
                                         </button>
                                     )}
 
+                                    {/* P7-5: đã huỷ trước đó → ẩn nút đăng ký, hiện text thông báo. */}
+                                    {!canRegister() && event && isCancelledBefore(event.id) && !registration && (
+                                        <div className="text-center">
+                                            <span className="inline-flex items-center px-3 py-2 rounded-md text-sm font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                                                ℹ️ Bạn đã huỷ đăng ký sự kiện này và không thể đăng ký lại.
+                                            </span>
+                                        </div>
+                                    )}
+
                                     {canCancel() && (
                                         <button
                                             onClick={handleCancelRegistration}
@@ -721,7 +768,7 @@ const StudentEventDetail: React.FC = () => {
                                         </button>
                                     )}
 
-                                    {registration?.status === RegistrationStatus.APPROVED && getEventStatus() === 'UPCOMING' && (
+                                    {registration?.status === RegistrationStatus.APPROVED && !canCancel() && getEventStatus() === 'UPCOMING' && (
                                         <div className="text-center">
                                             <span className="inline-flex items-center px-3 py-2 rounded-md text-sm font-medium bg-green-100 text-green-800">
                                                 ✅ Đã được duyệt - Không thể hủy
@@ -910,7 +957,14 @@ const StudentEventDetail: React.FC = () => {
                                             ℹ️ Hoạt động thuộc chuỗi sự kiện. Điểm số sẽ tính theo tiến độ của chuỗi sự kiện.
                                         </div>
                                     ) : (
-                                        <ScoreRulesDisplay rules={event.scoreRules} />
+                                        <div>
+                                            {event.presetCode && event.presetCode !== 'CUSTOM' && (
+                                                <div className="mb-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                                    <span>Mẫu cấu hình: {event.presetCode}</span>
+                                                </div>
+                                            )}
+                                            <ScoreRulesDisplay rules={event.scoreRules} />
+                                        </div>
                                     )}
                                 </div>
                             </div>

@@ -2,6 +2,7 @@ import api from './api';
 import {
     ActivityRegistrationRequest,
     ActivityRegistrationResponse,
+    ActivityRegistrationStatusResponse,
     ActivityParticipationRequest,
     ActivityParticipationResponse,
     RegistrationStatus,
@@ -30,6 +31,25 @@ export const registrationAPI = {
         const response = await api.get(`/api/registrations/check/${activityId}`);
         // Backend returns null if not registered, or ActivityRegistrationResponse if registered
         return response.data.body || null;
+    },
+
+    /**
+     * P7-1: GET /api/activities/{activityId}/registration-status — trả Map với
+     * { isRegistered, status, canCancel, ...}. Dùng cho quyết định hiển thị nút huỷ.
+     * Parse dùng optional/fallback (BE trả Map, không có DTO cố định).
+     */
+    getActivityRegistrationStatus: async (activityId: number): Promise<ActivityRegistrationStatusResponse> => {
+        const response = await api.get(`/api/activities/${activityId}/registration-status`);
+        return (response.data.body || {}) as ActivityRegistrationStatusResponse;
+    },
+
+    /**
+     * P7-7/P7-9: GET /api/registrations/series/{seriesId} — danh sách đăng ký của series.
+     * FE đếm distinct APPROVED student client-side (Q4 — BE không có overview APPROVED-only).
+     */
+    getSeriesRegistrations: async (seriesId: number): Promise<ActivityRegistrationResponse[]> => {
+        const response = await api.get(`/api/registrations/series/${seriesId}`);
+        return response.data.body || [];
     },
 
 

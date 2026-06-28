@@ -42,6 +42,10 @@ const ActivityScoreRulePreview: React.FC<ActivityScoreRulePreviewProps> = ({ pre
         return labels[calc] || calc;
     };
 
+    const hasAnyFailPoints = preview.scoreRules.some(
+        r => r.failPoints !== null && r.failPoints !== undefined
+    );
+
     return (
         <div className="mt-4 border border-blue-200 rounded-lg overflow-hidden bg-blue-50">
             <div className="bg-blue-100 px-4 py-3 border-b border-blue-200">
@@ -69,7 +73,9 @@ const ActivityScoreRulePreview: React.FC<ActivityScoreRulePreviewProps> = ({ pre
                                     <th className="px-3 py-2">Điều kiện (Trigger)</th>
                                     <th className="px-3 py-2">Cách tính</th>
                                     <th className="px-3 py-2 text-right">Số điểm</th>
-                                    <th className="px-3 py-2 text-right">Điểm trượt</th>
+                                    {hasAnyFailPoints && (
+                                        <th className="px-3 py-2 text-right">Điểm trừ khi không đạt</th>
+                                    )}
                                 </tr>
                             </thead>
                             <tbody>
@@ -79,7 +85,11 @@ const ActivityScoreRulePreview: React.FC<ActivityScoreRulePreviewProps> = ({ pre
                                         <td className="px-3 py-2">{getTriggerLabel(rule.triggerType)}</td>
                                         <td className="px-3 py-2">{getCalculationLabel(rule.calculation)}</td>
                                         <td className="px-3 py-2 text-right text-green-600 font-semibold">{rule.points}</td>
-                                        <td className="px-3 py-2 text-right text-red-600">{rule.failPoints || '-'}</td>
+                                        {hasAnyFailPoints && (
+                                            <td className="px-3 py-2 text-right text-red-600">
+                                                {rule.failPoints != null ? rule.failPoints : '-'}
+                                            </td>
+                                        )}
                                     </tr>
                                 ))}
                             </tbody>
@@ -89,6 +99,7 @@ const ActivityScoreRulePreview: React.FC<ActivityScoreRulePreviewProps> = ({ pre
             </div>
         </div>
     );
+
 };
 
 export default ActivityScoreRulePreview;

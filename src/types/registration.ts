@@ -1,6 +1,34 @@
-import { ActivityResponse } from './activity';
+import { ActivityResponse, ScoreType, ScoreRuleTrigger } from './activity';
 import { Student } from './student';
 import { User } from './auth';
+
+/**
+ * Một khoản điểm được backend (scoring engine mới) áp dụng cho sinh viên.
+ * FE phải render từng `displayText` thay vì gộp thành một tổng cross-type.
+ * VD: "+5 điểm rèn luyện", "+1 buổi chuyên đề".
+ */
+export interface AppliedScoreAward {
+    ruleId?: number | null;
+    scoreType: ScoreType;
+    scoreTypeLabel: string;
+    points: number | string; // BigDecimal
+    displayUnit: string;
+    displayText: string; // e.g., "+5 điểm rèn luyện"
+    triggerType?: ScoreRuleTrigger | null;
+    scoreEntryId?: number | null;
+}
+
+/**
+ * P7-1: Response từ GET /api/activities/{activityId}/registration-status.
+ * BE trả Map (không có DTO cố định) → các field là best-effort, parse dùng optional/fallback.
+ */
+export interface ActivityRegistrationStatusResponse {
+    isRegistered?: boolean;
+    status?: RegistrationStatus | null;
+    canCancel?: boolean;
+    /** Các key khác của Map (tuỳ chọn). */
+    [key: string]: unknown;
+}
 
 export enum RegistrationStatus {
     PENDING = 'PENDING',
@@ -63,7 +91,7 @@ export interface ActivityParticipationRequest {
     ticketCode?: string;
     studentId?: number;
     participationType?: ParticipationType | null;
-    pointsEarned?: string | null;
+    pointsEarned?: number | null;
     notes?: string;
 }
 
@@ -75,8 +103,12 @@ export interface ActivityParticipationResponse {
     studentName: string;
     studentCode: string;
     participationType: ParticipationType;
-    pointsEarned?: string | null;
+    /** @deprecated Tương thích ngược — tổng điểm cộng gộp. Ưu tiên hiển thị `scoreAwards`. */
+    pointsEarned?: number | string | null;
+    /** Danh sách điểm chi tiết theo từng loại điểm (scoring engine mới). */
+    scoreAwards?: AppliedScoreAward[];
     date: string; // LocalDateTime in backend, so string
+    isCompleted?: boolean | null;
     notes?: string;
 }
 

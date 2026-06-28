@@ -1,5 +1,5 @@
 import api from './api';
-import { TrainingCalculateResponse, ScoreViewResponse, StudentRankingResponseData, ScoreHistoryViewResponse, ScoreType } from '../types/score';
+import { TrainingCalculateResponse, ScoreViewResponse, StudentRankingResponseData, ScoreHistoryViewResponse, ScoreType, RecalculationJobResponse } from '../types/score';
 
 // Normalize response format
 const normalize = <T>(data: any): { status: boolean; message: string; data?: T } => {
@@ -74,9 +74,15 @@ export const scoresAPI = {
         scoreType?: ScoreType | null;
         page?: number;
         size?: number;
+        /** ISO datetime string — backend filter. */
+        startDate?: string | null;
+        /** ISO datetime string — backend filter. */
+        endDate?: string | null;
+        /** Tìm kiếm theo tên hoạt động. */
+        keyword?: string | null;
     }): Promise<{ status: boolean; message: string; data?: ScoreHistoryViewResponse }> => {
-        const { studentId, semesterId, scoreType, page = 0, size = 20 } = params;
-        
+        const { studentId, semesterId, scoreType, page = 0, size = 20, startDate, endDate, keyword } = params;
+
         const queryParams = new URLSearchParams();
         queryParams.append('semesterId', String(semesterId));
         if (scoreType) {
@@ -87,6 +93,15 @@ export const scoresAPI = {
         }
         if (size !== undefined) {
             queryParams.append('size', String(size));
+        }
+        if (startDate) {
+            queryParams.append('startDate', startDate);
+        }
+        if (endDate) {
+            queryParams.append('endDate', endDate);
+        }
+        if (keyword) {
+            queryParams.append('keyword', keyword);
         }
 
         const res = await api.get(`/api/scores/history/student/${studentId}?${queryParams.toString()}`);
@@ -122,5 +137,25 @@ export const scoresAPI = {
         const url = `/api/scores/recalculate/all${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
         const res = await api.post(url);
         return normalize<string>(res.data);
+    },
+
+    recalculateAsync: async (semesterId?: number): Promise<{ status: boolean; message: string; data?: { jobId: number; semesterId: number; totalStudents: number; status: string } }> => {
+        const queryParams = new URLSearchParams();
+        if (semesterId) {
+            queryParams.append('semesterId', String(semesterId));
+        }
+        const url = `/api/scores/recalculate/async${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+        const res = await api.post(url);
+        return normalize(res.data);
+    },
+
+    getRecalculationStatus: async (jobId: number): Promise<{ status: boolean; message: string; data?: RecalculationJobResponse }> => {
+        const res = await api.get(`/api/scores/recalculate/status/${jobId}`);
+        return normalize<RecalculationJobResponse>(res.data);
+    },
+
+    retryRecalculation: async (jobId: number): Promise<{ status: boolean; message: string; data?: { jobId: number } }> => {
+        const res = await api.post(`/api/scores/recalculate/retry/${jobId}`);
+        return normalize(res.data);
     },
 };

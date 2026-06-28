@@ -58,7 +58,14 @@ const EditSeries: React.FC = () => {
                 minimumRequirementEnabled: data.minimumRequirementEnabled,
                 minimumRequiredEvents: data.minimumRequiredEvents,
                 minimumPenaltyPoints: data.minimumPenaltyPoints,
-                targetSemesterId: data.targetSemesterId
+                targetSemesterId: data.targetSemesterId,
+                audience: data.audience,
+                departmentIds: data.departmentIds,
+                isImportant: data.isImportant,
+                mandatoryForFacultyStudents: data.mandatoryForFacultyStudents,
+                isDraft: data.isDraft,
+                presetCode: data.presetCode,
+                presetConfig: data.presetConfig
             };
             const response = await seriesAPI.updateSeries(parseInt(id), updateData);
             if (response.status && response.data) {
@@ -122,7 +129,14 @@ const EditSeries: React.FC = () => {
                     minimumRequirementEnabled: series.minimumRequirementEnabled,
                     minimumRequiredEvents: series.minimumRequiredEvents,
                     minimumPenaltyPoints: series.minimumPenaltyPoints ?? null,
-                    targetSemesterId: series.targetSemesterId
+                    targetSemesterId: series.targetSemesterId,
+                    audience: series.audience || 'ALL_PARTICIPANTS',
+                    departmentIds: series.targetDepartmentIds ?? [],
+                    isImportant: series.isImportant ?? false,
+                    mandatoryForFacultyStudents: series.mandatoryForFacultyStudents ?? false,
+                    isDraft: series.isDraft ?? true,
+                    presetCode: (series.presetCode as any) ?? undefined,
+                    presetConfig: series.presetConfig
                 }}
                 title="Chỉnh sửa chuỗi sự kiện"
                 onCancel={handleCancel}

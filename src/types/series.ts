@@ -1,5 +1,6 @@
 import { ScoreType } from './activity';
 import { ActivityResponse } from './activity';
+import { SeriesPresetCode, SeriesPresetConfig } from './presets';
 
 export interface StudentSeriesProgress {
     id?: number;
@@ -11,17 +12,38 @@ export interface StudentSeriesProgress {
     totalActivities?: number;
     pointsEarned: string; // BigDecimal as string
     lastUpdated?: string;
-    // New fields from API response
-    currentMilestone?: number; // Mốc hiện tại đã đạt
-    nextMilestoneCount?: number; // Số sự kiện cần để đạt mốc tiếp theo
-    nextMilestonePoints?: string; // Điểm sẽ nhận khi đạt mốc tiếp theo
-    milestonePoints?: Record<number, number>; // Map các mốc điểm
-    scoreType?: ScoreType; // Loại điểm (REN_LUYEN, etc.)
+    currentMilestone?: number;
+    nextMilestoneCount?: number;
+    nextMilestonePoints?: string;
+    milestonePoints?: Record<number, number>;
+    scoreType?: ScoreType;
     minimumRequirementEnabled?: boolean;
     minimumRequiredEvents?: number | null;
     minimumPenaltyPoints?: number | null;
     minimumRequirementMet?: boolean;
     remainingToAvoidPenalty?: number;
+}
+
+/** P5: exact keys returned by GET /api/series/{id}/progress/my (Map<string,any>). */
+export interface SeriesStudentProgressMap {
+    studentId: number;
+    seriesId: number;
+    seriesName: string;
+    completedCount: number;
+    totalActivities: number;
+    completedActivityIds: number[];
+    pointsEarned: number | string;
+    lastUpdated?: string | null;
+    currentMilestone?: string | null;
+    nextMilestoneCount?: number | null;
+    nextMilestonePoints?: number | null;
+    milestonePoints?: Record<string, number> | null;
+    scoreType: ScoreType;
+    minimumRequirementEnabled: boolean;
+    minimumRequiredEvents?: number | null;
+    minimumPenaltyPoints?: number | null;
+    minimumRequirementMet: boolean;
+    remainingToAvoidPenalty: number;
 }
 
 export interface CreateSeriesRequest {
@@ -38,6 +60,13 @@ export interface CreateSeriesRequest {
     minimumRequiredEvents?: number | null;
     minimumPenaltyPoints?: number | null;
     targetSemesterId?: number | null;
+    audience?: string | null;
+    departmentIds?: number[] | null;
+    isImportant?: boolean | null;
+    mandatoryForFacultyStudents?: boolean | null;
+    isDraft?: boolean | null;
+    presetCode?: SeriesPresetCode | null;
+    presetConfig?: SeriesPresetConfig | null;
 }
 
 export interface UpdateSeriesRequest {
@@ -54,6 +83,13 @@ export interface UpdateSeriesRequest {
     minimumRequiredEvents?: number | null;
     minimumPenaltyPoints?: number | null;
     targetSemesterId?: number | null;
+    audience?: string | null;
+    departmentIds?: number[] | null;
+    isImportant?: boolean | null;
+    mandatoryForFacultyStudents?: boolean | null;
+    isDraft?: boolean | null;
+    presetCode?: SeriesPresetCode | null;
+    presetConfig?: SeriesPresetConfig | null;
 }
 
 export interface AddActivityToSeriesRequest {
@@ -76,10 +112,17 @@ export interface SeriesResponse {
     minimumRequiredEvents?: number | null;
     minimumPenaltyPoints?: number | null;
     targetSemesterId?: number | null;
+    audience?: string | null;
+    targetDepartmentIds?: number[] | null;
+    isImportant: boolean;
+    mandatoryForFacultyStudents: boolean;
+    isDraft: boolean;
+    presetCode?: string | null;
+    presetConfig?: import('./presets').SeriesPresetConfig | null;
     createdAt: string;
     activities?: ActivityResponse[];
     totalActivities?: number;
-    deleted?: boolean; // Soft delete flag (from backend: "deleted")
+    deleted?: boolean;
 }
 
 export interface SeriesRegistrationResponse {
@@ -93,6 +136,14 @@ export interface SeriesRegistrationStatus {
     seriesId: number;
     studentId: number;
     isRegistered: boolean;
+}
+
+/** P7: helper types thuần FE (BE không thêm field vào SeriesRegistrationStatus — Q5). */
+export interface SeriesSlotInfo {
+    ticketQuantity: number | null;
+    approvedCount: number;
+    remainingSlots: number | null; // null = unlimited
+    isFull: boolean; // false nếu unlimited
 }
 
 // Parse and format helper functions removed as milestonePoints is now Record<number, number> directly.
@@ -173,4 +224,3 @@ export interface SeriesProgressListResponse {
     totalPages: number;
     totalElements: number;
 }
-
