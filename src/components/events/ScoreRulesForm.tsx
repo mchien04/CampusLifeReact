@@ -221,7 +221,7 @@ export const ScoreRulesForm: React.FC<ScoreRulesFormProps> = ({ rules = [], onCh
                                                     {isPenaltyOnly ? 'Điểm phạt (nhập số dương)' : 'Điểm khi trượt (Fail)'}
                                                     {REQUIRES_FAIL_POINTS.includes(rule.triggerType) && <span className="text-red-500">*</span>}
                                                 </label>
-                                                <input 
+                                                <input
                                                     type="number"
                                                     step="0.1"
                                                     value={rule.failPoints || ''}
@@ -235,6 +235,28 @@ export const ScoreRulesForm: React.FC<ScoreRulesFormProps> = ({ rules = [], onCh
                                                     placeholder="Ví dụ: 5"
                                                 />
                                                 <p className="text-xs text-red-500 mt-1">→ Backend ghi -{rule.failPoints || 0} điểm</p>
+                                            </div>
+                                        )}
+
+                                        {/* P6.1: failScoreType — chỉ dùng cho SUBMISSION_GRADED (Pass/Fail) */}
+                                        {isPassFail && (
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    Loại điểm phạt (để trống để mặc định theo Loại điểm chính)
+                                                </label>
+                                                <select
+                                                    value={rule.failScoreType || ''}
+                                                    onChange={(e) => updateRule(index, 'failScoreType', e.target.value || null)}
+                                                    className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                >
+                                                    <option value="">-- Mặc định ({rule.scoreType}) --</option>
+                                                    <option value={ScoreType.REN_LUYEN}>Điểm rèn luyện</option>
+                                                    <option value={ScoreType.CONG_TAC_XA_HOI}>Điểm công tác xã hội</option>
+                                                    <option value={ScoreType.CHUYEN_DE}>Điểm chuyên đề</option>
+                                                </select>
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                    Khuyên dùng Rèn luyện để không trừ ngược điểm Chuyên đề.
+                                                </p>
                                             </div>
                                         )}
 

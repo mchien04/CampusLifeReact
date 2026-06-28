@@ -25,6 +25,8 @@ interface PresetRuleCardProps {
     errors?: Record<string, string>;
     externalOptions?: Record<string, Array<{ value: string | number; label: string }>>;
     presetCode?: string;
+    /** P6.1: disable toggle vì lý do dependency (vd TASK_OVERDUE tắt khi SUBMISSION_GRADED tắt). */
+    toggleDisabled?: boolean;
 }
 
 const getInputTypeComponent = (
@@ -34,7 +36,9 @@ const getInputTypeComponent = (
     error?: string,
     externalOptions?: Record<string, Array<{ value: string | number; label: string }>>
 ) => {
-    const baseClass = `w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${error ? 'border-red-500' : 'border-gray-300'}`;
+    // P6.1: BE chỉ ra editable=false → field read-only (vd enterprise participationPoints).
+    const readOnly = field.editable === false;
+    const baseClass = `w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${error ? 'border-red-500' : 'border-gray-300'} ${readOnly ? 'bg-gray-100 cursor-not-allowed text-gray-500' : ''}`;
 
     const resolveOptions = (): Array<{ value: string | number; label: string }> => {
         if (field.options && field.options.length > 0) {
@@ -60,8 +64,9 @@ const getInputTypeComponent = (
                         type="checkbox"
                         id={field.fieldName}
                         checked={!!value}
+                        disabled={readOnly}
                         onChange={(e) => onChange(e.target.checked)}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                     <label htmlFor={field.fieldName} className="ml-2 text-sm text-gray-700">
                         {field.label}
@@ -77,6 +82,7 @@ const getInputTypeComponent = (
                     <select
                         id={field.fieldName}
                         value={(value as string) || ''}
+                        disabled={readOnly}
                         onChange={(e) => onChange(e.target.value || null)}
                         className={baseClass}
                     >
@@ -98,6 +104,8 @@ const getInputTypeComponent = (
                         type="number"
                         min="0"
                         step="0.1"
+                        readOnly={readOnly}
+                        disabled={readOnly}
                         value={value !== undefined && value !== null ? String(value) : ''}
                         onChange={(e) => {
                             const val = e.target.value;
@@ -142,6 +150,8 @@ const getInputTypeComponent = (
                     </label>
                     <input
                         type="text"
+                        readOnly={readOnly}
+                        disabled={readOnly}
                         value={value !== undefined && value !== null ? String(value) : ''}
                         onChange={(e) => onChange(e.target.value)}
                         className={baseClass}
@@ -178,9 +188,13 @@ const PresetRuleCard: React.FC<PresetRuleCardProps> = ({
     onFieldChange,
     errors = {},
     externalOptions,
-    presetCode
+    presetCode,
+    toggleDisabled = false
 }) => {
-    const isDisabled = rule.required;
+    // P6.1: required rule không cho tắt thủ công, nhưng nếu đang bị tắt do conflict
+    // (vd PARTICIPATION_COMPLETED khi SUBMISSION_GRADED bật) thì cho phép bật lại.
+    // P6.1: toggleDisabled cho TASK_OVERDUE khi SUBMISSION_GRADED tắt.
+    const isDisabled = (rule.required && enabled) || toggleDisabled;
 
     const handleToggle = () => {
         if (!isDisabled) {
@@ -241,34 +255,46 @@ const PresetRuleCard: React.FC<PresetRuleCardProps> = ({
             {/* Fields */}
             {enabled && (
                 <div className="ml-14 space-y-4">
-                    {rule.fieldDefinitions.map(field => {
-                        if (!shouldShowField(field, enabled, fieldValues)) {
-                            return null;
-                        }
-                        // "Điểm trừ khi đánh giá không đạt" only belongs to EVENT_WITH_SUBMISSION.
-                        // The backend currently attaches participationFailPoints to other presets with a similar label;
-                        // we explicitly hide it outside EVENT_WITH_SUBMISSION / CUSTOM.
-                        const isFailAssessmentField =
-                            field.fieldName === 'submissionFailPoints' ||
-                            (field.label && field.label.includes('Điểm trừ khi đánh giá không đạt'));
-                        if (isFailAssessmentField && presetCode !== 'EVENT_WITH_SUBMISSION' && presetCode !== 'CUSTOM') {
-                            return null;
-                        }
-                        if (field.fieldName === 'submissionFailPoints' && rule.ruleKey !== 'SUBMISSION_GRADED') {
-                            return null;
-                        }
-                        return (
-                            <div key={field.fieldName}>
-                                {getInputTypeComponent(
-                                    field,
-                                    fieldValues[field.fieldName],
-                                    (val) => onFieldChange(field.fieldName, val),
-                                    errors[field.fieldName],
-                                    externalOptions
-                                )}
-                            </div>
+                    {(() => {
+                        // P6.1: phân loại fields — main (số điểm, scoreType) vs extended (đối tượng, học kỳ).
+                        const isExtendedField = (fn: string) =>
+                            fn.endsWith('Audience') || fn.endsWith('DepartmentIds') ||
+                            fn.endsWith('SemesterPolicy') || fn.endsWith('ExplicitSemesterId');
+                        const isNoShowEnabled = (fn: string) =>
+                            rule.ruleKey === 'NO_SHOW' && fn === 'noShowPenaltyEnabled';
+
+                        const mainFields = rule.fieldDefinitions.filter(f =>
+                            !isNoShowEnabled(f.fieldName) && shouldShowField(f, enabled, fieldValues) && !isExtendedField(f.fieldName)
                         );
-                    })}
+                        const extendedFields = rule.fieldDefinitions.filter(f =>
+                            !isNoShowEnabled(f.fieldName) && shouldShowField(f, enabled, fieldValues) && isExtendedField(f.fieldName)
+                        );
+
+                        return (
+                            <>
+                                {mainFields.map(field => (
+                                    <div key={field.fieldName}>
+                                        {getInputTypeComponent(field, fieldValues[field.fieldName], (val) => onFieldChange(field.fieldName, val), errors[field.fieldName], externalOptions)}
+                                    </div>
+                                ))}
+                                {extendedFields.length > 0 && (
+                                    <details className="group border border-gray-200 rounded-lg">
+                                        <summary className="cursor-pointer text-xs font-medium text-gray-500 hover:text-gray-700 px-3 py-2 rounded-lg bg-gray-50 hover:bg-gray-100 list-none flex items-center gap-1.5">
+                                            <span className="group-open:rotate-90 transition-transform">▶</span>
+                                            Cấu hình mở rộng (đối tượng, học kỳ)
+                                        </summary>
+                                        <div className="px-3 pb-3 pt-2 space-y-3">
+                                            {extendedFields.map(field => (
+                                                <div key={field.fieldName}>
+                                                    {getInputTypeComponent(field, fieldValues[field.fieldName], (val) => onFieldChange(field.fieldName, val), errors[field.fieldName], externalOptions)}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </details>
+                                )}
+                            </>
+                        );
+                    })()}
                 </div>
             )}
         </div>

@@ -24,6 +24,8 @@ export interface FieldDefinition {
     defaultValue: any;
     visibility: VisibilityType;
     options?: string[] | null;
+    /** P6.1: BE chỉ ra false cho field read-only (vd enterprise participationPoints). */
+    editable?: boolean | null;
 }
 
 export interface PresetRuleDescriptor {
@@ -35,13 +37,16 @@ export interface PresetRuleDescriptor {
     fieldDefinitions: FieldDefinition[];
     /** P5.2: suggested trigger combinations for CUSTOM mode */
     suggestedCombinations?: ScoreRuleTrigger[];
+    /** P6-1: rule keys mà khi bật rule này sẽ tự tắt (conflict hai chiều). */
+    conflictsWith?: string[];
 }
 
 export interface ActivityPresetDefinition {
     code: ActivityPresetCode;
     displayName: string;
     description: string;
-    defaultRequiresSubmission: boolean;
+    /** P6-12: optional (BE có thể không trả cho một số preset). */
+    defaultRequiresSubmission?: boolean | null;
     recommendedActivityTypes: ActivityType[];
     notes: string[];
     supportedRules: PresetRuleDescriptor[];
@@ -62,12 +67,24 @@ export interface ActivityPresetPreviewRequest {
     presetConfig?: ActivityPresetConfig | null;
 }
 
+export interface ScoreRulePreviewRow {
+    triggerType: string;
+    scenario: string;      // PASS | FAIL | PENALTY | BONUS | REWARD
+    scoreType: string;
+    points: number;
+    audience: string;
+    semester: string;
+    description: string;
+}
+
 export interface ActivityPresetPreviewResponse {
     presetCode: ActivityPresetCode;
     activityType: ActivityType;
     requiresSubmission: boolean;
     scoreRules: ActivityScoreRuleRequest[];
     notes: string[];
+    /** P6.1: display-ready rows, FE render thẳng không cần suy luận. */
+    previewRows?: ScoreRulePreviewRow[] | null;
 }
 
 export interface SeriesPresetConfig {

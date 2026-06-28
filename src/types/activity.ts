@@ -47,13 +47,15 @@ export enum ScoreSemesterPolicy {
 export interface ActivityPresetConfig {
     primaryScoreType?: ScoreType | null;
     participationPoints?: number | string | null;
-    participationFailPoints?: number | string | null;
+    participationFailPoints?: number | string | null; // legacy — PARTICIPATION_COMPLETED descriptor không còn expose (P6.1)
     noShowPenaltyEnabled?: boolean | null;
     noShowPenaltyPoints?: number | string | null;
     noShowPenaltyScoreType?: ScoreType | null;
     submissionPassPoints?: number | string | null;
     submissionFailPoints?: number | string | null;
+    submissionFailScoreType?: ScoreType | null; // P6.1: chỉ expose cho enterprise SUBMISSION_GRADED; null → BE fallback về primaryScoreType
     taskOverduePenaltyPoints?: number | string | null;
+    taskOverduePenaltyScoreType?: ScoreType | null; // P6.1: optional; null → BE fallback về scoreType chính; enterprise default REN_LUYEN
     minigameExhaustedPenaltyPoints?: number | string | null;
     bonusScoreType?: ScoreType | null;
     bonusPoints?: number | string | null;
@@ -97,10 +99,14 @@ export interface ActivityPresetConfig {
     minigameExhaustedSemesterPolicy?: ScoreSemesterPolicy | null;
     minigameExhaustedExplicitSemesterId?: number | null;
     minigameExhaustedDepartmentIds?: number[] | null;
+
+    /** P6-4: derive từ enabledRules.SUBMISSION_GRADED — true khi rule đó bật. */
+    submissionEnabled?: boolean | null;
 }
 
 export interface ActivityScoreRuleRequest {
     scoreType: ScoreType;
+    failScoreType?: ScoreType | null; // P6.1: loại điểm khi fail; null → fallback về scoreType
     triggerType: ScoreRuleTrigger;
     calculation: ScoreRuleCalculation;
     points: number;
@@ -118,6 +124,7 @@ export interface ActivityScoreRuleResponse {
     id: number;
     activityId: number;
     scoreType: ScoreType;
+    failScoreType?: ScoreType | null; // P6.1
     triggerType: ScoreRuleTrigger;
     calculation: ScoreRuleCalculation;
     points: number;

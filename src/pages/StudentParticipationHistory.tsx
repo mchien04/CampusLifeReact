@@ -6,6 +6,8 @@ import StudentLayout from '../components/layout/StudentLayout';
 
 const StudentParticipationHistory: React.FC = () => {
     const [registrations, setRegistrations] = useState<ActivityRegistrationResponse[]>([]);
+    // P7-4: canCancel từ BE (/registration-status) — /my không trả canCancel.
+    const [canCancelMap, setCanCancelMap] = useState<Map<number, boolean>>(new Map());
     const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState({
         status: 'ALL' as RegistrationStatus | 'ALL',
@@ -51,12 +53,35 @@ const StudentParticipationHistory: React.FC = () => {
             }
 
             setRegistrations(filteredData);
+            // P7-4: fetch canCancel per-row từ /registration-status (song song, bỏ qua lỗi).
+            loadCanCancelStatuses(filteredData);
         } catch (error) {
             console.error('Error loading registrations:', error);
         } finally {
             setLoading(false);
         }
     }, [filters]);
+
+    const loadCanCancelStatuses = async (regs: ActivityRegistrationResponse[]) => {
+        const map = new Map<number, boolean>();
+        const seen = new Set<number>();
+        const uniqueIds = regs.reduce<number[]>((acc, r) => {
+            if (r.activityId != null && !seen.has(r.activityId)) {
+                seen.add(r.activityId);
+                acc.push(r.activityId);
+            }
+            return acc;
+        }, []);
+        await Promise.all(uniqueIds.map(async (activityId) => {
+            try {
+                const regStatus = await registrationAPI.getActivityRegistrationStatus(activityId);
+                if (regStatus?.canCancel === true) {
+                    map.set(activityId, true);
+                }
+            } catch { /* ignore per-row error */ }
+        }));
+        setCanCancelMap(map);
+    };
 
     useEffect(() => {
         loadRegistrations();
@@ -107,8 +132,9 @@ const StudentParticipationHistory: React.FC = () => {
         }
     };
 
-    const canCancel = (status: RegistrationStatus): boolean => {
-        return status === 'PENDING';
+    const canCancel = (registration: ActivityRegistrationResponse): boolean => {
+        // P7-4: dùng canCancel từ BE (/registration-status) thay vì tự tính status === 'PENDING'.
+        return canCancelMap.get(registration.activityId) === true;
     };
 
     const formatDate = (dateString: string): string => {
@@ -319,7 +345,7 @@ const StudentParticipationHistory: React.FC = () => {
                                                     >
                                                         Xem chi tiết
                                                     </Link>
-                                                    {canCancel(registration.status) && (
+                                                    {canCancel(registration) && (
                                                         <button
                                                             onClick={() => handleCancelRegistration(registration.activityId)}
                                                             className="text-red-600 hover:text-red-800 font-medium transition-colors"

@@ -129,6 +129,7 @@ const BaseEventForm = <T extends BaseEventFormData>({
     const [presets, setPresets] = useState<ActivityPresetDefinition[]>([]);
     const [selectedPresetCode, setSelectedPresetCode] = useState<string>('');
     const [presetPreview, setPresetPreview] = useState<ActivityPresetPreviewResponse | null>(null);
+    const [previewLoading, setPreviewLoading] = useState(false);
     const [enabledRules, setEnabledRules] = useState<Record<string, boolean>>({});
     const [presetConfigErrors, setPresetConfigErrors] = useState<Record<string, string>>({});
     const [departments, setDepartments] = useState<Department[]>([]);
@@ -167,11 +168,21 @@ const BaseEventForm = <T extends BaseEventFormData>({
                         if (submissionRule) {
                             reconstructed.submissionPassPoints = submissionRule.points;
                             reconstructed.submissionFailPoints = submissionRule.failPoints ?? undefined;
+                            // P6.1: reconstruct failScoreType (chỉ có giá trị cho enterprise).
+                            reconstructed.submissionFailScoreType = submissionRule.failScoreType ?? undefined;
                         }
                         const overdueRule = rules.find((r: any) => r.triggerType === 'TASK_OVERDUE');
                         if (overdueRule && overdueRule.failPoints != null) reconstructed.taskOverduePenaltyPoints = overdueRule.failPoints;
                         const exhaustedRule = rules.find((r: any) => r.triggerType === 'MINIGAME_EXHAUSTED_ATTEMPTS');
                         if (exhaustedRule && exhaustedRule.failPoints != null) reconstructed.minigameExhaustedPenaltyPoints = exhaustedRule.failPoints;
+
+                        // P6-11: reconstruct submissionEnabled + enabledRules.SUBMISSION_GRADED.
+                        const hasSubmission = !!submissionRule;
+                        reconstructed.submissionEnabled = hasSubmission;
+                        if (hasSubmission) {
+                            setEnabledRules(prev => ({ ...prev, SUBMISSION_GRADED: true }));
+                        }
+
                         setFormData((prev: any) => ({
                             ...prev,
                             presetConfig: reconstructed
@@ -411,21 +422,77 @@ const BaseEventForm = <T extends BaseEventFormData>({
     };
 
     const handleRuleToggle = (ruleKey: string, enabled: boolean) => {
-        setEnabledRules(prev => ({ ...prev, [ruleKey]: enabled }));
-        // Update formData to reflect toggle state for special fields like noShowPenaltyEnabled
         const selectedPreset = presets.find(p => p.code === selectedPresetCode);
-        if (selectedPreset) {
-            const rule = selectedPreset.supportedRules.find(r => r.ruleKey === ruleKey);
+        const rule = selectedPreset?.supportedRules.find(r => r.ruleKey === ruleKey);
+
+        // P6-2: khi bật rule → tự tắt các rule conflictsWith (mirror hai chiều).
+        const conflictsToDisable = enabled ? (rule?.conflictsWith ?? []) : [];
+
+        // P6.1: TASK_OVERDUE chỉ bật được khi SUBMISSION_GRADED bật.
+        if (ruleKey === 'TASK_OVERDUE' && enabled) {
+            const submissionGradedOn = enabledRules.SUBMISSION_GRADED;
+            if (!submissionGradedOn) {
+                return; // không cho toggle ON
+            }
+        }
+
+        // P6.1: khi tắt SUBMISSION_GRADED → tự tắt TASK_OVERDUE.
+        const cascadingTurnsOff = (ruleKey === 'SUBMISSION_GRADED' && !enabled) ? ['TASK_OVERDUE'] as const : [];
+
+        setEnabledRules(prev => {
+            const next = { ...prev, [ruleKey]: enabled };
+            for (const conflictKey of conflictsToDisable) {
+                next[conflictKey] = false;
+            }
+            for (const depKey of cascadingTurnsOff) {
+                next[depKey] = false;
+            }
+            return next;
+        });
+
+        // Sync presetConfig: reflect toggle state cho field 'Enabled' của rule
+        // + disable field của các rule bị conflict tắt.
+        setFormData(prev => {
+            const currentConfig = { ...(prev.presetConfig || {}) } as Record<string, unknown>;
             if (rule) {
                 const toggleField = rule.fieldDefinitions.find(f => f.fieldName.toLowerCase().includes('enabled'));
                 if (toggleField) {
-                    setFormData(prev => ({
-                        ...prev,
-                        presetConfig: { ...(prev.presetConfig || {}), [toggleField.fieldName]: enabled }
-                    } as T));
+                    currentConfig[toggleField.fieldName] = enabled;
                 }
             }
-        }
+            for (const conflictKey of conflictsToDisable) {
+                const conflictRule = selectedPreset?.supportedRules.find(r => r.ruleKey === conflictKey);
+                const conflictToggle = conflictRule?.fieldDefinitions.find(f => f.fieldName.toLowerCase().includes('enabled'));
+                if (conflictToggle) {
+                    currentConfig[conflictToggle.fieldName] = false;
+                }
+            }
+            for (const depKey of cascadingTurnsOff) {
+                const depRule = selectedPreset?.supportedRules.find(r => r.ruleKey === depKey);
+                const depToggle = depRule?.fieldDefinitions.find(f => f.fieldName.toLowerCase().includes('enabled'));
+                if (depToggle) {
+                    currentConfig[depToggle.fieldName] = false;
+                }
+            }
+
+            // P6-5: submissionEnabled derive từ enabledRules.SUBMISSION_GRADED (tránh duplicate state).
+            const nextEnabledRules = { ...enabledRules, [ruleKey]: enabled } as Record<string, boolean>;
+            for (const conflictKey of conflictsToDisable) {
+                nextEnabledRules[conflictKey] = false;
+            }
+            for (const depKey of cascadingTurnsOff) {
+                nextEnabledRules[depKey] = false;
+            }
+            const submissionOn = ruleKey === 'SUBMISSION_GRADED'
+                ? enabled
+                : (nextEnabledRules.SUBMISSION_GRADED ?? false);
+            currentConfig.submissionEnabled = submissionOn;
+
+            return {
+                ...prev,
+                presetConfig: currentConfig as ActivityPresetConfig
+            } as T;
+        });
     };
 
     const handlePresetConfigFieldChange = (fieldName: string, value: unknown) => {
@@ -437,6 +504,8 @@ const BaseEventForm = <T extends BaseEventFormData>({
 
     const handlePreview = async () => {
         if (!selectedPresetCode || selectedPresetCode === 'CUSTOM') return;
+        setPreviewLoading(true);
+        setPresetPreview(null);
         try {
             const res = await eventAPI.previewActivityPreset({
                 presetCode: selectedPresetCode as ActivityPresetCode,
@@ -455,6 +524,8 @@ const BaseEventForm = <T extends BaseEventFormData>({
             }
         } catch (error) {
             console.error('Lỗi khi xem trước preset:', error);
+        } finally {
+            setPreviewLoading(false);
         }
     };
 
@@ -749,12 +820,13 @@ const BaseEventForm = <T extends BaseEventFormData>({
                     onRuleToggle={handleRuleToggle}
                     onPreview={handlePreview}
                     previewResponse={presetPreview}
-                    previewLoading={false}
+                    previewLoading={previewLoading}
                     mode="activity"
                     activityType={formData.type}
                     requiresSubmission={formData.requiresSubmission}
                     errors={presetConfigErrors}
                     externalOptions={externalOptions}
+                    lockPreset={isEditing && !!formData.presetCode && formData.presetCode !== 'CUSTOM'}
                 />
             )}
 

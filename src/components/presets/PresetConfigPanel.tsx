@@ -24,6 +24,8 @@ interface PresetConfigPanelProps {
     requiresSubmission?: boolean | null;
     errors?: Record<string, string>;
     externalOptions?: Record<string, Array<{ value: string | number; label: string }>>;
+    /** P6-10: lock preset dropdown khi edit activity (giữ value, vẫn cho edit presetConfig). */
+    lockPreset?: boolean;
 }
 
 const buildEnabledRules = (preset: PresetDefinition): Record<string, boolean> => {
@@ -61,7 +63,8 @@ const PresetConfigPanel: React.FC<PresetConfigPanelProps> = ({
     activityType,
     requiresSubmission,
     errors = {},
-    externalOptions
+    externalOptions,
+    lockPreset = false
 }) => {
     const selectedPreset = presets.find(p => p.code === selectedPresetCode);
 
@@ -110,25 +113,37 @@ const PresetConfigPanel: React.FC<PresetConfigPanelProps> = ({
                 presets={presets}
                 selectedCode={selectedPresetCode}
                 onChange={handlePresetChange}
+                disabled={lockPreset}
                 label={mode === 'series' ? 'Mẫu cấu hình chuỗi sự kiện' : 'Mẫu cấu hình sự kiện'}
                 placeholder="-- Tùy chỉnh (Không dùng mẫu) --"
             />
+            {lockPreset && (
+                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                    Mẫu cấu hình đã khoá khi chỉnh sửa. Bạn vẫn có thể tuỳ chỉnh chi tiết bên dưới.
+                </p>
+            )}
 
             {selectedPreset && (
                 <div className="space-y-4">
-                    {selectedPreset.supportedRules.map(rule => (
-                        <PresetRuleCard
-                            key={rule.ruleKey}
-                            rule={rule}
-                            enabled={enabledRules[rule.ruleKey] ?? rule.enabledByDefault}
-                            onToggle={handleRuleToggle}
-                            fieldValues={config}
-                            onFieldChange={handleFieldChange}
-                            errors={errors}
-                            externalOptions={externalOptions}
-                            presetCode={selectedPreset.code}
-                        />
-                    ))}
+                    {selectedPreset.supportedRules.map(rule => {
+                        const isEnabled = enabledRules[rule.ruleKey] ?? rule.enabledByDefault;
+                        return (
+                            <PresetRuleCard
+                                key={rule.ruleKey}
+                                rule={rule}
+                                enabled={isEnabled}
+                                onToggle={handleRuleToggle}
+                                fieldValues={config}
+                                onFieldChange={handleFieldChange}
+                                errors={errors}
+                                externalOptions={externalOptions}
+                                presetCode={selectedPreset.code}
+                                // P6.1: TASK_OVERDUE chỉ bật được khi SUBMISSION_GRADED bật.
+                                // Chỉ disable toggle khi đang OFF (không cho bật); nếu đang ON vẫn cho tắt.
+                                toggleDisabled={rule.ruleKey === 'TASK_OVERDUE' && !enabledRules.SUBMISSION_GRADED && !isEnabled}
+                            />
+                        );
+                    })}
 
                     <button
                         type="button"
@@ -145,6 +160,39 @@ const PresetConfigPanel: React.FC<PresetConfigPanelProps> = ({
                                 Xem trước: {previewResponse.presetCode}
                             </h4>
                             {(() => {
+                                // P6.1: ưu tiên previewRows (display-ready), fallback scoreRules.
+                                const rows = previewResponse.previewRows;
+                                if (rows && rows.length > 0) {
+                                    return (
+                                        <div className="overflow-x-auto">
+                                            <table className="min-w-full text-xs text-left">
+                                                <thead className="text-gray-600 bg-green-100">
+                                                    <tr>
+                                                        <th className="px-2 py-1">Tình huống</th>
+                                                        <th className="px-2 py-1">Loại điểm</th>
+                                                        <th className="px-2 py-1 text-right">Điểm</th>
+                                                        <th className="px-2 py-1">Đối tượng</th>
+                                                        <th className="px-2 py-1">Học kỳ</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {rows.map((row, idx) => (
+                                                        <tr key={idx} className="border-t border-green-200">
+                                                            <td className="px-2 py-1 text-green-800">{row.description}</td>
+                                                            <td className="px-2 py-1 text-green-700">{row.scoreType}</td>
+                                                            <td className={`px-2 py-1 text-right font-semibold ${row.points >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+                                                                {row.points >= 0 ? `+${row.points}` : row.points}
+                                                            </td>
+                                                            <td className="px-2 py-1 text-gray-600">{row.audience === 'ALL_PARTICIPANTS' ? 'Tất cả' : row.audience}</td>
+                                                            <td className="px-2 py-1 text-gray-600">{row.semester === 'ACTIVITY_SEMESTER' ? 'Theo sự kiện' : row.semester}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    );
+                                }
+                                // fallback cũ: render từ scoreRules
                                 const hasAnyFailPoints = previewResponse.scoreRules.some(
                                     (r: ActivityScoreRuleRequest) => r.failPoints !== null && r.failPoints !== undefined
                                 );

@@ -138,6 +138,14 @@ export interface SeriesRegistrationStatus {
     isRegistered: boolean;
 }
 
+/** P7: helper types thuần FE (BE không thêm field vào SeriesRegistrationStatus — Q5). */
+export interface SeriesSlotInfo {
+    ticketQuantity: number | null;
+    approvedCount: number;
+    remainingSlots: number | null; // null = unlimited
+    isFull: boolean; // false nếu unlimited
+}
+
 // Parse and format helper functions removed as milestonePoints is now Record<number, number> directly.
 
 // Series Overview Response (Admin/Manager)

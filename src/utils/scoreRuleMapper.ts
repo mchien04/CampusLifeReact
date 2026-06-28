@@ -13,6 +13,7 @@ export function mapScoreRuleResponseToRequest(
 ): ActivityScoreRuleRequest {
   return {
     scoreType: rule.scoreType,
+    failScoreType: rule.failScoreType ?? null, // P6.1
     triggerType: rule.triggerType,
     calculation: rule.calculation,
     points: rule.points,
@@ -83,7 +84,10 @@ export function reconstructActivityPresetConfig(
   if (submissionRule) {
     config.submissionPassPoints = toNum(submissionRule.points);
     config.submissionFailPoints = toNum(submissionRule.failPoints);
+    config.submissionFailScoreType = submissionRule.failScoreType ?? null; // P6.1
   }
+  // P6-11: derive submissionEnabled từ sự tồn tại của SUBMISSION_GRADED rule.
+  config.submissionEnabled = !!submissionRule;
 
   const overdueRule = findRule(rules, 'TASK_OVERDUE');
   if (overdueRule && overdueRule.failPoints != null) {

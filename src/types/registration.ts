@@ -18,6 +18,18 @@ export interface AppliedScoreAward {
     scoreEntryId?: number | null;
 }
 
+/**
+ * P7-1: Response từ GET /api/activities/{activityId}/registration-status.
+ * BE trả Map (không có DTO cố định) → các field là best-effort, parse dùng optional/fallback.
+ */
+export interface ActivityRegistrationStatusResponse {
+    isRegistered?: boolean;
+    status?: RegistrationStatus | null;
+    canCancel?: boolean;
+    /** Các key khác của Map (tuỳ chọn). */
+    [key: string]: unknown;
+}
+
 export enum RegistrationStatus {
     PENDING = 'PENDING',
     APPROVED = 'APPROVED',

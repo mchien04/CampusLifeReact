@@ -243,6 +243,49 @@ export const seriesAPI = {
     },
 
     /**
+     * P7-6: Huỷ đăng ký series — DELETE /api/series/{seriesId}/register.
+     * On error trả message BE (isImportant/mandatory/ATTENDED...).
+     */
+    cancelSeriesRegistration: async (seriesId: number): Promise<Response<null>> => {
+        try {
+            const response = await api.delete(`/api/series/${seriesId}/register`);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: null
+            };
+        } catch (error: any) {
+            console.error('Error cancelling series registration:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Có lỗi xảy ra khi huỷ đăng ký chuỗi sự kiện',
+                data: null
+            };
+        }
+    },
+
+    /**
+     * P7-7: Đăng ký chờ (waitlist) series — POST /api/series/{seriesId}/waitlist.
+     */
+    waitlistSeries: async (seriesId: number): Promise<Response<any[]>> => {
+        try {
+            const response = await api.post(`/api/series/${seriesId}/waitlist`);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data || []
+            };
+        } catch (error: any) {
+            console.error('Error waitlisting series:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Có lỗi xảy ra khi đăng ký danh sách chờ',
+                data: []
+            };
+        }
+    },
+
+    /**
      * Get my registration status for a series (Student)
      * Endpoint: GET /api/series/{seriesId}/registration/my
      *
