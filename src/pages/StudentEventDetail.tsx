@@ -52,6 +52,7 @@ const StudentEventDetail: React.FC = () => {
     // Tasks and submissions (within this event page)
     const [tasks, setTasks] = useState<TaskAssignmentResponse[]>([]);
     const [loadingTasks, setLoadingTasks] = useState(false);
+    const [mySubmissionsByTask, setMySubmissionsByTask] = useState<Record<number, TaskSubmissionResponse | null>>({});
     const [isSupervisor, setIsSupervisor] = useState(false);
     const [showSubmissionModal, setShowSubmissionModal] = useState(false);
     const [selectedTask, setSelectedTask] = useState<TaskAssignmentResponse | null>(null);
@@ -189,12 +190,28 @@ const StudentEventDetail: React.FC = () => {
                     )
                     .filter(Boolean) as TaskAssignmentResponse[];
                 setTasks(myAssignments);
+                // Pre-load submissions cho tất cả task để hiển thị trạng thái nộp bài.
+                const results = await Promise.allSettled(
+                    myAssignments.map((a: TaskAssignmentResponse) => submissionAPI.getMySubmissionForTask(a.taskId))
+                );
+                const submissionsMap: Record<number, TaskSubmissionResponse | null> = {};
+                results.forEach((res, idx) => {
+                    const taskId = myAssignments[idx].taskId;
+                    if (res.status === 'fulfilled' && res.value.status && res.value.data) {
+                        submissionsMap[taskId] = res.value.data;
+                    } else {
+                        submissionsMap[taskId] = null;
+                    }
+                });
+                setMySubmissionsByTask(submissionsMap);
             } else {
                 setTasks([]);
+                setMySubmissionsByTask({});
             }
         } catch (e) {
             console.error('Error loading assigned tasks for activity:', e);
             setTasks([]);
+            setMySubmissionsByTask({});
         } finally {
             setLoadingTasks(false);
         }
@@ -430,17 +447,27 @@ const StudentEventDetail: React.FC = () => {
         setSubmitImages([]);
         setFilePreviews([]);
         setImagePreviews([]);
-        try {
-            const res = await submissionAPI.getMySubmissionForTask(task.taskId);
-            if (res.status && res.data) {
-                setMySubmission(res.data);
-                setSubmitContent(res.data.content || '');
-                const attachments = getSubmissionAttachments(res.data);
-                setFilePreviews(attachments.filter((attachment) => attachment.type === 'file').map((attachment) => attachment.url));
-                setImagePreviews(attachments.filter((attachment) => attachment.type === 'image').map((attachment) => attachment.url));
+        // Dùng pre-loaded submission nếu có.
+        const cached = mySubmissionsByTask[task.taskId];
+        if (cached) {
+            setMySubmission(cached);
+            setSubmitContent(cached.content || '');
+            const attachments = getSubmissionAttachments(cached);
+            setFilePreviews(attachments.filter((attachment: { type: string }) => attachment.type === 'file').map((attachment: { url: string }) => attachment.url));
+            setImagePreviews(attachments.filter((attachment: { type: string }) => attachment.type === 'image').map((attachment: { url: string }) => attachment.url));
+        } else {
+            try {
+                const res = await submissionAPI.getMySubmissionForTask(task.taskId);
+                if (res.status && res.data) {
+                    setMySubmission(res.data);
+                    setSubmitContent(res.data.content || '');
+                    const attachments = getSubmissionAttachments(res.data);
+                    setFilePreviews(attachments.filter((attachment: { type: string }) => attachment.type === 'file').map((attachment: { url: string }) => attachment.url));
+                    setImagePreviews(attachments.filter((attachment: { type: string }) => attachment.type === 'image').map((attachment: { url: string }) => attachment.url));
+                }
+            } catch (e) {
+                console.warn('No existing submission or failed to fetch:', e);
             }
-        } catch (e) {
-            console.warn('No existing submission or failed to fetch:', e);
         }
     };
 
@@ -454,6 +481,8 @@ const StudentEventDetail: React.FC = () => {
         setFilePreviews([]);
         setImagePreviews([]);
         setSelectedImagePreview(null);
+        // Refresh submissions cache for task cards.
+        loadTasksByActivity(event!.id);
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -907,31 +936,86 @@ const StudentEventDetail: React.FC = () => {
                                         <p className="text-sm text-gray-500">Đang tải nhiệm vụ...</p>
                                     ) : (
                                         <div className="space-y-3">
-                                            {tasks.map((t) => (
-                                                <div key={t.id} className="flex items-center justify-between">
-                                                    <div>
-                                                        <p className="text-sm font-medium text-gray-900">
-                                                            {t.taskName}
-                                                            {t.requiresSubmission === false && (
-                                                                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                                                                    Tùy chọn
-                                                                </span>
-                                                            )}
-                                                        </p>
-                                                        {t.submissionDeadline && t.requiresSubmission !== false && (
-                                                            <p className="text-xs text-gray-500">Hạn: {new Date(t.submissionDeadline).toLocaleString('vi-VN')}</p>
-                                                        )}
+                                            {tasks.map((t) => {
+                                                const mySubmission = mySubmissionsByTask[t.taskId] || null;
+                                                const isGraded = mySubmission?.status === 'GRADED' || mySubmission?.isCompleted || mySubmission?.gradedAt != null;
+                                                return (
+                                                    <div key={t.id} className="bg-white rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 overflow-hidden">
+                                                        <div className="p-4">
+                                                            <div className="flex items-start justify-between gap-4">
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="flex items-start gap-3 mb-2">
+                                                                        <div className="w-10 h-10 bg-gradient-to-br from-[#001C44] to-[#002A66] rounded-xl flex items-center justify-center text-lg text-white shadow-md flex-shrink-0">
+                                                                            📝
+                                                                        </div>
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <h3 className="text-base font-bold text-gray-900 truncate">
+                                                                                {t.taskName}
+                                                                                {t.requiresSubmission === false && (
+                                                                                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
+                                                                                        Tùy chọn
+                                                                                    </span>
+                                                                                )}
+                                                                            </h3>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {t.submissionDeadline && t.requiresSubmission !== false && (
+                                                                        <div className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold ${
+                                                                            t.status === 'OVERDUE' 
+                                                                                ? 'bg-red-50 text-red-700 border border-red-200' 
+                                                                                : 'bg-blue-50 text-blue-700 border border-blue-200'
+                                                                        }`}>
+                                                                            <span className="mr-1">⏰</span>
+                                                                            Hạn: {new Date(t.submissionDeadline).toLocaleString('vi-VN')}
+                                                                            {t.status === 'OVERDUE' && <span className="ml-1 font-bold">(Quá hạn)</span>}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+
+                                                                <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                                                                    <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold shadow-sm ${
+                                                                        t.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                                                                        t.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-800' :
+                                                                        t.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                                                                        t.status === 'OVERDUE' ? 'bg-red-100 text-red-800' :
+                                                                        'bg-gray-100 text-gray-800'
+                                                                    }`}>
+                                                                        {t.status === 'PENDING' ? 'Chờ xử lý' :
+                                                                         t.status === 'IN_PROGRESS' ? 'Đang thực hiện' :
+                                                                         t.status === 'COMPLETED' ? 'Hoàn thành' :
+                                                                         t.status === 'OVERDUE' ? 'Quá hạn' :
+                                                                         t.status}
+                                                                    </span>
+
+                                                                    {mySubmission ? (
+                                                                        isGraded ? (
+                                                                            <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold bg-green-100 text-green-800 border border-green-200 shadow-sm">
+                                                                                ✅ Đã nộp (Đã chấm)
+                                                                            </span>
+                                                                        ) : (
+                                                                            <button
+                                                                                onClick={() => openSubmissionModal(t)}
+                                                                                className="px-4 py-1.5 bg-gradient-to-r from-[#001C44] to-[#002A66] text-white rounded-lg hover:from-[#002A66] hover:to-[#001C44] font-semibold shadow-md hover:shadow-lg transition-all text-xs"
+                                                                            >
+                                                                                📄 Đã nộp
+                                                                            </button>
+                                                                        )
+                                                                    ) : (
+                                                                        <button
+                                                                            onClick={() => openSubmissionModal(t)}
+                                                                            disabled={t.requiresSubmission === false}
+                                                                            className="px-4 py-1.5 bg-gradient-to-r from-[#001C44] to-[#002A66] text-white rounded-lg hover:from-[#002A66] hover:to-[#001C44] font-semibold shadow-md hover:shadow-lg transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                        >
+                                                                            📤 Nộp bài
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex items-center space-x-2">
-                                                        <button
-                                                            onClick={() => openSubmissionModal(t)}
-                                                            className="px-4 py-2 btn-primary text-xs rounded-lg font-medium"
-                                                        >
-                                                            Nộp bài
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     )}
                                 </div>

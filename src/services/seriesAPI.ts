@@ -14,6 +14,28 @@ import {
 import { ActivityResponse, SeriesChildActivityResponse, SeriesChildActivityCreateRequest, SeriesChildActivityUpdateRequest } from '../types/activity';
 import { SeriesPresetPreviewResponse } from '../types/presets';
 
+const normalizeSeries = (raw: any): SeriesResponse => {
+    // milestonePoints: BE list endpoint trả JSON string, detail endpoint trả object
+    let milestonePoints: Record<string, number> = {};
+    if (typeof raw.milestonePoints === 'string') {
+        try { milestonePoints = JSON.parse(raw.milestonePoints); } catch { milestonePoints = {}; }
+    } else if (raw.milestonePoints && typeof raw.milestonePoints === 'object') {
+        milestonePoints = Object.fromEntries(
+            Object.entries(raw.milestonePoints).map(([k, v]) => [k, Number(v)])
+        );
+    }
+    return {
+        ...raw,
+        milestonePoints,
+        // Normalize field names: detail dùng important/draft, list dùng isImportant/isDraft
+        important: raw.important ?? raw.isImportant,
+        isImportant: raw.isImportant ?? raw.important,
+        draft: raw.draft ?? raw.isDraft,
+        isDraft: raw.isDraft ?? raw.draft,
+        mainActivityId: raw.mainActivityId ?? raw.mainActivity,
+    };
+};
+
 export const seriesAPI = {
     // Series Presets
     getSeriesPresets: async (): Promise<Response<any[]>> => {
@@ -56,10 +78,11 @@ export const seriesAPI = {
     getSeries: async (): Promise<Response<SeriesResponse[]>> => {
         try {
             const response = await api.get('/api/series');
+            const rawList = response.data.body || response.data.data || [];
             return {
                 status: response.data.status,
                 message: response.data.message,
-                data: response.data.body || response.data.data || []
+                data: Array.isArray(rawList) ? rawList.map(normalizeSeries) : []
             };
         } catch (error: any) {
             console.error('Error fetching series:', error);
@@ -75,10 +98,11 @@ export const seriesAPI = {
     getSeriesById: async (id: number): Promise<Response<SeriesResponse>> => {
         try {
             const response = await api.get(`/api/series/${id}`);
+            const raw = response.data.body || response.data.data;
             return {
                 status: response.data.status,
                 message: response.data.message,
-                data: response.data.body || response.data.data
+                data: raw ? normalizeSeries(raw) : undefined
             };
         } catch (error: any) {
             console.error('Error fetching series:', error);

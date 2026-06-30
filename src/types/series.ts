@@ -101,28 +101,35 @@ export interface SeriesResponse {
     id: number;
     name: string;
     description?: string;
-    milestonePoints: Record<number, number>;
+    /** BE không đồng nhất: detail endpoint trả object, list endpoint trả JSON string. */
+    milestonePoints: Record<string, number>;
     scoreType: ScoreType;
-    mainActivityId?: number;
+    mainActivityId?: number | null;
+    /** BE list endpoint dùng key mainActivity (JSON null), detail dùng mainActivityId: null. */
+    mainActivity?: number | null;
     registrationStartDate?: string;
     registrationDeadline?: string;
     requiresApproval: boolean;
-    ticketQuantity?: number;
+    ticketQuantity?: number | null;
     minimumRequirementEnabled?: boolean;
     minimumRequiredEvents?: number | null;
     minimumPenaltyPoints?: number | null;
     targetSemesterId?: number | null;
     audience?: string | null;
     targetDepartmentIds?: number[] | null;
-    isImportant: boolean;
+    /** BE detail endpoint dùng important, list endpoint dùng isImportant. */
+    important?: boolean;
+    isImportant?: boolean;
     mandatoryForFacultyStudents: boolean;
-    isDraft: boolean;
+    /** BE detail endpoint dùng draft, list endpoint dùng isDraft. */
+    draft?: boolean;
+    isDraft?: boolean;
+    isDeleted?: boolean;
     presetCode?: string | null;
     presetConfig?: import('./presets').SeriesPresetConfig | null;
     createdAt: string;
     activities?: ActivityResponse[];
     totalActivities?: number;
-    deleted?: boolean;
 }
 
 export interface SeriesRegistrationResponse {
@@ -136,6 +143,8 @@ export interface SeriesRegistrationStatus {
     seriesId: number;
     studentId: number;
     isRegistered: boolean;
+    canCancel?: boolean;
+    cancelReason?: string | null;
 }
 
 /** P7: helper types thuần FE (BE không thêm field vào SeriesRegistrationStatus — Q5). */
