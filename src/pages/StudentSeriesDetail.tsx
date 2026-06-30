@@ -22,6 +22,8 @@ const StudentSeriesDetail: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isRegistered, setIsRegistered] = useState(false);
+    const [canCancelSeries, setCanCancelSeries] = useState(false);
+    const [cancelReason, setCancelReason] = useState<string | null>(null);
     // P7-10 (Q5): detect WAITLIST qua per-activity status của 1 activity con.
     const [isWaitlist, setIsWaitlist] = useState(false);
     // P7-7/P7-9 (Q4): FE client-side compute slot APPROVED-only.
@@ -87,8 +89,12 @@ const StudentSeriesDetail: React.FC = () => {
             // Update registration flag based on new API
             if (registrationResponse.status && registrationResponse.data) {
                 setIsRegistered(registrationResponse.data.isRegistered);
+                setCanCancelSeries(registrationResponse.data.canCancel ?? false);
+                setCancelReason(registrationResponse.data.cancelReason ?? null);
             } else {
                 setIsRegistered(false);
+                setCanCancelSeries(false);
+                setCancelReason(null);
             }
 
             // Update progress info (may be undefined if chưa có)
@@ -330,6 +336,36 @@ const StudentSeriesDetail: React.FC = () => {
                                         {series.requiresApproval ? 'Đăng ký cần duyệt' : 'Đăng ký tự duyệt'}
                                     </span>
                                 </div>
+                                {series.audience && series.audience !== 'ALL_PARTICIPANTS' && (
+                                    <div className="flex items-center">
+                                        <span className="w-4 h-4 mr-2">🎯</span>
+                                        <span className="text-gray-600">
+                                            Đối tượng: {series.audience === 'DEPARTMENT_SCOPED' ? 'Theo khoa/ngành' : series.audience}
+                                        </span>
+                                    </div>
+                                )}
+                                <div className="flex flex-wrap gap-2">
+                                    {series.isImportant && (
+                                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
+                                            ⭐ Quan trọng
+                                        </span>
+                                    )}
+                                    {series.mandatoryForFacultyStudents && (
+                                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-orange-100 text-orange-800 border border-orange-200">
+                                            ⚠️ Bắt buộc cho sinh viên khoa
+                                        </span>
+                                    )}
+                                    {series.presetCode && series.presetCode !== 'CUSTOM' && (
+                                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-100 text-indigo-700 border border-indigo-200">
+                                            Mẫu: {series.presetCode}
+                                        </span>
+                                    )}
+                                    {series.minimumRequirementEnabled && (
+                                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-amber-100 text-amber-700 border border-amber-200">
+                                            Yêu cầu tối thiểu: {series.minimumRequiredEvents} sự kiện
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
@@ -421,14 +457,21 @@ const StudentSeriesDetail: React.FC = () => {
                                         </p>
                                     )}
                                 </div>
-                                {/* P7-6: nút huỷ đăng ký series. */}
-                                <button
-                                    onClick={handleCancelSeriesRegistration}
-                                    disabled={cancellingSeries}
-                                    className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {cancellingSeries ? 'Đang huỷ...' : 'Huỷ đăng ký chuỗi sự kiện'}
-                                </button>
+                                {/* P7-6: nút huỷ đăng ký series — chỉ hiện khi BE cho phép. */}
+                                {canCancelSeries && (
+                                    <button
+                                        onClick={handleCancelSeriesRegistration}
+                                        disabled={cancellingSeries}
+                                        className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {cancellingSeries ? 'Đang huỷ...' : 'Huỷ đăng ký chuỗi sự kiện'}
+                                    </button>
+                                )}
+                                {!canCancelSeries && cancelReason && (
+                                    <div className="text-xs text-gray-500 text-center bg-gray-50 rounded-md px-3 py-2 border border-gray-200">
+                                        {cancelReason}
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

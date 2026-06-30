@@ -3,7 +3,7 @@
 > **Scope:** Frontend-only changes from commit `0c6b38e` to current HEAD on the `refactor` branch.  
 > **Audience:** Frontend developers joining the CampusLifeReact project.  
 > **Organized by:** User-facing features and frontend architecture, not by commit.  
-> **Last synced with code:** 2026-06-28 (includes preset score-rule config, `activeScoreEntryCount` locking, `MultiSelectField`, `externalOptions`, cross-field validation, `reconstructPresetConfig`).
+> **Last synced with code:** 2026-06-29 (P6.1: failScoreType, taskOverduePenaltyScoreType, noShowPenaltyEnabled removal, audience/semester collapse, previewRows, TASK_OVERDUE→SUBMISSION_GRADED dependency, ScoreRulePreviewRow; P7: canCancel from BE, re-register block, series cancel/waitlist/slots; SeriesResponse normalization).
 
 ---
 
@@ -23,6 +23,8 @@ Key architectural changes include 54+ modified files (+1,927 / −739+ lines), z
 - **Score-locking guard** — `activeScoreEntryCount` propagated from BE responses through `EditEvent` → forms → `BaseEventForm` to disable type/preset/score-rules editing when score entries exist.
 - **Cross-field validation** — `validateCrossFields` in `presetValidation.ts` for conditional required fields (departmentIds when audience scoped, explicitSemesterId when policy explicit).
 - **Series audience/departmentIds** — `SeriesForm` and `EditSeries` fully support audience targeting with department multi-select.
+- **P6.1 score-type refinements** — `failScoreType`/`taskOverduePenaltyScoreType` in `ActivityPresetConfig`, `submissionFailScoreType` reconstruct, descriptor-driven render, `noShowPenaltyEnabled` filtered from NO_SHOW card, audience/semester fields collapsed into "Cấu hình mở rộng" section, `previewRows` display in preview table, `editable` field support.
+- **P7 registration UI** — `canCancel` from BE for both single activity (`/registration-status`) and series (`/series/{id}/registration/my`), re-register block via `/my` cache, series cancel/waitlist/slot computation client-side, WAITLIST detection via child activity status.
 
 ---
 
@@ -88,6 +90,12 @@ Rules defined in a preset's `ActivityPresetConfig` are rendered dynamically via 
 - **Cross-field validation**: `validateCrossFields(config, configValues)` in `presetValidation.ts` enforces:
   - `departmentIds` required when `audience` is `DEPARTMENT_ONLY` or `DEPARTMENT_AND_ALL`.
   - `explicitSemesterId` required when `semesterPolicy` is `EXPLICIT_SEMESTER`.
+- **P6.1 extensions**:
+  - `editable?: boolean` in `FieldDefinition` — BE marks read-only fields (e.g., enterprise `participationPoints`) with `editable: false`; `PresetRuleCard` renders them `disabled` with `bg-gray-100`.
+  - `noShowPenaltyEnabled` checkbox filtered out for `NO_SHOW` rule (toggle ON already serves as enable/disable).
+  - `audience`/`Audience`/`DepartmentIds`/`SemesterPolicy`/`ExplicitSemesterId` fields grouped into `<details>` collapsible "Cấu hình mở rộng (đối tượng, học kỳ)" (default closed).
+  - `toggleDisabled` prop on `PresetRuleCard` — used for TASK_OVERDUE when SUBMISSION_GRADED is off (toggle visually disabled, click blocked).
+  - `ScoreRulePreviewRow` type and `previewRows` field on `ActivityPresetPreviewResponse` — FE renders display-ready rows directly (triggerType/scenario/scoreType/points/audience/semester/description), falling back to `scoreRules` parsing.
 
 #### 2.4 Inline Preset Config in ScoreRulesForm (CUSTOM mode)
 
@@ -230,6 +238,13 @@ When creating a series child activity, the form:
 - Disables `scoreRules` section entirely (mode === `'series'`).
 - Uses `BaseEventForm<BaseEventFormData>` internally; the `onSubmit` callback converts the generic form data to `SeriesChildActivityCreateRequest`, which omits registration/ticket fields (inherited from the series).
 
+#### 3.3 Series Registration & Cancel (`StudentSeriesDetail.tsx`) — P7
+
+- **Cancel**: Calls `DELETE /api/series/{seriesId}/register`. Checks `canCancel` from `GET /api/series/{seriesId}/registration/my` response; button hidden when `canCancel: false`. `cancelReason` shown as info text.
+- **Waitlist**: Calls `POST /api/series/{seriesId}/waitlist` when series full. Detected via child activity's `/registration-status` returning `WAITLIST`.
+- **Slot computation**: Client-side — `GET /api/registrations/series/{id}` counts distinct APPROVED registrations, compares against `series.ticketQuantity`. `computeSeriesSlots` in `utils/seriesSlots.ts`.
+- **SeriesResponse fields rendered**: `audience`, `isImportant`, `mandatoryForFacultyStudents`, `presetCode`, `minimumRequirementEnabled` badges now displayed in the info section.
+
 ---
 
 ## Frontend Architecture Changes
@@ -250,13 +265,13 @@ When creating a series child activity, the form:
 | Component | Key Changes |
 |-----------|-------------|
 | `EventForm` | **DELETED** (replaced by `StandardActivityForm` using `BaseEventForm`). All logic (preset selector, validation, score rules) now lives in `BaseEventForm` or `StandardActivityForm`. |
-| `BaseEventForm` | Added preset loading + auto-fill for minigame mode, removed `scoreType` from default data, added `ScoreRulesForm` with `departments` prop, removed `scoreRules` section when `mode === 'series'`. **Later:** semesters fetch, `externalOptions` build, `isScoreLocked` guard (banner + disable type/preset/scoreRules), `reconstructActivityPresetConfig` from `scoreRules` on edit load, `validateActivityPresetConfig` util for preset validation. |
+| `BaseEventForm` | Added preset loading + auto-fill for minigame mode, removed `scoreType` from default data, added `ScoreRulesForm` with `departments` prop, removed `scoreRules` section when `mode === 'series'`. **Later:** semesters fetch, `externalOptions` build, `isScoreLocked` guard (banner + disable type/preset/scoreRules), `reconstructActivityPresetConfig` from `scoreRules` on edit load, `validateActivityPresetConfig` util for preset validation. **P6.1:** `handleRuleToggle` — TASK_OVERDUE auto-off when SUBMISSION_GRADED toggled off, TASK_OVERDUE blocked from turning on when SUBMISSION_GRADED off (early return); `submissionEnabled` derive from `enabledRules.SUBMISSION_GRADED`; `previewLoading` state (was hardcoded `false`). |
 | `StandardActivityForm` | Receives `activeScoreEntryCount` prop; disables type `<select>` when locked (shows lock explanatory message). |
 | `MinigameActivityForm` | Removed `scoreType` field, expanded `location` to `md:col-span-2`. **Later:** threads `activeScoreEntryCount` prop to `BaseEventForm`. |
 | `SeriesActivityForm` | Added read-only type field, fixed `type` to respect `isMinigame` prop, removed `scoreType` from default data. |
-| `ScoreRulesForm` | Added `handleTriggerChange` with auto-calculation, dynamic field visibility, live preview card, semester dropdown, department targeting. **Later:** each row now has inline `audience`, `semesterPolicy`, `departmentIds` (conditional), `explicitSemesterId` (conditional) controls for CUSTOM preset config. |
-| `PresetRuleCard` | Added `externalOptions` prop for runtime option lookup when `field.options` is null; handles `MULTI_SELECT` input type via `MultiSelectField`. |
-| `PresetConfigPanel` | Added `externalOptions` prop, threaded to `PresetRuleCard`. |
+| `ScoreRulesForm` | Added `handleTriggerChange` with auto-calculation, dynamic field visibility, live preview card, semester dropdown, department targeting. **Later:** each row now has inline `audience`, `semesterPolicy`, `departmentIds` (conditional), `explicitSemesterId` (conditional) controls for CUSTOM preset config. **P6.1:** `failScoreType` dropdown for SUBMISSION_GRADED row in CUSTOM mode (enterprise preset exposes field from BE descriptor). |
+| `PresetRuleCard` | Added `externalOptions` prop for runtime option lookup when `field.options` is null; handles `MULTI_SELECT` input type via `MultiSelectField`. **Later:** P6.1: `toggleDisabled` prop (TASK_OVERDUE disabled when SUBMISSION_GRADED off), `editable` field support, `noShowPenaltyEnabled` filtered from NO_SHOW rule, audience/semester fields collapsed into `<details>` "Cấu hình mở rộng". |
+| `PresetConfigPanel` | Added `externalOptions` prop, threaded to `PresetRuleCard`. **Later:** P6.1: renders `previewRows` table (BE-returned display-ready rows with triggerType/scenario/scoreType/points/audience/semester/description), falls back to `scoreRules` table, passes `toggleDisabled` for dependency-driven rule toggles. |
 | `ScoreRulesDisplay` | Added penalty-only display logic, pass/fail stacked display, new trigger labels. |
 | `QuizForm` | Added `showAnswers` toggle. |
 | `SeriesForm` | Added preset selector, changed `milestonePoints` from `string` (JSON) to `Record<number, number>`, added `minimumRequirementEnabled` / `minimumRequiredEvents` / `minimumPenaltyPoints` fields, added validation for minimum requirements. **Later:** `audience` state (select), `departmentIds` state (MultiSelectField), `externalOptions` from departments, `validateSeriesPresetConfig` util. |
@@ -266,8 +281,8 @@ When creating a series child activity, the form:
 | `StudentTasks` | Added `OVERDUE` filter/tab, added `OVERDUE` colors, added `Tùy chọn` badge for optional tasks, removed client-side deadline comparison for overdue status. |
 | `CreateEvent` | Updated title to "Tạo sự kiện thường mới". |
 | `EditEvent` | Added branch-based form routing, `mapScoreRuleResponseToRequest`, `presetCode: 'CUSTOM'`. **Later:** passes `activeScoreEntryCount` to `StandardActivityForm` and `MinigameActivityForm`. |
-| `StudentEventDetail` | Added series progress banner loading, `WAITLIST` status, score type from `scoreRules`, optional task badge, series score hiding. |
-| `StudentEvents` | Score type from `scoreRules`, `WAITLIST` status, series badge. |
+| `StudentEventDetail` | Added series progress banner loading, `WAITLIST` status, score type from `scoreRules`, optional task badge, series score hiding. **P7:** `canCancel` from BE (`/registration-status`), re-register block via `/my` cache, `loadTasksByActivity` server-side (`getTasksByActivity` + find student assignment) instead of client-side filter, fixed submission lookup (`taskId` vs `id`). |
+| `StudentEvents` | Score type from `scoreRules`, `WAITLIST` status, series badge. **P7:** per-card `canCancel` from `/registration-status`, re-register block. |
 | `EventList` | Score type from `scoreRules`. |
 | `EventDetail` | Score type from `scoreRules`, series score hiding. |
 | `ManagerRegistrations` | Updated `checkIn` payload to include `studentId` and `participationType` (null for BE auto-transition). |
@@ -333,12 +348,12 @@ SeriesActivityForm
 
 | File | New Types |
 |------|-----------|
-| `presets.ts` | `ActivityPresetCode`, `SeriesPresetCode`, `ActivityPresetPreviewResponse`, `SeriesPresetPreviewResponse`, `ActivityPresetDefinition`, `ActivityPresetConfig`. **Later:** `InputType` gains `MULTI_SELECT`; `FieldDefinition.options` made nullable (`string[] \| null`) for `externalOptions` fallback ; `SeriesPresetConfig` adds `audience` and `departmentIds`. |
-| `activity.ts` | `BaseEventFormData`, `StandardActivityCreateRequest`, `StandardActivityUpdateRequest`, `StandardActivityResponse`, `MinigameActivityCreateRequest`, `MinigameActivityUpdateRequest`, `MinigameActivityResponse`, `SeriesChildActivityCreateRequest`, `SeriesChildActivityUpdateRequest`, `SeriesChildActivityResponse`. **Later:** `ActivityPresetConfig` adds `audience`, `semesterPolicy`, `explicitSemesterId`, `departmentIds`; `StandardActivityUpdateRequest` expands to include `presetCode`, `presetConfig`, `scoreRules`; `StandardActivityResponse` and `ActivityResponse` add `activeScoreEntryCount`. |
+| `presets.ts` | `ActivityPresetCode`, `SeriesPresetCode`, `ActivityPresetPreviewResponse`, `SeriesPresetPreviewResponse`, `ActivityPresetDefinition`, `ActivityPresetConfig`. **Later:** `InputType` gains `MULTI_SELECT`; `FieldDefinition.options` made nullable (`string[] \| null`) for `externalOptions` fallback ; `SeriesPresetConfig` adds `audience` and `departmentIds`. **P6.1:** `ScoreRulePreviewRow` (triggerType/scenario/scoreType/points/audience/semester/description), `previewRows` on `ActivityPresetPreviewResponse`; `FieldDefinition.editable` for read-only fields. |
+| `activity.ts` | `BaseEventFormData`, `StandardActivityCreateRequest`, `StandardActivityUpdateRequest`, `StandardActivityResponse`, `MinigameActivityCreateRequest`, `MinigameActivityUpdateRequest`, `MinigameActivityResponse`, `SeriesChildActivityCreateRequest`, `SeriesChildActivityUpdateRequest`, `SeriesChildActivityResponse`. **Later:** `ActivityPresetConfig` adds `audience`, `semesterPolicy`, `explicitSemesterId`, `departmentIds`; `StandardActivityUpdateRequest` expands to include `presetCode`, `presetConfig`, `scoreRules`; `StandardActivityResponse` and `ActivityResponse` add `activeScoreEntryCount`. **P6.1:** `ActivityPresetConfig` adds `submissionFailScoreType`, `taskOverduePenaltyScoreType` (optional, null → BE fallback `primaryScoreType`); `ActivityScoreRuleResponse.failScoreType` for enterprise SUBMISSION_GRADED. |
 | `score.ts` | `StudentRankResponse` (added), `score` is `number` in `StudentRankingResponse` (Jackson serializes BigDecimal as JSON number) |
-| `registration.ts` | `WAITLIST` added to `RegistrationStatus` enum, `ActivityParticipationRequest` updated (`participationType?: ParticipationType \| null`, `pointsEarned?: number \| null`) |
+| `registration.ts` | `WAITLIST` added to `RegistrationStatus` enum, `ActivityParticipationRequest` updated (`participationType?: ParticipationType \| null`, `pointsEarned?: number \| null`). **P7:** `ActivityRegistrationStatusResponse` for `GET /api/activities/{id}/registration-status` with `isRegistered`, `status`, `canCancel`. |
 | `task.ts` | `OVERDUE` added to `TaskStatus` enum and helpers |
-| `series.ts` | `milestonePoints` changed from `string` → `Record<number, number>`, added `minimumRequirementEnabled`, `minimumRequiredEvents`, `minimumPenaltyPoints`, `targetSemesterId`, `presetCode`, `presetConfig`, `StudentSeriesProgress` fields for minimum requirements. Removed `parseMilestonePoints` / `formatMilestonePoints` helpers. **Later:** `CreateSeriesRequest`/`UpdateSeriesRequest` add `audience` and `departmentIds`; `SeriesResponse` adds `audience`, `targetDepartmentIds`, `presetCode`, `presetConfig`. |
+| `series.ts` | `milestonePoints` changed from `string` → `Record<number, number>`, added `minimumRequirementEnabled`, `minimumRequiredEvents`, `minimumPenaltyPoints`, `targetSemesterId`, `presetCode`, `presetConfig`, `StudentSeriesProgress` fields for minimum requirements. Removed `parseMilestonePoints` / `formatMilestonePoints` helpers. **Later:** `CreateSeriesRequest`/`UpdateSeriesRequest` add `audience` and `departmentIds`; `SeriesResponse` adds `audience`, `targetDepartmentIds`, `presetCode`, `presetConfig`. **P6.1:** `SeriesResponse` normalizes field name duality (`important`/`isImportant`, `draft`/`isDraft`, `mainActivityId`/`mainActivity`, `isDeleted`/`deleted`), `milestonePoints` type `Record<string, number>` (API layer normalizes string/object). `SeriesRegistrationStatus` adds `canCancel` and `cancelReason`. `SeriesSlotInfo` helper type for slot computation. |
 
 #### 6.2 Enum & Type Additions
 
@@ -402,6 +417,11 @@ Validation rules are split between forms and two utility modules:
 | `POST` | `/api/admin/system/trigger-check-overdue` | `AdminTools` |
 | `POST` | `/api/admin/system/cleanup-orphan-data` | `AdminTools` |
 | `GET` | `/api/academic/semesters` | `ScoreRulesForm` (explicit semester dropdown) |
+| `GET` | `/api/activities/{id}/registration-status` | `StudentEventDetail`, `StudentEvents`, `StudentParticipationHistory` (canCancel + status check) |
+| `GET` | `/api/registrations/series/{seriesId}` | `StudentSeriesDetail` (slot computation, counts distinct APPROVED registrations) |
+| `DELETE` | `/api/series/{seriesId}/register` | `StudentSeriesDetail` (cancel series registration) |
+| `POST` | `/api/series/{seriesId}/waitlist` | `StudentSeriesDetail` (waitlist series if full) |
+| `GET` | `/api/series/{seriesId}/registration/my` | `StudentSeriesDetail` (canCancel + cancelReason) |
 
 ### 2. Modified Endpoints (Contract Changes)
 
@@ -409,7 +429,7 @@ Validation rules are split between forms and two utility modules:
 |----------|--------|
 | `POST /api/series` | Request now accepts `Record<number, number>` for `milestonePoints`, plus `minimumRequirementEnabled`, `minimumRequiredEvents`, `minimumPenaltyPoints`, `targetSemesterId`, `presetCode`, `presetConfig`. **Later:** Request adds `audience` and `departmentIds` for audience targeting. |
 | `PUT /api/series/{id}` | Same as POST changes. |
-| `GET /api/series/{id}` (implied) | **Later:** `SeriesResponse` adds `audience`, `targetDepartmentIds`, `presetCode`, `presetConfig`. |
+| `GET /api/series/{id}` (implied) | **Later:** `SeriesResponse` adds `audience`, `targetDepartmentIds`, `presetCode`, `presetConfig`. **P6.1:** Field name duality: detail endpoint returns `important`/`draft`/`mainActivityId`, list endpoint returns `isImportant`/`isDraft`/`mainActivity`/`isDeleted`. `milestonePoints` is JSON object in detail, JSON string in list. Normalized in `normalizeSeries()` at API layer (`seriesAPI`). |
 | `POST /api/minigames` | Request now includes `showAnswers`. |
 | `PUT /api/minigames/{id}` | Same as above. |
 | `POST /api/registrations/checkin` | Request now sends `studentId` and `participationType` (can be `null` for backend auto-transition). |
@@ -440,7 +460,10 @@ Validation rules are split between forms and two utility modules:
 | **Ticket QR dual-scan confusion** | `ManagerRegistrations` now passes `participationType: null` so the backend auto-transitions `REGISTERED → CHECKED_IN → ATTENDED`. UI copy clarifies "Lần quét 1" (CHECKED_IN) vs "Lần quét 2" (ATTENDED). |
 | **Mock data in production** | Removed `mockSemesterScores` from `scoresAPI`. Manager ranking now always hits the real backend. |
 | **BigDecimal precision loss** | `StudentRankingResponse.score` and all score fields are now typed as `number` (Jackson serializes BigDecimal as JSON number). Use `parseFloat` only for arithmetic, never for display. |
-| **Milestone points JSON parsing** | Removed manual `JSON.parse`/`JSON.stringify` for `milestonePoints`. It is now a native `Record<number, number>` throughout the frontend. |
+| **Milestone points JSON parsing** | Removed manual `JSON.parse`/`JSON.stringify` for `milestonePoints`. It is now a native `Record<number, number>` throughout the frontend. **P6.1:** `SeriesResponse.milestonePoints` normalized at API layer — list endpoint returns JSON string, detail endpoint returns object; `normalizeSeries()` in `seriesAPI.ts` parses both to `Record<string, number>`. |
+| **Student event detail task list** | `loadTasksByActivity` now calls `getTasksByActivity` (server-side filter) + finds student's assignment, instead of loading ALL student tasks and filtering client-side by `activityId`. |
+| **Submission lookup uses assignment ID instead of task ID** | `getMySubmissionForTask(task.id)` and `submitTask(selectedTask.id, ...)` in `StudentEventDetail.tsx` now pass `task.taskId` / `selectedTask.taskId` — the API expects the task ID, not the assignment ID. |
+| **SeriesResponse field name duality** | BE returns `important` (detail) vs `isImportant` (list), `draft` vs `isDraft`, `mainActivityId` vs `mainActivity`, `isDeleted` vs `deleted`. `normalizeSeries()` in `seriesAPI.ts` normalizes all variants. |
 
 ---
 
@@ -457,6 +480,8 @@ Validation rules are split between forms and two utility modules:
 | **Series targetSemesterId dropdown** | Low | `SeriesForm` already has the field wired in backend types, but the frontend form may need to fetch and populate a semester dropdown if the backend spec stabilizes. |
 | **Score rule live preview BE integration** | Low | Currently `ScoreRulesForm` renders a local preview via `ScoreRulesDisplay`. A future enhancement could call a backend preview endpoint to validate rule conflicts before save. |
 | **AdminTools page routing** | Low | `AdminTools` component exists but may need to be wired into the admin router/sidebar if not already done. |
+| **Preview enterprise preset table** | Medium | `previewRows` rendering is implemented; verify against actual BE response with enterprise preset (ENTERPRISE_SEMINAR_BASIC). |
+| **Series taskOverduePenaltyScoreType** | Low | Added to `ActivityPresetConfig` type; descriptor-driven render works when BE returns the field. No separate reconstruct needed (not in `ActivityScoreRuleResponse`). |
 
 ---
 
@@ -469,6 +494,14 @@ Validation rules are split between forms and two utility modules:
 - **Remember `BigDecimal` → `number`**: All score fields (`points`, `failPoints`, `pointsEarned`, `score`, etc.) are `number` in TypeScript. Use `parseFloat` only for arithmetic, never for display.
 - **`activeScoreEntryCount` locking**: Always propagate this prop from the page level (e.g., `EditEvent`) down to the form — `BaseEventForm` handles the guard logic (`isScoreLocked`). When `> 0`, strip `scoreRules` and `presetConfig` from the submit payload.
 - **`reconstructPresetConfig`**: When editing, `BaseEventForm` calls `reconstructActivityPresetConfig` in a `useEffect` to rebuild the preset config from `scoreRules[0]` if the BE returns null. No manual wiring needed in page components.
+- **P6.1: `submissionEnabled` is derived from `enabledRules.SUBMISSION_GRADED`**, not stored as independent state. `ScoreRulesForm` reconstructs it from the rule's score response. `submissionFailScoreType` similarly derived.
+- **P6.1: TASK_OVERDUE depends on SUBMISSION_GRADED**. Toggling SUBMISSION_GRADED OFF auto-turns OFF TASK_OVERDUE. Toggling TASK_OVERDUE ON while SUBMISSION_GRADED is OFF is blocked (early return in `handleRuleToggle`). `PresetRuleCard` receives `toggleDisabled` prop for visual cue.
+- **P6.1: Preview table renders `previewRows`** when BE returns them (display-ready rows with triggerType/scenario/scoreType/points/audience/semester/description). Falls back to rendering `scoreRules` for backward compatibility.
+- **P7: `canCancel` comes from BE**. Single activity: `GET /api/activities/{id}/registration-status` → `canCancel: boolean`. Series: `GET /api/series/{id}/registration/my` → `canCancel: boolean`. Both endpoints also return `cancelReason` for display when cancellable is false.
+- **P7: Re-register block** uses `/api/registrations/my` cache. After cancelling, the activity is filtered from the `/my` response; a safety net at BE also prevents re-registration.
+- **P7: Series slots** computed client-side: `GET /api/registrations/series/{id}` → count distinct APPROVED registrations → compare with `series.ticketQuantity`. Helper: `computeSeriesSlots` in `utils/seriesSlots.ts`.
+- **P7: WAITLIST detection** for series via child activity's `/registration-status`: if first child returns `WAITLIST` status, the series shows a "⏳ Đang chờ (danh sách chờ)" badge.
+- **SeriesResponse normalization**: `normalizeSeries()` in `seriesAPI.ts` handles `milestonePoints` string/object duality and field name duality (`important`/`isImportant`, `draft`/`isDraft`, `mainActivityId`/`mainActivity`). Always call `getSeries`/`getSeriesById` through `seriesAPI` (normalization is built-in).
 
 ### 2. Form Mode Pattern
 

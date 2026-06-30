@@ -2,7 +2,7 @@ import React from 'react';
 import { ScoreType } from '../../types/activity';
 
 interface MilestoneDisplayProps {
-    milestonePoints: Record<number, number>;
+    milestonePoints: Record<string, number> | Record<number, number>;
     scoreType: ScoreType;
     completedCount: number;
     currentPoints?: string;
