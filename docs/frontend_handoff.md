@@ -166,6 +166,12 @@ Both actions show loading spinners and toast notifications.
 
 ---
 
+### 5. Preparation Management & Task QR Check-in (`PreparationDetail.tsx`)
+
+- **QR Check-in Tasks**: When creating a new preparation task, an Admin/Manager can now designate it as a "Nhiệm vụ quét QR check-in" (via `isCheckinScanner` boolean). Students assigned to this task are granted elevated privileges to scan check-in QRs for the activity on the frontend.
+
+---
+
 ## Student Features
 
 ### 1. Activity Experience
@@ -247,6 +253,15 @@ When creating a series child activity, the form:
 
 ---
 
+### 4. Preparation Experience
+
+#### 4.1 QR Check-in Scanner (`PreparationTaskDetailModal.tsx`)
+- **Scanner UI**: If a student is assigned to a preparation task with `isCheckinScanner = true` and they have `ACCEPTED` the task, they will see a "Nhiệm vụ quét QR điểm danh" section.
+- **Scanning capability**: Students can input ticket codes manually or use "Mở Camera" to scan QR codes of other students. The UI validates the ticket and allows confirming Check-in/Check-out directly from the preparation task modal.
+- **ParticipationType usage**: The UI correctly displays the status (e.g. "Đã check-in", "Đã check-out") by formatting the returned `ParticipationType` using `getParticipationTypeLabel(...)` instead of raw ENUM strings.
+
+---
+
 ## Frontend Architecture Changes
 
 ### 1. New Components
@@ -286,6 +301,8 @@ When creating a series child activity, the form:
 | `EventList` | Score type from `scoreRules`. |
 | `EventDetail` | Score type from `scoreRules`, series score hiding. |
 | `ManagerRegistrations` | Updated `checkIn` payload to include `studentId` and `participationType` (null for BE auto-transition). |
+| `PreparationDetail` | Added `isCheckinScanner` checkbox to task creation modal. |
+| `PreparationTaskDetailModal` | Render QR check-in scanner UI for students assigned to `isCheckinScanner` tasks (in ACCEPTED status). |
 | `EditSeries` | `initialData` includes `audience`, `departmentIds` (mapped from `targetDepartmentIds`), `presetCode`, `presetConfig`. `updateData` includes all four fields mapped back to the request DTO. |
 
 ### 3. Shared Components
@@ -351,7 +368,7 @@ SeriesActivityForm
 | `presets.ts` | `ActivityPresetCode`, `SeriesPresetCode`, `ActivityPresetPreviewResponse`, `SeriesPresetPreviewResponse`, `ActivityPresetDefinition`, `ActivityPresetConfig`. **Later:** `InputType` gains `MULTI_SELECT`; `FieldDefinition.options` made nullable (`string[] \| null`) for `externalOptions` fallback ; `SeriesPresetConfig` adds `audience` and `departmentIds`. **P6.1:** `ScoreRulePreviewRow` (triggerType/scenario/scoreType/points/audience/semester/description), `previewRows` on `ActivityPresetPreviewResponse`; `FieldDefinition.editable` for read-only fields. |
 | `activity.ts` | `BaseEventFormData`, `StandardActivityCreateRequest`, `StandardActivityUpdateRequest`, `StandardActivityResponse`, `MinigameActivityCreateRequest`, `MinigameActivityUpdateRequest`, `MinigameActivityResponse`, `SeriesChildActivityCreateRequest`, `SeriesChildActivityUpdateRequest`, `SeriesChildActivityResponse`. **Later:** `ActivityPresetConfig` adds `audience`, `semesterPolicy`, `explicitSemesterId`, `departmentIds`; `StandardActivityUpdateRequest` expands to include `presetCode`, `presetConfig`, `scoreRules`; `StandardActivityResponse` and `ActivityResponse` add `activeScoreEntryCount`. **P6.1:** `ActivityPresetConfig` adds `submissionFailScoreType`, `taskOverduePenaltyScoreType` (optional, null → BE fallback `primaryScoreType`); `ActivityScoreRuleResponse.failScoreType` for enterprise SUBMISSION_GRADED. |
 | `score.ts` | `StudentRankResponse` (added), `score` is `number` in `StudentRankingResponse` (Jackson serializes BigDecimal as JSON number) |
-| `registration.ts` | `WAITLIST` added to `RegistrationStatus` enum, `ActivityParticipationRequest` updated (`participationType?: ParticipationType \| null`, `pointsEarned?: number \| null`). **P7:** `ActivityRegistrationStatusResponse` for `GET /api/activities/{id}/registration-status` with `isRegistered`, `status`, `canCancel`. |
+| `registration.ts` | `WAITLIST` added to `RegistrationStatus` enum, `ActivityParticipationRequest` updated (`participationType?: ParticipationType \| null`, `pointsEarned?: number \| null`). **P7:** `ActivityRegistrationStatusResponse` for `GET /api/activities/{id}/registration-status` with `isRegistered`, `status`, `canCancel`. **Recent:** `TicketCodeValidateResponse` updated its `currentStatus` field to use `ParticipationType` instead of `RegistrationStatus` to correctly map backend enum values for Check-in features. |
 | `task.ts` | `OVERDUE` added to `TaskStatus` enum and helpers |
 | `series.ts` | `milestonePoints` changed from `string` → `Record<number, number>`, added `minimumRequirementEnabled`, `minimumRequiredEvents`, `minimumPenaltyPoints`, `targetSemesterId`, `presetCode`, `presetConfig`, `StudentSeriesProgress` fields for minimum requirements. Removed `parseMilestonePoints` / `formatMilestonePoints` helpers. **Later:** `CreateSeriesRequest`/`UpdateSeriesRequest` add `audience` and `departmentIds`; `SeriesResponse` adds `audience`, `targetDepartmentIds`, `presetCode`, `presetConfig`. **P6.1:** `SeriesResponse` normalizes field name duality (`important`/`isImportant`, `draft`/`isDraft`, `mainActivityId`/`mainActivity`, `isDeleted`/`deleted`), `milestonePoints` type `Record<string, number>` (API layer normalizes string/object). `SeriesRegistrationStatus` adds `canCancel` and `cancelReason`. `SeriesSlotInfo` helper type for slot computation. |
 
@@ -457,7 +474,7 @@ Validation rules are split between forms and two utility modules:
 | **Client-side overdue calculation drift** | Removed `isOverdue()` from `TaskList` and `StudentTasks`. Overdue is now entirely determined by `TaskStatus.OVERDUE` from the backend Quartz job. |
 | **Raw list endpoint normalization** | `eventAPI.getEventsByDepartment`, `getEventsByScoreType`, `getEventsByMonth`, `getMyEvents` now correctly handle both raw array responses and wrapped `ApiResponse` shapes. |
 | **Department targeting field mismatch** | `mapScoreRuleResponseToRequest` bridges `targetDepartmentIds` (response) ↔ `departmentIds` (request). |
-| **Ticket QR dual-scan confusion** | `ManagerRegistrations` now passes `participationType: null` so the backend auto-transitions `REGISTERED → CHECKED_IN → ATTENDED`. UI copy clarifies "Lần quét 1" (CHECKED_IN) vs "Lần quét 2" (ATTENDED). |
+| **Ticket QR dual-scan confusion** | `ManagerRegistrations` now passes `participationType: null` so the backend auto-transitions `REGISTERED → CHECKED_IN → ATTENDED`. UI copy clarifies "Lần quét 1" (CHECKED_IN) vs "Lần quét 2" (ATTENDED). UI code updated to use `getParticipationTypeLabel` instead of `getRegistrationStatusLabel` to map `ParticipationType` correctly without TS build errors. |
 | **Mock data in production** | Removed `mockSemesterScores` from `scoresAPI`. Manager ranking now always hits the real backend. |
 | **BigDecimal precision loss** | `StudentRankingResponse.score` and all score fields are now typed as `number` (Jackson serializes BigDecimal as JSON number). Use `parseFloat` only for arithmetic, never for display. |
 | **Milestone points JSON parsing** | Removed manual `JSON.parse`/`JSON.stringify` for `milestonePoints`. It is now a native `Record<number, number>` throughout the frontend. **P6.1:** `SeriesResponse.milestonePoints` normalized at API layer — list endpoint returns JSON string, detail endpoint returns object; `normalizeSeries()` in `seriesAPI.ts` parses both to `Record<string, number>`. |

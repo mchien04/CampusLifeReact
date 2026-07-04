@@ -10,6 +10,7 @@ import {
     RegistrationStatus,
     TicketCodeValidateResponse,
     getRegistrationStatusLabel,
+    getParticipationTypeLabel,
 } from '../types/registration';
 
 type EventTab = 'upcoming' | 'ongoing' | 'past';
@@ -613,7 +614,7 @@ const ManagerRegistrationsSplit: React.FC = () => {
                                                             <h5 className="font-semibold text-gray-900 mb-3">Trạng thái</h5>
                                                             <span className="text-xs font-medium text-gray-600">Trạng thái hiện tại:</span>
                                                             <p className="text-sm font-semibold text-gray-900 mt-0.5">
-                                                                {getRegistrationStatusLabel(validatedInfo.currentStatus)}
+                                                                {getParticipationTypeLabel(validatedInfo.currentStatus)}
                                                             </p>
                                                             <div className="mt-3 space-y-2 text-xs text-gray-600">
                                                                 <p>Mở check-in: {formatCheckInWindow(validatedInfo.checkInOpenAt)}</p>

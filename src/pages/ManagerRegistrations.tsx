@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ActivityRegistrationResponse, RegistrationStatus, TicketCodeValidateResponse, getRegistrationStatusLabel } from '../types/registration';
+import { ActivityRegistrationResponse, RegistrationStatus, TicketCodeValidateResponse, getRegistrationStatusLabel, getParticipationTypeLabel } from '../types/registration';
 import { registrationAPI } from '../services/registrationAPI';
 import { eventAPI } from '../services/eventAPI';
 import { ActivityResponse } from '../types/activity';
@@ -500,7 +500,7 @@ const ManagerRegistrations: React.FC = () => {
                                             </div>
                                             <div>
                                                 <span className="text-xs font-medium text-gray-600">Trạng thái hiện tại:</span>
-                                                <p className="text-sm font-semibold text-gray-900 mt-0.5">{getRegistrationStatusLabel(validatedInfo.currentStatus)}</p>
+                                                <p className="text-sm font-semibold text-gray-900 mt-0.5">{getParticipationTypeLabel(validatedInfo.currentStatus)}</p>
                                             </div>
                                         </div>
 

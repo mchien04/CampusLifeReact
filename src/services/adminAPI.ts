@@ -612,6 +612,63 @@ export const studentAccountAPI = {
         }
     },
 
+    createStudent: async (data: import('../types/studentAccount').CreateStudentRequest): Promise<Response<import('../types/studentAccount').StudentAccountResponse>> => {
+        try {
+            const response = await api.post('/api/admin/students/create', data);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Student Account API: createStudent failed:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Failed to create student account',
+                data: undefined
+            };
+        }
+    },
+
+    createMultipleStudents: async (data: import('../types/studentAccount').CreateMultipleStudentsRequest): Promise<Response<BulkCreateResponse>> => {
+        try {
+            const response = await api.post('/api/admin/students/create-multiple', data);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Student Account API: createMultipleStudents failed:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Failed to create multiple student accounts',
+                data: undefined
+            };
+        }
+    },
+
+    validateStudent: async (studentCode?: string, email?: string): Promise<Response<import('../types/studentAccount').ValidateStudentResponse>> => {
+        try {
+            const params = new URLSearchParams();
+            if (studentCode) params.append('studentCode', studentCode);
+            if (email) params.append('email', email);
+            const response = await api.get(`/api/admin/students/validate?${params.toString()}`);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Student Account API: validateStudent failed:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Failed to validate student account',
+                data: undefined
+            };
+        }
+    },
+
     getPendingAccounts: async (): Promise<Response<StudentAccountResponse[]>> => {
         try {
             const response = await api.get('/api/admin/students/pending');

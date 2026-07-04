@@ -178,6 +178,7 @@ export default function PreparationDetail() {
     const [taskDesc, setTaskDesc] = useState('');
     const [taskDeadline, setTaskDeadline] = useState<string>('');
     const [taskIsFinancial, setTaskIsFinancial] = useState(false);
+    const [taskIsCheckinScanner, setTaskIsCheckinScanner] = useState(false);
     const [creatingTask, setCreatingTask] = useState(false);
     const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
     const [taskDetail, setTaskDetail] = useState<PreparationTaskDto | null>(null);
@@ -539,6 +540,7 @@ export default function PreparationDetail() {
         setTaskDesc('');
         setTaskDeadline('');
         setTaskIsFinancial(false);
+        setTaskIsCheckinScanner(false);
         setShowTaskModal(true);
     };
 
@@ -561,6 +563,7 @@ export default function PreparationDetail() {
                 description: taskDesc.trim() || undefined,
                 deadline,
                 isFinancial: taskIsFinancial,
+                isCheckinScanner: taskIsCheckinScanner,
             });
             toast.success('Đã tạo nhiệm vụ');
             setShowTaskModal(false);
@@ -1990,17 +1993,31 @@ export default function PreparationDetail() {
                                     ))}
                                 </select>
                             </div>
-                            <div className="border border-gray-200 rounded-xl p-4 bg-white">
-                                <label className="inline-flex items-center gap-2 text-sm font-semibold text-gray-700">
-                                    <input
-                                        type="checkbox"
-                                        checked={taskIsFinancial}
-                                        onChange={(e) => setTaskIsFinancial(e.target.checked)}
-                                        className="h-4 w-4"
-                                    />
-                                    Task tài chính
-                                </label>
-                                <div className="text-xs text-gray-500 mt-1">Bật để cho phép member tạo chi phí theo task này.</div>
+                            <div className="flex gap-4">
+                                <div className="flex-1 border border-gray-200 rounded-xl p-4 bg-white">
+                                    <label className="inline-flex items-center gap-2 text-sm font-semibold text-gray-700">
+                                        <input
+                                            type="checkbox"
+                                            checked={taskIsFinancial}
+                                            onChange={(e) => setTaskIsFinancial(e.target.checked)}
+                                            className="h-4 w-4"
+                                        />
+                                        Task tài chính
+                                    </label>
+                                    <div className="text-xs text-gray-500 mt-1">Bật để cho phép member tạo chi phí theo task này.</div>
+                                </div>
+                                <div className="flex-1 border border-gray-200 rounded-xl p-4 bg-white">
+                                    <label className="inline-flex items-center gap-2 text-sm font-semibold text-gray-700">
+                                        <input
+                                            type="checkbox"
+                                            checked={taskIsCheckinScanner}
+                                            onChange={(e) => setTaskIsCheckinScanner(e.target.checked)}
+                                            className="h-4 w-4"
+                                        />
+                                        Nhiệm vụ quét QR check-in
+                                    </label>
+                                    <div className="text-xs text-gray-500 mt-1">Cho phép người thực hiện mở camera quét QR vé sự kiện.</div>
+                                </div>
                             </div>
                             <div>
                                 <label htmlFor="prep-task-title" className="block text-sm font-semibold text-gray-700 mb-2">Tiêu đề</label>

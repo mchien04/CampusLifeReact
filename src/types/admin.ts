@@ -70,7 +70,7 @@ export interface CreateSemesterRequest {
     name: string;
     startDate: string;
     endDate: string;
-    open: boolean;
+    open?: boolean;
 }
 
 export interface UpdateSemesterRequest {
