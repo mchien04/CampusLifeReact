@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
-import { preparationAPI } from '../../services';
+import { preparationAPI, registrationAPI } from '../../services';
 import AllocationAdjustmentRequestModal from './AllocationAdjustmentRequestModal';
+import QRCodeScanner from '../qr/QRCodeScanner';
 import { compressImage } from '../../utils/compressImage';
 import { getImageUrl } from '../../utils/imageUtils';
 import ImageUploadProof from './ImageUploadProof';
@@ -19,6 +20,8 @@ import {
   PreparationTaskMemberDto,
   PreparationTaskMemberRole,
   TaskAllocationSourceDto,
+  TicketCodeValidateResponse,
+  getParticipationTypeLabel,
 } from '../../types';
 import {
   formatCurrency,
@@ -97,6 +100,13 @@ export default function PreparationTaskDetailModal({
 
   const [imageModalUrl, setImageModalUrl] = useState<string | null>(null);
   const [proofUrls, setProofUrls] = useState<string[]>([]);
+
+  // QR Check-in scanner state
+  const [showScanner, setShowScanner] = useState(false);
+  const [ticketCode, setTicketCode] = useState('');
+  const [isValidatingTicket, setIsValidatingTicket] = useState(false);
+  const [validatedTicketInfo, setValidatedTicketInfo] = useState<TicketCodeValidateResponse | null>(null);
+  const [submittingCheckIn, setSubmittingCheckIn] = useState(false);
 
   useEffect(() => {
     if (!open || !taskId) return;
@@ -221,6 +231,46 @@ export default function PreparationTaskDetailModal({
       toast.error(e?.response?.data?.message || e?.message || 'Không thể gửi yêu cầu hoàn thành');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleValidateTicket = async (code: string) => {
+    if (!code.trim()) return;
+    try {
+      setIsValidatingTicket(true);
+      const res = await registrationAPI.validateTicketCode(code.trim());
+      if (res.status && res.body) {
+        setValidatedTicketInfo(res.body);
+        setShowScanner(false);
+      } else {
+        toast.error(res.message || 'Mã vé không hợp lệ hoặc không được phép quét');
+      }
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || e?.message || 'Lỗi khi kiểm tra mã vé');
+    } finally {
+      setIsValidatingTicket(false);
+    }
+  };
+
+  const handleConfirmCheckIn = async () => {
+    if (!validatedTicketInfo) return;
+    try {
+      setSubmittingCheckIn(true);
+      const res = await registrationAPI.checkIn({
+        ticketCode: validatedTicketInfo.ticketCode,
+        studentId: validatedTicketInfo.studentId,
+      });
+      if (res.status) {
+        toast.success(res.message || 'Điểm danh thành công!');
+        setValidatedTicketInfo(null);
+        setTicketCode('');
+      } else {
+        toast.error(res.message || 'Điểm danh thất bại');
+      }
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || e?.message || 'Lỗi khi điểm danh');
+    } finally {
+      setSubmittingCheckIn(false);
     }
   };
 
@@ -791,6 +841,88 @@ export default function PreparationTaskDetailModal({
                           ))}
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {task.isCheckinScanner && task.status === 'ACCEPTED' && (myRole !== null || task.ownerId === studentId) && (
+                    <div className="border-2 border-dashed border-blue-200 rounded-xl p-5 bg-blue-50/30">
+                      <h4 className="text-base font-bold text-[#001C44] mb-3 flex items-center gap-2">
+                        <span>📷</span> Nhiệm vụ quét QR điểm danh
+                      </h4>
+                      <p className="text-sm text-gray-600 mb-4">
+                        Bạn được phân công làm người quét QR check-in cho sự kiện này. Quét QR code trên vé của sinh viên khác để xác nhận tham gia.
+                      </p>
+
+                      <div className="space-y-4">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Nhập mã vé thủ công..."
+                            value={ticketCode}
+                            onChange={(e) => setTicketCode(e.target.value)}
+                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] text-sm bg-white"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleValidateTicket(ticketCode)}
+                            disabled={isValidatingTicket || !ticketCode.trim()}
+                            className="px-4 py-2 bg-[#001C44] text-white rounded-lg text-sm font-semibold hover:bg-[#002A66] disabled:opacity-50"
+                          >
+                            {isValidatingTicket ? 'Đang kiểm tra...' : 'Kiểm tra'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowScanner(!showScanner)}
+                            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-sm font-semibold hover:from-blue-700 hover:to-indigo-700"
+                          >
+                            {showScanner ? 'Đóng Camera' : 'Mở Camera'}
+                          </button>
+                        </div>
+
+                        {showScanner && (
+                          <div className="border border-gray-200 rounded-xl overflow-hidden bg-black max-w-sm mx-auto p-4">
+                            <QRCodeScanner
+                              onScan={handleValidateTicket}
+                              onError={(error) => console.error('QR Scanner error:', error)}
+                              onClose={() => setShowScanner(false)}
+                            />
+                          </div>
+                        )}
+
+                        {validatedTicketInfo && (
+                          <div className="border border-green-200 rounded-xl p-4 bg-green-50/50 space-y-3">
+                            <div className="text-sm font-semibold text-green-950">Thông tin vé đã quét:</div>
+                            <div className="grid grid-cols-2 gap-2 text-sm text-gray-700">
+                              <div>Sinh viên:</div>
+                              <div className="font-semibold">{validatedTicketInfo.studentName}</div>
+                              <div>MSSV:</div>
+                              <div className="font-semibold">{validatedTicketInfo.studentCode}</div>
+                              <div className="text-xs text-gray-500">Trạng thái</div>
+                              <div className="font-semibold">{getParticipationTypeLabel(validatedTicketInfo.currentStatus as any)}</div>
+                            </div>
+                            <div className="flex gap-2 pt-2">
+                              <button
+                                type="button"
+                                onClick={handleConfirmCheckIn}
+                                disabled={submittingCheckIn || (!validatedTicketInfo.canCheckIn && !validatedTicketInfo.canCheckOut)}
+                                className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {submittingCheckIn ? 'Đang xử lý...' : validatedTicketInfo.canCheckOut ? 'Xác nhận Check-out' : 'Xác nhận Check-in'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setValidatedTicketInfo(null);
+                                  setTicketCode('');
+                                }}
+                                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-semibold rounded-lg"
+                              >
+                                Hủy
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

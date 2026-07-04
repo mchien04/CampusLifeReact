@@ -26,6 +26,7 @@ import {
   MyPreparationTaskDto,
   OrganizerDto,
   PreparationDashboardDto,
+  PreparationSummaryResponse,
   PreparationTaskDto,
   PreparationTaskMemberDto,
   PreparationTaskStatus,
@@ -63,6 +64,13 @@ export const preparationAPI = {
   getDashboard: async (activityId: number): Promise<PreparationDashboardDto> => {
     const response = await api.get(`/api/preparation/activities/${activityId}/dashboard`);
     return unwrapBody<PreparationDashboardDto>(response.data);
+  },
+
+  getSummary: async (activityIds: number[]): Promise<PreparationSummaryResponse[]> => {
+    if (!activityIds || activityIds.length === 0) return [];
+    const idsParam = activityIds.join(',');
+    const response = await api.get(`/api/preparation/summary?activityIds=${idsParam}`);
+    return unwrapBody<PreparationSummaryResponse[]>(response.data) ?? [];
   },
 
   getFinancialReport: async (activityId: number): Promise<FinancialReportDto> => {
@@ -108,6 +116,7 @@ export const preparationAPI = {
       description?: string;
       deadline?: string | null;
       isFinancial?: boolean;
+      isCheckinScanner?: boolean;
     }
   ): Promise<PreparationTaskDto> => {
     const response = await api.post(`/api/preparation/activities/${activityId}/tasks`, {
@@ -116,6 +125,7 @@ export const preparationAPI = {
       description: payload.description ?? null,
       deadline: payload.deadline ?? null,
       isFinancial: payload.isFinancial ?? false,
+      isCheckinScanner: payload.isCheckinScanner ?? false,
     });
     return unwrapBody<PreparationTaskDto>(response.data);
   },

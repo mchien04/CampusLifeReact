@@ -119,7 +119,7 @@ export interface TicketCodeValidateResponse {
     studentCode: string;
     activityId: number;
     activityName: string;
-    currentStatus: RegistrationStatus;
+    currentStatus: ParticipationType;
     canCheckIn: boolean;
     canCheckOut: boolean;
     checkInOpenAt?: string | null;

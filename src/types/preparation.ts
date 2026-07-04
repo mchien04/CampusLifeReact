@@ -30,6 +30,7 @@ export type PreparationTaskDto = {
   deadline: string | null;
   allocatedAmount: string;
   isFinancial: boolean;
+  isCheckinScanner: boolean;
   status: PreparationTaskStatus;
   assigneeId?: number;
   assigneeName?: string | null;
@@ -46,6 +47,7 @@ export type MyPreparationTaskDto = {
   deadline: string | null;
   allocatedAmount: string;
   isFinancial: boolean;
+  isCheckinScanner: boolean;
   status: PreparationTaskStatus;
   myRole: PreparationTaskMemberRole;
 };
@@ -358,4 +360,11 @@ export type AdminDecideFundAdvanceRequest = { approved: boolean };
 
 export type RequestTaskCompletionPayload = {
   proofUrls: string[];
+};
+export type PreparationSummaryResponse = {
+  activityId: number;
+  enabled: boolean;
+  pendingTasks: number;
+  waitingExpenses: number;
+  remainingAmount: string | null;
 };

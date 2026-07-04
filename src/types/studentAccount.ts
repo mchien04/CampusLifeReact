@@ -15,6 +15,23 @@ export interface BulkCreateStudentsRequest {
     students: ExcelStudentRow[];
 }
 
+export interface CreateStudentRequest {
+    studentCode: string;
+    fullName: string;
+    email: string;
+}
+
+export interface CreateMultipleStudentsRequest {
+    students: CreateStudentRequest[];
+}
+
+export interface ValidateStudentResponse {
+    studentCodeAvailable: boolean;
+    studentCode?: string;
+    emailAvailable: boolean;
+    email?: string;
+}
+
 export interface StudentAccountResponse {
     userId: number;
     studentId: number;

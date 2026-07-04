@@ -44,41 +44,24 @@ export default function PreparationManagement() {
     }, []);
 
     const fetchStats = useCallback(async (activityIds: number[]) => {
+        if (activityIds.length === 0) return;
         try {
             setLoadingStats(true);
-            const entries = await Promise.all(
-                activityIds.map(async (activityId) => {
-                    try {
-                        const dash = await preparationAPI.getDashboard(activityId);
-                        if (!dash?.hasPreparation) {
-                            return [
-                                activityId,
-                                { enabled: false, pendingTasks: 0, waitingExpenses: 0, remainingAmount: null },
-                            ] as const;
-                        }
-
-                        const pendingTasks = (dash.tasks || []).filter((t) => t.status === 'PENDING').length;
-                        const waiting = await preparationAPI.listExpenses(activityId, 'PENDING_ADMIN');
-                        const waitingExpenses = waiting.length;
-                        const report = await preparationAPI.getFinancialReport(activityId).catch(() => null);
-                        const remainingAmount = report
-                            ? String(report.categories.reduce((acc, c) => acc + (Number(c.remainingAmount) || 0), 0))
-                            : null;
-                        return [activityId, { enabled: true, pendingTasks, waitingExpenses, remainingAmount }] as const;
-                    } catch {
-                        return [
-                            activityId,
-                            { enabled: false, pendingTasks: 0, waitingExpenses: 0, remainingAmount: null },
-                        ] as const;
-                    }
-                })
-            );
-
+            const summaries = await preparationAPI.getSummary(activityIds);
             setStatsByActivityId((prev) => {
                 const next = { ...prev };
-                for (const [id, s] of entries) next[id] = s;
+                summaries.forEach((s) => {
+                    next[s.activityId] = {
+                        enabled: s.enabled,
+                        pendingTasks: s.pendingTasks,
+                        waitingExpenses: s.waitingExpenses,
+                        remainingAmount: s.remainingAmount,
+                    };
+                });
                 return next;
             });
+        } catch (error) {
+            console.error('Failed to fetch preparation summary', error);
         } finally {
             setLoadingStats(false);
         }

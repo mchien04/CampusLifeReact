@@ -61,36 +61,36 @@ export const classAPI = {
         return response.data.body;
     },
 
+    // Lấy lớp học theo tên
+    getClassByName: async (className: string): Promise<StudentClass> => {
+        const response = await api.get(`/api/classes/name/${className}`);
+        return response.data.body;
+    },
+
     // Tạo lớp học mới
     createClass: async (data: CreateClassRequest): Promise<StudentClass> => {
-        const formData = new FormData();
-        formData.append('className', data.name);
+        const params: Record<string, string> = {
+            className: data.name,
+            departmentId: data.departmentId.toString(),
+        };
         if (data.description) {
-            formData.append('description', data.description);
+            params.description = data.description;
         }
-        formData.append('departmentId', data.departmentId.toString());
 
-        const response = await api.post('/api/classes', formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
-        });
+        const response = await api.post('/api/classes', null, { params });
         return response.data.body;
     },
 
     // Cập nhật lớp học
     updateClass: async (classId: number, data: UpdateClassRequest): Promise<StudentClass> => {
-        const formData = new FormData();
-        formData.append('className', data.name);
+        const params: Record<string, string> = {
+            className: data.name,
+        };
         if (data.description) {
-            formData.append('description', data.description);
+            params.description = data.description;
         }
 
-        const response = await api.put(`/api/classes/${classId}`, formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
-        });
+        const response = await api.put(`/api/classes/${classId}`, null, { params });
         return response.data.body;
     },
 
