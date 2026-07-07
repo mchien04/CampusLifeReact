@@ -664,7 +664,11 @@ const AdminArticleManagement: React.FC = () => {
                 onClose={() => setCreateOpen(false)}
                 onSelectActivity={(activityId) => {
                     setCreateOpen(false);
-                    navigate(`/manager/events/${activityId}/article`);
+                    if (activityId !== null) {
+                        navigate(`${base}/events/${activityId}/article`);
+                    } else {
+                        navigate(`${base}/articles/create`);
+                    }
                 }}
             />
         </div>

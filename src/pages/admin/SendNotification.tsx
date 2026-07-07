@@ -19,27 +19,15 @@ import { StudentClass } from '../../types/class';
 import { Department } from '../../types/admin';
 import { UserResponse } from '../../types/auth';
 import { RecipientSelectorCard, RecipientPreviewCard, UserSelector } from '../../components/email';
+import { ACTION_URL_OPTIONS, buildActionUrlFromOptions } from '../../utils/urlBuilder';
+import { useAuth } from '../../contexts/AuthContext';
 
-const ACTION_URL_OPTIONS: Array<{
-    value: string;
-    label: string;
-    requiresId?: boolean;
-    isExternal?: boolean;
-    idLabel?: string;
-    placeholder?: string;
-}> = [
-        { value: '', label: 'Không chọn hành động' },
-        { value: '/manager/dashboard', label: 'Dashboard quản lý' },
-        { value: '/activities', label: 'Danh sách sự kiện' },
-        { value: '/series', label: 'Danh sách chuỗi sự kiện' },
-        { value: '/notifications', label: 'Trung tâm thông báo' },
-        { value: '/activities/:id', label: 'Chi tiết sự kiện (nhập ID)', requiresId: true, idLabel: 'Activity ID', placeholder: 'VD: 10' },
-        { value: '/series/:id', label: 'Chi tiết chuỗi sự kiện (nhập ID)', requiresId: true, idLabel: 'Series ID', placeholder: 'VD: 5' },
-        { value: 'EXTERNAL', label: 'Link ngoài (External URL)', isExternal: true }
-    ];
+
 
 const SendNotification: React.FC = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const isManager = user?.role === 'MANAGER';
     const [sending, setSending] = useState(false);
     
     // Form data
@@ -82,20 +70,6 @@ const SendNotification: React.FC = () => {
         } catch {
             return false;
         }
-    };
-
-    const buildActionUrl = (optionValue: string, param: string, external?: string) => {
-        // Nếu là external URL
-        if (optionValue === 'EXTERNAL' && external) {
-            return external.trim();
-        }
-        const option = ACTION_URL_OPTIONS.find(o => o.value === optionValue);
-        if (!option) return '';
-        if (option.requiresId) {
-            if (!param?.trim()) return '';
-            return option.value.replace(':id', param.trim());
-        }
-        return option.value;
     };
     
     // Errors
@@ -447,7 +421,7 @@ const SendNotification: React.FC = () => {
         // Nếu có activityId hoặc seriesId, backend sẽ tự động tạo actionUrl
         // Chỉ set actionUrl thủ công nếu không có activityId/seriesId
         if (!request.activityId && !request.seriesId) {
-            const finalActionUrl = buildActionUrl(actionUrlOption, actionUrlParam, externalUrl);
+            const finalActionUrl = buildActionUrlFromOptions(actionUrlOption, actionUrlParam, externalUrl);
             if (finalActionUrl) {
                 request.actionUrl = finalActionUrl;
             }
@@ -588,7 +562,8 @@ const SendNotification: React.FC = () => {
                                 .filter(type => 
                                     type !== RecipientType.INDIVIDUAL && 
                                     type !== RecipientType.BULK && 
-                                    type !== RecipientType.CUSTOM_LIST
+                                    type !== RecipientType.CUSTOM_LIST &&
+                                    !(isManager && type === RecipientType.ALL_STUDENTS)
                                 )
                                 .map(type => (
                                     <RecipientSelectorCard
@@ -876,20 +851,62 @@ const SendNotification: React.FC = () => {
                                     ))}
                                 </select>
                                 {ACTION_URL_OPTIONS.find(o => o.value === actionUrlOption)?.requiresId && (
-                                    <input
-                                        type="text"
-                                        value={actionUrlParam}
-                                        onChange={(e) => {
-                                            setActionUrlParam(e.target.value);
-                                            if (errors.actionUrlParam) {
-                                                setErrors(prev => ({ ...prev, actionUrlParam: '' }));
-                                            }
-                                        }}
-                                        placeholder={ACTION_URL_OPTIONS.find(o => o.value === actionUrlOption)?.placeholder || 'Nhập ID'}
-                                        className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all ${
-                                            errors.actionUrlParam ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white'
-                                        }`}
-                                    />
+                                    actionUrlOption === '/activities/:id' ? (
+                                        <select
+                                            value={actionUrlParam}
+                                            onChange={(e) => {
+                                                setActionUrlParam(e.target.value);
+                                                if (errors.actionUrlParam) {
+                                                    setErrors(prev => ({ ...prev, actionUrlParam: '' }));
+                                                }
+                                            }}
+                                            className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all ${
+                                                errors.actionUrlParam ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white'
+                                            }`}
+                                        >
+                                            <option value="">-- Chọn sự kiện --</option>
+                                            {activities.map(activity => (
+                                                <option key={activity.id} value={activity.id.toString()}>
+                                                    {activity.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    ) : actionUrlOption === '/series/:id' ? (
+                                        <select
+                                            value={actionUrlParam}
+                                            onChange={(e) => {
+                                                setActionUrlParam(e.target.value);
+                                                if (errors.actionUrlParam) {
+                                                    setErrors(prev => ({ ...prev, actionUrlParam: '' }));
+                                                }
+                                            }}
+                                            className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all ${
+                                                errors.actionUrlParam ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white'
+                                            }`}
+                                        >
+                                            <option value="">-- Chọn chuỗi sự kiện --</option>
+                                            {series.map(s => (
+                                                <option key={s.id} value={s.id.toString()}>
+                                                    {s.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <input
+                                            type="text"
+                                            value={actionUrlParam}
+                                            onChange={(e) => {
+                                                setActionUrlParam(e.target.value);
+                                                if (errors.actionUrlParam) {
+                                                    setErrors(prev => ({ ...prev, actionUrlParam: '' }));
+                                                }
+                                            }}
+                                            placeholder={ACTION_URL_OPTIONS.find(o => o.value === actionUrlOption)?.placeholder || 'Nhập ID'}
+                                            className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all ${
+                                                errors.actionUrlParam ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white'
+                                            }`}
+                                        />
+                                    )
                                 )}
                                 {ACTION_URL_OPTIONS.find(o => o.value === actionUrlOption)?.isExternal && (
                                     <div>

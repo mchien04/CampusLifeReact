@@ -158,11 +158,9 @@ const StudentLayout: React.FC<StudentLayoutProps> = ({
                 <div className="flex flex-col h-full">
                     {/* Logo/Brand */}
                     <div className="h-16 flex items-center justify-between px-4 border-b border-[#002A66]">
-                        {sidebarOpen ? (
-                            <h1 className="text-xl font-bold text-[#FFD66D]">CampusLife</h1>
-                        ) : (
-                            <h1 className="text-xl font-bold text-[#FFD66D]">CL</h1>
-                        )}
+                        <Link to="/" className="text-xl font-bold text-[#FFD66D] hover:opacity-80 transition-opacity">
+                            {sidebarOpen ? 'CampusLife' : 'CL'}
+                        </Link>
                         <button
                             onClick={() => setSidebarOpen(!sidebarOpen)}
                             className="text-white hover:text-[#FFD66D] transition-colors"

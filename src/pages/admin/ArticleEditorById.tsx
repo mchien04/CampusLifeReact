@@ -21,8 +21,9 @@ const slugify = (value: string): string => {
 
 const ArticleEditorById: React.FC = () => {
     const { articleId } = useParams<{ articleId: string }>();
-    const id = Number(articleId);
     const location = useLocation();
+    const isCreateMode = location.pathname.endsWith('/create') || articleId === 'create';
+    const id = isCreateMode ? NaN : Number(articleId);
     const base = location.pathname.startsWith('/manager') ? '/manager' : '/admin';
 
     const [article, setArticle] = useState<EventArticleAdminResponse | null>(null);
@@ -80,6 +81,11 @@ const ArticleEditorById: React.FC = () => {
 
     useEffect(() => {
         const loadArticle = async () => {
+            if (isCreateMode) {
+                setLoading(false);
+                return;
+            }
+
             if (!Number.isFinite(id)) {
                 setError('Article ID không hợp lệ');
                 setLoading(false);
@@ -120,7 +126,7 @@ const ArticleEditorById: React.FC = () => {
         };
 
         loadArticle();
-    }, [id]);
+    }, [id, isCreateMode]);
 
     useEffect(() => {
         if (!article) return;
@@ -148,7 +154,7 @@ const ArticleEditorById: React.FC = () => {
     };
 
     const handleSave = async () => {
-        if (!article || !Number.isFinite(article.id)) return;
+        if (!isCreateMode && (!article || !Number.isFinite(article.id))) return;
         if (!form.title.trim() || !form.slug.trim() || !form.content.trim()) {
             setError('Vui lòng nhập đủ title, slug và content');
             return;
@@ -159,13 +165,17 @@ const ArticleEditorById: React.FC = () => {
         try {
             const payload: EventArticleUpsertRequest = {
                 ...form,
-                activityId: article.activityId ?? undefined,
+                activityId: article?.activityId ?? form.activityId ?? undefined,
                 thumbnailUrl: form.thumbnailUrl || null,
                 seoTitle: form.seoTitle || null,
                 seoDescription: form.seoDescription || null,
             };
 
-            const response = await articleAPI.updateArticle(article.id, payload);
+            const canUpdate = article && Number.isFinite(article.id);
+            const response = canUpdate
+                ? await articleAPI.updateArticle(article.id, payload)
+                : await articleAPI.createArticle(payload);
+
             if (response.status && response.body) {
                 setArticle(response.body);
                 setTagIdsInitialized(false);
@@ -375,7 +385,7 @@ const ArticleEditorById: React.FC = () => {
                 </div>
             )}
 
-            {article && (
+            {(article || isCreateMode) && (
                 <div className="bg-white rounded-3xl shadow-premium border-0 p-8 space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <label className="space-y-2 block">
@@ -576,106 +586,108 @@ const ArticleEditorById: React.FC = () => {
                         </label>
                     </div>
 
-                    <div className="rounded-3xl border border-gray-100 bg-gray-50/50 p-6 space-y-6">
-                        <div className="flex items-center justify-between gap-3 flex-wrap border-b border-gray-200/50 pb-4">
-                            <div>
-                                <div className="text-lg font-extrabold text-[#001C44]">Hình ảnh bổ sung (Gallery)</div>
-                                <div className="text-sm font-medium text-gray-500 mt-1">Thêm ảnh vào bộ sưu tập của bài viết này</div>
+                    {article && (
+                        <div className="rounded-3xl border border-gray-100 bg-gray-50/50 p-6 space-y-6">
+                            <div className="flex items-center justify-between gap-3 flex-wrap border-b border-gray-200/50 pb-4">
+                                <div>
+                                    <div className="text-lg font-extrabold text-[#001C44]">Hình ảnh bổ sung (Gallery)</div>
+                                    <div className="text-sm font-medium text-gray-500 mt-1">Thêm ảnh vào bộ sưu tập của bài viết này</div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <input
+                                        ref={galleryInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        className="hidden"
+                                        onChange={(e) => {
+                                            if (e.target.files && e.target.files.length > 0) {
+                                                void handleGallerySelected(e.target.files);
+                                            }
+                                            e.currentTarget.value = '';
+                                        }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={handlePickGalleryFiles}
+                                        disabled={uploadingGallery}
+                                        className="px-6 py-2.5 rounded-2xl bg-white text-[#001C44] border border-gray-200 font-extrabold hover:bg-gray-50 disabled:opacity-60 transition-all active:scale-95 shadow-sm text-sm"
+                                    >
+                                        {uploadingGallery ? 'Đang tải lên...' : '📤 Tải nhiều ảnh'}
+                                    </button>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-3">
+
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                                 <input
-                                    ref={galleryInputRef}
-                                    type="file"
-                                    accept="image/*"
-                                    multiple
-                                    className="hidden"
-                                    onChange={(e) => {
-                                        if (e.target.files && e.target.files.length > 0) {
-                                            void handleGallerySelected(e.target.files);
-                                        }
-                                        e.currentTarget.value = '';
-                                    }}
+                                    value={imageForm.imageUrl}
+                                    onChange={(e) => setImageForm((p) => ({ ...p, imageUrl: e.target.value }))}
+                                    className="md:col-span-5 w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all font-semibold bg-white"
+                                    placeholder="Dán URL ảnh vào đây..."
                                 />
+                                <input
+                                    value={imageForm.caption}
+                                    onChange={(e) => setImageForm((p) => ({ ...p, caption: e.target.value }))}
+                                    className="md:col-span-4 w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all font-semibold bg-white"
+                                    placeholder="Chú thích (caption)"
+                                />
+                                <input
+                                    type="number"
+                                    value={imageForm.displayOrder}
+                                    onChange={(e) => setImageForm((p) => ({ ...p, displayOrder: Number(e.target.value) }))}
+                                    className="md:col-span-3 w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all font-semibold bg-white text-center"
+                                    placeholder="Order"
+                                />
+                            </div>
+                            <div className="flex items-center justify-between flex-wrap gap-4 pt-2">
+                                <label className="flex items-center gap-2.5 text-sm font-extrabold text-[#001C44] cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={imageForm.isCover}
+                                        onChange={(e) => setImageForm((p) => ({ ...p, isCover: e.target.checked }))}
+                                        className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                    />
+                                    Đặt làm cover
+                                </label>
                                 <button
                                     type="button"
-                                    onClick={handlePickGalleryFiles}
-                                    disabled={uploadingGallery}
-                                    className="px-6 py-2.5 rounded-2xl bg-white text-[#001C44] border border-gray-200 font-extrabold hover:bg-gray-50 disabled:opacity-60 transition-all active:scale-95 shadow-sm text-sm"
+                                    disabled={addingImage || !imageForm.imageUrl.trim()}
+                                    onClick={handleAddImage}
+                                    className="px-6 py-2.5 rounded-2xl bg-[#FFD66D] text-[#001C44] font-extrabold hover:bg-yellow-400 disabled:opacity-60 transition-all active:scale-95 shadow-md text-sm"
                                 >
-                                    {uploadingGallery ? 'Đang tải lên...' : '📤 Tải nhiều ảnh'}
+                                    {addingImage ? 'Đang lưu...' : '➕ Thêm URL'}
                                 </button>
                             </div>
-                        </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                            <input
-                                value={imageForm.imageUrl}
-                                onChange={(e) => setImageForm((p) => ({ ...p, imageUrl: e.target.value }))}
-                                className="md:col-span-5 w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all font-semibold bg-white"
-                                placeholder="Dán URL ảnh vào đây..."
-                            />
-                            <input
-                                value={imageForm.caption}
-                                onChange={(e) => setImageForm((p) => ({ ...p, caption: e.target.value }))}
-                                className="md:col-span-4 w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all font-semibold bg-white"
-                                placeholder="Chú thích (caption)"
-                            />
-                            <input
-                                type="number"
-                                value={imageForm.displayOrder}
-                                onChange={(e) => setImageForm((p) => ({ ...p, displayOrder: Number(e.target.value) }))}
-                                className="md:col-span-3 w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all font-semibold bg-white text-center"
-                                placeholder="Order"
-                            />
-                        </div>
-                        <div className="flex items-center justify-between flex-wrap gap-4 pt-2">
-                            <label className="flex items-center gap-2.5 text-sm font-extrabold text-[#001C44] cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={imageForm.isCover}
-                                    onChange={(e) => setImageForm((p) => ({ ...p, isCover: e.target.checked }))}
-                                    className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                                />
-                                Đặt làm cover
-                            </label>
-                            <button
-                                type="button"
-                                disabled={addingImage || !imageForm.imageUrl.trim()}
-                                onClick={handleAddImage}
-                                className="px-6 py-2.5 rounded-2xl bg-[#FFD66D] text-[#001C44] font-extrabold hover:bg-yellow-400 disabled:opacity-60 transition-all active:scale-95 shadow-md text-sm"
-                            >
-                                {addingImage ? 'Đang lưu...' : '➕ Thêm URL'}
-                            </button>
-                        </div>
-
-                        {galleryImages.length > 0 && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 pt-4 border-t border-gray-200/50">
-                                {galleryImages.map((img) => (
-                                    <div key={img.id} className="rounded-2xl bg-white shadow-sm border border-gray-100 overflow-hidden group">
-                                        <div className="relative">
-                                            <img src={img.imageUrl} alt={img.caption || 'image'} className="w-full h-40 object-cover" />
-                                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleRemoveImage(img.id)}
-                                                    className="px-4 py-2 rounded-xl bg-red-500 text-white font-extrabold text-sm hover:bg-red-600 transform hover:scale-105 transition-all"
-                                                >
-                                                    🗑️ Xóa
-                                                </button>
+                            {galleryImages.length > 0 && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 pt-4 border-t border-gray-200/50">
+                                    {galleryImages.map((img) => (
+                                        <div key={img.id} className="rounded-2xl bg-white shadow-sm border border-gray-100 overflow-hidden group">
+                                            <div className="relative">
+                                                <img src={img.imageUrl} alt={img.caption || 'image'} className="w-full h-40 object-cover" />
+                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveImage(img.id)}
+                                                        className="px-4 py-2 rounded-xl bg-red-500 text-white font-extrabold text-sm hover:bg-red-600 transform hover:scale-105 transition-all"
+                                                    >
+                                                        🗑️ Xóa
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="p-4">
+                                                <div className="text-sm font-bold text-[#001C44] truncate">{img.caption || 'Chưa có chú thích'}</div>
+                                                <div className="text-xs text-gray-500 font-medium mt-1 flex items-center gap-2">
+                                                    <span>Thứ tự: {img.displayOrder}</span>
+                                                    {img.isCover && <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wide">Cover</span>}
+                                                </div>
                                             </div>
                                         </div>
-                                        <div className="p-4">
-                                            <div className="text-sm font-bold text-[#001C44] truncate">{img.caption || 'Chưa có chú thích'}</div>
-                                            <div className="text-xs text-gray-500 font-medium mt-1 flex items-center gap-2">
-                                                <span>Thứ tự: {img.displayOrder}</span>
-                                                {img.isCover && <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wide">Cover</span>}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     <div className="space-y-4">
                         <div className="flex flex-wrap items-center justify-between gap-2">

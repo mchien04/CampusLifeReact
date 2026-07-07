@@ -164,6 +164,7 @@ export type EventArticleUpsertRequest = {
     isFeatured?: boolean;
     isPinned?: boolean;
     priority?: number;
+    ownerDepartmentId?: number;
 };
 
 export type EventArticleAdminResponse = {

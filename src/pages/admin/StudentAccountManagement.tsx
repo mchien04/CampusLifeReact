@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import { studentAccountAPI } from '../../services/adminAPI';
+import { studentAccountAPI, departmentAPI } from '../../services/adminAPI';
+import { Department } from '../../types/admin';
 import {
     ExcelStudentRow,
     UploadExcelResponse,
@@ -30,7 +31,7 @@ const StudentAccountManagement: React.FC = () => {
 
     // Manual create state
     const [manualStudents, setManualStudents] = useState<CreateStudentRequest[]>([
-        { studentCode: '', fullName: '', email: '' }
+        { studentCode: '', fullName: '', email: '', departmentId: undefined }
     ]);
     const [validationErrors, setValidationErrors] = useState<{ [index: number]: { studentCode?: string, email?: string } }>({});
 
@@ -47,11 +48,27 @@ const StudentAccountManagement: React.FC = () => {
     });
     const [sendingCredentials, setSendingCredentials] = useState<Set<number>>(new Set());
 
+    const [departments, setDepartments] = useState<Department[]>([]);
+
     useEffect(() => {
         if (activeTab === 'manage') {
             loadAccounts();
         }
     }, [activeTab]);
+
+    useEffect(() => {
+        const loadDepartments = async () => {
+            try {
+                const response = await departmentAPI.getDepartments();
+                if (response.status && response.data) {
+                    setDepartments(response.data);
+                }
+            } catch (err) {
+                console.error('Error loading departments:', err);
+            }
+        };
+        loadDepartments();
+    }, []);
 
     const loadAccounts = async () => {
         setLoading(true);
@@ -174,7 +191,7 @@ const StudentAccountManagement: React.FC = () => {
         }
     };
 
-    const handleManualStudentChange = (index: number, field: keyof CreateStudentRequest, value: string) => {
+    const handleManualStudentChange = (index: number, field: keyof CreateStudentRequest, value: any) => {
         const newStudents = [...manualStudents];
         newStudents[index] = { ...newStudents[index], [field]: value };
         setManualStudents(newStudents);
@@ -222,7 +239,7 @@ const StudentAccountManagement: React.FC = () => {
     };
 
     const addManualStudentRow = () => {
-        setManualStudents([...manualStudents, { studentCode: '', fullName: '', email: '' }]);
+        setManualStudents([...manualStudents, { studentCode: '', fullName: '', email: '', departmentId: undefined }]);
     };
 
     const removeManualStudentRow = (index: number) => {
@@ -256,7 +273,7 @@ const StudentAccountManagement: React.FC = () => {
                 const singleResponse = await studentAccountAPI.createStudent(validStudents[0]);
                 if (singleResponse.status && singleResponse.data) {
                     setSuccess('Tạo tài khoản thành công!');
-                    setManualStudents([{ studentCode: '', fullName: '', email: '' }]);
+                    setManualStudents([{ studentCode: '', fullName: '', email: '', departmentId: undefined }]);
                     loadAccounts(); // reload accounts for manage tab
                 } else {
                     setError(singleResponse.message || 'Không thể tạo tài khoản');
@@ -268,7 +285,7 @@ const StudentAccountManagement: React.FC = () => {
                     setCreateResponse(response.data);
                     setSuccess(`Đã tạo ${response.data.successCount} tài khoản thành công. ${response.data.errorCount} lỗi.`);
                     setActiveTab('create');
-                    setManualStudents([{ studentCode: '', fullName: '', email: '' }]);
+                    setManualStudents([{ studentCode: '', fullName: '', email: '', departmentId: undefined }]);
                 } else {
                     setError(response.message || 'Không thể tạo tài khoản');
                 }
@@ -557,6 +574,19 @@ const StudentAccountManagement: React.FC = () => {
                                         {validationErrors[index]?.email && (
                                             <p className="mt-1 text-xs text-red-500">{validationErrors[index].email}</p>
                                         )}
+                                    </div>
+                                    <div className="flex-1 w-full">
+                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Khoa</label>
+                                        <select
+                                            value={student.departmentId || ''}
+                                            onChange={e => handleManualStudentChange(index, 'departmentId', e.target.value ? parseInt(e.target.value) : undefined)}
+                                            className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] outline-none transition-all shadow-sm"
+                                        >
+                                            <option value="">Chọn khoa (Tùy chọn)</option>
+                                            {departments.map(d => (
+                                                <option key={d.id} value={d.id}>{d.name}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                     <div className="mt-6 md:mt-0 pt-1 md:pt-6 flex-shrink-0">
                                         <button
@@ -1077,6 +1107,7 @@ const StudentAccountManagement: React.FC = () => {
                         </div>
                         <EditAccountForm
                             account={editingAccount}
+                            departments={departments}
                             onSave={handleUpdateAccount}
                             onCancel={() => {
                                 setShowEditModal(false);
@@ -1130,16 +1161,18 @@ const StudentAccountManagement: React.FC = () => {
 // Edit Account Form Component
 interface EditAccountFormProps {
     account: StudentAccountResponse;
+    departments: Department[];
     onSave: (data: UpdateStudentAccountRequest) => void;
     onCancel: () => void;
 }
 
-const EditAccountForm: React.FC<EditAccountFormProps> = ({ account, onSave, onCancel }) => {
+const EditAccountForm: React.FC<EditAccountFormProps> = ({ account, departments, onSave, onCancel }) => {
     const [formData, setFormData] = useState<UpdateStudentAccountRequest>({
         username: account.username,
         email: account.email,
         studentCode: account.studentCode,
-        fullName: account.fullName
+        fullName: account.fullName,
+        departmentId: account.departmentId
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -1185,6 +1218,19 @@ const EditAccountForm: React.FC<EditAccountFormProps> = ({ account, onSave, onCa
                         onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
                     />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Khoa</label>
+                    <select
+                        value={formData.departmentId || ''}
+                        onChange={(e) => setFormData({ ...formData, departmentId: e.target.value ? parseInt(e.target.value) : undefined })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
+                    >
+                        <option value="">Chọn khoa (Tùy chọn)</option>
+                        {departments.map(d => (
+                            <option key={d.id} value={d.id}>{d.name}</option>
+                        ))}
+                    </select>
                 </div>
             </div>
             <div className="flex justify-end gap-2 mt-6">

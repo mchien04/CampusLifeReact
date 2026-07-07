@@ -19,29 +19,15 @@ import { StudentClass } from '../../types/class';
 import { Department } from '../../types/admin';
 import { UserResponse } from '../../types/auth';
 import { RecipientSelectorCard, RecipientPreviewCard, UserSelector } from '../../components/email';
+import { ACTION_URL_OPTIONS, buildActionUrlFromOptions } from '../../utils/urlBuilder';
+import { useAuth } from '../../contexts/AuthContext';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
-const ACTION_URL_OPTIONS: Array<{
-    value: string;
-    label: string;
-    requiresId?: boolean;
-    isExternal?: boolean;
-    idLabel?: string;
-    placeholder?: string;
-}> = [
-        { value: '', label: 'Không chọn hành động' },
-        { value: '/manager/dashboard', label: 'Dashboard quản lý' },
-        { value: '/activities', label: 'Danh sách sự kiện' },
-        { value: '/series', label: 'Danh sách chuỗi sự kiện' },
-        { value: '/notifications', label: 'Trung tâm thông báo' },
-        { value: '/activities/:id', label: 'Chi tiết sự kiện (nhập ID)', requiresId: true, idLabel: 'Activity ID', placeholder: 'VD: 10' },
-        { value: '/series/:id', label: 'Chi tiết chuỗi sự kiện (nhập ID)', requiresId: true, idLabel: 'Series ID', placeholder: 'VD: 5' },
-        { value: 'EXTERNAL', label: 'Link ngoài (External URL)', isExternal: true }
-    ];
-
 const SendEmail: React.FC = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const isManager = user?.role === 'MANAGER';
     const [loading, setLoading] = useState(false);
     const [sending, setSending] = useState(false);
 
@@ -90,20 +76,6 @@ const SendEmail: React.FC = () => {
         } catch {
             return false;
         }
-    };
-
-    const buildActionUrl = (optionValue: string, param: string, external?: string) => {
-        // Nếu là external URL
-        if (optionValue === 'EXTERNAL' && external) {
-            return external.trim();
-        }
-        const option = ACTION_URL_OPTIONS.find(o => o.value === optionValue);
-        if (!option) return '';
-        if (option.requiresId) {
-            if (!param?.trim()) return '';
-            return option.value.replace(':id', param.trim());
-        }
-        return option.value;
     };
 
     // Errors
@@ -234,7 +206,7 @@ const SendEmail: React.FC = () => {
                         ? {
                             notificationActionUrl: hasActivityOrSeries 
                                 ? undefined 
-                                : (buildActionUrl(actionUrlOption || '/notifications', actionUrlParam, externalUrl) || undefined)
+                                : (buildActionUrlFromOptions(actionUrlOption || '/notifications', actionUrlParam, externalUrl) || undefined)
                         }
                         : {
                             notificationTitle: undefined,
@@ -396,7 +368,7 @@ const SendEmail: React.FC = () => {
         if (formData.activityId || formData.seriesId) {
             setFormData(prev => ({ ...prev, notificationActionUrl: undefined }));
         } else {
-            const url = buildActionUrl(value, actionUrlParam, externalUrl);
+            const url = buildActionUrlFromOptions(value, actionUrlParam, externalUrl);
             setFormData(prev => ({ ...prev, notificationActionUrl: url || undefined }));
         }
         if (errors.notificationActionUrl) {
@@ -416,7 +388,7 @@ const SendEmail: React.FC = () => {
         if (formData.activityId || formData.seriesId) {
             setFormData(prev => ({ ...prev, notificationActionUrl: undefined }));
         } else {
-            const url = buildActionUrl(actionUrlOption, value, externalUrl);
+            const url = buildActionUrlFromOptions(actionUrlOption, value, externalUrl);
             setFormData(prev => ({ ...prev, notificationActionUrl: url || undefined }));
         }
         if (errors.notificationActionUrl) {
@@ -433,7 +405,7 @@ const SendEmail: React.FC = () => {
         if (formData.activityId || formData.seriesId) {
             setFormData(prev => ({ ...prev, notificationActionUrl: undefined }));
         } else {
-            const url = buildActionUrl(actionUrlOption, actionUrlParam, value);
+            const url = buildActionUrlFromOptions(actionUrlOption, actionUrlParam, value);
             setFormData(prev => ({ ...prev, notificationActionUrl: url || undefined }));
         }
         if (errors.notificationActionUrl) {
@@ -720,7 +692,8 @@ const SendEmail: React.FC = () => {
                                 .filter(type =>
                                     type !== RecipientType.INDIVIDUAL &&
                                     type !== RecipientType.BULK &&
-                                    type !== RecipientType.CUSTOM_LIST
+                                    type !== RecipientType.CUSTOM_LIST &&
+                                    !(isManager && type === RecipientType.ALL_STUDENTS)
                                 )
                                 .map(type => (
                                     <RecipientSelectorCard
@@ -1138,15 +1111,47 @@ const SendEmail: React.FC = () => {
                                             </select>
 
                                             {ACTION_URL_OPTIONS.find(o => o.value === actionUrlOption)?.requiresId && (
-                                                <input
-                                                    type="text"
-                                                    value={actionUrlParam}
-                                                    onChange={(e) => handleActionParamChange(e.target.value)}
-                                                    className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all ${
-                                                        errors.actionUrlParam ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white'
-                                                    }`}
-                                                    placeholder={ACTION_URL_OPTIONS.find(o => o.value === actionUrlOption)?.placeholder || 'Nhập ID'}
-                                                />
+                                                actionUrlOption === '/activities/:id' ? (
+                                                    <select
+                                                        value={actionUrlParam}
+                                                        onChange={(e) => handleActionParamChange(e.target.value)}
+                                                        className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all ${
+                                                            errors.actionUrlParam ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white'
+                                                        }`}
+                                                    >
+                                                        <option value="">-- Chọn sự kiện --</option>
+                                                        {activities.map(activity => (
+                                                            <option key={activity.id} value={activity.id.toString()}>
+                                                                {activity.name}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                ) : actionUrlOption === '/series/:id' ? (
+                                                    <select
+                                                        value={actionUrlParam}
+                                                        onChange={(e) => handleActionParamChange(e.target.value)}
+                                                        className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all ${
+                                                            errors.actionUrlParam ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white'
+                                                        }`}
+                                                    >
+                                                        <option value="">-- Chọn chuỗi sự kiện --</option>
+                                                        {series.map(s => (
+                                                            <option key={s.id} value={s.id.toString()}>
+                                                                {s.name}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                ) : (
+                                                    <input
+                                                        type="text"
+                                                        value={actionUrlParam}
+                                                        onChange={(e) => handleActionParamChange(e.target.value)}
+                                                        className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all ${
+                                                            errors.actionUrlParam ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white'
+                                                        }`}
+                                                        placeholder={ACTION_URL_OPTIONS.find(o => o.value === actionUrlOption)?.placeholder || 'Nhập ID'}
+                                                    />
+                                                )
                                             )}
 
                                             {ACTION_URL_OPTIONS.find(o => o.value === actionUrlOption)?.isExternal && (

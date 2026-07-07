@@ -19,6 +19,7 @@ export interface CreateStudentRequest {
     studentCode: string;
     fullName: string;
     email: string;
+    departmentId?: number;
 }
 
 export interface CreateMultipleStudentsRequest {
@@ -44,6 +45,8 @@ export interface StudentAccountResponse {
     emailSent: boolean; // Đã gửi email credentials chưa (chỉ chính xác trong bulkCreate, không chính xác trong getPendingAccounts)
     lastLogin: string | null; // Thời gian đăng nhập lần cuối (null nếu chưa đăng nhập)
     createdAt: string; // LocalDateTime in Java
+    departmentId?: number;
+    departmentName?: string;
 }
 
 export interface UpdateStudentAccountRequest {
@@ -51,6 +54,7 @@ export interface UpdateStudentAccountRequest {
     email?: string;
     studentCode?: string;
     fullName?: string;
+    departmentId?: number;
 }
 
 export interface BulkSendCredentialsRequest {
