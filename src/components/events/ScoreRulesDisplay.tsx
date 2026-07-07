@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
     ActivityScoreRuleResponse, 
     ScoreType, 
@@ -7,6 +7,9 @@ import {
     ScoreRuleAudience, 
     ScoreSemesterPolicy 
 } from '../../types/activity';
+import { departmentAPI } from '../../services/adminAPI'; // Wait, let's use the one in api.ts
+import { academicPublicAPI } from '../../services/academicPublicAPI';
+import api from '../../services/api'; // I'll just use api.get directly for departments if departmentAPI isn't exported there cleanly. Let's do a direct fetch or use academicPublicAPI.
 
 interface ScoreRulesDisplayProps {
     rules?: ActivityScoreRuleResponse[];
@@ -44,6 +47,51 @@ const getAudienceLabel = (audience: ScoreRuleAudience) => {
 };
 
 export const ScoreRulesDisplay: React.FC<ScoreRulesDisplayProps> = ({ rules }) => {
+    const [departments, setDepartments] = useState<any[]>([]);
+    const [semesters, setSemesters] = useState<any[]>([]);
+    const [years, setYears] = useState<any[]>([]);
+
+    useEffect(() => {
+        const fetchMappingData = async () => {
+            try {
+                // Fetch Departments
+                const deptRes = await api.get('/api/departments');
+                if (deptRes.data) {
+                    // API returns list or wrapped list
+                    setDepartments(Array.isArray(deptRes.data) ? deptRes.data : (deptRes.data.body || []));
+                }
+                
+                // Fetch Academic Years and Semesters
+                const fetchedYears = await academicPublicAPI.getYears();
+                setYears(fetchedYears);
+                const fetchedSemesters = await academicPublicAPI.getSemesters();
+                setSemesters(fetchedSemesters);
+            } catch (err) {
+                console.error("Error fetching mapping data for rules", err);
+            }
+        };
+        fetchMappingData();
+    }, []);
+
+    const getDepartmentNames = (ids: number[]) => {
+        if (!ids || ids.length === 0) return '';
+        return ids.map(id => {
+            const dept = departments.find(d => d.id === id);
+            return dept ? dept.name : `Khoa ${id}`;
+        }).join(', ');
+    };
+
+    const getSemesterDisplay = (semesterId?: number | null) => {
+        if (!semesterId) return null;
+        const sem = semesters.find(s => s.id === semesterId);
+        if (!sem) return `Học kỳ ${semesterId}`;
+        const year = years.find(y => y.id === sem.academicYearId || y.id === sem.yearId);
+        if (year) {
+            return `${sem.name} (${year.name})`;
+        }
+        return sem.name;
+    };
+
     if (!rules || rules.length === 0) {
         return <div className="text-sm text-gray-500 italic">Không có cấu hình điểm.</div>;
     }
@@ -92,17 +140,24 @@ export const ScoreRulesDisplay: React.FC<ScoreRulesDisplayProps> = ({ rules }) =
                                 return <span className="font-bold text-green-600">+{rule.points || 0}</span>;
                             })()}
                         </div>
-                        <div className="text-gray-600 pl-2">
-                            <span className="font-medium">Khi:</span> {getTriggerLabel(rule.triggerType)}
+                        <div className="text-gray-600 pl-2 flex flex-col gap-1">
+                            <div><span className="font-medium">Khi:</span> {getTriggerLabel(rule.triggerType)}</div>
+                            {rule.semesterPolicy === ScoreSemesterPolicy.EXPLICIT_SEMESTER && rule.explicitSemesterId && (
+                                <div className="text-xs text-blue-700 bg-blue-50 inline-block px-2 py-0.5 rounded-md border border-blue-100 self-start">
+                                    Áp dụng: {getSemesterDisplay(rule.explicitSemesterId)}
+                                </div>
+                            )}
                         </div>
-                        <div className="flex justify-between items-center pl-2 pt-1 mt-1 border-t border-gray-100 text-xs text-gray-500">
-                            <span>Đối tượng: {getAudienceLabel(rule.audience)}</span>
+                        <div className="flex flex-col pl-2 pt-1 mt-1 border-t border-gray-100 text-xs text-gray-500 gap-1">
+                            <div className="flex justify-between items-center">
+                                <span>Đối tượng: <span className="font-medium">{getAudienceLabel(rule.audience)}</span></span>
+                            </div>
                             {(() => {
                                 const deptIds = rule.targetDepartmentIds || (rule as any).departmentIds;
                                 return deptIds && deptIds.length > 0 ? (
-                                    <span title="Số lượng khoa áp dụng" className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">
-                                        {deptIds.length} khoa
-                                    </span>
+                                    <div className="text-gray-600 line-clamp-2 mt-0.5">
+                                        <span className="font-medium text-gray-700">Khoa áp dụng:</span> {getDepartmentNames(deptIds)}
+                                    </div>
                                 ) : null;
                             })()}
                         </div>

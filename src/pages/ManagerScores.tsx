@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { scoresAPI } from '../services/scoresAPI';
@@ -8,80 +7,90 @@ import { departmentAPI } from '../services/api';
 import { classAPI } from '../services/classAPI';
 import { Semester } from '../types/admin';
 import { StudentClass } from '../types/class';
-import { ScoreType, StudentRankingResponse, ScoreHistoryViewResponse, getSourceTypeLabel, getSourceTypeColor, formatScore, formatDateTime, RecalculationJobResponse } from '../types/score';
+import {
+    ScoreType,
+    StudentRankingResponse,
+    getScoreTypeLabel,
+    formatScore,
+    RecalculationJobResponse,
+} from '../types/score';
+import ScoreHistoryPanel from '../components/scores/ScoreHistoryPanel';
+import ScoreSkeleton from '../components/scores/ScoreSkeleton';
+
+const RankBadge: React.FC<{ rank: number }> = ({ rank }) => {
+    const topStyle =
+        rank === 1
+            ? 'bg-accent text-primary-900 ring-accent/50'
+            : rank === 2
+                ? 'bg-gray-100 text-gray-800 ring-gray-200'
+                : rank === 3
+                    ? 'bg-amber-50 text-amber-900 ring-amber-200'
+                    : 'bg-white text-primary-900 ring-gray-100';
+
+    return (
+        <span
+            className={`inline-flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold tabular-nums ring-1 ${topStyle}`}
+        >
+            {rank}
+        </span>
+    );
+};
 
 const ManagerScores: React.FC = () => {
     const queryClient = useQueryClient();
 
-    // Filter states
     const [semesterId, setSemesterId] = useState<number | null>(null);
     const [scoreType, setScoreType] = useState<ScoreType | null>(null);
     const [departmentId, setDepartmentId] = useState<number | null>(null);
     const [classId, setClassId] = useState<number | null>(null);
-    const [sortOrder, setSortOrder] = useState<"ASC" | "DESC">("DESC");
+    const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
 
-    // Data states
     const [semesters, setSemesters] = useState<Semester[]>([]);
-    const [departments, setDepartments] = useState<any[]>([]);
+    const [departments, setDepartments] = useState<Array<{ id: number; name: string }>>([]);
     const [classes, setClasses] = useState<StudentClass[]>([]);
 
-    // Ranking data
-    const [loading, setLoading] = useState<boolean>(false);
+    const [loading, setLoading] = useState(false);
     const [rankings, setRankings] = useState<StudentRankingResponse[]>([]);
     const [rankingMetadata, setRankingMetadata] = useState<{
         semesterName?: string;
-        scoreType?: string | null;
         totalStudents?: number;
     }>({});
 
-    // Score history modal state
     const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
     const [historyPage, setHistoryPage] = useState(0);
     const historyPageSize = 20;
-    // Score history filters (new — backend DB-level filter)
-    const [historyStartDate, setHistoryStartDate] = useState<string>('');
-    const [historyEndDate, setHistoryEndDate] = useState<string>('');
-    const [historyKeyword, setHistoryKeyword] = useState<string>('');
-    
-    // Temporary states for filters
-    const [tempStartDate, setTempStartDate] = useState<string>('');
-    const [tempEndDate, setTempEndDate] = useState<string>('');
-    const [tempKeyword, setTempKeyword] = useState<string>('');
+    const [historyStartDate, setHistoryStartDate] = useState('');
+    const [historyEndDate, setHistoryEndDate] = useState('');
+    const [historyKeyword, setHistoryKeyword] = useState('');
+    const [tempStartDate, setTempStartDate] = useState('');
+    const [tempEndDate, setTempEndDate] = useState('');
+    const [tempKeyword, setTempKeyword] = useState('');
 
-    // Recalculate states
     const [isRecalculatingAll, setIsRecalculatingAll] = useState(false);
     const [showRecalculateConfirm, setShowRecalculateConfirm] = useState(false);
     const [isRecalculatingStudent, setIsRecalculatingStudent] = useState(false);
     const [recalculationJob, setRecalculationJob] = useState<RecalculationJobResponse | null>(null);
-    const pollingRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+    const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    // Load initial data
     useEffect(() => {
         loadSemesters();
         loadDepartments();
     }, []);
 
-    // Load classes when department changes
     useEffect(() => {
         loadClasses();
-        // Reset class selection when department changes
         setClassId(null);
     }, [departmentId]);
 
-    // Load ranking when filters change
     useEffect(() => {
-        if (semesterId) {
-            loadRanking();
-        }
+        if (semesterId) loadRanking();
     }, [semesterId, scoreType, departmentId, classId, sortOrder]);
 
     const loadSemesters = async () => {
         try {
             const data = await academicPublicAPI.getSemesters();
             setSemesters(data);
-            if (data.length > 0 && !semesterId) {
-                setSemesterId(data[0].id);
-            }
+            if (data.length > 0 && !semesterId) setSemesterId(data[0].id);
         } catch (error) {
             console.error('Error loading semesters:', error);
         }
@@ -91,13 +100,12 @@ const ManagerScores: React.FC = () => {
         try {
             const response = await departmentAPI.getAll();
             if (response.status && response.data) {
-                // Handle both response.data (direct array) and response.data.body (nested)
-                let departmentsData: any[] = [];
+                let departmentsData: Array<{ id: number; name: string }> = [];
                 if (Array.isArray(response.data)) {
                     departmentsData = response.data;
                 } else if (response.data && typeof response.data === 'object') {
-                    const dataObj = response.data as any;
-                    departmentsData = dataObj.body || dataObj.data || [];
+                    const dataObj = response.data as { body?: unknown; data?: unknown };
+                    departmentsData = (dataObj.body || dataObj.data || []) as Array<{ id: number; name: string }>;
                 }
                 setDepartments(departmentsData);
             }
@@ -109,25 +117,18 @@ const ManagerScores: React.FC = () => {
     const loadClasses = async () => {
         try {
             if (departmentId) {
-                // Load classes by department
                 const classesData = await classAPI.getClassesByDepartment(departmentId);
-                // Handle both array and object with body property
                 let classesList: StudentClass[] = [];
                 if (Array.isArray(classesData)) {
                     classesList = classesData;
                 } else if (classesData && typeof classesData === 'object') {
-                    const dataObj = classesData as any;
+                    const dataObj = classesData as { body?: StudentClass[]; data?: StudentClass[] };
                     classesList = dataObj.body || dataObj.data || [];
                 }
                 setClasses(classesList);
             } else {
-                // Load all classes
                 const response = await classAPI.getClasses();
-                if (response.content) {
-                    setClasses(response.content);
-                } else {
-                    setClasses([]);
-                }
+                setClasses(response.content ?? []);
             }
         } catch (error) {
             console.error('Error loading classes:', error);
@@ -137,7 +138,6 @@ const ManagerScores: React.FC = () => {
 
     const loadRanking = async () => {
         if (!semesterId) return;
-
         setLoading(true);
         try {
             const response = await scoresAPI.getStudentRanking({
@@ -147,12 +147,10 @@ const ManagerScores: React.FC = () => {
                 classId: classId || null,
                 sortOrder,
             });
-
             if (response.status && response.data) {
                 setRankings(response.data.rankings || []);
                 setRankingMetadata({
                     semesterName: response.data.semesterName,
-                    scoreType: response.data.scoreType,
                     totalStudents: response.data.totalStudents,
                 });
             } else {
@@ -168,21 +166,6 @@ const ManagerScores: React.FC = () => {
         }
     };
 
-    const getScoreTypeLabel = (type: ScoreType | null): string => {
-        if (!type) return 'Tổng điểm';
-        switch (type) {
-            case 'REN_LUYEN':
-                return 'Điểm rèn luyện';
-            case 'CONG_TAC_XA_HOI':
-                return 'Điểm công tác xã hội';
-            case 'CHUYEN_DE':
-                return 'Điểm chuyên đề doanh nghiệp';
-            default:
-                return type;
-        }
-    };
-
-    // Query for score history
     const { data: historyData, isFetching: isHistoryFetching } = useQuery({
         enabled: Boolean(selectedStudentId && semesterId),
         queryKey: ['scoreHistory', selectedStudentId, semesterId, scoreType, historyPage, historyStartDate, historyEndDate, historyKeyword],
@@ -204,6 +187,13 @@ const ManagerScores: React.FC = () => {
         },
     });
 
+    const stopPolling = () => {
+        if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+        }
+    };
+
     const handleViewHistory = (studentId: number) => {
         setSelectedStudentId(studentId);
         setHistoryPage(0);
@@ -218,12 +208,6 @@ const ManagerScores: React.FC = () => {
     const handleCloseHistory = () => {
         setSelectedStudentId(null);
         setHistoryPage(0);
-        setHistoryStartDate('');
-        setHistoryEndDate('');
-        setHistoryKeyword('');
-        setTempStartDate('');
-        setTempEndDate('');
-        setTempKeyword('');
     };
 
     const handleRecalculateAll = async () => {
@@ -239,7 +223,7 @@ const ManagerScores: React.FC = () => {
             const response = await scoresAPI.recalculateAsync(semesterId);
             if (response.status && response.data) {
                 const { jobId } = response.data;
-                toast.info('Job tính lại điểm đã được khởi tạo. Đang theo dõi tiến độ...');
+                toast.info('Job tính lại điểm đã được khởi tạo.');
 
                 const poll = async () => {
                     try {
@@ -250,26 +234,27 @@ const ManagerScores: React.FC = () => {
                             if (s === 'COMPLETED') {
                                 stopPolling();
                                 setIsRecalculatingAll(false);
-                                toast.success('Tính lại điểm toàn trường hoàn tất!');
+                                toast.success('Tính lại điểm toàn trường hoàn tất');
                                 loadRanking();
                             } else if (s === 'FAILED' || s === 'TIMEOUT') {
                                 stopPolling();
                                 toast.error(`Job thất bại: ${statusRes.data.errorDetails || s}`);
                             }
                         }
-                    } catch (_e) {
-                        // keep polling on network errors
+                    } catch {
+                        /* keep polling */
                     }
                 };
 
                 pollingRef.current = setInterval(poll, 3000);
-                poll(); // initial immediate poll
+                poll();
             } else {
                 toast.error(response.message || 'Không thể khởi tạo job tính lại điểm');
                 setIsRecalculatingAll(false);
             }
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi tính lại điểm');
+        } catch (error: unknown) {
+            const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+            toast.error(msg || 'Có lỗi xảy ra khi tính lại điểm');
             setIsRecalculatingAll(false);
         }
     };
@@ -280,8 +265,8 @@ const ManagerScores: React.FC = () => {
         try {
             const response = await scoresAPI.retryRecalculation(recalculationJob.id);
             if (response.status && response.data) {
-                const newJobId = (response.data as any).jobId || response.data;
-                toast.info('Đang retry job...');
+                const newJobId = (response.data as { jobId?: number }).jobId || (response.data as unknown as number);
+                toast.info('Đang thử lại job...');
                 setRecalculationJob(null);
                 const poll = async () => {
                     try {
@@ -292,14 +277,14 @@ const ManagerScores: React.FC = () => {
                             if (s === 'COMPLETED') {
                                 stopPolling();
                                 setIsRecalculatingAll(false);
-                                toast.success('Tính lại điểm toàn trường hoàn tất!');
+                                toast.success('Tính lại điểm toàn trường hoàn tất');
                                 loadRanking();
                             } else if (s === 'FAILED' || s === 'TIMEOUT') {
                                 stopPolling();
                                 toast.error(`Job thất bại: ${statusRes.data.errorDetails || s}`);
                             }
                         }
-                    } catch (_e) { }
+                    } catch { /* keep polling */ }
                 };
                 pollingRef.current = setInterval(poll, 3000);
                 poll();
@@ -307,25 +292,15 @@ const ManagerScores: React.FC = () => {
                 toast.error(response.message || 'Retry thất bại');
                 setIsRecalculatingAll(false);
             }
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi retry');
+        } catch (error: unknown) {
+            const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+            toast.error(msg || 'Có lỗi xảy ra khi retry');
             setIsRecalculatingAll(false);
         }
     };
 
-    const stopPolling = () => {
-        if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
-    };
-
-    const handleDismissRecalculation = () => {
-        stopPolling();
-        setIsRecalculatingAll(false);
-        setRecalculationJob(null);
-    };
-
     const handleRecalculateStudent = async () => {
         if (!selectedStudentId || !semesterId) return;
-        
         setIsRecalculatingStudent(true);
         try {
             const response = await scoresAPI.recalculateStudentScore(selectedStudentId, semesterId);
@@ -336,531 +311,321 @@ const ManagerScores: React.FC = () => {
             } else {
                 toast.error(response.message || 'Tính lại điểm sinh viên thất bại');
             }
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi tính lại điểm sinh viên');
+        } catch (error: unknown) {
+            const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+            toast.error(msg || 'Có lỗi xảy ra khi tính lại điểm sinh viên');
         } finally {
             setIsRecalculatingStudent(false);
         }
     };
 
+    const selectClass =
+        'w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm shadow-sm transition-all focus:border-primary-900 focus:outline-none focus:ring-2 focus:ring-primary-900/15 hover:border-gray-300';
+
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white">
-                <div>
-                    <h1 className="text-3xl font-bold mb-2 flex items-center">
-                        <span className="mr-3 text-4xl">📊</span>
-                        Xếp hạng điểm sinh viên
-                    </h1>
-                    <p className="text-gray-200 text-lg">Xem, lọc và sắp xếp điểm theo học kỳ</p>
+        <div className="space-y-8 pb-10">
+            <header className="rounded-2xl bg-gradient-to-br from-primary-900 via-primary-800 to-primary-900 p-6 sm:p-8 text-white shadow-premium">
+                <p className="text-sm font-medium text-white/60 uppercase tracking-wide">
+                    Quản lý điểm
+                </p>
+                <h1 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight">
+                    Xếp hạng sinh viên
+                </h1>
+                <p className="mt-2 text-white/70 max-w-prose">
+                    Lọc theo học kỳ, loại điểm, khoa và lớp. Xem lịch sử chi tiết từng sinh viên.
+                </p>
+            </header>
+
+            <section className="rounded-2xl border border-gray-100 bg-white p-5 sm:p-6 shadow-premium">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-4">
+                    Bộ lọc
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Học kỳ</label>
+                        <select className={selectClass} value={semesterId || ''} onChange={(e) => setSemesterId(e.target.value ? Number(e.target.value) : null)}>
+                            <option value="">Chọn học kỳ</option>
+                            {semesters.map(s => (
+                                <option key={s.id} value={s.id}>{s.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Loại điểm</label>
+                        <select className={selectClass} value={scoreType || ''} onChange={(e) => setScoreType(e.target.value ? (e.target.value as ScoreType) : null)}>
+                            <option value="">Tổng điểm</option>
+                            <option value="REN_LUYEN">{getScoreTypeLabel('REN_LUYEN')}</option>
+                            <option value="CONG_TAC_XA_HOI">{getScoreTypeLabel('CONG_TAC_XA_HOI')}</option>
+                            <option value="CHUYEN_DE">{getScoreTypeLabel('CHUYEN_DE')}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Khoa</label>
+                        <select className={selectClass} value={departmentId || ''} onChange={(e) => setDepartmentId(e.target.value ? Number(e.target.value) : null)}>
+                            <option value="">Tất cả</option>
+                            {departments.map(d => (
+                                <option key={d.id} value={d.id}>{d.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Lớp</label>
+                        <select className={selectClass} value={classId || ''} onChange={(e) => setClassId(e.target.value ? Number(e.target.value) : null)} disabled={!departmentId}>
+                            <option value="">Tất cả</option>
+                            {classes.map(c => (
+                                <option key={c.id} value={c.id}>{c.className}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Sắp xếp</label>
+                        <select className={selectClass} value={sortOrder} onChange={(e) => setSortOrder(e.target.value as 'ASC' | 'DESC')}>
+                            <option value="DESC">Cao → thấp</option>
+                            <option value="ASC">Thấp → cao</option>
+                        </select>
+                    </div>
+                    <div className="flex items-end gap-2">
+                        <button
+                            type="button"
+                            onClick={loadRanking}
+                            className="flex-1 rounded-xl bg-primary-900 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-primary-800 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900"
+                        >
+                            Làm mới
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setShowRecalculateConfirm(true)}
+                            disabled={!semesterId}
+                            className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm font-medium text-amber-900 transition-all hover:bg-amber-100 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                            title="Tính lại toàn trường"
+                        >
+                            Tính lại
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            {rankingMetadata.semesterName && (
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600 px-1">
+                    <span>
+                        <span className="text-gray-400">Học kỳ:</span>{' '}
+                        <strong className="text-primary-900">{rankingMetadata.semesterName}</strong>
+                    </span>
+                    <span>
+                        <span className="text-gray-400">Loại:</span>{' '}
+                        <strong className="text-primary-900">{getScoreTypeLabel(scoreType)}</strong>
+                    </span>
+                    <span>
+                        <span className="text-gray-400">Sinh viên:</span>{' '}
+                        <strong className="text-primary-900 tabular-nums">{rankingMetadata.totalStudents ?? 0}</strong>
+                    </span>
+                </div>
+            )}
+
+            <div className="rounded-2xl border border-gray-100 bg-white shadow-premium overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="min-w-full">
+                        <thead>
+                            <tr className="border-b border-gray-100 bg-gray-50/80">
+                                <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-16">Hạng</th>
+                                <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">MSSV</th>
+                                <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Họ tên</th>
+                                <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Lớp</th>
+                                <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide hidden lg:table-cell">Khoa</th>
+                                <th className="px-4 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Điểm</th>
+                                <th className="px-4 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide w-28"></th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={7}>
+                                        <ScoreSkeleton variant="table" />
+                                    </td>
+                                </tr>
+                            ) : rankings.length === 0 ? (
+                                <tr>
+                                    <td colSpan={7} className="px-4 py-16 text-center text-gray-500">
+                                        {semesterId ? 'Không có dữ liệu xếp hạng' : 'Vui lòng chọn học kỳ'}
+                                    </td>
+                                </tr>
+                            ) : (
+                                rankings.map(ranking => (
+                                    <tr
+                                        key={`${ranking.studentId}-${ranking.scoreType || 'total'}`}
+                                        className="group transition-colors hover:bg-gray-50/80"
+                                    >
+                                        <td className="px-4 py-3.5">
+                                            <RankBadge rank={ranking.rank} />
+                                        </td>
+                                        <td className="px-4 py-3.5 text-sm font-mono text-gray-700">
+                                            {ranking.studentCode}
+                                        </td>
+                                        <td className="px-4 py-3.5">
+                                            <p className="text-sm font-medium text-gray-900">{ranking.studentName}</p>
+                                            <p className="text-xs text-gray-400 md:hidden mt-0.5">
+                                                {ranking.className} · {ranking.departmentName}
+                                            </p>
+                                        </td>
+                                        <td className="px-4 py-3.5 text-sm text-gray-600 hidden md:table-cell">
+                                            {ranking.className || '—'}
+                                        </td>
+                                        <td className="px-4 py-3.5 text-sm text-gray-600 hidden lg:table-cell">
+                                            {ranking.departmentName || '—'}
+                                        </td>
+                                        <td className="px-4 py-3.5 text-right">
+                                            <span className="text-base font-bold text-primary-900 tabular-nums">
+                                                {formatScore(ranking.score)}
+                                            </span>
+                                            <p className="text-xs text-gray-400 mt-0.5">{ranking.scoreTypeLabel}</p>
+                                        </td>
+                                        <td className="px-4 py-3.5 text-right">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleViewHistory(ranking.studentId)}
+                                                className="rounded-lg px-3 py-1.5 text-xs font-medium text-primary-900 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all hover:bg-primary-900/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900"
+                                            >
+                                                Chi tiết
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            <div>
-                {/* Filters */}
-                <div className="bg-white shadow-lg rounded-lg p-6 mb-4 border border-gray-100">
-                    <h3 className="text-lg font-semibold text-[#001C44] mb-4 flex items-center">
-                        <span className="mr-2">🔍</span>
-                        Bộ lọc
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-[#001C44] mb-2">Học kỳ *</label>
-                            <select
-                                className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all"
-                                value={semesterId || ''}
-                                onChange={(e) => setSemesterId(e.target.value ? Number(e.target.value) : null)}
-                            >
-                                <option value="">Chọn học kỳ</option>
-                                {semesters.map((s) => (
-                                    <option key={s.id} value={s.id}>
-                                        {s.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-[#001C44] mb-2">Loại điểm</label>
-                            <select
-                                className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all"
-                                value={scoreType || ''}
-                                onChange={(e) => setScoreType(e.target.value ? (e.target.value as ScoreType) : null)}
-                            >
-                                <option value="">Tổng điểm</option>
-                                <option value="REN_LUYEN">Điểm rèn luyện</option>
-                                <option value="CONG_TAC_XA_HOI">Điểm công tác xã hội</option>
-                                <option value="CHUYEN_DE">Điểm chuyên đề doanh nghiệp</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-[#001C44] mb-2">Khoa</label>
-                            <select
-                                className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all"
-                                value={departmentId || ''}
-                                onChange={(e) => setDepartmentId(e.target.value ? Number(e.target.value) : null)}
-                            >
-                                <option value="">Tất cả</option>
-                                {departments.map((d) => (
-                                    <option key={d.id} value={d.id}>
-                                        {d.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-[#001C44] mb-2">Lớp</label>
-                            <select
-                                className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
-                                value={classId || ''}
-                                onChange={(e) => setClassId(e.target.value ? Number(e.target.value) : null)}
-                                disabled={!departmentId}
-                            >
-                                <option value="">Tất cả</option>
-                                {classes.map((c) => (
-                                    <option key={c.id} value={c.id}>
-                                        {c.className}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-[#001C44] mb-2">Sắp xếp</label>
-                            <select
-                                className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all"
-                                value={sortOrder}
-                                onChange={(e) => setSortOrder(e.target.value as "ASC" | "DESC")}
-                            >
-                                <option value="DESC">Điểm cao → thấp</option>
-                                <option value="ASC">Điểm thấp → cao</option>
-                            </select>
-                        </div>
-                        <div className="flex items-end space-x-2">
-                            <button
-                                className="px-4 py-2.5 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66] transition-all shadow-sm hover:shadow-md font-medium"
-                                onClick={loadRanking}
-                            >
-                                🔄 Làm mới
-                            </button>
-                            <button
-                                className="px-4 py-2.5 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-all shadow-sm hover:shadow-md font-medium whitespace-nowrap"
-                                onClick={() => setShowRecalculateConfirm(true)}
-                                disabled={!semesterId}
-                            >
-                                ⚠️ Tính lại toàn trường
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Metadata Info */}
-                {rankingMetadata.semesterName && (
-                    <div className="bg-[#FFD66D] bg-opacity-20 border-2 border-[#FFD66D] rounded-lg p-4 mb-4">
-                        <div className="flex items-center justify-between">
+            {selectedStudentId && (
+                <div
+                    className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-primary-900/40 backdrop-blur-sm p-0 sm:p-4"
+                    role="dialog"
+                    aria-modal
+                    aria-labelledby="history-modal-title"
+                >
+                    <div className="bg-white w-full sm:max-w-4xl sm:rounded-2xl shadow-2xl max-h-[92dvh] flex flex-col overflow-hidden">
+                        <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-gray-100 bg-white px-5 sm:px-6 py-4">
                             <div>
-                                <h3 className="text-base font-semibold text-[#001C44]">
-                                    📊 {rankingMetadata.semesterName}
-                                </h3>
-                                <p className="text-sm text-[#001C44] mt-1">
-                                    Loại điểm: <span className="font-medium">{getScoreTypeLabel(scoreType)}</span> | 
-                                    Tổng số sinh viên: <span className="font-medium">{rankingMetadata.totalStudents || 0}</span>
+                                <h2 id="history-modal-title" className="text-lg font-bold text-primary-900">
+                                    Lịch sử điểm
+                                </h2>
+                                <p className="text-sm text-gray-500 mt-0.5">
+                                    {historyData?.studentName ?? 'Đang tải...'}
                                 </p>
                             </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Ranking Table */}
-                <div className="bg-white shadow-lg rounded-lg overflow-hidden border border-gray-100">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-[#001C44]">
-                                <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                                        Thứ hạng
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                                        MSSV
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                                        Họ tên
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                                        Lớp
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                                        Khoa
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                                        Học kỳ
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                                        Loại điểm
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                                        Điểm
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                                        Thao tác
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {loading ? (
-                                    <tr>
-                                        <td colSpan={9} className="px-4 py-6 text-center text-sm text-gray-500">
-                                            <div className="flex items-center justify-center">
-                                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mr-2"></div>
-                                                Đang tải...
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ) : rankings.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={9} className="px-4 py-6 text-center text-sm text-gray-500">
-                                            {semesterId ? 'Không có dữ liệu' : 'Vui lòng chọn học kỳ'}
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    rankings.map((ranking) => (
-                                        <tr key={`${ranking.studentId}-${ranking.scoreType || 'total'}`} className="hover:bg-gray-50">
-                                            <td className="px-4 py-3 whitespace-nowrap">
-                                                <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-[#FFD66D] text-[#001C44] font-bold text-sm shadow-sm">
-                                                    {ranking.rank}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-mono">
-                                                {ranking.studentCode}
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                                                {ranking.studentName}
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                                                {ranking.className || '-'}
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                                                {ranking.departmentName || '-'}
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                                                {ranking.semesterName}
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                                                {ranking.scoreTypeLabel}
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm font-bold text-[#001C44]">
-                                                {formatScore(ranking.score)}
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                                <button
-                                                    onClick={() => handleViewHistory(ranking.studentId)}
-                                                    className="px-3 py-1 bg-[#001C44] text-white rounded hover:bg-[#002A66] transition-colors text-xs"
-                                                >
-                                                    Xem lịch sử
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* Footer with total count */}
-                    {rankings.length > 0 && (
-                        <div className="bg-[#001C44] bg-opacity-5 px-4 py-3 border-t border-gray-200">
-                            <div className="text-sm text-[#001C44] font-medium">
-                                Tổng số sinh viên: <span className="font-bold text-lg">{rankings.length}</span>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Score History Modal */}
-            {selectedStudentId && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-                        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-                            <h2 className="text-2xl font-bold text-[#001C44]">
-                                Lịch sử điểm - {historyData?.studentName || 'Đang tải...'}
-                            </h2>
-                            <div className="flex items-center space-x-4">
+                            <div className="flex items-center gap-2">
                                 <button
+                                    type="button"
                                     onClick={handleRecalculateStudent}
                                     disabled={isRecalculatingStudent}
-                                    className="px-4 py-2 bg-yellow-100 text-yellow-800 border border-yellow-300 rounded-md hover:bg-yellow-200 transition-colors text-sm font-medium flex items-center disabled:opacity-50"
+                                    className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900 transition-colors hover:bg-amber-100 disabled:opacity-50"
                                 >
-                                    {isRecalculatingStudent ? (
-                                        <>
-                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-800 mr-2"></div>
-                                            Đang tính...
-                                        </>
-                                    ) : (
-                                        '🔄 Tính lại điểm SV này'
-                                    )}
+                                    {isRecalculatingStudent ? 'Đang tính...' : 'Tính lại SV'}
                                 </button>
                                 <button
+                                    type="button"
                                     onClick={handleCloseHistory}
-                                    className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                                    className="rounded-lg p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900"
+                                    aria-label="Đóng"
                                 >
-                                    ×
+                                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
                                 </button>
                             </div>
                         </div>
-                        <div className="p-6">
+
+                        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">Từ ngày</label>
+                                    <input type="datetime-local" className={selectClass} value={tempStartDate} onChange={(e) => setTempStartDate(e.target.value)} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">Đến ngày</label>
+                                    <input type="datetime-local" className={selectClass} value={tempEndDate} onChange={(e) => setTempEndDate(e.target.value)} />
+                                </div>
+                                <div className="flex items-end gap-2">
+                                    <div className="flex-1">
+                                        <label className="block text-xs font-medium text-gray-500 mb-1">Từ khóa</label>
+                                        <input type="text" placeholder="Lý do, hoạt động..." className={selectClass} value={tempKeyword} onChange={(e) => setTempKeyword(e.target.value)} />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setHistoryStartDate(tempStartDate);
+                                            setHistoryEndDate(tempEndDate);
+                                            setHistoryKeyword(tempKeyword);
+                                            setHistoryPage(0);
+                                        }}
+                                        className="rounded-xl bg-primary-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-800"
+                                    >
+                                        Lọc
+                                    </button>
+                                </div>
+                            </div>
+
                             {isHistoryFetching ? (
-                                <div className="flex items-center justify-center py-8">
-                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#001C44]"></div>
-                                </div>
+                                <ScoreSkeleton variant="history" />
                             ) : historyData ? (
-                                <div className="space-y-6">
-                                    {/* Score History Filters */}
-                                    <div className="bg-white border border-gray-200 rounded-lg p-4 flex flex-wrap gap-4 items-end">
-                                        <div className="flex-1 min-w-[200px]">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Từ ngày</label>
-                                            <input 
-                                                type="datetime-local" 
-                                                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-[#001C44] focus:border-[#001C44] px-3 py-2 border sm:text-sm"
-                                                value={tempStartDate}
-                                                onChange={(e) => setTempStartDate(e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="flex-1 min-w-[200px]">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Đến ngày</label>
-                                            <input 
-                                                type="datetime-local" 
-                                                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-[#001C44] focus:border-[#001C44] px-3 py-2 border sm:text-sm"
-                                                value={tempEndDate}
-                                                onChange={(e) => setTempEndDate(e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="flex-1 min-w-[200px]">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Từ khóa (Hoạt động)</label>
-                                            <input 
-                                                type="text" 
-                                                placeholder="Tên hoạt động..."
-                                                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-[#001C44] focus:border-[#001C44] px-3 py-2 border sm:text-sm"
-                                                value={tempKeyword}
-                                                onChange={(e) => setTempKeyword(e.target.value)}
-                                            />
-                                        </div>
-                                        <div>
-                                            <button 
-                                                onClick={() => {
-                                                    setHistoryStartDate(tempStartDate);
-                                                    setHistoryEndDate(tempEndDate);
-                                                    setHistoryKeyword(tempKeyword);
-                                                    setHistoryPage(0);
-                                                }}
-                                                className="px-4 py-2 bg-[#001C44] text-white rounded-md hover:bg-[#002A66] transition-colors text-sm font-medium shadow-sm"
-                                            >
-                                                Lọc
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* Current Score */}
-                                    <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] text-white p-6 rounded-lg">
-                                        <div className="flex justify-between items-center">
-                                            <div>
-                                                <p className="text-sm opacity-90">Điểm hiện tại</p>
-                                                <p className="text-3xl font-bold mt-1">{formatScore(historyData.currentScore)}</p>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-sm opacity-90">{historyData.semesterName}</p>
-                                                <p className="text-sm opacity-90 mt-1">
-                                                    MSSV: {historyData.studentCode}
-                                                </p>
-                                                <p className="text-sm opacity-90 mt-1">
-                                                    {historyData.scoreType 
-                                                        ? (historyData.scoreType === 'REN_LUYEN' ? 'Điểm rèn luyện' :
-                                                           historyData.scoreType === 'CONG_TAC_XA_HOI' ? 'Điểm công tác xã hội' :
-                                                           'Điểm chuyên đề doanh nghiệp')
-                                                        : 'Tất cả loại điểm'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Score Histories */}
-                                    {historyData.scoreHistories && historyData.scoreHistories.length > 0 && (
-                                        <div className="bg-white border border-gray-200 rounded-lg p-6">
-                                            <h3 className="text-xl font-semibold text-[#001C44] mb-4">Lịch sử thay đổi điểm</h3>
-                                            <div className="space-y-4">
-                                                {historyData.scoreHistories.map((history) => (
-                                                    <div key={history.id} className="border-l-4 border-[#001C44] pl-4 py-2 bg-gray-50 rounded-r">
-                                                        <div className="flex justify-between items-start">
-                                                            <div className="flex-1">
-                                                                <div className="flex items-center gap-2 mb-2">
-                                                                    <span className={`px-2 py-1 rounded text-xs font-medium border ${getSourceTypeColor(history.sourceType)}`}>
-                                                                        {getSourceTypeLabel(history.sourceType)}
-                                                                    </span>
-                                                                    <span className="text-sm text-gray-600">
-                                                                        {formatDateTime(history.changeDate)}
-                                                                    </span>
-                                                                </div>
-                                                                <p className="text-sm text-gray-700 mb-1">{history.reason}</p>
-                                                                {history.activityName && (
-                                                                    <p className="text-sm text-gray-600">
-                                                                        Hoạt động: {history.activityId ? (
-                                                                            <Link to={`/manager/events/${history.activityId}`} className="text-[#001C44] hover:underline">
-                                                                                {history.activityName}
-                                                                            </Link>
-                                                                        ) : (
-                                                                            history.activityName
-                                                                        )}
-                                                                    </p>
-                                                                )}
-                                                                {history.seriesName && (
-                                                                    <p className="text-sm text-gray-600">
-                                                                        Chuỗi sự kiện: {history.seriesName}
-                                                                    </p>
-                                                                )}
-                                                            </div>
-                                                            <div className="text-right ml-4">
-                                                                <div className="text-sm text-gray-600">Điểm cũ</div>
-                                                                <div className="text-lg font-semibold text-gray-500">{formatScore(history.oldScore)}</div>
-                                                                <div className="text-2xl font-bold text-[#001C44] mt-1">→</div>
-                                                                <div className="text-sm text-gray-600 mt-1">Điểm mới</div>
-                                                                <div className="text-lg font-semibold text-[#001C44]">{formatScore(history.newScore)}</div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-
-                                    {/* Empty State */}
-                                    {(!historyData.scoreHistories || historyData.scoreHistories.length === 0) && (
-                                        <div className="text-center py-8">
-                                            <div className="text-gray-400 text-6xl mb-4">📊</div>
-                                            <p className="text-gray-600 text-lg">Không có lịch sử điểm cho học kỳ này.</p>
-                                        </div>
-                                    )}
-
-                                    {/* Pagination */}
+                                <>
+                                    <ScoreHistoryPanel data={historyData} eventLinkPrefix="/manager/events" />
                                     {historyData.totalPages > 1 && (
-                                        <div className="flex justify-center items-center gap-2">
-                                            <button
-                                                onClick={() => setHistoryPage(p => Math.max(0, p - 1))}
-                                                disabled={historyPage === 0}
-                                                className="px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                                            >
-                                                Trước
-                                            </button>
-                                            <span className="px-4 py-2 text-sm text-gray-700">
-                                                Trang {historyPage + 1} / {historyData.totalPages}
-                                            </span>
-                                            <button
-                                                onClick={() => setHistoryPage(p => Math.min(historyData.totalPages - 1, p + 1))}
-                                                disabled={historyPage >= historyData.totalPages - 1}
-                                                className="px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                                            >
-                                                Sau
-                                            </button>
-                                        </div>
+                                        <nav className="flex justify-center items-center gap-2">
+                                            <button type="button" onClick={() => setHistoryPage(p => Math.max(0, p - 1))} disabled={historyPage === 0} className="rounded-lg border border-gray-200 px-4 py-2 text-sm disabled:opacity-40">Trước</button>
+                                            <span className="text-sm tabular-nums">{historyPage + 1} / {historyData.totalPages}</span>
+                                            <button type="button" onClick={() => setHistoryPage(p => Math.min(historyData.totalPages - 1, p + 1))} disabled={historyPage >= historyData.totalPages - 1} className="rounded-lg border border-gray-200 px-4 py-2 text-sm disabled:opacity-40">Sau</button>
+                                        </nav>
                                     )}
-                                </div>
+                                </>
                             ) : (
-                                <div className="text-center py-8">
-                                    <p className="text-red-600">Không thể tải lịch sử điểm</p>
-                                </div>
+                                <p className="text-center text-red-600 py-8">Không thể tải lịch sử điểm</p>
                             )}
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Confirmation Dialog */}
             {showRecalculateConfirm && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-                        <h3 className="text-lg font-bold text-red-600 mb-4 flex items-center">
-                            <span className="mr-2">⚠️</span>
-                            Xác nhận tính lại điểm
-                        </h3>
-                        <p className="text-gray-700 mb-6">
-                            Bạn sắp thực hiện tính lại điểm cho toàn bộ sinh viên trong học kỳ này. 
-                            Quá trình này có thể mất nhiều thời gian và làm gián đoạn hệ thống. 
-                            Bạn có chắc chắn muốn tiếp tục?
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-900/40 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+                        <h3 className="text-lg font-bold text-primary-900 mb-2">Xác nhận tính lại điểm</h3>
+                        <p className="text-gray-600 text-sm leading-relaxed mb-6">
+                            Tính lại điểm cho toàn bộ sinh viên trong học kỳ này. Quá trình có thể mất nhiều thời gian.
                         </p>
-                        <div className="flex justify-end space-x-3">
-                            <button
-                                onClick={() => setShowRecalculateConfirm(false)}
-                                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                            >
-                                Hủy bỏ
-                            </button>
-                            <button
-                                onClick={handleRecalculateAll}
-                                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                            >
-                                Đồng ý tính lại
-                            </button>
+                        <div className="flex justify-end gap-3">
+                            <button type="button" onClick={() => setShowRecalculateConfirm(false)} className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Hủy</button>
+                            <button type="button" onClick={handleRecalculateAll} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">Đồng ý</button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Recalculation Progress Overlay */}
             {isRecalculatingAll && (
-                <div className="fixed inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center z-[9999] p-4">
-                    <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
-                        <h2 className="text-xl font-bold text-[#001C44] mb-4 text-center">
-                            {recalculationJob
-                                ? 'Đang tính lại điểm toàn trường...'
-                                : 'Đang khởi tạo job tính điểm...'}
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-primary-900/60 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+                        <h2 className="text-lg font-bold text-primary-900 text-center mb-4">
+                            {recalculationJob ? 'Đang tính lại điểm...' : 'Đang khởi tạo job...'}
                         </h2>
                         {recalculationJob ? (
                             <div className="space-y-4">
-                                <div className="w-full bg-gray-200 rounded-full h-4">
-                                    <div
-                                        className="bg-[#001C44] h-4 rounded-full transition-all duration-500"
-                                        style={{ width: `${recalculationJob.progressPercent}%` }}
-                                    ></div>
+                                <div className="h-2 w-full rounded-full bg-gray-100 overflow-hidden">
+                                    <div className="h-full bg-primary-900 transition-all duration-500 rounded-full" style={{ width: `${recalculationJob.progressPercent}%` }} />
                                 </div>
                                 <div className="flex justify-between text-sm text-gray-600">
-                                    <span>{recalculationJob.processedStudents} / {recalculationJob.totalStudents} sinh viên</span>
-                                    <span>{recalculationJob.progressPercent}%</span>
+                                    <span className="tabular-nums">{recalculationJob.processedStudents} / {recalculationJob.totalStudents}</span>
+                                    <span className="tabular-nums">{recalculationJob.progressPercent}%</span>
                                 </div>
-                                <div className="flex justify-center">
-                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                        recalculationJob.status === 'RUNNING' ? 'bg-blue-100 text-blue-800' :
-                                        recalculationJob.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                                        recalculationJob.status === 'FAILED' || recalculationJob.status === 'TIMEOUT' ? 'bg-red-100 text-red-800' :
-                                        'bg-gray-100 text-gray-800'
-                                    }`}>
-                                        {recalculationJob.status === 'RUNNING' ? 'Đang chạy' :
-                                         recalculationJob.status === 'PENDING' ? 'Chờ xử lý' :
-                                         recalculationJob.status === 'FAILED' ? 'Thất bại' :
-                                         recalculationJob.status === 'TIMEOUT' ? 'Quá thời gian' : recalculationJob.status}
-                                    </span>
-                                </div>
-                                {recalculationJob.errorCount > 0 && (
-                                    <p className="text-sm text-red-600 text-center">{recalculationJob.errorCount} lỗi</p>
-                                )}
                                 {(recalculationJob.status === 'FAILED' || recalculationJob.status === 'TIMEOUT') && (
-                                    <div className="flex justify-center space-x-4">
-                                        <button
-                                            onClick={handleRetryRecalculation}
-                                            className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700"
-                                        >
-                                            Thử lại
-                                        </button>
-                                        <button
-                                            onClick={handleDismissRecalculation}
-                                            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                                        >
-                                            Đóng
-                                        </button>
+                                    <div className="flex justify-center gap-3 pt-2">
+                                        <button type="button" onClick={handleRetryRecalculation} className="rounded-lg bg-amber-600 px-4 py-2 text-sm text-white">Thử lại</button>
+                                        <button type="button" onClick={() => { stopPolling(); setIsRecalculatingAll(false); setRecalculationJob(null); }} className="rounded-lg border border-gray-200 px-4 py-2 text-sm">Đóng</button>
                                     </div>
                                 )}
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center">
-                                <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-[#001C44] mb-4"></div>
-                                <p className="text-gray-600">Vui lòng chờ trong giây lát...</p>
+                            <div className="flex justify-center py-4">
+                                <div className="h-10 w-10 animate-spin rounded-full border-2 border-primary-900 border-t-transparent" />
                             </div>
                         )}
                     </div>

@@ -1,5 +1,5 @@
 import api from './api';
-import { TrainingCalculateResponse, ScoreViewResponse, StudentRankingResponseData, ScoreHistoryViewResponse, ScoreType, RecalculationJobResponse } from '../types/score';
+import { TrainingCalculateResponse, ScoreViewResponse, ScoreTotalResponse, StudentRankingResponseData, ScoreHistoryViewResponse, ScoreType, RecalculationJobResponse } from '../types/score';
 
 // Normalize response format
 const normalize = <T>(data: any): { status: boolean; message: string; data?: T } => {
@@ -111,9 +111,9 @@ export const scoresAPI = {
     getTotalScore: async (
         studentId: number,
         semesterId: number
-    ): Promise<{ status: boolean; message: string; data?: number }> => {
+    ): Promise<{ status: boolean; message: string; data?: ScoreTotalResponse }> => {
         const res = await api.get(`/api/scores/student/${studentId}/semester/${semesterId}/total`);
-        return normalize<number>(res.data);
+        return normalize<ScoreTotalResponse>(res.data);
     },
 
     recalculateStudentScore: async (
