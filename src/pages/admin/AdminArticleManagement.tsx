@@ -221,17 +221,22 @@ const AdminArticleManagement: React.FC = () => {
         <div className="w-full">
             <div className="mx-auto max-w-7xl w-full">
                 {/* Header */}
-                <div className="mb-10 py-8 rounded-2xl bg-gradient-to-r from-[#001C44] via-[#002A66] to-[#001C44] text-white shadow-lg">
-                    <div className="flex flex-col items-start justify-between gap-4 px-6 md:flex-row md:items-center">
+                <div className="mb-10 py-10 px-8 rounded-3xl bg-[#001C44] text-white shadow-premium relative overflow-hidden">
+                    {/* Decorative abstract shape */}
+                    <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 rounded-full bg-gradient-to-br from-[#0B5FFF]/30 to-[#FFD66D]/20 blur-3xl mix-blend-screen pointer-events-none" />
+                    
+                    <div className="relative flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
                         <div>
-                            <h1 className="text-4xl font-bold mb-2">📝 Quản lý bài viết</h1>
-                            <p className="text-gray-100">Tổng cộng <span className="font-bold text-[#FFD66D]">{articlesPage?.totalElements ?? 0}</span> bài viết</p>
+                            <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight mb-3">Quản lý bài viết</h1>
+                            <p className="text-blue-100 font-medium">
+                                Tổng cộng <span className="font-extrabold text-[#FFD66D] text-lg px-1">{articlesPage?.totalElements ?? 0}</span> bài viết
+                            </p>
                         </div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-3">
                             <button
                                 type="button"
                                 onClick={() => setCreateOpen(true)}
-                                className="px-4 py-2.5 rounded-xl bg-[#FFD66D] text-[#001C44] font-bold hover:bg-yellow-400 transition-colors shadow"
+                                className="px-6 py-3 rounded-2xl bg-[#FFD66D] text-[#001C44] font-extrabold hover:bg-yellow-400 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95"
                             >
                                 ➕ Tạo bài viết
                             </button>
@@ -239,15 +244,15 @@ const AdminArticleManagement: React.FC = () => {
                                 type="button"
                                 onClick={handleExportExcel}
                                 disabled={exporting}
-                                className="px-4 py-2.5 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 transition-colors shadow disabled:opacity-50"
+                                className="px-6 py-3 rounded-2xl bg-white text-[#001C44] font-extrabold hover:bg-blue-50 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:transform-none"
                             >
                                 {exporting ? 'Đang xuất...' : '📥 Xuất Excel'}
                             </button>
                             <Link
                                 to={`${base}/articles/analytics`}
-                                className="px-4 py-2.5 rounded-xl bg-white bg-opacity-15 hover:bg-opacity-25 text-white font-semibold transition-colors shadow"
+                                className="px-6 py-3 rounded-2xl bg-blue-900/50 hover:bg-blue-800/80 text-white font-extrabold transition-all border border-blue-700/50 hover:shadow-lg hover:-translate-y-0.5 active:scale-95"
                             >
-                                Mở Dashboard riêng
+                                📊 Analytics
                             </Link>
                         </div>
                     </div>
@@ -259,9 +264,9 @@ const AdminArticleManagement: React.FC = () => {
                     </div>
                 )}
 
-                <div className="mb-8 bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                    <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-                        <div className="text-lg font-bold text-[#001C44]">Dashboard</div>
+                <div className="mb-8 bg-white rounded-3xl shadow-premium border-0 p-8">
+                    <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
+                        <div className="text-xl font-extrabold text-[#001C44]">Tổng quan Dashboard</div>
                     </div>
 
                     {loadingStats ? (
@@ -270,54 +275,53 @@ const AdminArticleManagement: React.FC = () => {
                         </div>
                     ) : stats ? (
                         <>
-                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-                                <div className="rounded-2xl border border-gray-200 p-5 bg-gradient-to-br from-blue-50/50 to-white">
-                                    <div className="text-sm text-gray-600">Tổng view</div>
-                                    <div className="text-2xl font-bold text-[#001C44] mt-1">{stats.totalViews.toLocaleString('vi-VN')}</div>
+                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 mb-8">
+                                <div className="rounded-2xl border border-gray-300 shadow-sm bg-white/50 p-6 bg-white flex flex-col justify-between">
+                                    <div className="text-sm font-bold tracking-wide text-gray-400 uppercase">Tổng view</div>
+                                    <div className="text-3xl font-extrabold text-[#001C44] mt-2 tracking-tight">{stats.totalViews.toLocaleString('vi-VN')}</div>
                                 </div>
-                                <div className="rounded-2xl border border-gray-200 p-5 bg-gradient-to-br from-red-50/50 to-white">
-                                    <div className="text-sm text-gray-600">Tổng wishlist</div>
-                                    <div className="text-2xl font-bold text-red-600 mt-1">{stats.totalWishlists.toLocaleString('vi-VN')}</div>
+                                <div className="rounded-2xl border border-gray-300 shadow-sm bg-white/50 p-6 bg-white flex flex-col justify-between">
+                                    <div className="text-sm font-bold tracking-wide text-gray-400 uppercase">Tổng wishlist</div>
+                                    <div className="text-3xl font-extrabold text-[#0B5FFF] mt-2 tracking-tight">{stats.totalWishlists.toLocaleString('vi-VN')}</div>
                                 </div>
-                                <div className="rounded-2xl border border-gray-200 p-5 bg-gradient-to-br from-green-50/50 to-white">
-                                    <div className="text-sm text-gray-600">Published / Draft</div>
-                                    <div className="text-2xl font-bold mt-1">
-                                        <span className="text-green-600">{stats.publishedArticles}</span>
-                                        <span className="text-gray-300 mx-2">/</span>
-                                        <span className="text-yellow-600">{stats.draftArticles}</span>
+                                <div className="rounded-2xl border border-gray-300 shadow-sm bg-white/50 p-6 bg-white flex flex-col justify-between">
+                                    <div className="text-sm font-bold tracking-wide text-gray-400 uppercase">Published / Draft</div>
+                                    <div className="text-3xl font-extrabold mt-2 tracking-tight flex items-center">
+                                        <span className="text-emerald-500">{stats.publishedArticles}</span>
+                                        <span className="text-gray-300 mx-2 font-light">/</span>
+                                        <span className="text-amber-500">{stats.draftArticles}</span>
                                     </div>
                                 </div>
-                                <div className="rounded-2xl border border-gray-200 p-5 bg-gradient-to-br from-amber-50/50 to-white">
-                                    <div className="text-sm text-gray-600">Pinned / Featured</div>
-                                    <div className="text-2xl font-bold mt-1">
-                                        <span className="text-[#001C44]">{stats.pinnedArticles}</span>
-                                        <span className="text-gray-300 mx-2">/</span>
-                                        <span className="text-[#0B5FFF]">{stats.featuredArticles}</span>
+                                <div className="rounded-2xl border border-gray-300 shadow-sm bg-white/50 p-6 bg-white flex flex-col justify-between">
+                                    <div className="text-sm font-bold tracking-wide text-gray-400 uppercase">Pinned / Featured</div>
+                                    <div className="text-3xl font-extrabold mt-2 tracking-tight flex items-center">
+                                        <span className="text-indigo-500">{stats.pinnedArticles}</span>
+                                        <span className="text-gray-300 mx-2 font-light">/</span>
+                                        <span className="text-rose-500">{stats.featuredArticles}</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                <div className="rounded-2xl border border-gray-200 p-4">
-                                    <div className="font-semibold text-[#001C44] mb-3">Bài theo tháng</div>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                <div className="rounded-2xl border border-gray-100 p-6 bg-gray-50/30">
+                                    <div className="font-extrabold text-[#001C44] mb-4">Bài theo tháng</div>
                                     <ResponsiveContainer width="100%" height={260}>
                                         <BarChart data={statsByMonth}>
-                                            <CartesianGrid strokeDasharray="3 3" />
-                                            <XAxis dataKey="month" />
-                                            <YAxis />
-                                            <Tooltip />
-                                            <Legend />
-                                            <Bar dataKey="count" name="Số bài" fill="#0B5FFF" />
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                                            <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280' }} dy={10} />
+                                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280' }} dx={-10} />
+                                            <Tooltip cursor={{ fill: '#F3F4F6' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                            <Bar dataKey="count" name="Số bài" fill="#001C44" radius={[4, 4, 0, 0]} />
                                         </BarChart>
                                     </ResponsiveContainer>
                                 </div>
-                                <div className="rounded-2xl border border-gray-200 p-4">
-                                    <div className="font-semibold text-[#001C44] mb-3">Phân bổ danh mục</div>
+                                <div className="rounded-2xl border border-gray-100 p-6 bg-gray-50/30">
+                                    <div className="font-extrabold text-[#001C44] mb-4">Phân bổ danh mục</div>
                                     <ResponsiveContainer width="100%" height={260}>
                                         <PieChart>
-                                            <Tooltip />
-                                            <Legend />
-                                            <Pie data={statsByCategory} dataKey="value" nameKey="name" outerRadius={95}>
+                                            <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                            <Legend iconType="circle" />
+                                            <Pie data={statsByCategory} dataKey="value" nameKey="name" outerRadius={95} innerRadius={60} paddingAngle={2} stroke="none">
                                                 {statsByCategory.map((_, idx) => (
                                                     <Cell key={`cell-${idx}`} fill={COLORS[idx % COLORS.length]} />
                                                 ))}
@@ -332,25 +336,25 @@ const AdminArticleManagement: React.FC = () => {
                     )}
                 </div>
 
-                <div className="mb-6 flex items-center gap-2 overflow-x-auto">
+                <div className="mb-8 flex items-center gap-3 overflow-x-auto p-1.5 bg-gray-100 rounded-2xl w-fit">
                     <button
                         type="button"
                         onClick={() => setTab('articles')}
-                        className={`px-4 py-2 rounded-xl font-semibold border ${tab === 'articles' ? 'bg-[#001C44] text-white border-[#001C44]' : 'bg-white text-[#001C44] border-gray-200 hover:bg-gray-50'}`}
+                        className={`px-6 py-2.5 rounded-xl font-extrabold transition-all text-sm ${tab === 'articles' ? 'bg-white text-[#001C44] shadow-sm' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
                     >
                         Bài viết
                     </button>
                     <button
                         type="button"
                         onClick={() => setTab('categories')}
-                        className={`px-4 py-2 rounded-xl font-semibold border ${tab === 'categories' ? 'bg-[#001C44] text-white border-[#001C44]' : 'bg-white text-[#001C44] border-gray-200 hover:bg-gray-50'}`}
+                        className={`px-6 py-2.5 rounded-xl font-extrabold transition-all text-sm ${tab === 'categories' ? 'bg-white text-[#001C44] shadow-sm' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
                     >
                         Categories
                     </button>
                     <button
                         type="button"
                         onClick={() => setTab('tags')}
-                        className={`px-4 py-2 rounded-xl font-semibold border ${tab === 'tags' ? 'bg-[#001C44] text-white border-[#001C44]' : 'bg-white text-[#001C44] border-gray-200 hover:bg-gray-50'}`}
+                        className={`px-6 py-2.5 rounded-xl font-extrabold transition-all text-sm ${tab === 'tags' ? 'bg-white text-[#001C44] shadow-sm' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
                     >
                         Tags
                     </button>
@@ -364,25 +368,27 @@ const AdminArticleManagement: React.FC = () => {
                 ) : (
                     <>
                         {/* Advanced Filters Panel */}
-                        <div className="mb-8 bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-                            <h3 className="text-base font-bold text-[#001C44] mb-4">🔍 Bộ lọc nâng cao</h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                        <div className="mb-8 bg-white rounded-3xl border border-gray-100 p-8 shadow-premium">
+                            <h3 className="text-lg font-extrabold text-[#001C44] mb-6 flex items-center gap-2">
+                                <span className="text-xl">🔍</span> Bộ lọc nâng cao
+                            </h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-6">
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Tìm kiếm bài viết</label>
+                                    <label className="block text-xs font-bold tracking-wide text-gray-500 uppercase mb-2">Tìm kiếm bài viết</label>
                                     <input
                                         type="text"
                                         placeholder="Tìm theo tiêu đề..."
                                         value={search}
                                         onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-                                        className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-[#001C44] focus:ring-1 focus:ring-[#001C44] focus:outline-none transition-all"
+                                        className="w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all font-semibold"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Trạng thái xuất bản</label>
+                                    <label className="block text-xs font-bold tracking-wide text-gray-500 uppercase mb-2">Trạng thái xuất bản</label>
                                     <select
                                         value={status}
                                         onChange={(e) => { setStatus(e.target.value as any); setPage(0); }}
-                                        className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-[#001C44] focus:outline-none transition-all bg-white"
+                                        className="w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all bg-white font-semibold cursor-pointer"
                                     >
                                         <option value="all">Tất cả</option>
                                         <option value="published">Đã xuất bản</option>
@@ -390,11 +396,11 @@ const AdminArticleManagement: React.FC = () => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Danh mục</label>
+                                    <label className="block text-xs font-bold tracking-wide text-gray-500 uppercase mb-2">Danh mục</label>
                                     <select
                                         value={categoryId}
                                         onChange={(e) => { setCategoryId(e.target.value ? Number(e.target.value) : ''); setPage(0); }}
-                                        className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-[#001C44] focus:outline-none transition-all bg-white"
+                                        className="w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all bg-white font-semibold cursor-pointer"
                                     >
                                         <option value="">Tất cả danh mục</option>
                                         {categories.map((c) => (
@@ -403,11 +409,11 @@ const AdminArticleManagement: React.FC = () => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Loại bài viết</label>
+                                    <label className="block text-xs font-bold tracking-wide text-gray-500 uppercase mb-2">Loại bài viết</label>
                                     <select
                                         value={articleType}
                                         onChange={(e) => { setArticleType(e.target.value as any); setPage(0); }}
-                                        className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-[#001C44] focus:outline-none transition-all bg-white"
+                                        className="w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all bg-white font-semibold cursor-pointer"
                                     >
                                         <option value="">Tất cả loại</option>
                                         <option value="ANNOUNCEMENT">Thông báo</option>
@@ -419,62 +425,62 @@ const AdminArticleManagement: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end mb-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 items-end mb-6">
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Từ ngày</label>
+                                    <label className="block text-xs font-bold tracking-wide text-gray-500 uppercase mb-2">Từ ngày</label>
                                     <input
                                         type="date"
                                         value={dateFrom}
                                         onChange={(e) => { setDateFrom(e.target.value); setPage(0); }}
-                                        className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-[#001C44] focus:outline-none transition-all bg-white"
+                                        className="w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all bg-white font-semibold cursor-pointer"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Đến ngày</label>
+                                    <label className="block text-xs font-bold tracking-wide text-gray-500 uppercase mb-2">Đến ngày</label>
                                     <input
                                         type="date"
                                         value={dateTo}
                                         onChange={(e) => { setDateTo(e.target.value); setPage(0); }}
-                                        className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-[#001C44] focus:outline-none transition-all bg-white"
+                                        className="w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all bg-white font-semibold cursor-pointer"
                                     />
                                 </div>
 
-                                <div className="sm:col-span-2 flex flex-wrap gap-4 py-2">
-                                    <label className="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                                <div className="sm:col-span-2 flex flex-wrap gap-6 py-3 px-2 bg-gray-50/50 rounded-2xl">
+                                    <label className="inline-flex items-center gap-2.5 text-sm font-bold text-[#001C44] cursor-pointer">
                                         <input
                                             type="checkbox"
                                             checked={pinned === true}
                                             onChange={(e) => { setPinned(e.target.checked ? true : ''); setPage(0); }}
-                                            className="rounded border-gray-300 text-[#001C44] focus:ring-[#001C44] w-4 h-4 cursor-pointer"
+                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-5 h-5 cursor-pointer"
                                         />
                                         Ghim
                                     </label>
-                                    <label className="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                                    <label className="inline-flex items-center gap-2.5 text-sm font-bold text-[#001C44] cursor-pointer">
                                         <input
                                             type="checkbox"
                                             checked={featured === true}
                                             onChange={(e) => { setFeatured(e.target.checked ? true : ''); setPage(0); }}
-                                            className="rounded border-gray-300 text-[#001C44] focus:ring-[#001C44] w-4 h-4 cursor-pointer"
+                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-5 h-5 cursor-pointer"
                                         />
                                         Nổi bật
                                     </label>
-                                    <label className="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                                    <label className="inline-flex items-center gap-2.5 text-sm font-bold text-[#001C44] cursor-pointer">
                                         <input
                                             type="checkbox"
                                             checked={primary === true}
                                             onChange={(e) => { setPrimary(e.target.checked ? true : ''); setPage(0); }}
-                                            className="rounded border-gray-300 text-[#001C44] focus:ring-[#001C44] w-4 h-4 cursor-pointer"
+                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-5 h-5 cursor-pointer"
                                         />
                                         Đại diện chính
                                     </label>
                                 </div>
                             </div>
 
-                            <div className="flex justify-end pt-2 border-t border-gray-100">
+                            <div className="flex justify-end pt-6 border-t border-gray-100">
                                 <button
                                     type="button"
                                     onClick={handleResetFilters}
-                                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold transition-colors text-sm"
+                                    className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl font-bold transition-all text-sm active:scale-95"
                                 >
                                     🔄 Reset bộ lọc
                                 </button>
@@ -491,81 +497,79 @@ const AdminArticleManagement: React.FC = () => {
                             </div>
                         ) : (
                             <>
-                                <div className="overflow-x-auto rounded-xl border-2 border-[#001C44] border-opacity-20 bg-white shadow-md">
-                                    <table className="w-full">
+                                <div className="overflow-x-auto rounded-3xl bg-white shadow-premium border border-gray-100">
+                                    <table className="w-full text-sm text-left">
                                         <thead>
-                                            <tr className="border-b-2 border-[#001C44] border-opacity-20 bg-gradient-to-r from-[#001C44] to-[#002A66] text-white">
-                                                <th className="px-6 py-4 text-left">
+                                            <tr className="bg-gray-50/50 border-b border-gray-100 text-gray-500 uppercase text-xs font-bold tracking-wider">
+                                                <th className="px-6 py-5">
                                                     <button
                                                         onClick={() => handleSort('title')}
-                                                        className="flex items-center font-semibold text-white hover:text-[#FFD66D] transition-colors"
+                                                        className="flex items-center hover:text-[#001C44] transition-colors"
                                                     >
                                                         Tiêu đề
                                                         <SortIcon active={sort === 'title'} />
                                                     </button>
                                                 </th>
-                                                <th className="px-6 py-4 text-left font-semibold">Loại</th>
-                                                <th className="px-6 py-4 text-left">
+                                                <th className="px-6 py-5">Loại</th>
+                                                <th className="px-6 py-5">
                                                     <button
                                                         onClick={() => handleSort('views')}
-                                                        className="flex items-center font-semibold text-white hover:text-[#FFD66D] transition-colors"
+                                                        className="flex items-center hover:text-[#001C44] transition-colors"
                                                     >
                                                         Lượt xem
                                                         <SortIcon active={sort === 'views'} />
                                                     </button>
                                                 </th>
-                                                <th className="px-6 py-4 text-left">
+                                                <th className="px-6 py-5">
                                                     <button
                                                         onClick={() => handleSort('wishlist')}
-                                                        className="flex items-center font-semibold text-white hover:text-[#FFD66D] transition-colors"
+                                                        className="flex items-center hover:text-[#001C44] transition-colors"
                                                     >
                                                         Yêu thích
                                                         <SortIcon active={sort === 'wishlist'} />
                                                     </button>
                                                 </th>
-                                                <th className="px-6 py-4 text-left">
+                                                <th className="px-6 py-5">
                                                     <button
                                                         onClick={() => handleSort('date')}
-                                                        className="flex items-center font-semibold text-white hover:text-[#FFD66D] transition-colors"
+                                                        className="flex items-center hover:text-[#001C44] transition-colors"
                                                     >
                                                         Ngày đăng
                                                         <SortIcon active={sort === 'date'} />
                                                     </button>
                                                 </th>
-                                                <th className="px-6 py-4 text-center font-semibold">Đại diện</th>
-                                                <th className="px-6 py-4 text-center font-semibold">
+                                                <th className="px-6 py-5 text-center">Đại diện</th>
+                                                <th className="px-6 py-5 text-center">
                                                     Hành động
                                                 </th>
                                             </tr>
                                         </thead>
-                                        <tbody>
-                                            {filteredSorted.map((article, idx) => (
+                                        <tbody className="divide-y divide-gray-100">
+                                            {filteredSorted.map((article) => (
                                                 <tr
                                                     key={article.id}
-                                                    className={`border-b border-[#001C44] border-opacity-10 hover:bg-[#FFD66D] hover:bg-opacity-5 transition-colors ${
-                                                        idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                                                    }`}
+                                                    className="bg-white hover:bg-blue-50/30 transition-colors"
                                                 >
                                                     <td className="px-6 py-4">
-                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                        <div className="flex items-center gap-2.5 flex-wrap">
                                                             {article.pinned && (
-                                                                <span className="inline-flex items-center rounded-full bg-[#FFD66D] px-2.5 py-0.5 text-xs font-bold text-[#001C44]">
+                                                                <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-[10px] uppercase tracking-wider font-extrabold text-amber-800">
                                                                     Ghim
                                                                 </span>
                                                             )}
                                                             {article.featured && (
-                                                                <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-bold text-blue-700">
+                                                                <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-1 text-[10px] uppercase tracking-wider font-extrabold text-blue-800">
                                                                     Nổi bật
                                                                 </span>
                                                             )}
                                                             {!article.published && (
-                                                                <span className="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-bold text-yellow-700">
+                                                                <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-[10px] uppercase tracking-wider font-extrabold text-gray-600 border border-gray-200">
                                                                     Nháp
                                                                 </span>
                                                             )}
                                                             <Link
                                                                 to={`/articles/${article.slug}`}
-                                                                className="text-[#001C44] font-semibold hover:text-blue-600 line-clamp-1 transition-colors"
+                                                                className="text-[#001C44] font-extrabold hover:text-blue-600 line-clamp-2 transition-colors"
                                                             >
                                                                 {article.title}
                                                             </Link>
@@ -574,17 +578,13 @@ const AdminArticleManagement: React.FC = () => {
                                                     <td className="px-6 py-4">
                                                         <ArticleTypeBadge type={article.articleType} />
                                                     </td>
-                                                    <td className="px-6 py-4 text-sm">
-                                                        <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-1 text-blue-700 font-semibold border border-blue-100">
-                                                            👁️ {article.viewCount.toLocaleString('vi-VN')}
-                                                        </span>
+                                                    <td className="px-6 py-4 font-semibold text-gray-700">
+                                                        {article.viewCount.toLocaleString('vi-VN')}
                                                     </td>
-                                                    <td className="px-6 py-4 text-sm">
-                                                        <span className="inline-flex items-center rounded-full bg-red-50 px-2.5 py-1 text-red-700 font-semibold border border-red-100">
-                                                            ❤️ {article.wishlistCount.toLocaleString('vi-VN')}
-                                                        </span>
+                                                    <td className="px-6 py-4 font-semibold text-rose-600">
+                                                        {article.wishlistCount.toLocaleString('vi-VN')}
                                                     </td>
-                                                    <td className="px-6 py-4 text-sm text-gray-700 font-medium">
+                                                    <td className="px-6 py-4 text-sm text-gray-500 font-semibold tracking-wide">
                                                         {article.publishedAt ? new Date(article.publishedAt).toLocaleDateString('vi-VN') : '-'}
                                                     </td>
                                                     <td className="px-6 py-4 text-center">
@@ -595,27 +595,27 @@ const AdminArticleManagement: React.FC = () => {
                                                         />
                                                     </td>
                                                     <td className="px-6 py-4 text-center">
-                                                        <div className="flex items-center justify-center gap-2">
+                                                        <div className="flex items-center justify-center gap-3">
                                                             <Link
                                                                 to={`/articles/${article.slug}`}
-                                                                className="text-sm px-3 py-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 font-semibold transition-all border border-blue-200"
+                                                                className="text-gray-400 hover:text-blue-600 transition-colors transform hover:scale-110 active:scale-95"
                                                                 title="Xem bài viết"
                                                             >
-                                                                👁️
+                                                                <span className="text-xl">👁️</span>
                                                             </Link>
                                                             <Link
                                                                 to={`${base}/articles/${article.id}/edit`}
-                                                                className="text-sm px-3 py-2 rounded-lg bg-yellow-50 text-yellow-700 hover:bg-yellow-100 font-semibold transition-all border border-yellow-200"
+                                                                className="text-gray-400 hover:text-amber-500 transition-colors transform hover:scale-110 active:scale-95"
                                                                 title="Chỉnh sửa"
                                                             >
-                                                                ✏️
+                                                                <span className="text-xl">✏️</span>
                                                             </Link>
                                                             <Link
                                                                 to={`${base}/articles/${article.id}/comments`}
-                                                                className="text-sm px-3 py-2 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-semibold transition-all border border-indigo-200"
+                                                                className="text-gray-400 hover:text-indigo-500 transition-colors transform hover:scale-110 active:scale-95"
                                                                 title="Quản lý bình luận"
                                                             >
-                                                                💬
+                                                                <span className="text-xl">💬</span>
                                                             </Link>
                                                         </div>
                                                     </td>
@@ -626,14 +626,14 @@ const AdminArticleManagement: React.FC = () => {
                                 </div>
 
                                 {articlesPage && (
-                                    <div className="mt-6 flex flex-col items-center justify-between gap-4 rounded-2xl bg-white p-6 shadow-md border-2 border-[#001C44] border-opacity-10 sm:flex-row">
-                                        <div className="text-sm font-semibold text-[#001C44]">Trang {articlesPage.number + 1} / {articlesPage.totalPages} — Tổng {articlesPage.totalElements} bài</div>
+                                    <div className="mt-8 flex flex-col items-center justify-between gap-4 rounded-3xl bg-white p-4 shadow-sm border border-gray-100 sm:flex-row px-8">
+                                        <div className="text-sm font-extrabold text-gray-500">Trang {articlesPage.number + 1} / {articlesPage.totalPages} <span className="mx-2 font-normal text-gray-300">|</span> Tổng <span className="text-[#001C44]">{articlesPage.totalElements}</span> bài</div>
                                         <div className="flex items-center gap-3">
                                             <button
                                                 type="button"
                                                 onClick={() => { const prev = Math.max(0, page - 1); setPage(prev); }}
                                                 disabled={page <= 0}
-                                                className="px-4 py-2 bg-[#001C44] text-white rounded-lg font-semibold hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                                className="px-6 py-2.5 bg-gray-100 text-gray-600 rounded-2xl font-bold hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
                                             >
                                                 ← Trước
                                             </button>
@@ -641,11 +641,11 @@ const AdminArticleManagement: React.FC = () => {
                                                 type="button"
                                                 onClick={() => { const next = Math.min(articlesPage.totalPages - 1, page + 1); setPage(next); }}
                                                 disabled={page >= (articlesPage.totalPages - 1)}
-                                                className="px-4 py-2 bg-[#FFD66D] text-[#001C44] rounded-lg font-semibold hover:bg-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                                className="px-6 py-2.5 bg-[#001C44] text-[#FFD66D] rounded-2xl font-bold hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 shadow-md"
                                             >
                                                 Sau →
                                             </button>
-                                            <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }} className="px-3 py-2 rounded-lg border-2 border-[#001C44] font-medium text-[#001C44] bg-white hover:bg-gray-50 cursor-pointer transition-all">
+                                            <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }} className="px-4 py-2.5 rounded-2xl border border-gray-300 shadow-sm bg-white/50 font-bold text-[#001C44] bg-white cursor-pointer transition-all ml-2 focus:ring-4 focus:ring-blue-100">
                                                 <option value={10}>10 / trang</option>
                                                 <option value={20}>20 / trang</option>
                                                 <option value={50}>50 / trang</option>

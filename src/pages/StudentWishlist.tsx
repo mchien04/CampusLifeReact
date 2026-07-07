@@ -52,9 +52,9 @@ const StudentWishlist: React.FC = () => {
     return (
         <StudentLayout>
             <div className="mx-auto max-w-7xl w-full">
-                <div className="mb-8">
-                    <h1 className="text-3xl sm:text-4xl font-bold text-[#001C44] mb-1">Bài viết đã lưu</h1>
-                    <p className="text-gray-600">
+                <div className="mb-10 max-w-2xl">
+                    <h1 className="text-4xl sm:text-5xl font-extrabold text-[#001C44] tracking-tight mb-4">Bài viết đã lưu</h1>
+                    <p className="text-lg text-gray-500 font-medium">
                         {(pageData?.totalElements ?? 0) === 0
                             ? 'Bạn chưa lưu bài viết nào'
                             : `Bạn đã lưu ${pageData?.totalElements ?? 0} bài viết`}
@@ -68,50 +68,61 @@ const StudentWishlist: React.FC = () => {
                 )}
 
                 {(pageData?.content ?? []).length === 0 ? (
-                    <div className="text-center py-12">
-                        <h2 className="text-2xl font-semibold text-[#001C44] mb-2">Chưa có bài viết nào</h2>
-                        <p className="text-gray-600 mb-6">Hãy khám phá các sự kiện và lưu những bài viết yêu thích của bạn</p>
+                    <div className="text-center py-24 bg-white rounded-3xl shadow-premium">
+                        <span className="text-5xl block mb-4">✨</span>
+                        <h2 className="text-2xl font-extrabold text-[#001C44] mt-3 mb-2">Chưa có bài viết nào được lưu</h2>
+                        <p className="text-gray-500 mb-6 font-medium">Hãy khám phá các sự kiện và lưu những bài viết yêu thích của bạn</p>
                         <Link
-                            to="/events"
-                            className="inline-flex items-center justify-center px-6 py-3 rounded-2xl bg-[#001C44] text-white font-semibold hover:bg-[#002A66] transition-colors"
+                            to="/articles"
+                            className="inline-flex items-center justify-center px-8 py-4 rounded-2xl bg-[#001C44] text-[#FFD66D] font-extrabold hover:bg-blue-900 transition-all shadow-md"
                         >
-                            Xem các sự kiện
+                            Xem tất cả bài viết →
                         </Link>
                     </div>
                 ) : (
-                    <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {(pageData?.content ?? []).map((article) => (
                             <Link
                                 key={article.id}
                                 to={`/articles/${article.slug}`}
-                                className="group overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all hover:-translate-y-1"
+                                className="group flex flex-col h-full bg-white rounded-3xl overflow-hidden shadow-premium hover:shadow-premium-hover hover:-translate-y-1 transition-all duration-500 ease-out-expo border-0"
                             >
-                                {article.thumbnailUrl && (
-                                    <div className="h-48 bg-gray-200 overflow-hidden">
+                                {/* Thumbnail */}
+                                <div className="relative h-48 bg-gray-100 overflow-hidden shrink-0">
+                                    {article.thumbnailUrl ? (
                                         <img
                                             src={getImageUrl(article.thumbnailUrl) || ''}
                                             alt={article.title}
-                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                         />
-                                    </div>
-                                )}
-                                <div className="p-4">
-                                    <div className="flex items-start justify-between gap-2 mb-2">
-                                        <span className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800 truncate">
-                                            {article.registrationStatus === 'OPEN' ? '🔓 Mở' : '🔒 Đóng'}
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-gray-100 text-4xl">
+                                            📸
+                                        </div>
+                                    )}
+                                    <div className="absolute top-4 right-4 z-10">
+                                        <span className="inline-flex items-center rounded-full bg-white/95 backdrop-blur-sm px-3 py-1.5 text-[10px] font-extrabold text-[#001C44] uppercase tracking-widest shadow-sm">
+                                            {article.registrationStatus === 'OPEN' ? '🟢 Mở' : '⚪ Đóng'}
                                         </span>
-                                        <span className="text-lg">❤</span>
                                     </div>
-                                    <h3 className="font-bold text-[#001C44] line-clamp-2 group-hover:text-blue-600 transition-colors">
-                                        {article.title}
-                                    </h3>
-                                    <p className="text-sm text-gray-600 mt-2 line-clamp-2">
-                                        {article.seoDescription || 'Bài viết quảng bá sự kiện'}
-                                    </p>
-                                    {article.publishedAt && (
-                                        <p className="text-xs text-gray-500 mt-3">
-                                            {new Date(article.publishedAt).toLocaleDateString('vi-VN')}
+                                    <div className="absolute bottom-4 right-4 bg-rose-50 text-rose-500 rounded-full p-2 shadow-md z-10 flex items-center justify-center w-10 h-10">
+                                        <span className="text-xl leading-none">❤️</span>
+                                    </div>
+                                </div>
+                                {/* Content */}
+                                <div className="p-6 flex flex-col flex-1 justify-between bg-white">
+                                    <div>
+                                        <h3 className="font-extrabold text-[#001C44] line-clamp-2 group-hover:text-blue-600 transition-colors text-lg mb-2.5 leading-tight text-balance">
+                                            {article.title}
+                                        </h3>
+                                        <p className="text-sm text-gray-500 line-clamp-2 mb-5 leading-relaxed">
+                                            {article.seoDescription || 'Bài viết quảng bá sự kiện'}
                                         </p>
+                                    </div>
+                                    {article.publishedAt && (
+                                        <div className="text-[11px] font-bold tracking-wider text-gray-400 uppercase pt-4 border-t border-gray-100">
+                                            {new Date(article.publishedAt).toLocaleDateString('vi-VN')}
+                                        </div>
                                     )}
                                 </div>
                             </Link>

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from './AuthContext';
 import { articleAPI } from '../services/articleAPI';
+import { Role } from '../types';
 
 interface WishlistContextType {
     wishlistedSlugs: Set<string>;
@@ -13,13 +14,13 @@ interface WishlistContextType {
 const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
 
 export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, userRole } = useAuth();
     const [wishlistedSlugs, setWishlistedSlugs] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         const initializeWishlist = async () => {
-            if (!isAuthenticated) {
+            if (!isAuthenticated || userRole !== Role.STUDENT) {
                 setWishlistedSlugs(new Set());
                 return;
             }

@@ -101,26 +101,26 @@ const ArticlesByCategoryPage: React.FC = () => {
 
             <div>
                 {/* Header */}
-                <div className="mb-6">
-                    <Link to="/articles" className="text-[#0B5FFF] hover:underline text-sm mb-3 inline-block">
-                        ← Quay lại bài viết
+                <div className="mb-10 max-w-3xl">
+                    <Link to="/articles" className="text-gray-400 font-extrabold tracking-widest text-[11px] uppercase hover:text-[#001C44] transition-colors mb-4 inline-flex items-center gap-1.5">
+                        <span className="text-sm">←</span> Quay lại bài viết
                     </Link>
-                    <h1 className="text-3xl sm:text-4xl font-bold text-[#001C44] mb-1">{currentCategoryName}</h1>
-                    <p className="text-lg text-gray-600">
+                    <h1 className="text-4xl sm:text-5xl font-extrabold text-[#001C44] tracking-tight mb-4">{currentCategoryName}</h1>
+                    <p className="text-lg text-gray-500 font-medium">
                         {articles.length} bài viết trong danh mục này
                     </p>
                 </div>
 
                 {/* Categories tabs */}
                 {categories.length > 0 && (
-                    <div className="mb-8 overflow-x-auto pb-2">
-                        <div className="flex gap-2">
+                    <div className="mb-10 overflow-x-auto pb-4 custom-scrollbar">
+                        <div className="flex gap-3">
                             <Link
                                 to="/articles"
-                                className={`px-4 py-2 rounded-full whitespace-nowrap font-semibold transition-colors ${
+                                className={`px-5 py-2.5 rounded-2xl whitespace-nowrap font-extrabold transition-all text-sm shadow-sm ${
                                     !currentCategory
-                                        ? 'bg-[#001C44] text-white'
-                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                        ? 'bg-[#001C44] text-white hover:bg-blue-900 hover:shadow-md'
+                                        : 'bg-white text-gray-500 border border-gray-100 hover:border-blue-100 hover:text-[#001C44] hover:bg-blue-50/50'
                                 }`}
                             >
                                 Tất cả
@@ -129,10 +129,10 @@ const ArticlesByCategoryPage: React.FC = () => {
                                 <Link
                                     key={cat.id}
                                     to={`/articles/category/${cat.slug}`}
-                                    className={`px-4 py-2 rounded-full whitespace-nowrap font-semibold transition-colors ${
+                                    className={`px-5 py-2.5 rounded-2xl whitespace-nowrap font-extrabold transition-all text-sm shadow-sm ${
                                         currentCategory === cat.slug
-                                            ? 'bg-[#0B5FFF] text-white'
-                                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                            ? 'bg-[#0B5FFF] text-white hover:bg-blue-600 hover:shadow-md'
+                                            : 'bg-white text-gray-500 border border-gray-100 hover:border-blue-100 hover:text-[#001C44] hover:bg-blue-50/50'
                                     }`}
                                 >
                                     {cat.name}
@@ -143,23 +143,24 @@ const ArticlesByCategoryPage: React.FC = () => {
                 )}
 
                 {error && (
-                    <div className="mb-6 rounded-2xl bg-red-50 p-4 text-red-700 border border-red-200">
+                    <div className="mb-10 rounded-3xl bg-red-50 p-6 text-red-600 border-0 shadow-inner-light font-medium">
                         {error}
                     </div>
                 )}
 
                 {articles.length === 0 ? (
-                    <div className="text-center py-12">
-                        <p className="text-gray-600 text-lg">Chưa có bài viết trong danh mục này</p>
+                    <div className="text-center py-24 bg-white rounded-3xl shadow-premium px-6">
+                        <span className="text-5xl block mb-4">✨</span>
+                        <h2 className="text-2xl font-extrabold text-[#001C44] mb-3">Chưa có bài viết trong danh mục này</h2>
                         <Link
                             to="/articles"
-                            className="mt-4 inline-flex items-center justify-center px-6 py-3 rounded-xl bg-[#001C44] text-white font-semibold hover:bg-[#002A66] transition-colors"
+                            className="mt-6 inline-flex items-center justify-center px-8 py-4 rounded-2xl bg-[#001C44] text-[#FFD66D] font-extrabold hover:bg-blue-900 transition-all shadow-md"
                         >
                             Xem tất cả bài viết →
                         </Link>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid gap-8 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
                         {articles.map((article) => {
                             const thumbUrl = getImageUrl(article.thumbnailUrl || undefined);
                             const isWished = isWishlisted(article.slug);
@@ -168,19 +169,19 @@ const ArticlesByCategoryPage: React.FC = () => {
                                 <Link
                                     key={article.id}
                                     to={`/articles/${article.slug}`}
-                                    className="group overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all hover:-translate-y-1 border border-gray-100"
+                                    className="group flex flex-col h-full bg-white rounded-3xl overflow-hidden shadow-premium hover:shadow-premium-hover hover:-translate-y-1 transition-all duration-500 ease-out-expo border-0"
                                 >
                                     {/* Thumbnail */}
-                                    <div className="relative h-48 overflow-hidden bg-gray-200">
+                                    <div className="relative h-52 bg-gray-100 overflow-hidden shrink-0">
                                         {thumbUrl ? (
                                             <img
                                                 src={thumbUrl}
                                                 alt={article.title}
-                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                             />
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#001C44] to-[#0B5FFF] text-white text-4xl">
-                                                📰
+                                            <div className="w-full h-full flex items-center justify-center bg-gray-100 text-4xl">
+                                                📸
                                             </div>
                                         )}
 
@@ -188,28 +189,42 @@ const ArticlesByCategoryPage: React.FC = () => {
                                         <button
                                             onClick={(e) => handleWishlistToggle(article.slug, e)}
                                             disabled={wishlistToggles.has(article.slug)}
-                                            className="absolute top-3 right-3 text-2xl hover:scale-125 transition-transform"
+                                            className="absolute bottom-4 right-4 bg-white hover:bg-rose-50 rounded-full p-2.5 shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-50 z-10"
                                         >
-                                            {isWished ? '❤️' : '🤍'}
+                                            <span className="text-xl flex items-center justify-center leading-none">
+                                                {isWished ? '❤️' : '🤍'}
+                                            </span>
                                         </button>
                                     </div>
 
                                     {/* Content */}
-                                    <div className="p-4">
-                                        <h3 className="text-lg font-bold text-[#001C44] group-hover:text-[#0B5FFF] transition-colors line-clamp-2">
-                                            {article.title}
-                                        </h3>
+                                    <div className="p-6 flex flex-col flex-1 justify-between bg-white">
+                                        <div>
+                                            <h3 className="font-extrabold text-[#001C44] line-clamp-2 group-hover:text-blue-600 transition-colors text-lg mb-2.5 leading-tight text-balance">
+                                                {article.title}
+                                            </h3>
 
-                                        <p className="text-sm text-gray-600 mt-2 line-clamp-2">
-                                            {article.seoDescription || 'Bài viết không có mô tả'}
-                                        </p>
+                                            <p className="text-sm text-gray-500 line-clamp-2 mb-5 leading-relaxed">
+                                                {article.seoDescription || 'Bài viết không có mô tả'}
+                                            </p>
+                                        </div>
 
-                                        {/* Stats */}
-                                        <div className="flex items-center gap-4 mt-4 text-xs text-gray-500 border-t pt-3">
-                                            <span title="Lượt xem">👁️ {(article.viewCount || 0).toLocaleString('vi-VN')}</span>
-                                            <span title="Đã lưu">❤️ {(article.wishlistCount || 0).toLocaleString('vi-VN')}</span>
+                                        <div>
+                                            {/* Stats */}
+                                            <div className="flex items-center justify-between text-xs text-gray-400 mb-4 font-semibold">
+                                                <span className="flex items-center gap-1.5">
+                                                    👁️ {(article.viewCount || 0).toLocaleString('vi-VN')}
+                                                </span>
+                                                <span className="flex items-center gap-1.5">
+                                                    ❤️ {(article.wishlistCount || 0).toLocaleString('vi-VN')}
+                                                </span>
+                                            </div>
+
+                                            {/* Date */}
                                             {article.publishedAt && (
-                                                <span>{new Date(article.publishedAt).toLocaleDateString('vi-VN')}</span>
+                                                <p className="text-[11px] font-bold tracking-wider text-gray-400 uppercase pt-4 border-t border-gray-100 flex items-center gap-1.5">
+                                                    <span>{new Date(article.publishedAt).toLocaleDateString('vi-VN')}</span>
+                                                </p>
                                             )}
                                         </div>
                                     </div>

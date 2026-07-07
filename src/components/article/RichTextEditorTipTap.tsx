@@ -1,7 +1,8 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
-import { Mark, mergeAttributes } from '@tiptap/core';
+import { Mark, mergeAttributes, Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
+import { TextStyle } from '@tiptap/extension-text-style';
 import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
 import Youtube from '@tiptap/extension-youtube';
@@ -62,11 +63,47 @@ const RichTextEditorTipTap: React.FC<RichTextEditorTipTapProps> = ({
         },
     });
 
+    const FontSize = Extension.create({
+        name: 'fontSize',
+        addOptions() {
+            return { types: ['textStyle'] };
+        },
+        addGlobalAttributes() {
+            return [
+                {
+                    types: this.options.types,
+                    attributes: {
+                        fontSize: {
+                            default: null,
+                            parseHTML: (element) => element.style.fontSize?.replace(/['"]+/g, ''),
+                            renderHTML: (attributes) => {
+                                if (!attributes.fontSize) return {};
+                                return { style: `font-size: ${attributes.fontSize}` };
+                            },
+                        },
+                    },
+                },
+            ];
+        },
+        addCommands() {
+            return {
+                setFontSize: (fontSize: string) => ({ chain }: any) => {
+                    return chain().setMark('textStyle', { fontSize }).run();
+                },
+                unsetFontSize: () => ({ chain }: any) => {
+                    return chain().setMark('textStyle', { fontSize: null }).removeEmptyTextStyle().run();
+                },
+            };
+        },
+    });
+
     const editor = useEditor({
         extensions: [
             StarterKit.configure({
                 codeBlock: false,
             }),
+            TextStyle,
+            FontSize,
             Underline,
             Link.configure({
                 openOnClick: false,
@@ -194,8 +231,14 @@ const RichTextEditorTipTap: React.FC<RichTextEditorTipTapProps> = ({
     };
 
     const handleInsertTable = () => {
-        if (editor) {
-            editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+        const input = window.prompt('Nhập số cột x số hàng (ví dụ: 3x3):', '3x3');
+        if (!input || !input.trim()) return;
+        const parts = input.toLowerCase().split('x');
+        const cols = parseInt(parts[0]?.trim() || '3', 10);
+        const rows = parseInt(parts[1]?.trim() || '3', 10);
+        
+        if (editor && !isNaN(cols) && !isNaN(rows) && cols > 0 && rows > 0) {
+            editor.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run();
         }
     };
 
@@ -301,6 +344,28 @@ const RichTextEditorTipTap: React.FC<RichTextEditorTipTapProps> = ({
                     >
                         <u>U</u>
                     </button>
+                    
+                    {/* Font Size Dropdown */}
+                    <select
+                        onChange={(e) => {
+                            if (e.target.value === 'default') {
+                                (editor.chain().focus() as any).unsetFontSize().run();
+                            } else {
+                                (editor.chain().focus() as any).setFontSize(e.target.value).run();
+                            }
+                        }}
+                        className="p-1.5 border rounded text-sm bg-white hover:bg-gray-50 focus:outline-none"
+                    >
+                        <option value="default">Cỡ chữ (mặc định)</option>
+                        <option value="12px">12px</option>
+                        <option value="14px">14px</option>
+                        <option value="16px">16px</option>
+                        <option value="18px">18px</option>
+                        <option value="20px">20px</option>
+                        <option value="24px">24px</option>
+                        <option value="30px">30px</option>
+                    </select>
+                    
                     <div className="border-r mx-1" />
 
                     {/* Headings */}
@@ -415,6 +480,51 @@ const RichTextEditorTipTap: React.FC<RichTextEditorTipTapProps> = ({
                     >
                         ⊞
                     </button>
+                    {editor.isActive('table') && (
+                        <>
+                            <div className="border-r mx-1" />
+                            <button
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => editor.chain().focus().addColumnAfter().run()}
+                                className="p-2 rounded hover:bg-gray-200 text-xs font-semibold"
+                                title="Thêm cột"
+                            >
+                                +Cột
+                            </button>
+                            <button
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => editor.chain().focus().deleteColumn().run()}
+                                className="p-2 rounded hover:bg-gray-200 text-xs font-semibold text-red-600"
+                                title="Xóa cột"
+                            >
+                                -Cột
+                            </button>
+                            <button
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => editor.chain().focus().addRowAfter().run()}
+                                className="p-2 rounded hover:bg-gray-200 text-xs font-semibold"
+                                title="Thêm hàng"
+                            >
+                                +Hàng
+                            </button>
+                            <button
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => editor.chain().focus().deleteRow().run()}
+                                className="p-2 rounded hover:bg-gray-200 text-xs font-semibold text-red-600"
+                                title="Xóa hàng"
+                            >
+                                -Hàng
+                            </button>
+                            <button
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => editor.chain().focus().deleteTable().run()}
+                                className="p-2 rounded hover:bg-gray-200 text-xs font-semibold text-red-600"
+                                title="Xóa bảng"
+                            >
+                                Xóa Bảng
+                            </button>
+                        </>
+                    )}
                     <div className="border-r mx-1" />
 
                     {/* Clear formatting */}

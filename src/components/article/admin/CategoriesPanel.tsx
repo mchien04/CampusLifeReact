@@ -158,37 +158,37 @@ const CategoriesPanel: React.FC = () => {
                 </div>
             )}
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-                    <div className="text-lg font-bold text-[#001C44]">{editingId ? 'Chỉnh sửa danh mục' : 'Tạo danh mục mới'}</div>
+            <div className="bg-white rounded-3xl shadow-premium border-0 p-8">
+                <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
+                    <div className="text-xl font-extrabold text-[#001C44]">{editingId ? 'Chỉnh sửa danh mục' : 'Tạo danh mục mới'}</div>
                     {editingId && (
                         <button
                             type="button"
                             onClick={handleCancel}
-                            className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200"
+                            className="px-6 py-2.5 rounded-2xl bg-gray-100 text-gray-600 font-bold hover:bg-gray-200 transition-all active:scale-95 text-sm"
                         >
                             Hủy
                         </button>
                     )}
                 </div>
 
-                <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                        <div className="text-sm font-semibold text-gray-700">Tên</div>
+                        <div className="text-xs font-bold tracking-wide text-gray-500 uppercase">Tên</div>
                         <input
                             type="text"
                             name="name"
                             value={formData.name}
                             onChange={handleFormChange}
-                            className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-[#001C44] focus:outline-none"
+                            className="w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all font-semibold"
                         />
                     </div>
 
                     <div className="space-y-2">
                         <div className="flex items-center justify-between gap-2">
-                            <div className="text-sm font-semibold text-gray-700">Slug</div>
-                            <button type="button" onClick={handleAutoSlug} className="text-xs font-semibold text-[#001C44] hover:text-[#002A66]">
-                                Tự động
+                            <div className="text-xs font-bold tracking-wide text-gray-500 uppercase">Slug</div>
+                            <button type="button" onClick={handleAutoSlug} className="text-xs font-extrabold text-[#001C44] hover:text-blue-600 transition-colors">
+                                🔄 Tự động
                             </button>
                         </div>
                         <input
@@ -196,63 +196,63 @@ const CategoriesPanel: React.FC = () => {
                             name="slug"
                             value={formData.slug}
                             onChange={handleFormChange}
-                            className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-[#001C44] focus:outline-none"
+                            className="w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all font-semibold"
                         />
                     </div>
 
                     <div className="space-y-2 md:col-span-2">
-                        <div className="text-sm font-semibold text-gray-700">Mô tả</div>
+                        <div className="text-xs font-bold tracking-wide text-gray-500 uppercase">Mô tả</div>
                         <textarea
                             name="description"
                             value={formData.description}
                             onChange={handleFormChange}
                             rows={2}
-                            className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-[#001C44] focus:outline-none"
+                            className="w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all font-semibold"
                         />
                     </div>
 
                     <div className="space-y-2">
-                        <div className="text-sm font-semibold text-gray-700">Thứ tự</div>
+                        <div className="text-xs font-bold tracking-wide text-gray-500 uppercase">Thứ tự</div>
                         <input
                             type="number"
                             name="displayOrder"
                             value={formData.displayOrder}
                             onChange={handleFormChange}
-                            className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-[#001C44] focus:outline-none"
+                            className="w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all font-semibold"
                         />
                     </div>
 
-                    <div className="flex items-end">
-                        <label className="inline-flex items-center gap-2 text-sm font-semibold text-gray-700">
-                            <input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleCheckboxChange} className="h-4 w-4" />
+                    <div className="flex items-center">
+                        <label className="inline-flex items-center gap-2.5 text-sm font-bold text-[#001C44] cursor-pointer">
+                            <input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleCheckboxChange} className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
                             Kích hoạt
                         </label>
                     </div>
 
-                    <div className="md:col-span-2">
+                    <div className="md:col-span-2 pt-2">
                         <button
                             type="submit"
-                            className="px-5 py-3 rounded-xl bg-[#001C44] text-white font-semibold hover:bg-[#002A66]"
+                            className="px-8 py-3 rounded-2xl bg-[#001C44] text-[#FFD66D] font-extrabold hover:bg-blue-900 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95 text-sm"
                         >
-                            {editingId ? 'Cập nhật' : 'Tạo'}
+                            {editingId ? 'Cập nhật danh mục' : '➕ Tạo danh mục'}
                         </button>
                     </div>
                 </form>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-3xl shadow-premium border border-gray-100 overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead className="bg-gray-50 border-b border-gray-200">
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-gray-50/50 border-b border-gray-100 text-gray-500 uppercase text-xs font-bold tracking-wider">
                             <tr>
-                                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Tên</th>
-                                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Slug</th>
-                                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Thứ tự</th>
-                                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Trạng thái</th>
-                                <th className="px-6 py-3 text-center text-sm font-semibold text-gray-700">Hành động</th>
+                                <th className="px-6 py-5">Tên</th>
+                                <th className="px-6 py-5">Slug</th>
+                                <th className="px-6 py-5">Thứ tự</th>
+                                <th className="px-6 py-5">Trạng thái</th>
+                                <th className="px-6 py-5 text-center">Hành động</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-gray-100">
                             {categories.length === 0 ? (
                                 <tr>
                                     <td colSpan={5} className="px-6 py-10 text-center text-gray-500">Chưa có danh mục</td>
@@ -262,22 +262,22 @@ const CategoriesPanel: React.FC = () => {
                                     .slice()
                                     .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0))
                                     .map((c) => (
-                                        <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                            <td className="px-6 py-4 font-semibold text-gray-900">{c.name}</td>
-                                            <td className="px-6 py-4 text-gray-600 font-mono text-sm">{c.slug || '-'}</td>
-                                            <td className="px-6 py-4 text-gray-600 text-sm">{c.displayOrder}</td>
+                                        <tr key={c.id} className="bg-white hover:bg-blue-50/30 transition-colors">
+                                            <td className="px-6 py-4 font-extrabold text-[#001C44]">{c.name}</td>
+                                            <td className="px-6 py-4 text-gray-500 font-mono text-xs font-semibold">{c.slug || '-'}</td>
+                                            <td className="px-6 py-4 text-gray-600 font-semibold">{c.displayOrder}</td>
                                             <td className="px-6 py-4 text-sm">
-                                                <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${c.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>
+                                                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] uppercase tracking-wider font-extrabold ${c.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600'}`}>
                                                     {c.isActive ? 'Active' : 'Inactive'}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <div className="flex justify-center gap-2">
-                                                    <button onClick={() => handleEdit(c)} className="px-3 py-1 rounded-lg bg-blue-100 text-blue-700 font-semibold hover:bg-blue-200">
-                                                        Sửa
+                                                <div className="flex justify-center gap-3">
+                                                    <button onClick={() => handleEdit(c)} className="text-gray-400 hover:text-amber-500 transition-colors transform hover:scale-110 active:scale-95" title="Sửa">
+                                                        <span className="text-xl">✏️</span>
                                                     </button>
-                                                    <button onClick={() => handleDelete(c.id)} className="px-3 py-1 rounded-lg bg-red-100 text-red-700 font-semibold hover:bg-red-200">
-                                                        Xóa
+                                                    <button onClick={() => handleDelete(c.id)} className="text-gray-400 hover:text-red-500 transition-colors transform hover:scale-110 active:scale-95" title="Xóa">
+                                                        <span className="text-xl">🗑️</span>
                                                     </button>
                                                 </div>
                                             </td>
