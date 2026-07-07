@@ -350,7 +350,7 @@ const ManagerEventList: React.FC = () => {
                     <div className="min-w-[210px] space-y-1 text-sm text-gray-700">
                         <p className="line-clamp-2"><span className="font-medium text-gray-500">Địa điểm:</span> {event.location || '--'}</p>
                         <p><span className="font-medium text-gray-500">Người tham gia:</span> {event.participantCount || 0}</p>
-                        <p><span className="font-medium text-gray-500">Số vé:</span> {event.ticketQuantity || 0}</p>
+                        <p><span className="font-medium text-gray-500">Số vé:</span> {event.ticketQuantity == null || event.ticketQuantity <= 0 ? 'Không giới hạn' : event.ticketQuantity}</p>
                         <p><span className="font-medium text-gray-500">Trạng thái API:</span> {event.status || '--'}</p>
                     </div>
                 </td>

@@ -5,6 +5,7 @@ import { notificationAPI } from '../../services';
 import { getNotificationTypeLabel, getNotificationTypeColor } from '../../types/notification';
 import { useAuth } from '../../contexts/AuthContext';
 import { Role } from '../../types';
+import { buildActionUrl } from '../../utils/urlBuilder';
 
 interface NotificationDropdownProps {
     onNotificationClick?: (notification: Notification) => void;
@@ -86,42 +87,37 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                 }
             }
 
-            // Fetch detail to get parsed metadata and activityId/seriesId
+            // Fetch detail to get parsed metadata and actionUrl
             try {
                 const detail = await notificationAPI.getNotificationDetail(notification.id);
                 
                 // Close dropdown
                 setIsOpen(false);
 
-                // Navigate based on priority: actionUrl > activityId > seriesId
+                // Priority 1: actionUrl (if available)
                 if (detail.actionUrl) {
                     // Check if it's a full URL or relative path
                     if (detail.actionUrl.startsWith('http://') || detail.actionUrl.startsWith('https://')) {
                         window.location.href = detail.actionUrl;
+                        return;
                     } else {
                         navigate(detail.actionUrl);
+                        return;
                     }
-                } else if (detail.activityId) {
-                    // Navigate to activity detail
-                    if (userRole === Role.STUDENT) {
-                        navigate(`/student/events/${detail.activityId}`);
-                    } else {
-                        navigate(`/manager/events/${detail.activityId}`);
-                    }
-                } else if (detail.seriesId) {
-                    // Navigate to series detail
-                    if (userRole === Role.STUDENT) {
-                        navigate(`/student/series/${detail.seriesId}`);
-                    } else {
-                        navigate(`/manager/series/${detail.seriesId}`);
-                    }
+                } 
+
+                // Priority 2: Fallback to urlBuilder if metadata is provided
+                const fallbackUrl = buildActionUrl(detail, userRole || undefined);
+                if (fallbackUrl) {
+                    navigate(fallbackUrl);
+                    return;
+                }
+
+                // Priority 3: Navigate to notification detail page
+                if (userRole === Role.STUDENT) {
+                    navigate(`/notifications/${notification.id}`);
                 } else {
-                    // Navigate to notification detail page
-                    if (userRole === Role.STUDENT) {
-                        navigate(`/notifications/${notification.id}`);
-                    } else {
-                        navigate(`/manager/notifications/${notification.id}`);
-                    }
+                    navigate(`/manager/notifications/${notification.id}`);
                 }
 
                 if (onNotificationClick) {

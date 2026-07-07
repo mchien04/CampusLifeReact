@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserResponse, CreateUserRequest, UpdateUserRequest, Role } from '../../types/auth';
-import { userAPI } from '../../services/adminAPI';
+import { Department } from '../../types/admin';
+import { userAPI, departmentAPI } from '../../services/adminAPI';
 
 const UserManagement: React.FC = () => {
     const [users, setUsers] = useState<UserResponse[]>([]);
@@ -17,10 +18,23 @@ const UserManagement: React.FC = () => {
         userId: null,
         username: ''
     });
+    const [departments, setDepartments] = useState<Department[]>([]);
 
     useEffect(() => {
         loadUsers();
+        loadDepartments();
     }, []);
+
+    const loadDepartments = async () => {
+        try {
+            const response = await departmentAPI.getDepartments();
+            if (response.status && response.data) {
+                setDepartments(response.data);
+            }
+        } catch (error) {
+            console.error('Error loading departments:', error);
+        }
+    };
 
     const loadUsers = async () => {
         setLoading(true);
@@ -481,6 +495,7 @@ const UserManagement: React.FC = () => {
             {showCreateModal && (
                 <UserFormModal
                     user={editingUser}
+                    departments={departments}
                     onSubmit={editingUser 
                         ? (data) => handleUpdate(editingUser.id, data as UpdateUserRequest)
                         : (data) => handleCreate(data as CreateUserRequest)
@@ -526,17 +541,19 @@ const UserManagement: React.FC = () => {
 // User Form Modal Component
 interface UserFormModalProps {
     user: UserResponse | null;
+    departments: Department[];
     onSubmit: (data: CreateUserRequest | UpdateUserRequest) => void;
     onClose: () => void;
 }
 
-const UserFormModal: React.FC<UserFormModalProps> = ({ user, onSubmit, onClose }) => {
+const UserFormModal: React.FC<UserFormModalProps> = ({ user, departments, onSubmit, onClose }) => {
     const [formData, setFormData] = useState<CreateUserRequest | UpdateUserRequest>({
         username: user?.username || '',
         email: user?.email || '',
         password: '',
         role: (user?.role === Role.ADMIN || user?.role === Role.MANAGER) ? user.role as 'ADMIN' | 'MANAGER' : 'ADMIN',
-        isActivated: user?.isActivated ?? true
+        isActivated: user?.isActivated ?? true,
+        departmentIds: user?.departmentIds || []
     });
     const [changePassword, setChangePassword] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -544,12 +561,29 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ user, onSubmit, onClose }
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
         const checked = (e.target as HTMLInputElement).checked;
-        setFormData(prev => ({
-            ...prev,
-            [name]: type === 'checkbox' ? checked : value
-        }));
+        setFormData(prev => {
+            const updated = {
+                ...prev,
+                [name]: type === 'checkbox' ? checked : value
+            };
+            if (name === 'role' && value === 'ADMIN') {
+                updated.departmentIds = [];
+            }
+            return updated;
+        });
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
+        }
+    };
+
+    const handleDepartmentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const options = Array.from(e.target.selectedOptions, option => parseInt(option.value, 10));
+        setFormData(prev => ({
+            ...prev,
+            departmentIds: options
+        }));
+        if (errors.departmentIds) {
+            setErrors(prev => ({ ...prev, departmentIds: '' }));
         }
     };
 
@@ -574,6 +608,10 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ user, onSubmit, onClose }
 
         if (!formData.role) {
             newErrors.role = 'Vai trò là bắt buộc';
+        }
+
+        if (formData.role === 'MANAGER' && (!formData.departmentIds || formData.departmentIds.length === 0)) {
+            newErrors.departmentIds = 'Vui lòng chọn ít nhất 1 khoa cho Manager';
         }
 
         setErrors(newErrors);
@@ -689,6 +727,31 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ user, onSubmit, onClose }
                         </select>
                         {errors.role && <p className="text-red-500 text-sm mt-1">{errors.role}</p>}
                     </div>
+
+                    {formData.role === 'MANAGER' && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Phân công Khoa * (chọn nhiều)
+                            </label>
+                            <select
+                                multiple
+                                name="departmentIds"
+                                value={formData.departmentIds?.map(String) || []}
+                                onChange={handleDepartmentChange}
+                                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] min-h-[100px] ${
+                                    errors.departmentIds ? 'border-red-500' : 'border-gray-300'
+                                }`}
+                            >
+                                {departments.map(dept => (
+                                    <option key={dept.id} value={dept.id}>
+                                        {dept.name}
+                                    </option>
+                                ))}
+                            </select>
+                            {errors.departmentIds && <p className="text-red-500 text-sm mt-1">{errors.departmentIds}</p>}
+                            <p className="text-xs text-gray-500 mt-1">Giữ Ctrl (Windows) hoặc Cmd (Mac) để chọn nhiều khoa.</p>
+                        </div>
+                    )}
 
                     <div className="flex items-center">
                         <input

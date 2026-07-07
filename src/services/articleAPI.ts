@@ -227,6 +227,11 @@ export const articleAPI = {
         return toApiResponse<ArticleTagResponse>(response.data);
     },
 
+    updateTag: async (tagId: number, data: ArticleTagRequest): Promise<ApiResponse<ArticleTagResponse>> => {
+        const response = await api.put(`/api/admin/articles/tags/${tagId}`, data);
+        return toApiResponse<ArticleTagResponse>(response.data);
+    },
+
     deleteTag: async (tagId: number): Promise<ApiResponse<null>> => {
         const response = await api.delete(`/api/admin/articles/tags/${tagId}`);
         return toApiResponse<null>(response.data);

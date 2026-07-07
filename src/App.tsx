@@ -227,6 +227,16 @@ function App() {
                 }
               />
               <Route
+                path="/manager/articles/create"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <ManagerLayout>
+                      <ArticleEditorById />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/manager/articles/:articleId/edit"
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
@@ -290,6 +300,16 @@ function App() {
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
                     <ManagerLayout>
                       <AdminArticleManagement />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/articles/create"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
+                    <ManagerLayout>
+                      <ArticleEditorById />
                     </ManagerLayout>
                   </ProtectedRoute>
                 }

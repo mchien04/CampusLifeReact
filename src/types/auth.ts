@@ -57,6 +57,7 @@ export interface UserResponse {
     createdAt: string;
     updatedAt: string;
     isDeleted: boolean;
+    departmentIds?: number[];
 }
 
 export interface CreateUserRequest {
@@ -65,6 +66,7 @@ export interface CreateUserRequest {
     password: string;
     role: 'ADMIN' | 'MANAGER';
     isActivated?: boolean;
+    departmentIds?: number[];
 }
 
 export interface UpdateUserRequest {
@@ -73,6 +75,7 @@ export interface UpdateUserRequest {
     password?: string;
     role?: 'ADMIN' | 'MANAGER';
     isActivated?: boolean;
+    departmentIds?: number[];
 }
 
 export enum Role {

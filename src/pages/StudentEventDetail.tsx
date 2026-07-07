@@ -15,6 +15,7 @@ import { ActivityTaskResponse, TaskAssignmentResponse } from '../types/task';
 import { TaskSubmissionResponse, SubmissionAttachment } from '../types/submission';
 import { RegistrationStatus, ParticipationType, ActivityRegistrationResponse, ActivityRegistrationStatusResponse } from '../types/registration';
 import { hasCancelledBefore } from '../utils/registrationRules';
+import { formatTicketQuantityLabel } from '../utils/ticketUtils';
 import { LoadingSpinner } from '../components/common';
 
 import { ScoreRulesDisplay } from '../components/events/ScoreRulesDisplay';
@@ -64,6 +65,9 @@ const StudentEventDetail: React.FC = () => {
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
     const [selectedImagePreview, setSelectedImagePreview] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
+
+    // Departments for display
+    const [departments, setDepartments] = useState<any[]>([]);
 
     // Photo gallery states
     const [photos, setPhotos] = useState<ActivityPhotoResponse[]>([]);
@@ -145,6 +149,47 @@ const StudentEventDetail: React.FC = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    useEffect(() => {
+        const fetchDepartments = async () => {
+            try {
+                const res = await api.get('/api/departments');
+                if (res.data) setDepartments(Array.isArray(res.data) ? res.data : (res.data.body || []));
+            } catch (err) {
+                console.error("Error fetching departments", err);
+            }
+        };
+        fetchDepartments();
+    }, []);
+
+    const translatePreset = (code?: string | null) => {
+        if (!code) return 'Không có';
+        const maps: Record<string, string> = {
+            'EVENT_BASIC': 'Sự kiện cơ bản',
+            'EVENT_WITH_SUBMISSION': 'Sự kiện có nộp bài',
+            'ENTERPRISE_SEMINAR_BASIC': 'Chuyên đề doanh nghiệp cơ bản',
+            'ENTERPRISE_SEMINAR_WITH_BONUS': 'Chuyên đề doanh nghiệp (có thưởng)',
+            'MINIGAME_PASS_ONLY': 'Minigame (chỉ tính đạt)',
+            'SERIES_MILESTONE_BASIC': 'Chuỗi sự kiện cơ bản',
+            'ENTERPRISE_SERIES': 'Chuỗi chuyên đề doanh nghiệp',
+            'DEFAULT': 'Mặc định',
+            'NO_SUBMISSION': 'Không yêu cầu nộp bài',
+            'INTERNAL_ONLY': 'Nội bộ khoa',
+            'STRICT_ATTENDANCE': 'Điểm danh bắt buộc',
+            'CUSTOM': 'Tùy chỉnh',
+            'MINIGAME_DEFAULT': 'Minigame mặc định',
+            'SERIES_DEFAULT': 'Chuỗi sự kiện'
+        };
+        return maps[code] || code;
+    };
+
+    const getDepartmentNames = (ids?: number[]) => {
+        if (!ids || ids.length === 0) return 'Chưa xác định';
+        return ids.map(id => {
+            const d = departments.find(dept => dept.id === id);
+            return d ? d.name : `Khoa ${id}`;
+        }).join(', ');
     };
 
     const checkSupervisorStatus = async (activityId: number) => {
@@ -603,214 +648,222 @@ const StudentEventDetail: React.FC = () => {
             <div className="space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Main Content */}
-                    <div className="lg:col-span-2">
-                        {/* Event Info */}
-                        <div className="card mb-6">
-                            <div className="p-6">
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className="flex items-center space-x-3">
-                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${eventStatus === 'UPCOMING' ? 'bg-blue-100 text-blue-800' :
-                                            eventStatus === 'ONGOING' ? 'bg-green-100 text-green-800' :
-                                                'bg-gray-100 text-gray-800'
-                                            }`}>
-                                            {eventStatus === 'UPCOMING' ? 'Sắp diễn ra' :
-                                                eventStatus === 'ONGOING' ? 'Đang diễn ra' : 'Đã kết thúc'}
+                    <div className="lg:col-span-2 space-y-6">
+                        {/* Event Info Hero Card */}
+                        <div className="bg-white rounded-3xl shadow-sm border border-stone-200 overflow-hidden relative">
+                            <EventBannerImage
+                                bannerUrl={event.bannerUrl}
+                                alt={`Banner ${event.name}`}
+                                wrapperClassName="relative bg-gray-200"
+                                imageClassName="h-64 sm:h-80 w-full object-cover"
+                            />
+                            
+                            <div className="p-8 relative">
+                                <div className="absolute top-0 right-8 -translate-y-1/2 flex items-center gap-2 flex-wrap justify-end max-w-[70%]">
+                                    <span className={`px-4 py-1.5 rounded-full text-sm font-bold shadow-md ${
+                                        eventStatus === 'UPCOMING' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                                        eventStatus === 'ONGOING' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                                        'bg-gray-100 text-gray-800 border border-gray-200'
+                                    }`}>
+                                        {eventStatus === 'UPCOMING' ? '⏳ Sắp diễn ra' :
+                                            eventStatus === 'ONGOING' ? '🔥 Đang diễn ra' : '✅ Đã kết thúc'}
+                                    </span>
+                                    {registration && (
+                                        <span className={`px-4 py-1.5 rounded-full text-sm font-bold shadow-md border border-white ${getStatusColor(registration.status)}`}>
+                                            {getStatusLabel(registration.status)}
                                         </span>
-                                        {registration && (
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(registration.status)}`}>
-                                                {getStatusLabel(registration.status)}
-                                            </span>
-                                        )}
-                                        {isSupervisor && (
-                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
-                                                🛡️ Giám sát viên (Supervisor)
-                                            </span>
-                                        )}
-                                    </div>
+                                    )}
+                                    {isSupervisor && (
+                                        <span className="px-4 py-1.5 rounded-full text-sm font-bold shadow-md bg-purple-100 text-purple-800 border border-purple-200">
+                                            🛡️ Giám sát viên
+                                        </span>
+                                    )}
                                 </div>
 
-                                <h1 className="text-3xl font-bold text-[#001C44] mt-2 mb-4">{event.name}</h1>
-
-                                {/* Event Banner */}
-                                <EventBannerImage
-                                    bannerUrl={event.bannerUrl}
-                                    alt={`Banner ${event.name}`}
-                                    wrapperClassName="mb-6"
-                                    imageClassName="w-full h-64 object-cover rounded-lg shadow-md"
-                                />
-
-                                {event.description && (
-                                    <p className="text-gray-600 mb-6">{event.description}</p>
-                                )}
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                                    <div className="flex items-center text-sm text-gray-500">
-                                        <span className="mr-2">📅</span>
-                                        <span>
-                                            {new Date(event.startDate).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                                            {' '}–{' '}
-                                            {new Date(event.endDate).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                <div className="flex items-center gap-3 mb-4 flex-wrap mt-2">
+                                    <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-lg border border-blue-100">
+                                        {getTypeLabel(event.type)}
+                                    </span>
+                                    {event.isImportant && (
+                                        <span className="px-3 py-1 bg-orange-50 text-orange-700 text-xs font-bold rounded-lg border border-orange-100 flex items-center gap-1">
+                                            ⭐ Quan trọng
                                         </span>
+                                    )}
+                                    {event.seriesId && (
+                                        <Link 
+                                            to={`/student/series/${event.seriesId}`}
+                                            className="inline-flex items-center gap-1 px-3 py-1 text-xs font-bold rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100 transition-colors"
+                                        >
+                                            📋 Thuộc chuỗi sự kiện {event.seriesOrder && `(#${event.seriesOrder})`}
+                                        </Link>
+                                    )}
+                                </div>
+
+                                <h1 className="text-3xl font-extrabold text-stone-900 mb-4 leading-snug">{event.name}</h1>
+                                <p className="text-stone-600 text-lg leading-relaxed mb-6">{event.description || "Chưa có mô tả"}</p>
+                            </div>
+                        </div>
+
+                        {/* Additional Information */}
+                        {(event.benefits || event.requirements || event.contactInfo) && (
+                            <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-sm">
+                                <h3 className="text-lg font-bold text-stone-900 mb-5 flex items-center gap-2">
+                                    <span className="text-xl">✨</span> Thông tin bổ sung
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    {event.benefits && (
+                                        <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-100">
+                                            <h4 className="text-xs font-bold text-emerald-700 uppercase tracking-wide mb-2">🎁 Quyền lợi</h4>
+                                            <p className="text-stone-700 text-sm leading-relaxed whitespace-pre-wrap">{event.benefits}</p>
+                                        </div>
+                                    )}
+                                    {event.requirements && (
+                                        <div className="bg-rose-50 rounded-2xl p-4 border border-rose-100">
+                                            <h4 className="text-xs font-bold text-rose-700 uppercase tracking-wide mb-2">📋 Yêu cầu</h4>
+                                            <p className="text-stone-700 text-sm leading-relaxed whitespace-pre-wrap">{event.requirements}</p>
+                                        </div>
+                                    )}
+                                    {event.contactInfo && (
+                                        <div className="bg-blue-50 rounded-2xl p-4 border border-blue-100">
+                                            <h4 className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-2">📞 Liên hệ</h4>
+                                            <p className="text-stone-700 text-sm leading-relaxed whitespace-pre-wrap">{event.contactInfo}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Event Properties + Time & Location (side-by-side below Additional Info) */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Event Properties */}
+                            <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-sm">
+                                <div className="flex items-center gap-3 mb-5">
+                                    <div className="w-9 h-9 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center text-lg">⚙️</div>
+                                    <h3 className="text-base font-bold text-stone-900">Thông số sự kiện</h3>
+                                </div>
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-start border-b border-stone-100 pb-3">
+                                        <span className="text-xs text-stone-500 font-medium">Đơn vị tổ chức</span>
+                                        <span className="text-xs font-bold text-stone-900 text-right max-w-[55%] leading-snug">{getDepartmentNames(event.organizerIds)}</span>
                                     </div>
-                                    <div className="flex items-center text-sm text-gray-500">
-                                        <span className="mr-2">📍</span>
-                                        <span>{event.location}</span>
+                                    <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+                                        <span className="text-xs text-stone-500 font-medium">Loại sự kiện</span>
+                                        <span className="text-xs font-bold text-stone-900">{getTypeLabel(event.type)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+                                        <span className="text-xs text-stone-500 font-medium">Số lượng vé</span>
+                                        <span className="text-xs font-bold text-stone-900 tabular-nums">{formatTicketQuantityLabel(event.ticketQuantity)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+                                        <span className="text-xs text-stone-500 font-medium">Bắt buộc khoa</span>
+                                        <span className="text-xs font-bold text-stone-900">{event.mandatoryForFacultyStudents ? 'Có' : 'Không'}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+                                        <span className="text-xs text-stone-500 font-medium">Yêu cầu nộp bài</span>
+                                        <span className="text-xs font-bold text-stone-900">{event.requiresSubmission ? 'Có' : 'Không'}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center pb-1">
+                                        <span className="text-xs text-stone-500 font-medium">Duyệt đăng ký</span>
+                                        <span className="text-xs font-bold text-stone-900">{event.requiresApproval ? 'Cần duyệt' : 'Tự động'}</span>
+                                    </div>
+                                    {event.presetCode && event.presetCode !== 'CUSTOM' && (
+                                        <div className="pt-1 border-t border-stone-100">
+                                            <span className="inline-flex items-center px-2 py-1 rounded-md text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                                {translatePreset(event.presetCode)}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Time & Location */}
+                            <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-sm">
+                                <div className="flex items-center gap-3 mb-5">
+                                    <div className="w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-lg">📅</div>
+                                    <h3 className="text-base font-bold text-stone-900">Thời gian & Địa điểm</h3>
+                                </div>
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-start border-b border-stone-100 pb-3">
+                                        <span className="text-xs text-stone-500 font-medium">Bắt đầu</span>
+                                        <span className="text-xs font-bold text-stone-900 text-right">{new Date(event.startDate).toLocaleString('vi-VN')}</span>
+                                    </div>
+                                    <div className="flex justify-between items-start border-b border-stone-100 pb-3">
+                                        <span className="text-xs text-stone-500 font-medium">Kết thúc</span>
+                                        <span className="text-xs font-bold text-stone-900 text-right">{new Date(event.endDate).toLocaleString('vi-VN')}</span>
+                                    </div>
+                                    <div className="flex justify-between items-start border-b border-stone-100 pb-3">
+                                        <span className="text-xs text-stone-500 font-medium">Địa điểm</span>
+                                        <span className="text-xs font-bold text-stone-900 text-right max-w-[55%] leading-snug">{event.location || 'Chưa cập nhật'}</span>
                                     </div>
                                     {event.registrationStartDate && (
-                                        <div className="flex items-center text-sm text-gray-500">
-                                            <span className="mr-2">🚀</span>
-                                            <span>Mở đăng ký: {new Date(event.registrationStartDate).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                                        <div className="flex justify-between items-start border-b border-stone-100 pb-3">
+                                            <span className="text-xs text-stone-500 font-medium">Mở đăng ký</span>
+                                            <span className="text-xs font-bold text-green-700 text-right">{new Date(event.registrationStartDate).toLocaleString('vi-VN')}</span>
                                         </div>
                                     )}
                                     {event.registrationDeadline && (
-                                        <div className="flex items-center text-sm text-gray-500">
-                                            <span className="mr-2">⏰</span>
-                                            <span>Hạn đăng ký: {new Date(event.registrationDeadline).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
-                                        </div>
-                                    )}
-                                    <div className="flex items-center text-sm text-gray-500">
-                                        <span className="mr-2">🏷️</span>
-                                        <span>{getTypeLabel(event.type)}</span>
-                                    </div>
-                                    <div className="flex items-center text-sm text-gray-500">
-                                        <span className="mr-2">⭐</span>
-                                        <span>
-                                            {event.seriesId
-                                                ? 'Chuỗi sự kiện'
-                                                : event.scoreRules && event.scoreRules.length > 0
-                                                    ? Array.from(new Set(event.scoreRules.map(r => r.scoreType)))
-                                                        .map(type => getScoreTypeLabel(type))
-                                                        .join(', ')
-                                                    : 'Không cộng điểm'}
-                                        </span>
-                                    </div>
-                                    {event.seriesId && (
-                                        <div className="flex items-center text-sm text-yellow-600">
-                                            <span className="mr-2">📋</span>
-                                            <Link
-                                                to={`/student/series/${event.seriesId}`}
-                                                className="hover:underline font-medium"
-                                            >
-                                                Thuộc chuỗi sự kiện
-                                                {event.seriesOrder && ` (Thứ tự: ${event.seriesOrder})`}
-                                            </Link>
+                                        <div className="flex justify-between items-start pb-1">
+                                            <span className="text-xs text-stone-500 font-medium">Hạn đăng ký</span>
+                                            <span className="text-xs font-bold text-orange-600 text-right">{new Date(event.registrationDeadline).toLocaleString('vi-VN')}</span>
                                         </div>
                                     )}
                                 </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                    {event.seriesId && (
-                                        <div className="flex items-center text-sm text-yellow-600">
-                                            <span className="mr-2">🏆</span>
-                                            <span>
-                                                Sự kiện thuộc chuỗi
-                                            </span>
-                                        </div>
-                                    )}
-                                    {event.ticketQuantity && event.ticketQuantity > 0 ? (
-                                        <div className="flex items-center text-sm text-gray-500">
-                                            <span className="mr-2">🎫</span>
-                                            <span>Số lượng vé: {event.ticketQuantity}</span>
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center text-sm text-gray-500">
-                                            <span className="mr-2">🎫</span>
-                                            <span>Số lượng vé: Không giới hạn</span>
-                                        </div>
-                                    )}
-                                    {event.isImportant && (
-                                        <div className="flex items-center text-sm text-yellow-600">
-                                            <span className="mr-2">⭐</span>
-                                            <span>Sự kiện quan trọng</span>
-                                        </div>
-                                    )}
-                                    {event.mandatoryForFacultyStudents && (
-                                        <div className="flex items-center text-sm text-orange-600">
-                                            <span className="mr-2">⚠️</span>
-                                            <span>Bắt buộc cho sinh viên khoa</span>
-                                        </div>
-                                    )}
-                                    <div className="flex items-center text-sm text-gray-500">
-                                        <span className="mr-2">📝</span>
-                                        <span>Đăng ký {event.requiresApproval ? 'cần duyệt' : 'tự duyệt (auto-approve)'}</span>
-                                    </div>
-                                </div>
-
-                                {event.benefits && (
-                                    <div className="mb-4">
-                                        <h3 className="text-sm font-medium text-gray-900 mb-2">Lợi ích:</h3>
-                                        <p className="text-sm text-gray-600">{event.benefits}</p>
-                                    </div>
-                                )}
-
-                                {event.requirements && (
-                                    <div className="mb-4">
-                                        <h3 className="text-sm font-medium text-gray-900 mb-2">Yêu cầu:</h3>
-                                        <p className="text-sm text-gray-600">{event.requirements}</p>
-                                    </div>
-                                )}
-
-                                {event.contactInfo && (
-                                    <div className="mb-4">
-                                        <h3 className="text-sm font-medium text-gray-900 mb-2">Thông tin liên hệ:</h3>
-                                        <p className="text-sm text-gray-600">{event.contactInfo}</p>
-                                    </div>
-                                )}
                             </div>
                         </div>
 
                         {seriesProgress && (
-                            <div className="mb-6">
+                            <div>
                                 <SeriesProgressBanner progress={seriesProgress} />
                             </div>
                         )}
 
-                        {/* Actions */}
-                        <div className="card">
+                        {/* Actions Card */}
+                        <div className="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden">
+                            <div className="px-6 py-4 bg-gradient-to-r from-[#001C44] to-[#002A66] flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-lg">🎟️</div>
+                                <div>
+                                    <h3 className="text-base font-bold text-white">Thao tác</h3>
+                                    <p className="text-xs text-blue-200">Quản lý tham gia sự kiện</p>
+                                </div>
+                            </div>
                             <div className="p-6">
-                                <h3 className="text-lg font-semibold text-[#001C44] mb-4">Thao tác</h3>
                                 <div className="flex flex-wrap gap-3">
                                     {canRegister() && (
                                         <button
                                             onClick={() => setShowRegistrationForm(true)}
-                                            className="btn-yellow px-6 py-2 rounded-lg text-sm font-medium"
+                                            className="px-6 py-2.5 bg-[#FFD66D] hover:bg-[#FFC947] text-[#001C44] rounded-xl text-sm font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
                                         >
-                                            Đăng ký tham gia
+                                            ✅ Đăng ký tham gia
                                         </button>
                                     )}
 
-                                    {/* P7-5: đã huỷ trước đó → ẩn nút đăng ký, hiện text thông báo. */}
                                     {!canRegister() && event && isCancelledBefore(event.id) && !registration && (
-                                        <div className="text-center">
-                                            <span className="inline-flex items-center px-3 py-2 rounded-md text-sm font-medium bg-gray-100 text-gray-700 border border-gray-200">
-                                                ℹ️ Bạn đã huỷ đăng ký sự kiện này và không thể đăng ký lại.
-                                            </span>
+                                        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-stone-100 text-stone-600 border border-stone-200">
+                                            ℹ️ Bạn đã huỷ đăng ký và không thể đăng ký lại.
                                         </div>
                                     )}
 
                                     {canCancel() && (
                                         <button
                                             onClick={handleCancelRegistration}
-                                            className="bg-red-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+                                            className="px-6 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-sm font-bold transition-all hover:-translate-y-0.5"
                                         >
-                                            Hủy đăng ký
+                                            ❌ Hủy đăng ký
                                         </button>
                                     )}
 
                                     {registration?.status === RegistrationStatus.APPROVED && !canCancel() && getEventStatus() === 'UPCOMING' && (
-                                        <div className="text-center">
-                                            <span className="inline-flex items-center px-3 py-2 rounded-md text-sm font-medium bg-green-100 text-green-800">
-                                                ✅ Đã được duyệt - Không thể hủy
-                                            </span>
+                                        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            ✅ Đã được duyệt — không thể hủy
                                         </div>
                                     )}
 
                                     {isSupervisor && (
                                         <button
                                             onClick={() => navigate(`/manager/preparation/${event.id}`)}
-                                            className="bg-purple-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors"
+                                            className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
                                         >
-                                            Giao diện quản trị (Supervisor)
+                                            🛡️ Giao diện Supervisor
                                         </button>
                                     )}
                                 </div>
@@ -899,21 +952,28 @@ const StudentEventDetail: React.FC = () => {
 
                         {/* Photo Gallery Section - Only show if event has ended */}
                         {event && new Date(event.endDate) < new Date() && (
-                            <div className="card">
-                                <div className="p-6">
-                                    <div className="mb-4">
-                                        <h3 className="text-lg font-semibold text-[#001C44]">Hình ảnh sự kiện</h3>
-                                        <p className="text-sm text-gray-600 mt-1">
-                                            {loadingPhotos ? 'Đang tải...' : photos.length > 0 ? `${photos.length} ảnh` : 'Chưa có ảnh nào'}
-                                        </p>
+                            <div className="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden">
+                                <div className="px-6 py-4 bg-gradient-to-r from-[#001C44] to-[#002A66] flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-lg">📸</div>
+                                        <div>
+                                            <h3 className="text-base font-bold text-white">Hình ảnh sự kiện</h3>
+                                            <p className="text-xs text-blue-200">
+                                                {loadingPhotos ? 'Đang tải...' : photos.length > 0 ? `${photos.length} ảnh` : 'Chưa có ảnh'}
+                                            </p>
+                                        </div>
                                     </div>
+                                </div>
+                                <div className="p-6">
                                     {loadingPhotos ? (
-                                        <div className="text-center py-8 text-gray-500">
-                                            <p>Đang tải ảnh...</p>
+                                        <div className="text-center py-12 text-stone-400">
+                                            <div className="text-4xl mb-3">⏳</div>
+                                            <p className="text-sm">Đang tải ảnh...</p>
                                         </div>
                                     ) : photos.length === 0 ? (
-                                        <div className="text-center py-8 text-gray-500">
-                                            <p>Chưa có ảnh nào được tải lên</p>
+                                        <div className="text-center py-12 text-stone-400">
+                                            <div className="text-4xl mb-3">🖼️</div>
+                                            <p className="text-sm">Chưa có ảnh nào được tải lên</p>
                                         </div>
                                     ) : (
                                         <PhotoGrid
@@ -1025,77 +1085,71 @@ const StudentEventDetail: React.FC = () => {
 
                     {/* Sidebar */}
                     <div className="space-y-6">
-                        {/* Event Stats */}
-                        <div className="card">
-                            <div className="p-6">
-                                <h3 className="text-lg font-semibold text-[#001C44] mb-4">Thông tin sự kiện</h3>
-                                <div className="space-y-3">
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-500">Loại sự kiện:</span>
-                                        <span className="text-sm font-medium">{getTypeLabel(event.type)}</span>
+                        {/* Score Rules Card — replaces duplicate "Thông tin sự kiện" */}
+                        <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-sm">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">🎯</div>
+                                <h3 className="text-lg font-bold text-stone-900">Luật tính điểm</h3>
+                            </div>
+                            <div className="bg-stone-50 rounded-2xl p-4 border border-stone-100">
+                                {event.seriesId ? (
+                                    <div className="text-sm text-yellow-800 bg-yellow-50 border border-yellow-200 rounded-xl p-3">
+                                        ℹ️ Thuộc chuỗi sự kiện. Điểm tính theo tiến độ chuỗi.
                                     </div>
-                                </div>
-                                <div className="mt-4 border-t pt-4">
-                                    {event.seriesId ? (
-                                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
-                                            ℹ️ Hoạt động thuộc chuỗi sự kiện. Điểm số sẽ tính theo tiến độ của chuỗi sự kiện.
-                                        </div>
-                                    ) : (
-                                        <div>
-                                            {event.presetCode && event.presetCode !== 'CUSTOM' && (
-                                                <div className="mb-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                                    <span>Mẫu cấu hình: {event.presetCode}</span>
-                                                </div>
-                                            )}
-                                            <ScoreRulesDisplay rules={event.scoreRules} />
-                                        </div>
-                                    )}
-                                </div>
+                                ) : (
+                                    <>
+                                        {event.presetCode && event.presetCode !== 'CUSTOM' && (
+                                            <div className="mb-3 inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                                {translatePreset(event.presetCode)}
+                                            </div>
+                                        )}
+                                        <ScoreRulesDisplay rules={event.scoreRules} />
+                                    </>
+                                )}
                             </div>
                         </div>
 
-                        {/* Registration Info */}
+                        {/* Registration Status */}
                         {registration && (
-                            <div className="card">
-                                <div className="p-6">
-                                    <h3 className="text-lg font-semibold text-[#001C44] mb-4">Trạng thái đăng ký</h3>
-                                    <div className="text-center">
-                                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(registration.status)}`}>
-                                            {getStatusLabel(registration.status)}
-                                        </span>
-                                    </div>
+                            <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-sm">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center text-xl">📋</div>
+                                    <h3 className="text-lg font-bold text-stone-900">Trạng thái đăng ký</h3>
+                                </div>
+                                <div className="flex justify-center">
+                                    <span className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-bold shadow-sm ${getStatusColor(registration.status)}`}>
+                                        {getStatusLabel(registration.status)}
+                                    </span>
                                 </div>
                             </div>
                         )}
 
                         {/* QR Code for Check-in */}
                         {registration && registration.status === RegistrationStatus.APPROVED && registration.ticketCode && (
-                            <div className="card">
-                                <div className="p-6">
-                                    <h3 className="text-lg font-medium text-gray-900 mb-4">Mã vé tham gia</h3>
-                                    <div className="flex flex-col items-center space-y-4">
-                                        <div className="bg-white p-4 rounded-lg border-2 border-gray-200">
-                                            <QRCodeSVG
-                                                value={registration.ticketCode}
-                                                size={200}
-                                                level="H"
-                                                includeMargin={true}
-                                            />
-                                        </div>
-                                        <div className="text-center">
-                                            <p className="text-sm font-medium text-gray-700 mb-2">Mã vé:</p>
-                                            <p className="text-lg font-bold text-gray-900 font-mono">{registration.ticketCode}</p>
-                                        </div>
-                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 w-full">
-                                            <h4 className="text-sm font-semibold text-blue-900 mb-2">Hướng dẫn check-in:</h4>
-                                            <ul className="text-xs text-blue-800 space-y-1 text-left">
-                                                <li>• <strong>Lần quét 1:</strong> Check-in (CHECKED_IN) - Khi đến sự kiện</li>
-                                                <li>• <strong>Lần quét 2:</strong> Check-out (CHECKED_OUT → ATTENDED) - Khi rời khỏi sự kiện</li>
-                                            </ul>
-                                            <p className="text-xs text-blue-700 mt-2 italic">
-                                                Vui lòng trình mã QR này cho ban tổ chức để được quét mã khi đến và khi rời khỏi sự kiện.
-                                            </p>
-                                        </div>
+                            <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-sm">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="w-10 h-10 rounded-full bg-sky-50 text-sky-600 flex items-center justify-center text-xl">🎫</div>
+                                    <h3 className="text-lg font-bold text-stone-900">Mã vé tham gia</h3>
+                                </div>
+                                <div className="flex flex-col items-center space-y-4">
+                                    <div className="bg-white p-4 rounded-2xl border-2 border-stone-200 shadow-inner">
+                                        <QRCodeSVG
+                                            value={registration.ticketCode}
+                                            size={180}
+                                            level="H"
+                                            includeMargin={true}
+                                        />
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-xs text-stone-500 mb-1">Mã vé</p>
+                                        <p className="text-base font-bold text-stone-900 font-mono tracking-wider">{registration.ticketCode}</p>
+                                    </div>
+                                    <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 w-full">
+                                        <h4 className="text-xs font-bold text-blue-900 mb-2 uppercase tracking-wide">Hướng dẫn check-in</h4>
+                                        <ul className="text-xs text-blue-800 space-y-1">
+                                            <li>• <strong>Lần 1:</strong> Check-in khi đến</li>
+                                            <li>• <strong>Lần 2:</strong> Check-out khi rời</li>
+                                        </ul>
                                     </div>
                                 </div>
                             </div>

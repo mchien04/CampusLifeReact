@@ -4,6 +4,8 @@ import { ActivityResponse, ActivityType, ScoreType } from '../types/activity';
 import { ActivityTaskResponse, TaskAssignmentResponse, CreateActivityTaskRequest, TaskAssignmentRequest, TaskStatus } from '../types/task';
 import { ActivityRegistrationResponse, RegistrationStatus, ActivityParticipationRequest, ParticipationType } from '../types/registration';
 import { eventAPI } from '../services/eventAPI';
+import { studentAPI } from '../services/studentAPI';
+import api from '../services/api';
 import { taskAPI } from '../services/taskAPI';
 import { registrationAPI } from '../services/registrationAPI';
 import { TaskList, TaskForm, TaskAssignmentsList } from '../components/tasks';
@@ -16,6 +18,7 @@ import { RegistrationForm, ParticipationForm } from '../components/registration'
 import { useAuth } from '../contexts/AuthContext';
 import { EventBannerImage, PhotoUploadForm, PhotoGrid } from '../components/events';
 import { activityPhotoAPI } from '../services/activityPhotoAPI';
+import { formatTicketQuantityLabel } from '../utils/ticketUtils';
 import { ActivityPhotoResponse } from '../types/activity';
 import { minigameAPI } from '../services/minigameAPI';
 import { MiniGame } from '../types/minigame';
@@ -39,6 +42,9 @@ const EventDetail: React.FC = () => {
     const [loadingAssignments, setLoadingAssignments] = useState(false);
     const [showSubmissionDetailsModal, setShowSubmissionDetailsModal] = useState(false);
     const [selectedTaskForSubmission, setSelectedTaskForSubmission] = useState<ActivityTaskResponse | null>(null);
+
+    // Departments for display
+    const [departments, setDepartments] = useState<any[]>([]);
 
     // Registration states
     const [registrationStatus, setRegistrationStatus] = useState<{ status: RegistrationStatus; registrationId?: number } | null>(null);
@@ -122,15 +128,65 @@ const EventDetail: React.FC = () => {
                     setError('Không tìm thấy sự kiện');
                 }
             } catch (err: any) {
-                console.error('Error fetching event:', err);
                 setError('Có lỗi xảy ra khi tải thông tin sự kiện');
+                console.error('Error loading event:', err);
             } finally {
                 setLoading(false);
             }
         };
 
+        const fetchDepartments = async () => {
+            try {
+                const res = await api.get('/api/departments');
+                if (res.data) setDepartments(Array.isArray(res.data) ? res.data : (res.data.body || []));
+            } catch (err) {
+                console.error("Error fetching departments", err);
+            }
+        };
+
         fetchEvent();
+        fetchDepartments();
     }, [id]);
+
+    const translatePreset = (code?: string | null) => {
+        if (!code) return 'Không có';
+        const maps: Record<string, string> = {
+            'EVENT_BASIC': 'Sự kiện cơ bản',
+            'EVENT_WITH_SUBMISSION': 'Sự kiện có nộp bài',
+            'ENTERPRISE_SEMINAR_BASIC': 'Chuyên đề doanh nghiệp cơ bản',
+            'ENTERPRISE_SEMINAR_WITH_BONUS': 'Chuyên đề doanh nghiệp (có thưởng)',
+            'MINIGAME_PASS_ONLY': 'Minigame (chỉ tính đạt)',
+            'SERIES_MILESTONE_BASIC': 'Chuỗi sự kiện cơ bản',
+            'ENTERPRISE_SERIES': 'Chuỗi chuyên đề doanh nghiệp',
+            'DEFAULT': 'Mặc định',
+            'NO_SUBMISSION': 'Không yêu cầu nộp bài',
+            'INTERNAL_ONLY': 'Nội bộ khoa',
+            'STRICT_ATTENDANCE': 'Điểm danh bắt buộc',
+            'CUSTOM': 'Tùy chỉnh',
+            'MINIGAME_DEFAULT': 'Minigame mặc định',
+            'SERIES_DEFAULT': 'Chuỗi sự kiện'
+        };
+        return maps[code] || code;
+    };
+
+    const translateActivityType = (type?: string | null) => {
+        if (!type) return 'N/A';
+        const maps: Record<string, string> = {
+            'SUKIEN': 'Sự kiện',
+            'MINIGAME': 'Mini Game',
+            'CONG_TAC_XA_HOI': 'Công tác xã hội',
+            'CHUYEN_DE_DOANH_NGHIEP': 'Chuyên đề doanh nghiệp'
+        };
+        return maps[type] || type;
+    };
+
+    const getDepartmentNames = (ids?: number[]) => {
+        if (!ids || ids.length === 0) return 'Chưa xác định';
+        return ids.map(id => {
+            const d = departments.find(dept => dept.id === id);
+            return d ? d.name : `Khoa ${id}`;
+        }).join(', ');
+    };
 
     // Load photos when event is loaded and ended
     useEffect(() => {
@@ -704,272 +760,104 @@ const EventDetail: React.FC = () => {
             </div>
 
             {/* Event Details */}
-            <div className="max-w-4xl mx-auto">
-                <div className="bg-white shadow-lg rounded-lg overflow-hidden">
-                    {/* Banner */}
-                    <EventBannerImage
-                        bannerUrl={event.bannerUrl}
-                        alt={`Banner ${event.name}`}
-                        wrapperClassName="h-64 bg-gray-200"
-                        imageClassName="h-full w-full object-cover"
-                    />
-
-                    <div className="p-8">
-                        {/* Header Info */}
-                        <div className="flex items-start justify-between mb-6">
-                            <div className="flex-1">
-                                <div className="flex items-center space-x-3 mb-3">
-                                    <h2 className="text-3xl font-bold text-[#001C44]">{event.name}</h2>
-                                    {event.isDraft && (
-                                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-300">
-                                            📝 Bản nháp
-                                        </span>
-                                    )}
-                                    {event.isImportant && (
-                                        <span className="text-[#FFD66D] text-2xl" title="Sự kiện quan trọng">⭐</span>
-                                    )}
-                                </div>
-                                <div className="flex items-center space-x-3 flex-wrap">
-                                    <span className="inline-block px-3 py-1.5 text-sm font-medium rounded-full bg-[#001C44] text-white">
-                                        {getTypeLabel(event.type)}
-                                    </span>
-                                    <span className="inline-block px-3 py-1.5 text-sm font-medium rounded-full bg-[#FFD66D] bg-opacity-30 text-[#001C44] border border-[#FFD66D]">
-                                        {event.seriesId
-                                            ? 'Chuỗi sự kiện'
-                                            : event.scoreRules && event.scoreRules.length > 0
-                                                ? Array.from(new Set(event.scoreRules.map(r => r.scoreType)))
-                                                    .map(type => getScoreTypeLabel(type))
-                                                    .join(', ')
-                                                : 'Không cộng điểm'}
-                                    </span>
-                                    <span className="text-sm text-gray-500 font-mono">
-                                        ID: {event.id}
-                                    </span>
-                                    {event.seriesId && (
-                                        <Link
-                                            to={`/manager/series/${event.seriesId}`}
-                                            className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-full bg-yellow-100 text-yellow-800 border border-yellow-300 hover:bg-yellow-200 transition-colors"
-                                        >
-                                            📋 Thuộc chuỗi sự kiện
-                                            {event.seriesOrder && ` (Thứ tự: ${event.seriesOrder})`}
-                                        </Link>
-                                    )}
-                                </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Main Content Column */}
+                <div className="lg:col-span-2 space-y-8">
+                    {/* Hero Section */}
+                    <div className="bg-white rounded-3xl shadow-sm border border-stone-200 overflow-hidden">
+                        <EventBannerImage
+                            bannerUrl={event.bannerUrl}
+                            alt={`Banner ${event.name}`}
+                            wrapperClassName="relative bg-gray-200"
+                            imageClassName="h-64 sm:h-80 w-full object-cover"
+                        />
+                        <div className="p-8 relative">
+                            <div className="absolute top-0 right-8 -translate-y-1/2 flex items-center gap-2">
+                                <span className={`px-4 py-1.5 rounded-full text-sm font-bold shadow-md ${
+                                    event.isDraft 
+                                        ? 'bg-yellow-100 text-yellow-800 border-yellow-200' 
+                                        : 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                                } border`}>
+                                    {event.isDraft ? '📝 Bản nháp' : '✅ Đã công bố'}
+                                </span>
                             </div>
-                            <div className="flex items-center space-x-2">
-                                {event.isDraft ? (
-                                    <button onClick={handlePublish} className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-all shadow-sm hover:shadow-md">Công bố</button>
-                                ) : (
-                                    <button onClick={handleUnpublish} className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm font-medium transition-all shadow-sm hover:shadow-md">Thu hồi</button>
+
+                            <div className="flex items-center gap-3 mb-4 flex-wrap">
+                                <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-lg border border-blue-100">
+                                    {translateActivityType(event.type)}
+                                </span>
+                                {event.isImportant && (
+                                    <span className="px-3 py-1 bg-orange-50 text-orange-700 text-xs font-bold rounded-lg border border-orange-100 flex items-center gap-1">
+                                        ⭐ Quan trọng
+                                    </span>
                                 )}
-                                <button onClick={handleCopy} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-sm font-medium transition-all border-2 border-gray-300 hover:border-[#001C44]">Sao chép</button>
-                            </div>
-                        </div>
-
-                        {/* Description */}
-                        {event.description && (
-                            <div className="mb-8 p-4 bg-gray-50 rounded-lg border-l-4 border-[#001C44]">
-                                <h3 className="text-lg font-semibold text-[#001C44] mb-3">Mô tả</h3>
-                                <p className="text-gray-700 leading-relaxed">{event.description}</p>
-                            </div>
-                        )}
-
-                        {/* Event Details Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                            {/* Date & Time */}
-                            <div className="bg-gray-50 p-5 rounded-lg border border-gray-200">
-                                <h3 className="text-lg font-semibold text-[#001C44] mb-4 flex items-center">
-                                    <span className="mr-2">📅</span>
-                                    Thời gian & Địa điểm
-                                </h3>
-                                <div className="space-y-3">
-                                    <div className="flex items-center">
-                                        <span className="w-5 h-5 mr-3 text-blue-600">📅</span>
-                                        <div>
-                                            <p className="text-sm text-gray-500">Ngày bắt đầu</p>
-                                            <p className="font-medium">{formatDate(event.startDate)}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <span className="w-5 h-5 mr-3 text-blue-600">📅</span>
-                                        <div>
-                                            <p className="text-sm text-gray-500">Ngày kết thúc</p>
-                                            <p className="font-medium">{formatDate(event.endDate)}</p>
-                                        </div>
-                                    </div>
-                                    {event.registrationStartDate && (
-                                        <div className="flex items-center">
-                                            <span className="w-5 h-5 mr-3 text-green-600">🚀</span>
-                                            <div>
-                                                <p className="text-sm text-gray-500">Ngày mở đăng ký</p>
-                                                <p className="font-medium">{formatDate(event.registrationStartDate)}</p>
-                                            </div>
-                                        </div>
-                                    )}
-                                    {event.registrationDeadline && (
-                                        <div className="flex items-center">
-                                            <span className="w-5 h-5 mr-3 text-orange-600">⏰</span>
-                                            <div>
-                                                <p className="text-sm text-gray-500">Hạn đăng ký</p>
-                                                <p className="font-medium">{formatDate(event.registrationDeadline)}</p>
-                                            </div>
-                                        </div>
-                                    )}
-                                    <div className="flex items-center">
-                                        <span className="w-5 h-5 mr-3 text-green-600">📍</span>
-                                        <div>
-                                            <p className="text-sm text-gray-500">Địa điểm</p>
-                                            <p className="font-medium">{event.location}</p>
-                                        </div>
-                                    </div>
-                                </div>
+                                {event.seriesId && (
+                                    <Link 
+                                        to={`/manager/series/${event.seriesId}`}
+                                        className="inline-flex items-center gap-1 px-3 py-1 text-xs font-bold rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100 transition-colors"
+                                    >
+                                        📋 Thuộc chuỗi sự kiện {event.seriesOrder && `(#${event.seriesOrder})`}
+                                    </Link>
+                                )}
                             </div>
 
-                            {/* Event Info */}
-                            <div className="bg-gray-50 p-5 rounded-lg border border-gray-200">
-                                <h3 className="text-lg font-semibold text-[#001C44] mb-4 flex items-center">
-                                    <span className="mr-2">ℹ️</span>
-                                    Thông tin sự kiện
-                                </h3>
-                                <div className="space-y-3">
-                                    <div className="flex items-center">
-                                        <span className="w-5 h-5 mr-3 text-purple-600">🏢</span>
-                                        <div>
-                                            <p className="text-sm text-gray-500">Đơn vị tổ chức</p>
-                                            <p className="font-medium">
-                                                {event.organizerIds && event.organizerIds.length > 0
-                                                    ? `ID: ${event.organizerIds.join(', ')}`
-                                                    : 'Chưa xác định'
-                                                }
-                                            </p>
-                                        </div>
-                                    </div>
-                                    {event.seriesId ? (
-                                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
-                                            ℹ️ Hoạt động thuộc chuỗi sự kiện. Điểm số sẽ tính theo tiến độ của chuỗi sự kiện.
-                                        </div>
-                                    ) : (
-                                        <div>
-                                            {event.presetCode && event.presetCode !== 'CUSTOM' && (
-                                                <div className="mb-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                                    <span>Mẫu cấu hình: {event.presetCode}</span>
-                                                </div>
-                                            )}
-                                            <ScoreRulesDisplay rules={event.scoreRules} />
-                                        </div>
-                                    )}
-                                    <div className="flex items-center">
-                                        <span className="w-5 h-5 mr-3 text-indigo-600">🎫</span>
-                                        <div>
-                                            <p className="text-sm text-gray-500">Số lượng vé/slot</p>
-                                            <p className="font-medium">
-                                                {event.ticketQuantity && event.ticketQuantity > 0 ? event.ticketQuantity : 'Không giới hạn'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <span className="w-5 h-5 mr-3 text-indigo-600">📝</span>
-                                        <div>
-                                            <p className="text-sm text-gray-500">Yêu cầu nộp bài</p>
-                                            <p className="font-medium">
-                                                {event.requiresSubmission ? 'Có' : 'Không'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    {event.isImportant && (
-                                        <div className="flex items-center">
-                                            <span className="w-5 h-5 mr-3 text-yellow-600">⭐</span>
-                                            <div>
-                                                <p className="text-sm text-gray-500">Sự kiện quan trọng</p>
-                                                <p className="font-medium">Có</p>
-                                            </div>
-                                        </div>
-                                    )}
-                                    <div className="flex items-center">
-                                        <span className="w-5 h-5 mr-3 text-orange-600">🎯</span>
-                                        <div>
-                                            <p className="text-sm text-gray-500">Bắt buộc cho sinh viên khoa</p>
-                                            <p className="font-medium">
-                                                {event.mandatoryForFacultyStudents ? 'Có' : 'Không'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <span className="w-5 h-5 mr-3 text-blue-600">✅</span>
-                                        <div>
-                                            <p className="text-sm text-gray-500">Đăng ký cần duyệt</p>
-                                            <p className="font-medium">
-                                                {event.requiresApproval ? 'Có' : 'Không (Tự động duyệt)'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    {event.shareLink && (
-                                        <div className="flex items-center">
-                                            <span className="w-5 h-5 mr-3 text-blue-600">🔗</span>
-                                            <div>
-                                                <p className="text-sm text-gray-500">Link chia sẻ</p>
-                                                <a
-                                                    href={event.shareLink}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="font-medium text-blue-600 hover:text-blue-800"
-                                                >
-                                                    Xem link
-                                                </a>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
+                            <h2 className="text-3xl font-extrabold text-stone-900 mb-4 leading-snug">{event.name}</h2>
+                            <p className="text-stone-600 text-lg leading-relaxed">{event.description || "Chưa có mô tả"}</p>
 
-                        {/* Additional Information */}
-                        {(event.benefits || event.requirements || event.contactInfo) && (
-                            <div className="border-t border-gray-200 pt-6 mb-8">
-                                <h3 className="text-lg font-semibold text-[#001C44] mb-4">Thông tin bổ sung</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    {event.benefits && (
-                                        <div>
-                                            <h4 className="text-md font-medium text-gray-900 mb-2">Quyền lợi khi tham gia</h4>
-                                            <p className="text-gray-700 text-sm leading-relaxed">{event.benefits}</p>
-                                        </div>
-                                    )}
-                                    {event.requirements && (
-                                        <div>
-                                            <h4 className="text-md font-medium text-gray-900 mb-2">Yêu cầu tham gia</h4>
-                                            <p className="text-gray-700 text-sm leading-relaxed">{event.requirements}</p>
-                                        </div>
-                                    )}
-                                    {event.contactInfo && (
-                                        <div>
-                                            <h4 className="text-md font-medium text-gray-900 mb-2">Thông tin liên hệ</h4>
-                                            <p className="text-gray-700 text-sm leading-relaxed">{event.contactInfo}</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Metadata */}
-                        <div className="border-t border-gray-200 pt-6">
-                            <h3 className="text-lg font-semibold text-[#001C44] mb-4">Thông tin hệ thống</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-                                <div>
-                                    <p><span className="font-medium">Ngày tạo:</span> {event.createdAt ? formatDate(event.createdAt) : '-'}</p>
-                                    {event.createdBy && (
-                                        <p><span className="font-medium">Người tạo:</span> {event.createdBy}</p>
-                                    )}
-                                </div>
-                                <div>
-                                    <p><span className="font-medium">Cập nhật lần cuối:</span> {event.updatedAt ? formatDate(event.updatedAt) : '-'}</p>
-                                    {event.lastModifiedBy && (
-                                        <p><span className="font-medium">Người cập nhật:</span> {event.lastModifiedBy}</p>
-                                    )}
-                                </div>
+                            <div className="mt-8 flex items-center gap-3">
+                                {event.isDraft ? (
+                                    <button onClick={handlePublish} className="px-5 py-2.5 bg-[#001C44] hover:bg-[#002A66] text-[#FFD66D] rounded-xl text-sm font-bold transition-all shadow-md hover:-translate-y-0.5">Công bố</button>
+                                ) : (
+                                    <button onClick={handleUnpublish} className="px-5 py-2.5 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded-xl text-sm font-bold transition-all shadow-md hover:-translate-y-0.5">Hủy công bố</button>
+                                )}
                             </div>
                         </div>
                     </div>
-                </div>
+
+                    {/* Additional Information */}
+                    {(event.benefits || event.requirements || event.contactInfo) && (
+                        <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-sm">
+                            <h3 className="text-lg font-bold text-stone-900 mb-6 flex items-center gap-2">
+                                <span className="text-xl">✨</span> Thông tin bổ sung
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {event.benefits && (
+                                    <div className="bg-stone-50 rounded-2xl p-4">
+                                        <h4 className="text-sm font-bold text-stone-900 mb-2 text-emerald-700">Quyền lợi</h4>
+                                        <p className="text-stone-600 text-sm leading-relaxed whitespace-pre-wrap">{event.benefits}</p>
+                                    </div>
+                                )}
+                                {event.requirements && (
+                                    <div className="bg-stone-50 rounded-2xl p-4">
+                                        <h4 className="text-sm font-bold text-stone-900 mb-2 text-rose-700">Yêu cầu</h4>
+                                        <p className="text-stone-600 text-sm leading-relaxed whitespace-pre-wrap">{event.requirements}</p>
+                                    </div>
+                                )}
+                                {event.contactInfo && (
+                                    <div className="bg-stone-50 rounded-2xl p-4">
+                                        <h4 className="text-sm font-bold text-stone-900 mb-2 text-blue-700">Liên hệ</h4>
+                                        <p className="text-stone-600 text-sm leading-relaxed whitespace-pre-wrap">{event.contactInfo}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Share Link */}
+                    {event.shareLink && (
+                        <div className="bg-white rounded-3xl p-4 border border-stone-200 shadow-sm flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xl">🔗</div>
+                                <div>
+                                    <h4 className="text-sm font-bold text-stone-900">Link chia sẻ public</h4>
+                                    <p className="text-xs text-stone-500 line-clamp-1">{event.shareLink}</p>
+                                </div>
+                            </div>
+                            <a href={event.shareLink} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl text-sm font-bold transition-colors whitespace-nowrap">
+                                Mở link
+                            </a>
+                        </div>
+                    )}
 
                 {/* QR Code Section - Only for Admin/Manager */}
                 {(user?.role === 'ADMIN' || user?.role === 'MANAGER') && (
@@ -1432,6 +1320,94 @@ const EventDetail: React.FC = () => {
                         </div>
                     </div>
                 )}
+                </div>
+
+                {/* Sidebar Column */}
+                <div className="space-y-6">
+                    {/* Score Rules Card */}
+                    {!event.seriesId && (
+                        <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-sm">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">🎯</div>
+                                <h3 className="text-lg font-bold text-stone-900">Luật tính điểm</h3>
+                            </div>
+                            <div className="bg-stone-50 rounded-2xl p-4 border border-stone-100">
+                                <ScoreRulesDisplay rules={event.scoreRules} />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Event Properties */}
+                    <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-sm">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-10 h-10 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center text-xl">⚙️</div>
+                            <h3 className="text-lg font-bold text-stone-900">Thông số sự kiện</h3>
+                        </div>
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-start border-b border-stone-100 pb-3">
+                                <span className="text-sm text-stone-500 font-medium">Đơn vị tổ chức</span>
+                                <span className="text-sm font-bold text-stone-900 text-right max-w-[60%]">{getDepartmentNames(event.organizerIds)}</span>
+                            </div>
+                            <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+                                <span className="text-sm text-stone-500 font-medium">Số lượng vé</span>
+                                <span className="text-sm font-bold text-stone-900 tabular-nums">{formatTicketQuantityLabel(event.ticketQuantity)}</span>
+                            </div>
+                            <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+                                <span className="text-sm text-stone-500 font-medium">Bắt buộc khoa</span>
+                                <span className="text-sm font-bold text-stone-900">{event.mandatoryForFacultyStudents ? 'Có' : 'Không'}</span>
+                            </div>
+                            <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+                                <span className="text-sm text-stone-500 font-medium">Yêu cầu nộp bài</span>
+                                <span className="text-sm font-bold text-stone-900">{event.requiresSubmission ? 'Có' : 'Không'}</span>
+                            </div>
+                            <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+                                <span className="text-sm text-stone-500 font-medium">Duyệt đăng ký</span>
+                                <span className="text-sm font-bold text-stone-900">{event.requiresApproval ? 'Duyệt tay' : 'Tự động'}</span>
+                            </div>
+                            {event.presetCode && event.presetCode !== 'CUSTOM' && (
+                                <div className="flex justify-between items-center pb-1">
+                                    <span className="text-sm text-stone-500 font-medium">Mẫu cấu hình</span>
+                                    <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded-md">{translatePreset(event.presetCode)}</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Time & Location */}
+                    <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-sm">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xl">📅</div>
+                            <h3 className="text-lg font-bold text-stone-900">Thời gian & Địa điểm</h3>
+                        </div>
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+                                <span className="text-sm text-stone-500 font-medium">Bắt đầu</span>
+                                <span className="text-sm font-bold text-stone-900">{formatDate(event.startDate)}</span>
+                            </div>
+                            <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+                                <span className="text-sm text-stone-500 font-medium">Kết thúc</span>
+                                <span className="text-sm font-bold text-stone-900">{formatDate(event.endDate)}</span>
+                            </div>
+                            <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+                                <span className="text-sm text-stone-500 font-medium">Địa điểm</span>
+                                <span className="text-sm font-bold text-stone-900 text-right line-clamp-1">{event.location || 'Chưa cập nhật'}</span>
+                            </div>
+                            {event.registrationStartDate && (
+                                <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+                                    <span className="text-sm text-stone-500 font-medium">Mở đăng ký</span>
+                                    <span className="text-sm font-bold text-green-700">{formatDate(event.registrationStartDate)}</span>
+                                </div>
+                            )}
+                            {event.registrationDeadline && (
+                                <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+                                    <span className="text-sm text-stone-500 font-medium">Hạn đăng ký</span>
+                                    <span className="text-sm font-bold text-orange-600">{formatDate(event.registrationDeadline)}</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                </div>
             </div>
 
             {/* Task Form Modal */}

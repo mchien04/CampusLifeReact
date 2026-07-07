@@ -21,8 +21,9 @@ const slugify = (value: string): string => {
 
 const ArticleEditorById: React.FC = () => {
     const { articleId } = useParams<{ articleId: string }>();
-    const id = Number(articleId);
     const location = useLocation();
+    const isCreateMode = location.pathname.endsWith('/create') || articleId === 'create';
+    const id = isCreateMode ? NaN : Number(articleId);
     const base = location.pathname.startsWith('/manager') ? '/manager' : '/admin';
 
     const [article, setArticle] = useState<EventArticleAdminResponse | null>(null);
@@ -80,6 +81,11 @@ const ArticleEditorById: React.FC = () => {
 
     useEffect(() => {
         const loadArticle = async () => {
+            if (isCreateMode) {
+                setLoading(false);
+                return;
+            }
+
             if (!Number.isFinite(id)) {
                 setError('Article ID không hợp lệ');
                 setLoading(false);
@@ -120,7 +126,7 @@ const ArticleEditorById: React.FC = () => {
         };
 
         loadArticle();
-    }, [id]);
+    }, [id, isCreateMode]);
 
     useEffect(() => {
         if (!article) return;
@@ -148,7 +154,7 @@ const ArticleEditorById: React.FC = () => {
     };
 
     const handleSave = async () => {
-        if (!article) return;
+        if (!isCreateMode && (!article || !Number.isFinite(article.id))) return;
         if (!form.title.trim() || !form.slug.trim() || !form.content.trim()) {
             setError('Vui lòng nhập đủ title, slug và content');
             return;
@@ -159,13 +165,17 @@ const ArticleEditorById: React.FC = () => {
         try {
             const payload: EventArticleUpsertRequest = {
                 ...form,
-                activityId: article.activityId ?? undefined,
+                activityId: article?.activityId ?? form.activityId ?? undefined,
                 thumbnailUrl: form.thumbnailUrl || null,
                 seoTitle: form.seoTitle || null,
                 seoDescription: form.seoDescription || null,
             };
 
-            const response = await articleAPI.updateArticle(article.id, payload);
+            const canUpdate = article && Number.isFinite(article.id);
+            const response = canUpdate
+                ? await articleAPI.updateArticle(article.id, payload)
+                : await articleAPI.createArticle(payload);
+
             if (response.status && response.body) {
                 setArticle(response.body);
                 setTagIdsInitialized(false);
@@ -224,7 +234,10 @@ const ArticleEditorById: React.FC = () => {
     };
 
     const handlePreview = () => {
-        if (!form.slug.trim()) return;
+        if (!form.slug?.trim()) {
+            alert('Vui lòng tạo đường dẫn (slug) trước khi xem thử');
+            return;
+        }
         const url = `${window.location.origin}/articles/${encodeURIComponent(form.slug.trim())}`;
         window.open(url, '_blank', 'noopener,noreferrer');
     };
@@ -329,36 +342,39 @@ const ArticleEditorById: React.FC = () => {
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-start justify-between gap-4 flex-wrap">
-                <div>
-                    <h1 className="text-3xl font-bold text-[#001C44]">Article Editor</h1>
-                    <p className="text-gray-600 mt-2">Article ID: {id}</p>
-                    {article?.activityId && <p className="text-gray-600">Activity ID: {article.activityId}</p>}
+        <div className="space-y-8 max-w-7xl mx-auto pb-12">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-white rounded-3xl shadow-premium p-8 border-0 relative overflow-hidden">
+                <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 rounded-full bg-gradient-to-br from-[#0B5FFF]/10 to-[#FFD66D]/10 blur-3xl mix-blend-screen pointer-events-none" />
+                <div className="relative z-10">
+                    <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#001C44]">📝 Soạn thảo Bài viết (ByID)</h1>
+                    <p className="text-gray-500 font-semibold mt-2 flex flex-wrap items-center gap-4">
+                        <span className="flex items-center gap-2">Article ID: <span className="bg-gray-100 px-2 py-0.5 rounded font-mono text-[#001C44]">{id}</span></span>
+                        {article?.activityId && <span className="flex items-center gap-2">Activity ID: <span className="bg-gray-100 px-2 py-0.5 rounded font-mono text-[#001C44]">{article.activityId}</span></span>}
+                    </p>
                 </div>
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-3 relative z-10 w-full md:w-auto">
                     <button
                         type="button"
                         onClick={handlePreview}
-                        className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                        className="flex-1 md:flex-none px-6 py-3 rounded-2xl bg-gray-100 text-[#001C44] font-extrabold hover:bg-gray-200 transition-all active:scale-95 text-sm"
                     >
-                        Preview public link
+                        👁️ Xem thử
                     </button>
                     {article && (
                         <button
                             type="button"
                             onClick={handlePublishToggle}
                             disabled={publishing}
-                            className={`px-4 py-2 rounded-lg text-white transition-colors ${article.published ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-600 hover:bg-green-700'} disabled:opacity-60`}
+                            className={`flex-1 md:flex-none px-6 py-3 rounded-2xl font-extrabold transition-all active:scale-95 text-sm shadow-md hover:shadow-lg hover:-translate-y-0.5 ${article.published ? 'bg-amber-100 text-amber-800 hover:bg-amber-200' : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'} disabled:opacity-60 disabled:transform-none`}
                         >
-                            {publishing ? 'Đang xử lý...' : article.published ? 'Unpublish' : 'Publish'}
+                            {publishing ? 'Đang xử lý...' : article.published ? 'Gỡ bài' : 'Xuất bản'}
                         </button>
                     )}
                     <Link
                         to={`${base}/articles`}
-                        className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                        className="flex-1 md:flex-none px-6 py-3 rounded-2xl bg-[#FFD66D] text-[#001C44] font-extrabold hover:bg-yellow-400 transition-all active:scale-95 text-sm shadow-md hover:shadow-lg hover:-translate-y-0.5 text-center"
                     >
-                        Quay lại danh sách
+                        🔙 Quay lại
                     </Link>
                 </div>
             </div>
@@ -369,103 +385,103 @@ const ArticleEditorById: React.FC = () => {
                 </div>
             )}
 
-            {article && (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <label className="space-y-2">
-                            <span className="block text-sm font-medium text-gray-700">Title</span>
+            {(article || isCreateMode) && (
+                <div className="bg-white rounded-3xl shadow-premium border-0 p-8 space-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <label className="space-y-2 block">
+                            <span className="block text-xs font-bold tracking-wide text-gray-500 uppercase">Tiêu đề (Title)</span>
                             <input
                                 value={form.title || ''}
                                 onChange={(event) => updateField('title', event.target.value)}
-                                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#001C44] focus:outline-none"
+                                className="w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all font-semibold"
+                                placeholder="Nhập tiêu đề bài viết..."
                             />
                         </label>
                         <div className="space-y-2">
                             <div className="flex items-center justify-between gap-2">
-                                <span className="block text-sm font-medium text-gray-700">Slug</span>
+                                <span className="block text-xs font-bold tracking-wide text-gray-500 uppercase">Đường dẫn (Slug)</span>
                                 <button
                                     type="button"
                                     onClick={handleGenerateSlug}
-                                    className="text-xs font-semibold text-[#001C44] hover:text-[#002A66]"
+                                    className="text-xs font-extrabold text-[#001C44] hover:text-blue-600 transition-colors flex items-center gap-1"
                                 >
-                                    Tạo từ title
+                                    🔄 Tự động
                                 </button>
                             </div>
                             <input
                                 value={form.slug || ''}
                                 onChange={(event) => updateField('slug', event.target.value)}
-                                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#001C44] focus:outline-none"
+                                className="w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all font-semibold"
+                                placeholder="duong-dan-bai-viet"
                             />
                         </div>
                     </div>
 
-                    <label className="space-y-2 block">
-                        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5 space-y-4">
-                            <div className="flex items-center justify-between gap-3 flex-wrap">
-                                <div>
-                                    <div className="text-lg font-bold text-[#001C44]">Thumbnail</div>
-                                    <div className="text-sm text-gray-600">Chọn ảnh từ máy hoặc dán URL</div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        ref={thumbnailInputRef}
-                                        type="file"
-                                        accept="image/*"
-                                        className="hidden"
-                                        onChange={(e) => {
-                                            const file = e.target.files?.[0];
-                                            if (file) void handleThumbnailSelected(file);
-                                            e.currentTarget.value = '';
-                                        }}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={handlePickThumbnail}
-                                        disabled={uploadingThumbnail}
-                                        className="px-4 py-2 rounded-lg bg-[#001C44] text-white font-semibold hover:bg-[#002A66] disabled:opacity-60"
-                                    >
-                                        {uploadingThumbnail ? 'Đang upload...' : 'Chọn ảnh'}
-                                    </button>
-                                </div>
+                    <div className="rounded-3xl border border-gray-100 bg-gray-50/50 p-6 space-y-6">
+                        <div className="flex items-center justify-between gap-3 flex-wrap border-b border-gray-200/50 pb-4">
+                            <div>
+                                <div className="text-lg font-extrabold text-[#001C44]">Ảnh đại diện (Thumbnail)</div>
+                                <div className="text-sm font-medium text-gray-500 mt-1">Chọn ảnh từ máy hoặc nhập URL trực tiếp</div>
                             </div>
+                            <div className="flex items-center gap-3">
+                                <input
+                                    ref={thumbnailInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) void handleThumbnailSelected(file);
+                                        e.currentTarget.value = '';
+                                    }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handlePickThumbnail}
+                                    disabled={uploadingThumbnail}
+                                    className="px-6 py-2.5 rounded-2xl bg-[#001C44] text-white font-extrabold hover:bg-blue-900 disabled:opacity-60 transition-all active:scale-95 shadow-md text-sm"
+                                >
+                                    {uploadingThumbnail ? 'Đang upload...' : '📤 Tải ảnh lên'}
+                                </button>
+                            </div>
+                        </div>
 
-                            {form.thumbnailUrl ? (
-                                <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4 items-start">
-                                    <img
-                                        src={getImageUrl(form.thumbnailUrl) || form.thumbnailUrl}
-                                        alt="thumbnail"
-                                        className="w-full h-40 object-cover rounded-xl border border-gray-200 bg-white"
-                                    />
-                                    <div className="space-y-2">
-                                        <div className="text-sm font-semibold text-gray-700">Thumbnail URL</div>
-                                        <input
-                                            value={form.thumbnailUrl || ''}
-                                            onChange={(event) => updateField('thumbnailUrl', event.target.value)}
-                                            className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#001C44] focus:outline-none bg-white"
-                                        />
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="space-y-2">
-                                    <div className="text-sm font-semibold text-gray-700">Thumbnail URL</div>
+                        {form.thumbnailUrl ? (
+                            <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-6 items-start">
+                                <img
+                                    src={getImageUrl(form.thumbnailUrl) || form.thumbnailUrl}
+                                    alt="thumbnail"
+                                    className="w-full h-48 object-cover rounded-2xl shadow-md bg-white"
+                                />
+                                <div className="space-y-2 w-full">
+                                    <div className="text-xs font-bold tracking-wide text-gray-500 uppercase">Thumbnail URL</div>
                                     <input
                                         value={form.thumbnailUrl || ''}
                                         onChange={(event) => updateField('thumbnailUrl', event.target.value)}
-                                        className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#001C44] focus:outline-none bg-white"
-                                        placeholder="https://... hoặc /uploads/..."
+                                        className="w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all font-semibold bg-white"
                                     />
                                 </div>
-                            )}
-                        </div>
-                    </label>
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                <div className="text-xs font-bold tracking-wide text-gray-500 uppercase">Thumbnail URL</div>
+                                <input
+                                    value={form.thumbnailUrl || ''}
+                                    onChange={(event) => updateField('thumbnailUrl', event.target.value)}
+                                    className="w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all font-semibold bg-white"
+                                    placeholder="https://... hoặc /uploads/..."
+                                />
+                            </div>
+                        )}
+                    </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div className="space-y-2">
-                            <span className="block text-sm font-medium text-gray-700">Danh mục</span>
+                            <span className="block text-xs font-bold tracking-wide text-gray-500 uppercase">Danh mục</span>
                             <select
                                 value={form.categoryId ?? ''}
                                 onChange={(e) => updateField('categoryId', e.target.value ? Number(e.target.value) : null)}
-                                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#001C44] focus:outline-none bg-white"
+                                className="w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all font-semibold bg-white cursor-pointer"
                             >
                                 <option value="">Không chọn</option>
                                 {categories.map((c) => (
@@ -476,11 +492,11 @@ const ArticleEditorById: React.FC = () => {
                             </select>
                         </div>
                         <div className="space-y-2">
-                            <span className="block text-sm font-medium text-gray-700">Loại bài viết</span>
+                            <span className="block text-xs font-bold tracking-wide text-gray-500 uppercase">Loại bài viết</span>
                             <select
                                 value={form.articleType || 'ANNOUNCEMENT'}
                                 onChange={(e) => updateField('articleType', e.target.value)}
-                                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#001C44] focus:outline-none bg-white"
+                                className="w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all font-semibold bg-white cursor-pointer"
                             >
                                 <option value="ANNOUNCEMENT">Thông báo</option>
                                 <option value="RECAP">Tổng kết</option>
@@ -490,7 +506,7 @@ const ArticleEditorById: React.FC = () => {
                             </select>
                         </div>
                         <div className="space-y-2 md:col-span-2">
-                            <span className="block text-sm font-medium text-gray-700">Tags</span>
+                            <span className="block text-xs font-bold tracking-wide text-gray-500 uppercase">Tags</span>
                             <select
                                 multiple
                                 value={(form.tagIds ?? []).map(String)}
@@ -498,7 +514,7 @@ const ArticleEditorById: React.FC = () => {
                                     const next = Array.from(e.target.selectedOptions).map((o) => Number(o.value));
                                     setForm((prev) => ({ ...prev, tagIds: next }));
                                 }}
-                                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#001C44] focus:outline-none bg-white min-h-[52px]"
+                                className="w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all font-semibold bg-white min-h-[52px]"
                             >
                                 {tags.map((t) => (
                                     <option key={t.id} value={t.id}>
@@ -506,181 +522,193 @@ const ArticleEditorById: React.FC = () => {
                                     </option>
                                 ))}
                             </select>
-                            <div className="text-xs text-gray-500">Giữ Ctrl (Windows) để chọn nhiều</div>
+                            <div className="text-[11px] font-bold text-gray-400">Giữ Ctrl (Windows) / Cmd (Mac) để chọn nhiều</div>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-                        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 h-[52px]">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-center bg-gray-50/50 p-4 rounded-3xl border border-gray-100">
+                        <label className="flex items-center justify-center gap-2.5 text-sm font-extrabold text-[#001C44] h-[48px] cursor-pointer hover:bg-white rounded-xl transition-colors">
                             <input
                                 type="checkbox"
                                 checked={Boolean(form.isFeatured)}
                                 onChange={(e) => setForm((prev) => ({ ...prev, isFeatured: e.target.checked }))}
-                                className="h-4 w-4"
+                                className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                             />
-                            Nổi bật
+                            🌟 Nổi bật
                         </label>
-                        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 h-[52px]">
+                        <label className="flex items-center justify-center gap-2.5 text-sm font-extrabold text-[#001C44] h-[48px] cursor-pointer hover:bg-white rounded-xl transition-colors">
                             <input
                                 type="checkbox"
                                 checked={Boolean(form.isPinned)}
                                 onChange={(e) => setForm((prev) => ({ ...prev, isPinned: e.target.checked }))}
-                                className="h-4 w-4"
+                                className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                             />
-                            Ghim
+                            📌 Ghim
                         </label>
-                        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 h-[52px]">
+                        <label className="flex items-center justify-center gap-2.5 text-sm font-extrabold text-[#001C44] h-[48px] cursor-pointer hover:bg-white rounded-xl transition-colors">
                             <input
                                 type="checkbox"
                                 checked={Boolean(form.isPrimary)}
                                 onChange={(e) => setForm((prev) => ({ ...prev, isPrimary: e.target.checked }))}
-                                className="h-4 w-4"
+                                className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                             />
-                            Đại diện chính
+                            🏆 Đại diện
                         </label>
-                        <div className="space-y-2">
-                            <span className="block text-sm font-medium text-gray-700">Priority</span>
+                        <div className="space-y-1.5 w-full">
+                            <span className="block text-xs font-bold tracking-wide text-gray-500 uppercase px-2">Độ ưu tiên (Priority)</span>
                             <input
                                 type="number"
                                 value={Number(form.priority ?? 0)}
                                 onChange={(e) => updateField('priority', Number(e.target.value))}
-                                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#001C44] focus:outline-none"
+                                className="w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-2 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all font-semibold bg-white text-center"
                             />
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <label className="space-y-2 block">
-                            <span className="block text-sm font-medium text-gray-700">SEO Title</span>
+                            <span className="block text-xs font-bold tracking-wide text-gray-500 uppercase">SEO Title</span>
                             <input
                                 value={form.seoTitle || ''}
                                 onChange={(event) => updateField('seoTitle', event.target.value)}
-                                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#001C44] focus:outline-none"
+                                className="w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all font-semibold"
+                                placeholder="Tiêu đề hiển thị trên Google"
                             />
                         </label>
                         <label className="space-y-2 block">
-                            <span className="block text-sm font-medium text-gray-700">SEO Description</span>
+                            <span className="block text-xs font-bold tracking-wide text-gray-500 uppercase">SEO Description</span>
                             <input
                                 value={form.seoDescription || ''}
                                 onChange={(event) => updateField('seoDescription', event.target.value)}
-                                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#001C44] focus:outline-none"
+                                className="w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all font-semibold"
+                                placeholder="Đoạn mô tả ngắn hiển thị trên Google"
                             />
                         </label>
                     </div>
 
-                    <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5 space-y-4">
-                        <div>
-                            <div className="text-lg font-bold text-[#001C44]">Gallery</div>
-                            <div className="text-sm text-gray-600">Thêm ảnh theo URL hoặc upload từ máy</div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                            <input
-                                ref={galleryInputRef}
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                className="hidden"
-                                onChange={(e) => {
-                                    if (e.target.files && e.target.files.length > 0) {
-                                        void handleGallerySelected(e.target.files);
-                                    }
-                                    e.currentTarget.value = '';
-                                }}
-                            />
-                            <button
-                                type="button"
-                                onClick={handlePickGalleryFiles}
-                                disabled={uploadingGallery}
-                                className="px-4 py-2 rounded-lg bg-[#001C44] text-white font-semibold hover:bg-[#002A66] disabled:opacity-60"
-                            >
-                                {uploadingGallery ? 'Đang upload...' : 'Upload ảnh'}
-                            </button>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                            <input
-                                value={imageForm.imageUrl}
-                                onChange={(e) => setImageForm((p) => ({ ...p, imageUrl: e.target.value }))}
-                                className="md:col-span-2 w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#001C44] focus:outline-none bg-white"
-                                placeholder="Image URL"
-                            />
-                            <input
-                                value={imageForm.caption}
-                                onChange={(e) => setImageForm((p) => ({ ...p, caption: e.target.value }))}
-                                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#001C44] focus:outline-none bg-white"
-                                placeholder="Caption (tùy chọn)"
-                            />
-                            <input
-                                type="number"
-                                value={imageForm.displayOrder}
-                                onChange={(e) => setImageForm((p) => ({ ...p, displayOrder: Number(e.target.value) }))}
-                                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#001C44] focus:outline-none bg-white"
-                                placeholder="Order"
-                            />
-                        </div>
-                        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                            <input
-                                type="checkbox"
-                                checked={imageForm.isCover}
-                                onChange={(e) => setImageForm((p) => ({ ...p, isCover: e.target.checked }))}
-                                className="h-4 w-4"
-                            />
-                            Đặt làm cover
-                        </label>
-                        <button
-                            type="button"
-                            disabled={addingImage || !imageForm.imageUrl.trim()}
-                            onClick={handleAddImage}
-                            className="px-4 py-2 rounded-lg bg-[#001C44] text-white font-semibold hover:bg-[#002A66] disabled:opacity-60"
-                        >
-                            {addingImage ? 'Đang thêm...' : 'Thêm ảnh'}
-                        </button>
-
-                        {galleryImages.length > 0 && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {galleryImages.map((img) => (
-                                    <div key={img.id} className="rounded-xl bg-white border border-gray-200 overflow-hidden">
-                                        <img src={img.imageUrl} alt={img.caption || 'image'} className="w-full h-40 object-cover" />
-                                        <div className="p-3 flex items-start justify-between gap-3">
-                                            <div className="min-w-0">
-                                                <div className="text-sm font-semibold text-gray-900 truncate">{img.caption || 'Ảnh'}</div>
-                                                <div className="text-xs text-gray-500">Order: {img.displayOrder} {img.isCover ? '• Cover' : ''}</div>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => handleRemoveImage(img.id)}
-                                                className="px-3 py-1 rounded-lg bg-red-100 text-red-700 font-semibold hover:bg-red-200"
-                                            >
-                                                Xóa
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
+                    {article && (
+                        <div className="rounded-3xl border border-gray-100 bg-gray-50/50 p-6 space-y-6">
+                            <div className="flex items-center justify-between gap-3 flex-wrap border-b border-gray-200/50 pb-4">
+                                <div>
+                                    <div className="text-lg font-extrabold text-[#001C44]">Hình ảnh bổ sung (Gallery)</div>
+                                    <div className="text-sm font-medium text-gray-500 mt-1">Thêm ảnh vào bộ sưu tập của bài viết này</div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <input
+                                        ref={galleryInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        className="hidden"
+                                        onChange={(e) => {
+                                            if (e.target.files && e.target.files.length > 0) {
+                                                void handleGallerySelected(e.target.files);
+                                            }
+                                            e.currentTarget.value = '';
+                                        }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={handlePickGalleryFiles}
+                                        disabled={uploadingGallery}
+                                        className="px-6 py-2.5 rounded-2xl bg-white text-[#001C44] border border-gray-200 font-extrabold hover:bg-gray-50 disabled:opacity-60 transition-all active:scale-95 shadow-sm text-sm"
+                                    >
+                                        {uploadingGallery ? 'Đang tải lên...' : '📤 Tải nhiều ảnh'}
+                                    </button>
+                                </div>
                             </div>
-                        )}
-                    </div>
 
-                    <div className="space-y-2">
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                                <input
+                                    value={imageForm.imageUrl}
+                                    onChange={(e) => setImageForm((p) => ({ ...p, imageUrl: e.target.value }))}
+                                    className="md:col-span-5 w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all font-semibold bg-white"
+                                    placeholder="Dán URL ảnh vào đây..."
+                                />
+                                <input
+                                    value={imageForm.caption}
+                                    onChange={(e) => setImageForm((p) => ({ ...p, caption: e.target.value }))}
+                                    className="md:col-span-4 w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all font-semibold bg-white"
+                                    placeholder="Chú thích (caption)"
+                                />
+                                <input
+                                    type="number"
+                                    value={imageForm.displayOrder}
+                                    onChange={(e) => setImageForm((p) => ({ ...p, displayOrder: Number(e.target.value) }))}
+                                    className="md:col-span-3 w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all font-semibold bg-white text-center"
+                                    placeholder="Order"
+                                />
+                            </div>
+                            <div className="flex items-center justify-between flex-wrap gap-4 pt-2">
+                                <label className="flex items-center gap-2.5 text-sm font-extrabold text-[#001C44] cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={imageForm.isCover}
+                                        onChange={(e) => setImageForm((p) => ({ ...p, isCover: e.target.checked }))}
+                                        className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                    />
+                                    Đặt làm cover
+                                </label>
+                                <button
+                                    type="button"
+                                    disabled={addingImage || !imageForm.imageUrl.trim()}
+                                    onClick={handleAddImage}
+                                    className="px-6 py-2.5 rounded-2xl bg-[#FFD66D] text-[#001C44] font-extrabold hover:bg-yellow-400 disabled:opacity-60 transition-all active:scale-95 shadow-md text-sm"
+                                >
+                                    {addingImage ? 'Đang lưu...' : '➕ Thêm URL'}
+                                </button>
+                            </div>
+
+                            {galleryImages.length > 0 && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 pt-4 border-t border-gray-200/50">
+                                    {galleryImages.map((img) => (
+                                        <div key={img.id} className="rounded-2xl bg-white shadow-sm border border-gray-100 overflow-hidden group">
+                                            <div className="relative">
+                                                <img src={img.imageUrl} alt={img.caption || 'image'} className="w-full h-40 object-cover" />
+                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveImage(img.id)}
+                                                        className="px-4 py-2 rounded-xl bg-red-500 text-white font-extrabold text-sm hover:bg-red-600 transform hover:scale-105 transition-all"
+                                                    >
+                                                        🗑️ Xóa
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="p-4">
+                                                <div className="text-sm font-bold text-[#001C44] truncate">{img.caption || 'Chưa có chú thích'}</div>
+                                                <div className="text-xs text-gray-500 font-medium mt-1 flex items-center gap-2">
+                                                    <span>Thứ tự: {img.displayOrder}</span>
+                                                    {img.isCover && <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wide">Cover</span>}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    <div className="space-y-4">
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                            <span className="block text-sm font-medium text-gray-700">Content HTML</span>
-                            <span className="text-xs text-gray-500">Sử dụng Visual/HTML/Split để biên tập nhanh</span>
+                            <span className="block text-xl font-extrabold text-[#001C44]">Nội dung bài viết (Content)</span>
                         </div>
                         <RichTextEditorTipTap
                             value={form.content || ''}
                             onChange={(nextValue) => updateField('content', nextValue)}
-                            placeholder="Nhập nội dung landing page bằng visual editor hoặc HTML source"
+                            placeholder="Nhập nội dung chi tiết bài viết..."
                         />
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3 pt-2">
+                    <div className="flex flex-wrap items-center justify-end gap-4 pt-6 border-t border-gray-100">
+                        <span className="text-sm font-bold text-gray-400 mr-auto">Đang trong chế độ CHỈNH SỬA</span>
                         <button
                             type="button"
                             onClick={handleSave}
                             disabled={saving}
-                            className="px-5 py-3 rounded-lg bg-[#001C44] text-white font-semibold hover:bg-[#002A66] transition-colors disabled:opacity-60"
+                            className="px-10 py-4 rounded-2xl bg-[#001C44] text-[#FFD66D] font-extrabold hover:bg-blue-900 transition-all shadow-md hover:shadow-lg hover:-translate-y-1 active:scale-95 disabled:opacity-60 disabled:transform-none text-base"
                         >
-                            {saving ? 'Đang lưu...' : 'Save changes'}
+                            {saving ? 'Đang lưu...' : '💾 Lưu thay đổi'}
                         </button>
                     </div>
                 </div>

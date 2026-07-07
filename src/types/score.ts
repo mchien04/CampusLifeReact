@@ -24,18 +24,24 @@ export interface TrainingCalculateResponse {
 }
 
 export interface ScoreItem {
-    score: number; // BigDecimal as number
-    sourceType: ScoreSourceType;
+    score: number;
+    notes?: string;
+    /** @deprecated legacy — prefer notes */
+    sourceType?: ScoreSourceType;
     activityId?: number;
     taskId?: number;
     submissionId?: number;
+    /** @deprecated legacy — prefer notes */
     sourceNote?: string;
     criterionId?: number;
 }
 
 export interface ScoreTypeSummary {
     scoreType: ScoreType;
-    total: number; // BigDecimal as number
+    /** Điểm học kỳ hiện tại */
+    total: number;
+    /** Tổng tích lũy suốt các kỳ — chỉ CTXH & Chuyên đề */
+    cumulativeTotal?: number | null;
     items: ScoreItem[];
 }
 
@@ -43,6 +49,15 @@ export interface ScoreViewResponse {
     studentId: number;
     semesterId: number;
     summaries: ScoreTypeSummary[];
+}
+
+export interface ScoreTotalResponse {
+    studentId: number;
+    semesterId: number;
+    grandTotal: number;
+    totalsByType: Partial<Record<ScoreType, number>>;
+    cumulativeTotals: Partial<Record<ScoreType, number>>;
+    scoreCount: number;
 }
 
 export interface StudentRankingResponse {
@@ -57,14 +72,14 @@ export interface StudentRankingResponse {
     semesterId: number;
     semesterName: string;
     scoreType: ScoreType | null;
-    score: number; // BigDecimal as number
+    score: number;
     scoreTypeLabel: string;
 }
 
 export interface StudentRankingResponseData {
     semesterId: number;
     semesterName: string;
-    scoreType: string | null; // "REN_LUYEN" | "CONG_TAC_XA_HOI" | "CHUYEN_DE" | "KHAC" | "TOTAL"
+    scoreType: string | null;
     departmentId: number | null;
     classId: number | null;
     sortOrder: "ASC" | "DESC";
@@ -82,31 +97,30 @@ export interface StudentRankResponse {
     score: string;
 }
 
-// Score History Types
-// TODO: Remove legacy values ('ACTIVITY', 'MINIGAME', 'MILESTONE', 'RECALCULATED')
-// after backend data migration is confirmed complete. New canonical values are
-// ACTIVITY_PARTICIPATION, MINIGAME_ATTEMPT, SERIES_PROGRESS, RECALCULATION.
-export type ScoreHistorySourceType = 'ACTIVITY' | 'MINIGAME' | 'MILESTONE' | 'RECALCULATED'; // Legacy
+export type ScoreHistorySourceType = 'ACTIVITY' | 'MINIGAME' | 'MILESTONE' | 'RECALCULATED';
 
 export interface ActivityParticipationDetailResponse {
-    id: number;
     activityId: number | null;
     activityName: string | null;
-    activityType: string | null; // ActivityType
-    seriesId: number | null;
-    seriesName: string | null;
-    pointsEarned: number; // BigDecimal as number
-    participationType: string; // ParticipationType
-    date: string; // LocalDateTime as string
-    isCompleted: boolean;
-    sourceType: 'ACTIVITY' | 'MINIGAME';
+    participationType: string;
+    pointsEarned: number;
+    participationDate?: string;
+    completionDate?: string | null;
+    /** @deprecated */
+    id?: number;
+    activityType?: string | null;
+    seriesId?: number | null;
+    seriesName?: string | null;
+    date?: string;
+    isCompleted?: boolean;
+    sourceType?: 'ACTIVITY' | 'MINIGAME';
 }
 
 export interface ScoreHistoryDetailResponse {
     id: number;
-    oldScore: number; // BigDecimal as number
-    newScore: number; // BigDecimal as number
-    changeDate: string; // LocalDateTime as string
+    oldScore: number;
+    newScore: number;
+    changeDate: string;
     reason: string;
     activityId: number | null;
     activityName: string | null;
@@ -124,7 +138,7 @@ export interface ScoreHistoryViewResponse {
     semesterId: number;
     semesterName: string;
     scoreType: ScoreType | null;
-    currentScore: number; // BigDecimal as number
+    currentScore: number;
     scoreHistories: ScoreHistoryDetailResponse[];
     activityParticipations: ActivityParticipationDetailResponse[];
     totalRecords: number;
@@ -133,7 +147,44 @@ export interface ScoreHistoryViewResponse {
     totalPages: number;
 }
 
-// Helper functions
+export const SCORE_TYPE_ORDER: ScoreType[] = ['REN_LUYEN', 'CONG_TAC_XA_HOI', 'CHUYEN_DE'];
+
+export const SCORE_TYPE_META: Record<ScoreType, { label: string; shortLabel: string; cumulative: boolean; accent: string }> = {
+    REN_LUYEN: {
+        label: 'Điểm rèn luyện',
+        shortLabel: 'Rèn luyện',
+        cumulative: false,
+        accent: 'from-primary-900 to-primary-800',
+    },
+    CONG_TAC_XA_HOI: {
+        label: 'Công tác xã hội',
+        shortLabel: 'CTXH',
+        cumulative: true,
+        accent: 'from-emerald-800 to-teal-900',
+    },
+    CHUYEN_DE: {
+        label: 'Chuyên đề doanh nghiệp',
+        shortLabel: 'Chuyên đề',
+        cumulative: true,
+        accent: 'from-indigo-900 to-primary-900',
+    },
+};
+
+export const isCumulativeScoreType = (type: ScoreType): boolean =>
+    SCORE_TYPE_META[type]?.cumulative ?? false;
+
+export const getScoreTypeLabel = (type: ScoreType | null | undefined): string => {
+    if (!type) return 'Tổng điểm';
+    return SCORE_TYPE_META[type]?.label ?? type;
+};
+
+export const getScoreItemLabel = (item: ScoreItem): string => {
+    if (item.notes?.trim()) return item.notes.trim();
+    if (item.sourceNote?.trim()) return item.sourceNote.trim();
+    if (item.sourceType) return getSourceTypeLabel(item.sourceType);
+    return 'Khoản điểm';
+};
+
 export const getSourceTypeLabel = (sourceType: string): string => {
     switch (sourceType) {
         case 'ACTIVITY_PARTICIPATION':
@@ -163,28 +214,29 @@ export const getSourceTypeColor = (sourceType: string): string => {
     switch (sourceType) {
         case 'MINIGAME_ATTEMPT':
         case 'MINIGAME':
-            return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+            return 'bg-amber-50 text-amber-800 border-amber-200';
         case 'SERIES_PROGRESS':
         case 'MILESTONE':
-            return 'bg-purple-100 text-purple-800 border-purple-300';
+            return 'bg-violet-50 text-violet-800 border-violet-200';
         case 'RECALCULATION':
         case 'RECALCULATED':
-            return 'bg-gray-100 text-gray-800 border-gray-300';
+            return 'bg-gray-50 text-gray-700 border-gray-200';
         case 'ACTIVITY_PARTICIPATION':
         case 'ACTIVITY':
-            return 'bg-blue-100 text-blue-800 border-blue-300';
+            return 'bg-sky-50 text-sky-800 border-sky-200';
         case 'TASK_SUBMISSION':
         case 'ACTIVITY_SUBMISSION':
-            return 'bg-green-100 text-green-800 border-green-300';
+            return 'bg-emerald-50 text-emerald-800 border-emerald-200';
         case 'MANUAL_ADJUSTMENT':
         case 'MANUAL':
-            return 'bg-orange-100 text-orange-800 border-orange-300';
+            return 'bg-orange-50 text-orange-800 border-orange-200';
         default:
-            return 'bg-gray-100 text-gray-800 border-gray-300';
+            return 'bg-gray-50 text-gray-700 border-gray-200';
     }
 };
 
-export const formatScore = (score: string | number): string => {
+export const formatScore = (score: string | number | null | undefined): string => {
+    if (score === null || score === undefined) return '—';
     const num = typeof score === 'string' ? parseFloat(score) : score;
     return isNaN(num) ? '0.00' : num.toFixed(2);
 };
@@ -199,7 +251,7 @@ export const formatDateTime = (dateTime: string): string => {
             hour: '2-digit',
             minute: '2-digit',
         });
-    } catch (error) {
+    } catch {
         return dateTime;
     }
 };
@@ -224,15 +276,18 @@ export interface ScoreBreakdownItem {
     sourceType: string;
     totalPoints: number | string;
     entryCount: number;
-    percentage: number;
+    percentage?: number;
 }
 
 export interface ScoreBreakdownResponse {
-    studentId: number;
     semesterId: number;
+    semesterName?: string;
+    studentId?: number | null;
+    breakdowns: ScoreBreakdownItem[];
+    /** @deprecated */
     scoreType?: string | null;
-    totalScore: number | string;
-    breakdown: ScoreBreakdownItem[];
+    /** @deprecated */
+    totalScore?: number | string;
+    /** @deprecated */
+    breakdown?: ScoreBreakdownItem[];
 }
-
-

@@ -126,10 +126,10 @@ const StudentReadingHistory: React.FC = () => {
     return (
         <StudentLayout>
             <div className="mx-auto max-w-5xl w-full px-4 sm:px-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 mb-10">
                     <div>
-                        <h1 className="text-3xl font-bold text-[#001C44] mb-1">Lịch sử đọc</h1>
-                        <p className="text-gray-600">
+                        <h1 className="text-4xl sm:text-5xl font-extrabold text-[#001C44] tracking-tight mb-4">Lịch sử đọc</h1>
+                        <p className="text-lg text-gray-500 font-medium">
                             {(pageData?.totalElements ?? 0) === 0
                                 ? 'Chưa lưu lịch sử bài viết đã đọc'
                                 : `Bạn đã xem ${pageData?.totalElements ?? 0} bài viết gần đây`}
@@ -141,7 +141,7 @@ const StudentReadingHistory: React.FC = () => {
                             type="button"
                             onClick={handleClearAll}
                             disabled={clearing || loading}
-                            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-red-200 bg-red-50 text-red-700 font-semibold hover:bg-red-100 disabled:opacity-50 transition-colors text-sm self-start sm:self-auto"
+                            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl border-0 bg-red-50 text-red-600 font-extrabold hover:bg-red-100 disabled:opacity-50 transition-all text-sm shadow-sm hover:shadow-md self-start sm:self-auto"
                         >
                             🗑️ Xóa tất cả
                         </button>
@@ -153,72 +153,76 @@ const StudentReadingHistory: React.FC = () => {
                         <LoadingSpinner />
                     </div>
                 ) : (pageData?.content ?? []).length === 0 ? (
-                    <div className="text-center py-16 bg-white rounded-2xl border border-gray-200 shadow-sm px-4">
+                    <div className="text-center py-24 bg-white rounded-3xl shadow-premium px-6">
                         <div className="text-5xl mb-4">📖</div>
-                        <h2 className="text-2xl font-bold text-[#001C44] mb-2">Lịch sử trống</h2>
-                        <p className="text-gray-600 mb-6">Hãy xem các bài viết tin tức sự kiện để ghi lại lịch sử đọc.</p>
+                        <h2 className="text-2xl font-extrabold text-[#001C44] mb-3">Lịch sử trống</h2>
+                        <p className="text-gray-500 font-medium mb-8">Hãy xem các bài viết tin tức sự kiện để ghi lại lịch sử đọc.</p>
                         <Link
                             to="/articles"
-                            className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-[#001C44] text-white font-semibold hover:bg-[#002A66] transition-colors"
+                            className="inline-flex items-center justify-center px-8 py-4 rounded-2xl bg-[#001C44] text-[#FFD66D] font-extrabold hover:bg-blue-900 transition-all shadow-md"
                         >
                             Khám phá bài viết
                         </Link>
                     </div>
                 ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                         {(pageData?.content ?? []).map((item) => {
                             const statusConfig = getStatusLabel(item.registrationStatus);
                             return (
                                 <Link
                                     key={item.id}
                                     to={`/articles/${item.slug}`}
-                                    className="block group overflow-hidden rounded-xl border border-gray-200 bg-white hover:border-blue-400 hover:shadow-md transition-all p-4"
+                                    className="block group overflow-hidden rounded-3xl border-0 bg-white shadow-premium hover:shadow-premium-hover hover:-translate-y-1 transition-all duration-500 ease-out-expo p-5"
                                 >
-                                    <div className="flex flex-col sm:flex-row gap-4">
-                                        {item.thumbnailUrl && (
-                                            <div className="w-full sm:w-40 h-28 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden">
+                                    <div className="flex flex-col sm:flex-row gap-6">
+                                        {item.thumbnailUrl ? (
+                                            <div className="w-full sm:w-56 h-36 flex-shrink-0 bg-gray-100 rounded-2xl overflow-hidden shadow-inner-light">
                                                 <img
                                                     src={getImageUrl(item.thumbnailUrl) || ''}
                                                     alt={item.title}
-                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out-expo"
                                                 />
+                                            </div>
+                                        ) : (
+                                            <div className="w-full sm:w-56 h-36 flex-shrink-0 bg-gray-100 rounded-2xl overflow-hidden shadow-inner-light flex items-center justify-center text-4xl">
+                                                📖
                                             </div>
                                         )}
 
-                                        <div className="flex-1 flex flex-col justify-between">
+                                        <div className="flex-1 flex flex-col justify-between py-1">
                                             <div>
-                                                <div className="flex flex-wrap items-center gap-2 mb-2">
+                                                <div className="flex flex-wrap items-center gap-3 mb-3">
                                                     {statusConfig && (
-                                                        <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold border ${statusConfig.className}`}>
+                                                        <span className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest ${statusConfig.className}`}>
                                                             {statusConfig.label}
                                                         </span>
                                                     )}
-                                                    <span className="text-xs text-gray-500">
+                                                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
                                                         👁️ Đã xem {formatRelativeTime(item.viewedAt)}
                                                     </span>
                                                 </div>
 
-                                                <h3 className="font-bold text-lg text-[#001C44] line-clamp-1 group-hover:text-blue-600 transition-colors mb-1">
+                                                <h3 className="font-extrabold text-xl text-[#001C44] line-clamp-2 group-hover:text-blue-600 transition-colors mb-2 text-balance leading-snug">
                                                     {item.title}
                                                 </h3>
 
-                                                <p className="text-sm text-gray-600 line-clamp-2">
+                                                <p className="text-sm text-gray-500 line-clamp-2 leading-relaxed">
                                                     {item.seoDescription || 'Tin tức & sự kiện được cập nhật từ ban tổ chức.'}
                                                 </p>
                                             </div>
 
-                                            <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 text-xs text-gray-500">
+                                            <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 text-xs font-semibold text-gray-400">
                                                 {item.publishedAt ? (
-                                                    <span>Đăng ngày: {new Date(item.publishedAt).toLocaleDateString('vi-VN')}</span>
+                                                    <span className="uppercase tracking-wider">Đăng ngày: {new Date(item.publishedAt).toLocaleDateString('vi-VN')}</span>
                                                 ) : (
-                                                    <span className="text-amber-600">Bản nháp</span>
+                                                    <span className="text-amber-500 uppercase tracking-wider">Bản nháp</span>
                                                 )}
 
                                                 <button
                                                     type="button"
                                                     disabled={deletingId === item.id}
                                                     onClick={(e) => handleDeleteItem(e, item.id)}
-                                                    className="inline-flex items-center text-red-600 hover:text-red-800 font-medium px-2 py-1 rounded hover:bg-red-50 transition-colors disabled:opacity-50"
+                                                    className="inline-flex items-center text-red-500 hover:text-red-700 font-extrabold px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
                                                 >
                                                     {deletingId === item.id ? 'Đang xóa...' : 'Xóa khỏi lịch sử'}
                                                 </button>

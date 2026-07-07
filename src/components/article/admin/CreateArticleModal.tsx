@@ -6,7 +6,7 @@ import LoadingSpinner from '../../common/LoadingSpinner';
 type CreateArticleModalProps = {
     isOpen: boolean;
     onClose: () => void;
-    onSelectActivity: (activityId: number) => void;
+    onSelectActivity: (activityId: number | null) => void;
 };
 
 const CreateArticleModal: React.FC<CreateArticleModalProps> = ({ isOpen, onClose, onSelectActivity }) => {
@@ -76,6 +76,19 @@ const CreateArticleModal: React.FC<CreateArticleModalProps> = ({ isOpen, onClose
                                 className="px-4 py-3 rounded-xl bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200"
                             >
                                 Xóa
+                            </button>
+                        </div>
+
+                        <div className="pt-2 pb-2">
+                            <button
+                                type="button"
+                                onClick={() => onSelectActivity(null)}
+                                className="w-full py-3 px-4 bg-[#FFD66D] hover:bg-[#FFC63D] text-[#001C44] font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                                </svg>
+                                Tạo bài viết độc lập (Không gắn sự kiện)
                             </button>
                         </div>
 
