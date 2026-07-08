@@ -37,6 +37,7 @@ const StudentAccountManagement: React.FC = () => {
 
     // Manage accounts state
     const [accounts, setAccounts] = useState<StudentAccountResponse[]>([]);
+    const [pageData, setPageData] = useState<import('../../types/studentAccount').PendingAccountsPage | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [emailSentFilter, setEmailSentFilter] = useState<'ALL' | 'SENT' | 'NOT_SENT'>('ALL');
     const [selectedAccounts, setSelectedAccounts] = useState<Set<number>>(new Set());
@@ -52,9 +53,9 @@ const StudentAccountManagement: React.FC = () => {
 
     useEffect(() => {
         if (activeTab === 'manage') {
-            loadAccounts();
+            loadAccounts(0);
         }
-    }, [activeTab]);
+    }, [activeTab, emailSentFilter]);
 
     useEffect(() => {
         const loadDepartments = async () => {
@@ -70,13 +71,18 @@ const StudentAccountManagement: React.FC = () => {
         loadDepartments();
     }, []);
 
-    const loadAccounts = async () => {
+    const loadAccounts = async (page = 0) => {
         setLoading(true);
         setError('');
         try {
-            const response = await studentAccountAPI.getPendingAccounts();
+            let credentialsSent: boolean | undefined;
+            if (emailSentFilter === 'SENT') credentialsSent = true;
+            if (emailSentFilter === 'NOT_SENT') credentialsSent = false;
+            
+            const response = await studentAccountAPI.getPendingAccounts({ page, size: 20, credentialsSent });
             if (response.status && response.data) {
-                setAccounts(response.data);
+                setAccounts(response.data.content);
+                setPageData(response.data);
             } else {
                 setError(response.message || 'Không thể tải danh sách tài khoản');
             }
@@ -356,7 +362,7 @@ const StudentAccountManagement: React.FC = () => {
             const response = await studentAccountAPI.sendCredentials(studentId);
             if (response.status) {
                 setSuccess('Đã gửi email credentials thành công!');
-                loadAccounts();
+                loadAccounts(pageData?.number || 0);
             } else {
                 setError(response.message || 'Không thể gửi email');
             }
@@ -389,7 +395,7 @@ const StudentAccountManagement: React.FC = () => {
             if (response.status && response.data) {
                 setSuccess(`Đã gửi email cho ${response.data.successCount} tài khoản. ${response.data.errorCount} lỗi.`);
                 setSelectedAccounts(new Set());
-                loadAccounts();
+                loadAccounts(pageData?.number || 0);
             } else {
                 setError(response.message || 'Không thể gửi email hàng loạt');
             }
@@ -425,10 +431,7 @@ const StudentAccountManagement: React.FC = () => {
             account.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
             account.studentCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
             account.fullName.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesEmailSent = emailSentFilter === 'ALL' ||
-            (emailSentFilter === 'SENT' && account.emailSent) ||
-            (emailSentFilter === 'NOT_SENT' && !account.emailSent);
-        return matchesSearch && matchesEmailSent;
+        return matchesSearch;
     });
 
     const formatDate = (dateString: string): string => {
@@ -856,6 +859,7 @@ const StudentAccountManagement: React.FC = () => {
                                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã số SV</th>
                                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Họ tên</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khoa</th>
                                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Password</th>
                                             </tr>
                                         </thead>
@@ -866,6 +870,7 @@ const StudentAccountManagement: React.FC = () => {
                                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{account.email}</td>
                                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{account.studentCode}</td>
                                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{account.fullName}</td>
+                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{account.departmentName || '-'}</td>
                                                     <td className="px-4 py-3 whitespace-nowrap text-sm font-mono text-gray-900">
                                                         {account.password || 'Đã ẩn'}
                                                     </td>
@@ -996,6 +1001,7 @@ const StudentAccountManagement: React.FC = () => {
                                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã số SV</th>
                                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Họ tên</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khoa</th>
                                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     <div className="flex flex-col">
                                                         <span>Email Sent</span>
@@ -1032,6 +1038,7 @@ const StudentAccountManagement: React.FC = () => {
                                                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{account.email}</td>
                                                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{account.studentCode}</td>
                                                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{account.fullName}</td>
+                                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{account.departmentName || '-'}</td>
                                                         <td className="px-4 py-3 whitespace-nowrap">
                                                             {account.emailSent ? (
                                                                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -1092,6 +1099,60 @@ const StudentAccountManagement: React.FC = () => {
                                         </tbody>
                                     </table>
                                 </div>
+                                {pageData && pageData.totalPages > 1 && (
+                                    <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 flex items-center justify-between sm:px-6 rounded-b-lg">
+                                        <div className="flex-1 flex justify-between sm:hidden">
+                                            <button
+                                                onClick={() => loadAccounts(pageData.number - 1)}
+                                                disabled={pageData.first}
+                                                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                                            >
+                                                Trước
+                                            </button>
+                                            <button
+                                                onClick={() => loadAccounts(pageData.number + 1)}
+                                                disabled={pageData.last}
+                                                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                                            >
+                                                Sau
+                                            </button>
+                                        </div>
+                                        <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                                            <div>
+                                                <p className="text-sm text-gray-700">
+                                                    Hiển thị <span className="font-medium">{pageData.number * pageData.size + 1}</span> đến <span className="font-medium">{Math.min((pageData.number + 1) * pageData.size, pageData.totalElements)}</span> trong số <span className="font-medium">{pageData.totalElements}</span> kết quả
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                                                    <button
+                                                        onClick={() => loadAccounts(pageData.number - 1)}
+                                                        disabled={pageData.first}
+                                                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                                                    >
+                                                        <span className="sr-only">Previous</span>
+                                                        <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                                            <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                        </svg>
+                                                    </button>
+                                                    <span className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                                                        Trang {pageData.number + 1} / {pageData.totalPages}
+                                                    </span>
+                                                    <button
+                                                        onClick={() => loadAccounts(pageData.number + 1)}
+                                                        disabled={pageData.last}
+                                                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                                                    >
+                                                        <span className="sr-only">Next</span>
+                                                        <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                                            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                                                        </svg>
+                                                    </button>
+                                                </nav>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

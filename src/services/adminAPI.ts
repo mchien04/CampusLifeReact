@@ -669,20 +669,44 @@ export const studentAccountAPI = {
         }
     },
 
-    getPendingAccounts: async (): Promise<Response<StudentAccountResponse[]>> => {
+    getPendingAccounts: async (params?: { page?: number; size?: number; credentialsSent?: boolean }): Promise<Response<import('../types/studentAccount').PendingAccountsPage>> => {
         try {
-            const response = await api.get('/api/admin/students/pending');
+            const queryParams = new URLSearchParams();
+            if (params?.page !== undefined) queryParams.append('page', params.page.toString());
+            if (params?.size !== undefined) queryParams.append('size', params.size.toString());
+            if (params?.credentialsSent !== undefined) queryParams.append('credentialsSent', params.credentialsSent.toString());
+
+            const response = await api.get(`/api/admin/students/pending?${queryParams.toString()}`);
+            const responseData = response.data.body || response.data.data;
+            
+            // Handle both Page object and Array formats
+            let pageData: import('../types/studentAccount').PendingAccountsPage;
+            if (responseData?.content) {
+                pageData = responseData;
+            } else {
+                const arr = Array.isArray(responseData) ? responseData : [];
+                pageData = {
+                    content: arr,
+                    totalElements: arr.length,
+                    totalPages: 1,
+                    size: arr.length || 20,
+                    number: 0,
+                    first: true,
+                    last: true
+                };
+            }
+
             return {
                 status: response.data.status,
                 message: response.data.message,
-                data: response.data.body || response.data.data
+                data: pageData
             };
         } catch (error: any) {
             console.error('Student Account API: getPendingAccounts failed:', error);
             return {
                 status: false,
                 message: error.response?.data?.message || 'Failed to fetch pending accounts',
-                data: []
+                data: { content: [], totalElements: 0, totalPages: 0, size: 20, number: 0, first: true, last: true }
             };
         }
     },
