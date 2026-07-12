@@ -30,6 +30,7 @@ const ScoreAppealDetailPanel: React.FC<ScoreAppealDetailPanelProps> = ({
     const [sending, setSending] = useState(false);
     const [decision, setDecision] = useState<'APPROVED' | 'REJECTED'>('APPROVED');
     const [decisionNotes, setDecisionNotes] = useState('');
+    const [addBonus, setAddBonus] = useState(false);
     const [adjustedPoints, setAdjustedPoints] = useState('');
     const [adjustScoreType, setAdjustScoreType] = useState<ScoreType>(appeal.scoreType);
     const [preview, setPreview] = useState<ScoreAppealDecisionPreviewResponse | null>(null);
@@ -58,9 +59,13 @@ const ScoreAppealDetailPanel: React.FC<ScoreAppealDetailPanelProps> = ({
             decision,
             decisionNotes: decisionNotes.trim() || null,
             adjustedPoints:
-                decision === 'APPROVED' && pointsTrimmed !== '' ? pointsTrimmed : null,
+                decision === 'APPROVED' && addBonus && pointsTrimmed !== ''
+                    ? pointsTrimmed
+                    : null,
             scoreType:
-                decision === 'APPROVED' && pointsTrimmed !== '' ? adjustScoreType : null,
+                decision === 'APPROVED' && addBonus && pointsTrimmed !== ''
+                    ? adjustScoreType
+                    : null,
         };
 
         const timer = setTimeout(async () => {
@@ -84,7 +89,7 @@ const ScoreAppealDetailPanel: React.FC<ScoreAppealDetailPanelProps> = ({
         }, 400);
 
         return () => clearTimeout(timer);
-    }, [canDecide, appeal.id, decision, decisionNotes, adjustedPoints, adjustScoreType]);
+    }, [canDecide, appeal.id, decision, decisionNotes, addBonus, adjustedPoints, adjustScoreType]);
 
     const buildDecisionBody = (): ScoreAppealDecisionRequest => {
         const pointsTrimmed = adjustedPoints.trim();
@@ -92,9 +97,13 @@ const ScoreAppealDetailPanel: React.FC<ScoreAppealDetailPanelProps> = ({
             decision,
             decisionNotes: decisionNotes.trim() || null,
             adjustedPoints:
-                decision === 'APPROVED' && pointsTrimmed !== '' ? pointsTrimmed : null,
+                decision === 'APPROVED' && addBonus && pointsTrimmed !== ''
+                    ? pointsTrimmed
+                    : null,
             scoreType:
-                decision === 'APPROVED' && pointsTrimmed !== '' ? adjustScoreType : null,
+                decision === 'APPROVED' && addBonus && pointsTrimmed !== ''
+                    ? adjustScoreType
+                    : null,
         };
     };
 
@@ -340,7 +349,11 @@ const ScoreAppealDetailPanel: React.FC<ScoreAppealDetailPanelProps> = ({
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setDecision('REJECTED')}
+                                onClick={() => {
+                                    setDecision('REJECTED');
+                                    setAddBonus(false);
+                                    setAdjustedPoints('');
+                                }}
                                 className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
                                     decision === 'REJECTED'
                                         ? 'bg-red-700 text-white'
@@ -366,69 +379,127 @@ const ScoreAppealDetailPanel: React.FC<ScoreAppealDetailPanelProps> = ({
                         </div>
 
                         {decision === 'APPROVED' && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div className="space-y-2">
-                                    <label htmlFor="adjusted-points" className="block text-sm font-medium text-gray-700">
-                                        Điểm điều chỉnh (không bắt buộc)
-                                    </label>
+                            <div className="space-y-3">
+                                <label className="flex items-center gap-3 cursor-pointer select-none">
                                     <input
-                                        id="adjusted-points"
-                                        type="number"
-                                        step="any"
-                                        className={inputClass}
-                                        value={adjustedPoints}
-                                        onChange={(e) => setAdjustedPoints(e.target.value)}
-                                        placeholder="Để trống nếu giữ nguyên điểm"
+                                        type="checkbox"
+                                        checked={addBonus}
+                                        onChange={(e) => {
+                                            setAddBonus(e.target.checked);
+                                            if (!e.target.checked) setAdjustedPoints('');
+                                        }}
+                                        className="h-4 w-4 rounded border-gray-300 text-primary-900 focus:ring-primary-900"
                                     />
-                                </div>
-                                <div className="space-y-2">
-                                    <label htmlFor="adjust-score-type" className="block text-sm font-medium text-gray-700">
-                                        Loại điểm điều chỉnh
-                                    </label>
-                                    <select
-                                        id="adjust-score-type"
-                                        className={inputClass}
-                                        value={adjustScoreType}
-                                        onChange={(e) => setAdjustScoreType(e.target.value as ScoreType)}
-                                        disabled={!adjustedPoints.trim()}
-                                    >
-                                        <option value="REN_LUYEN">{getScoreTypeLabel('REN_LUYEN')}</option>
-                                        <option value="CONG_TAC_XA_HOI">{getScoreTypeLabel('CONG_TAC_XA_HOI')}</option>
-                                        <option value="CHUYEN_DE">{getScoreTypeLabel('CHUYEN_DE')}</option>
-                                    </select>
-                                </div>
+                                    <span className="text-sm font-medium text-gray-800">
+                                        Cộng điểm bù thêm
+                                    </span>
+                                </label>
+                                <p className="text-xs text-gray-500">
+                                    Mặc định chỉ gỡ trừ điểm bị khiếu nại. Bật tùy chọn này nếu cần cộng thêm điểm (có thể khác loại điểm).
+                                </p>
+
+                                {addBonus && (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div className="space-y-2">
+                                            <label htmlFor="adjusted-points" className="block text-sm font-medium text-gray-700">
+                                                Số điểm cộng thêm
+                                            </label>
+                                            <input
+                                                id="adjusted-points"
+                                                type="number"
+                                                step="any"
+                                                className={inputClass}
+                                                value={adjustedPoints}
+                                                onChange={(e) => setAdjustedPoints(e.target.value)}
+                                                placeholder="Ví dụ: 5"
+                                                required={addBonus}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label htmlFor="adjust-score-type" className="block text-sm font-medium text-gray-700">
+                                                Loại điểm cộng thêm
+                                            </label>
+                                            <select
+                                                id="adjust-score-type"
+                                                className={inputClass}
+                                                value={adjustScoreType}
+                                                onChange={(e) => setAdjustScoreType(e.target.value as ScoreType)}
+                                            >
+                                                <option value="REN_LUYEN">{getScoreTypeLabel('REN_LUYEN')}</option>
+                                                <option value="CONG_TAC_XA_HOI">{getScoreTypeLabel('CONG_TAC_XA_HOI')}</option>
+                                                <option value="CHUYEN_DE">{getScoreTypeLabel('CHUYEN_DE')}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 
-                        <div className="rounded-xl border border-amber-200/80 bg-white px-4 py-3 space-y-1">
-                            <p className="text-xs font-medium text-gray-500">Xem trước điểm</p>
-                            {previewLoading && (
-                                <p className="text-sm text-gray-400">Đang tính...</p>
-                            )}
-                            {!previewLoading && previewError && (
-                                <p className="text-sm text-red-700">{previewError}</p>
-                            )}
-                            {!previewLoading && preview && (
-                                <>
-                                    <p className="text-base font-semibold text-primary-900 tabular-nums">
-                                        {formatScore(preview.currentScore)} → {formatScore(preview.projectedScore)}
-                                    </p>
-                                    <p className="text-xs text-gray-500">
-                                        {preview.willCreateLedgerEntry
-                                            ? 'Sẽ tạo bản ghi điều chỉnh thủ công'
-                                            : 'Không thay đổi điểm trên sổ'}
-                                    </p>
-                                    {preview.note && (
-                                        <p className="text-xs text-gray-600 mt-1">{preview.note}</p>
-                                    )}
-                                </>
-                            )}
-                        </div>
+                        {decision === 'APPROVED' && (
+                            <div className="rounded-xl border border-amber-200/80 bg-white px-4 py-3 space-y-2">
+                                <p className="text-xs font-medium text-gray-500">Xem trước điểm</p>
+                                {previewLoading && (
+                                    <p className="text-sm text-gray-400">Đang tính...</p>
+                                )}
+                                {!previewLoading && previewError && (
+                                    <p className="text-sm text-red-700">{previewError}</p>
+                                )}
+                                {!previewLoading && preview && (
+                                    <div className="space-y-2 text-sm">
+                                        {preview.willReverseRelated && (
+                                            <div className="flex flex-wrap items-baseline justify-between gap-2">
+                                                <span className="text-gray-600">
+                                                    Gỡ trừ{' '}
+                                                    <strong className="text-gray-900">
+                                                        {getScoreTypeLabel(preview.relatedScoreType ?? appeal.scoreType)}
+                                                    </strong>
+                                                    {preview.relatedEntryPoints != null && (
+                                                        <span className="text-gray-400 ml-1">
+                                                            ({formatScore(preview.relatedEntryPoints)})
+                                                        </span>
+                                                    )}
+                                                </span>
+                                                <span className="font-semibold text-primary-900 tabular-nums">
+                                                    {formatScore(preview.currentScore)}
+                                                    {preview.projectedRelatedScore != null && (
+                                                        <> → {formatScore(preview.projectedRelatedScore)}</>
+                                                    )}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {preview.willCreateLedgerEntry && preview.adjustedPoints != null && (
+                                            <div className="flex flex-wrap items-baseline justify-between gap-2">
+                                                <span className="text-gray-600">
+                                                    Cộng thêm{' '}
+                                                    <strong className="text-gray-900">
+                                                        {getScoreTypeLabel(preview.scoreType)}
+                                                    </strong>
+                                                    <span className="text-gray-400 ml-1">
+                                                        (+{formatScore(preview.adjustedPoints)})
+                                                    </span>
+                                                </span>
+                                                <span className="font-semibold text-primary-900 tabular-nums">
+                                                    → {formatScore(preview.projectedScore)}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {!preview.willCreateLedgerEntry && !preview.willReverseRelated && (
+                                            <p className="text-gray-500">Không thay đổi điểm trên sổ</p>
+                                        )}
+                                        {preview.note && (
+                                            <p className="text-xs text-gray-600 pt-1 border-t border-gray-100">
+                                                {preview.note}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         <div className="flex justify-end">
                             <button
                                 type="submit"
-                                disabled={deciding || previewLoading}
+                                disabled={deciding || (decision === 'APPROVED' && previewLoading) || (addBonus && !adjustedPoints.trim())}
                                 className="rounded-xl bg-primary-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-800 disabled:opacity-50 active:scale-[0.98]"
                             >
                                 {deciding ? 'Đang lưu...' : 'Xác nhận quyết định'}

@@ -3,18 +3,19 @@ import { toast } from 'react-toastify';
 import { scoresAPI } from '../../services/scoresAPI';
 import {
     ScoreType,
-    SCORE_TYPE_ORDER,
     ScoreHistoryDetailResponse,
     getScoreTypeLabel,
     formatScore,
     formatDateTime,
+    isScoreDeduction,
 } from '../../types/score';
 
 interface CreateScoreAppealModalProps {
     open: boolean;
     semesterId: number;
-    scoreType?: ScoreType | null;
-    historyEntry?: ScoreHistoryDetailResponse | null;
+    /** Loại điểm của dòng đang khiếu nại — bắt buộc */
+    scoreType: ScoreType;
+    historyEntry: ScoreHistoryDetailResponse;
     onClose: () => void;
     onSuccess?: () => void;
 }
@@ -37,7 +38,6 @@ const CreateScoreAppealModal: React.FC<CreateScoreAppealModalProps> = ({
     const [title, setTitle] = useState('');
     const [reason, setReason] = useState('');
     const [requestedPoints, setRequestedPoints] = useState('');
-    const [selectedScoreType, setSelectedScoreType] = useState<ScoreType>(scoreType ?? 'REN_LUYEN');
     const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
     const [evidencePreviews, setEvidencePreviews] = useState<string[]>([]);
     const [submitting, setSubmitting] = useState(false);
@@ -47,14 +47,13 @@ const CreateScoreAppealModal: React.FC<CreateScoreAppealModalProps> = ({
         setTitle(historyEntry ? `Khiếu nại điểm: ${historyEntry.reason.slice(0, 60)}` : '');
         setReason('');
         setRequestedPoints('');
-        setSelectedScoreType(scoreType ?? 'REN_LUYEN');
         setEvidenceFiles([]);
         setEvidencePreviews((prev) => {
             prev.forEach((url) => URL.revokeObjectURL(url));
             return [];
         });
         if (fileInputRef.current) fileInputRef.current.value = '';
-    }, [open, historyEntry, scoreType]);
+    }, [open, historyEntry]);
 
     useEffect(() => {
         return () => {
@@ -99,6 +98,14 @@ const CreateScoreAppealModal: React.FC<CreateScoreAppealModalProps> = ({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!historyEntry?.id) {
+            toast.warning('Thiếu dòng điểm cần khiếu nại');
+            return;
+        }
+        if (!isScoreDeduction(historyEntry)) {
+            toast.warning('Chỉ khiếu nại được dòng điểm trừ');
+            return;
+        }
         if (!title.trim() || !reason.trim()) {
             toast.warning('Vui lòng nhập tiêu đề và lý do khiếu nại');
             return;
@@ -119,8 +126,8 @@ const CreateScoreAppealModal: React.FC<CreateScoreAppealModalProps> = ({
             const pointsTrimmed = requestedPoints.trim();
             const response = await scoresAPI.createScoreAppeal({
                 semesterId,
-                scoreType: selectedScoreType,
-                relatedScoreEntryId: historyEntry?.id ?? null,
+                scoreType,
+                relatedScoreEntryId: historyEntry.id,
                 title: title.trim(),
                 reason: reason.trim(),
                 requestedPoints: pointsTrimmed === '' ? null : pointsTrimmed,
@@ -136,7 +143,16 @@ const CreateScoreAppealModal: React.FC<CreateScoreAppealModalProps> = ({
             }
         } catch (error: unknown) {
             const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
-            toast.error(msg || 'Không có quyền hoặc dữ liệu không hợp lệ');
+            const lower = (msg || '').toLowerCase();
+            if (lower.includes('deduction') || lower.includes('points < 0')) {
+                toast.error('Chỉ khiếu nại được dòng điểm trừ');
+            } else if (lower.includes('active')) {
+                toast.error('Dòng điểm này không còn hiệu lực');
+            } else if (lower.includes('belong') || lower.includes('access') || lower.includes('denied')) {
+                toast.error('Không có quyền');
+            } else {
+                toast.error(msg || 'Không có quyền hoặc dữ liệu không hợp lệ');
+            }
         } finally {
             setSubmitting(false);
         }
@@ -156,7 +172,7 @@ const CreateScoreAppealModal: React.FC<CreateScoreAppealModalProps> = ({
                             Gửi khiếu nại điểm
                         </h2>
                         <p className="text-sm text-gray-500 mt-0.5">
-                            {getScoreTypeLabel(selectedScoreType)}
+                            {getScoreTypeLabel(scoreType)}
                         </p>
                     </div>
                     <button
@@ -179,24 +195,6 @@ const CreateScoreAppealModal: React.FC<CreateScoreAppealModalProps> = ({
                                 {formatDateTime(historyEntry.changeDate)} ·{' '}
                                 {formatScore(historyEntry.oldScore)} → {formatScore(historyEntry.newScore)}
                             </p>
-                        </div>
-                    )}
-
-                    {!scoreType && (
-                        <div className="space-y-2">
-                            <label htmlFor="appeal-score-type" className="block text-sm font-medium text-gray-700">
-                                Loại điểm
-                            </label>
-                            <select
-                                id="appeal-score-type"
-                                className={inputClass}
-                                value={selectedScoreType}
-                                onChange={(e) => setSelectedScoreType(e.target.value as ScoreType)}
-                            >
-                                {SCORE_TYPE_ORDER.map((t) => (
-                                    <option key={t} value={t}>{getScoreTypeLabel(t)}</option>
-                                ))}
-                            </select>
                         </div>
                     )}
 
@@ -231,7 +229,7 @@ const CreateScoreAppealModal: React.FC<CreateScoreAppealModalProps> = ({
 
                     <div className="space-y-2">
                         <label htmlFor="appeal-points" className="block text-sm font-medium text-gray-700">
-                            Điểm đề xuất (không bắt buộc)
+                            Điểm đề nghị (không bắt buộc)
                         </label>
                         <input
                             id="appeal-points"
@@ -240,8 +238,11 @@ const CreateScoreAppealModal: React.FC<CreateScoreAppealModalProps> = ({
                             className={inputClass}
                             value={requestedPoints}
                             onChange={(e) => setRequestedPoints(e.target.value)}
-                            placeholder="Để trống nếu chỉ yêu cầu xem xét"
+                            placeholder="Gợi ý cho cán bộ khi xử lý"
                         />
+                        <p className="text-xs text-gray-400">
+                            Điểm bạn cho rằng nên được ghi nhận lại (chỉ mang tính tham khảo).
+                        </p>
                     </div>
 
                     <div className="space-y-2">

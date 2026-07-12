@@ -264,6 +264,17 @@ export const formatDateTime = (dateTime: string): string => {
     }
 };
 
+/** Delta âm = dòng điểm trừ — điều kiện hiện nút khiếu nại */
+export const isScoreDeduction = (history: {
+    oldScore: number | string;
+    newScore: number | string;
+}): boolean => {
+    const oldVal = typeof history.oldScore === 'string' ? parseFloat(history.oldScore) : history.oldScore;
+    const newVal = typeof history.newScore === 'string' ? parseFloat(history.newScore) : history.newScore;
+    if (Number.isNaN(oldVal) || Number.isNaN(newVal)) return false;
+    return newVal - oldVal < 0;
+};
+
 export type ScoreAppealStatus =
     | 'PENDING'
     | 'IN_REVIEW'
@@ -331,7 +342,8 @@ export interface ManualScoreResponse {
 export interface CreateScoreAppealRequest {
     semesterId: number;
     scoreType: ScoreType;
-    relatedScoreEntryId?: number | null;
+    /** ID dòng lịch sử điểm trừ — bắt buộc */
+    relatedScoreEntryId: number;
     title: string;
     reason: string;
     requestedPoints?: number | string | null;
@@ -355,8 +367,13 @@ export interface ScoreAppealDecisionPreviewResponse {
     adjustedPoints?: number | string | null;
     projectedScore: number | string;
     willCreateLedgerEntry: boolean;
+    /** true khi APPROVED — sẽ reverse entry trừ gắn appeal */
+    willReverseRelated: boolean;
     relatedScoreEntryId?: number | null;
     relatedEntryPoints?: number | string | null;
+    relatedScoreType?: ScoreType | null;
+    /** Điểm loại bị trừ sau khi reverse */
+    projectedRelatedScore?: number | string | null;
     note: string;
 }
 
@@ -367,7 +384,9 @@ export interface ScoreAppealMessageRequest {
 export interface ScoreAppealDecisionRequest {
     decision: 'APPROVED' | 'REJECTED';
     decisionNotes?: string | null;
+    /** Optional — bỏ trống = chỉ gỡ trừ khi APPROVED */
     adjustedPoints?: number | string | null;
+    /** Loại điểm cộng thêm (có thể khác loại bị trừ) */
     scoreType?: ScoreType | null;
     semesterId?: number | null;
 }
