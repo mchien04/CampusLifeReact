@@ -218,3 +218,56 @@ export interface RegisteredStudent {
     registrationStatus: string;
     registeredDate: string;
 }
+
+/** Dashboard submission row from GET /api/tasks/activity/{id}/dashboard */
+export type TaskSubmissionDashboardStatus =
+    | 'SUBMITTED'
+    | 'GRADED'
+    | 'RETURNED'
+    | 'LATE'
+    | 'MISSING';
+
+export interface TaskSubmissionSummary {
+    id: number;
+    studentId: number;
+    studentName: string;
+    studentCode: string;
+    content: string | null;
+    /** Full public URL (local/server) — do not prepend VITE_API_URL */
+    fileUrls: string[] | null;
+    isCompleted: boolean | null;
+    feedback: string | null;
+    status: TaskSubmissionDashboardStatus;
+    submittedAt: string | null;
+    gradedAt: string | null;
+}
+
+export interface TaskDashboardItem {
+    id: number;
+    name: string;
+    description: string | null;
+    deadline: string | null;
+    activityId: number;
+    activityName: string;
+    createdAt: string;
+    submissionCount: number;
+    gradedCount: number;
+    pendingGradeCount: number;
+    submissions: TaskSubmissionSummary[];
+}
+
+export function isSubmissionGraded(s: TaskSubmissionSummary): boolean {
+    return s.status === 'GRADED' || s.isCompleted != null;
+}
+
+export function getGradeLabel(s: TaskSubmissionSummary): string {
+    if (!isSubmissionGraded(s)) return 'Chờ chấm';
+    return s.isCompleted ? 'Đạt' : 'Không đạt';
+}
+
+export function getGradeBadgeClass(s: TaskSubmissionSummary): string {
+    if (!isSubmissionGraded(s)) return 'bg-amber-50 text-amber-800 ring-1 ring-amber-200/80';
+    return s.isCompleted
+        ? 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/80'
+        : 'bg-red-50 text-red-800 ring-1 ring-red-200/80';
+}

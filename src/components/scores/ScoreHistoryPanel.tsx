@@ -3,6 +3,10 @@ import { Link } from 'react-router-dom';
 import {
     ScoreHistoryViewResponse,
     ScoreHistoryDetailResponse,
+    ScoreTotalResponse,
+    ScoreType,
+    SCORE_TYPE_ORDER,
+    SCORE_TYPE_META,
     getScoreTypeLabel,
     getSourceTypeLabel,
     getSourceTypeColor,
@@ -14,6 +18,10 @@ interface ScoreHistoryPanelProps {
     data: ScoreHistoryViewResponse;
     eventLinkPrefix?: string;
     showParticipations?: boolean;
+    /** Hiện nút khiếu nại trên từng dòng lịch sử (sinh viên) */
+    onAppeal?: (history: ScoreHistoryDetailResponse) => void;
+    /** Tổng điểm theo loại — khi có, hiển thị cả 3 loại thay vì chỉ currentScore */
+    totalData?: ScoreTotalResponse | null;
 }
 
 const ScoreChangeBadge: React.FC<{ history: ScoreHistoryDetailResponse }> = ({ history }) => {
@@ -49,6 +57,8 @@ export const ScoreHistoryPanel: React.FC<ScoreHistoryPanelProps> = ({
     data,
     eventLinkPrefix = '/student/events',
     showParticipations = true,
+    onAppeal,
+    totalData,
 }) => {
     return (
         <div className="space-y-6">
@@ -56,14 +66,32 @@ export const ScoreHistoryPanel: React.FC<ScoreHistoryPanelProps> = ({
                 aria-label="Điểm hiện tại"
                 className="rounded-2xl bg-gradient-to-br from-primary-900 to-primary-800 p-6 text-white shadow-premium"
             >
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div>
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
+                    <div className="flex-1">
                         <p className="text-sm text-white/70">Điểm hiện tại</p>
-                        <p className="text-4xl font-bold tabular-nums mt-1 tracking-tight">
-                            {formatScore(data.currentScore)}
-                        </p>
+                        {totalData ? (
+                            <div className="flex flex-wrap gap-3 mt-3">
+                                {SCORE_TYPE_ORDER.map(type => (
+                                    <div
+                                        key={type}
+                                        className="rounded-xl bg-white/10 backdrop-blur-sm px-4 py-3 border border-white/10 min-w-[120px]"
+                                    >
+                                        <p className="text-xs text-white/60 font-medium">
+                                            {SCORE_TYPE_META[type].shortLabel}
+                                        </p>
+                                        <p className="text-lg font-semibold tabular-nums mt-0.5">
+                                            {formatScore(totalData.totalsByType?.[type] ?? 0)}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-4xl font-bold tabular-nums mt-1 tracking-tight">
+                                {formatScore(data.currentScore)}
+                            </p>
+                        )}
                     </div>
-                    <div className="sm:text-right">
+                    <div className="sm:text-right shrink-0">
                         <p className="text-sm font-medium">{data.semesterName}</p>
                         <p className="text-sm text-white/70 mt-1">
                             {getScoreTypeLabel(data.scoreType)}
@@ -136,6 +164,15 @@ export const ScoreHistoryPanel: React.FC<ScoreHistoryPanelProps> = ({
                                                 <p className="text-xs text-gray-400 mt-2">
                                                     Bởi {history.changedByFullName}
                                                 </p>
+                                            )}
+                                            {onAppeal && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => onAppeal(history)}
+                                                    className="mt-3 inline-flex items-center rounded-lg border border-primary-900/20 px-3 py-1.5 text-xs font-medium text-primary-900 transition-colors hover:bg-primary-900/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900"
+                                                >
+                                                    Khiếu nại
+                                                </button>
                                             )}
                                         </div>
                                         <ScoreChangeBadge history={history} />

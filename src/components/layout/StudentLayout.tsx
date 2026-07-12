@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { NotificationDropdown } from '../notification/NotificationDropdown';
+import Submenu from './Submenu';
 import UserProfileMenu from './UserProfileMenu';
 import ChatbotWidget from '../chatbot/ChatbotWidget';
 import { ChatbotPageContext } from '../../services/chatbotAPI';
@@ -31,51 +32,6 @@ const StudentLayout: React.FC<StudentLayoutProps> = ({
             icon: (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-            ),
-        },
-        {
-            name: 'Sự kiện',
-            href: '/student/events',
-            icon: (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-            ),
-        },
-        {
-            name: 'Bài viết',
-            href: '/articles',
-            icon: (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h10l6 6v10a2 2 0 01-2 2zM14 3v6h6" />
-                </svg>
-            ),
-        },
-        {
-            name: 'Bài viết đã lưu',
-            href: '/wishlist',
-            icon: (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-            ),
-        },
-        {
-            name: 'Chuỗi sự kiện',
-            href: '/student/series',
-            icon: (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-            ),
-        },
-        {
-            name: 'Mini Game',
-            href: '/student/minigames',
-            icon: (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                 </svg>
             ),
         },
@@ -112,15 +68,6 @@ const StudentLayout: React.FC<StudentLayoutProps> = ({
             ),
         },
         {
-            name: 'Điểm số',
-            href: '/student/scores',
-            icon: (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-            ),
-        },
-        {
             name: 'Quét QR Check-in',
             href: '/student/qr-checkin',
             icon: (
@@ -140,11 +87,145 @@ const StudentLayout: React.FC<StudentLayoutProps> = ({
         },
     ];
 
+    const eventsSubmenu = {
+        title: 'Sự kiện',
+        icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+        ),
+        items: [
+            {
+                name: 'Sự kiện',
+                href: '/student/events',
+                icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                ),
+            },
+            {
+                name: 'Chuỗi sự kiện',
+                href: '/student/series',
+                icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                ),
+            },
+            {
+                name: 'Mini Game',
+                href: '/student/minigames',
+                icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                ),
+            },
+        ],
+    };
+
+    const articlesSubmenu = {
+        title: 'Bài viết',
+        icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h10l6 6v10a2 2 0 01-2 2zM14 3v6h6" />
+            </svg>
+        ),
+        items: [
+            {
+                name: 'Bài viết',
+                href: '/articles',
+                icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h10l6 6v10a2 2 0 01-2 2zM14 3v6h6" />
+                    </svg>
+                ),
+            },
+            {
+                name: 'Bài viết đã lưu',
+                href: '/wishlist',
+                icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                ),
+            },
+        ],
+    };
+
+    const scoresSubmenu = {
+        title: 'Điểm số',
+        icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+        ),
+        items: [
+            {
+                name: 'Điểm số',
+                href: '/student/scores',
+                icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                ),
+            },
+            {
+                name: 'Khiếu nại điểm',
+                href: '/student/scores/appeals',
+                icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                    </svg>
+                ),
+            },
+        ],
+    };
+
     const isActive = (href: string) => {
         if (href === '/dashboard') {
             return location.pathname === '/dashboard';
         }
         return location.pathname.startsWith(href);
+    };
+
+    const getPageTitle = () => {
+        const path = location.pathname;
+        if (path.startsWith('/student/calendar')) return 'Lịch của tôi';
+        if (path.startsWith('/student/scores/appeals')) return 'Khiếu nại điểm';
+        if (path === '/student/scores' || path.startsWith('/student/scores/')) return 'Điểm số';
+        if (path.startsWith('/student/series')) return 'Chuỗi sự kiện';
+        if (path.startsWith('/student/minigames')) return 'Mini Game';
+        if (path.startsWith('/student/events')) return 'Sự kiện';
+        if (path.startsWith('/wishlist')) return 'Bài viết đã lưu';
+        if (path.startsWith('/articles')) return 'Bài viết';
+        return menuItems.find((item) => isActive(item.href))?.name || 'Dashboard';
+    };
+
+    const headerTitle = getPageTitle();
+    const dashboardItem = menuItems[0];
+    const afterEventsItems = menuItems.slice(1, 3); // Lịch sử tham gia, Nhiệm vụ
+    const afterArticlesItems = menuItems.slice(3, 4); // Công tác chuẩn bị
+    const bottomMenuItems = menuItems.slice(4); // QR, Hồ sơ
+
+    const renderMenuLink = (item: { name: string; href: string; icon: React.ReactNode }) => {
+        const active = isActive(item.href);
+        return (
+            <li key={item.name}>
+                <Link
+                    to={item.href}
+                    className={`sidebar-link flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                        active
+                            ? 'bg-[#FFD66D] bg-opacity-20 text-[#FFD66D] border-l-4 border-[#FFD66D]'
+                            : 'text-gray-300 hover:bg-[#002A66] hover:text-white border-l-4 border-transparent'
+                    }`}
+                >
+                    <span className={`${sidebarOpen ? 'mr-3' : 'mx-auto'}`}>{item.icon}</span>
+                    {sidebarOpen && <span>{item.name}</span>}
+                </Link>
+            </li>
+        );
     };
 
     return (
@@ -178,24 +259,34 @@ const StudentLayout: React.FC<StudentLayoutProps> = ({
                     {/* Navigation */}
                     <nav className="flex-1 overflow-y-auto py-4">
                         <ul className="space-y-1 px-2">
-                            {menuItems.map((item) => {
-                                const active = isActive(item.href);
-                                return (
-                                    <li key={item.name}>
-                                        <Link
-                                            to={item.href}
-                                            className={`sidebar-link flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                                                active
-                                                    ? 'bg-[#FFD66D] bg-opacity-20 text-[#FFD66D] border-l-4 border-[#FFD66D]'
-                                                    : 'text-gray-300 hover:bg-[#002A66] hover:text-white border-l-4 border-transparent'
-                                            }`}
-                                        >
-                                            <span className={`${sidebarOpen ? 'mr-3' : 'mx-auto'}`}>{item.icon}</span>
-                                            {sidebarOpen && <span>{item.name}</span>}
-                                        </Link>
-                                    </li>
-                                );
-                            })}
+                            {renderMenuLink(dashboardItem)}
+
+                            <Submenu
+                                title={eventsSubmenu.title}
+                                icon={eventsSubmenu.icon}
+                                items={eventsSubmenu.items}
+                                sidebarOpen={sidebarOpen}
+                            />
+
+                            {afterEventsItems.map(renderMenuLink)}
+
+                            <Submenu
+                                title={articlesSubmenu.title}
+                                icon={articlesSubmenu.icon}
+                                items={articlesSubmenu.items}
+                                sidebarOpen={sidebarOpen}
+                            />
+
+                            {afterArticlesItems.map(renderMenuLink)}
+
+                            <Submenu
+                                title={scoresSubmenu.title}
+                                icon={scoresSubmenu.icon}
+                                items={scoresSubmenu.items}
+                                sidebarOpen={sidebarOpen}
+                            />
+
+                            {bottomMenuItems.map(renderMenuLink)}
                         </ul>
                     </nav>
 
@@ -230,10 +321,24 @@ const StudentLayout: React.FC<StudentLayoutProps> = ({
                         <div className="flex items-center justify-between">
                             <div>
                                 <h2 className="text-2xl font-bold text-[#001C44]">
-                                    {menuItems.find(item => isActive(item.href))?.name || 'Dashboard'}
+                                    {headerTitle}
                                 </h2>
                             </div>
-                            <div className="flex items-center space-x-4">
+                            <div className="flex items-center space-x-3">
+                                <Link
+                                    to="/student/calendar"
+                                    className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition-all active:scale-[0.98] ${
+                                        location.pathname.startsWith('/student/calendar')
+                                            ? 'bg-[#001C44] text-[#FFD66D]'
+                                            : 'bg-gray-50 text-[#001C44] hover:bg-gray-100'
+                                    }`}
+                                    title="Lịch của tôi"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <span className="hidden sm:inline">Lịch của tôi</span>
+                                </Link>
                                 <NotificationDropdown />
                             </div>
                         </div>

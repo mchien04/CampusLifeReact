@@ -1,5 +1,28 @@
+import type { AxiosResponse } from 'axios';
 import api from './api';
-import { TrainingCalculateResponse, ScoreViewResponse, ScoreTotalResponse, StudentRankingResponseData, ScoreHistoryViewResponse, ScoreType, RecalculationJobResponse } from '../types/score';
+import {
+    TrainingCalculateResponse,
+    ScoreViewResponse,
+    ScoreTotalResponse,
+    StudentRankingResponseData,
+    ScoreHistoryViewResponse,
+    ScoreType,
+    ExportSemesterScoresParams,
+    RecalculationJobResponse,
+    ManualScoreRequest,
+    ManualScoreResponse,
+    ManualScoreReverseRequest,
+    BulkManualScoreRequest,
+    BulkManualScoreResponse,
+    CreateScoreAppealRequest,
+    ScoreAppealResponse,
+    ScoreAppealPageBody,
+    ScoreAppealStatus,
+    ScoreAppealMessageRequest,
+    ScoreAppealDecisionRequest,
+    ScoreAppealDecisionPreviewResponse,
+    ScoreAppealEvidenceUploadResponse,
+} from '../types/score';
 
 // Normalize response format
 const normalize = <T>(data: any): { status: boolean; message: string; data?: T } => {
@@ -67,6 +90,15 @@ export const scoresAPI = {
         const res = await api.get(`/api/scores/ranking?${queryParams.toString()}`);
         return normalize<StudentRankingResponseData>(res.data);
     },
+
+    /** GET /api/scores/export — Excel binary. */
+    exportSemesterScoresExcel: (
+        params: ExportSemesterScoresParams
+    ): Promise<AxiosResponse<Blob>> =>
+        api.get('/api/scores/export', {
+            params,
+            responseType: 'blob',
+        }),
 
     getScoreHistory: async (params: {
         studentId: number;
@@ -157,5 +189,110 @@ export const scoresAPI = {
     retryRecalculation: async (jobId: number): Promise<{ status: boolean; message: string; data?: { jobId: number } }> => {
         const res = await api.post(`/api/scores/recalculate/retry/${jobId}`);
         return normalize(res.data);
+    },
+
+    createManualScore: async (
+        body: ManualScoreRequest
+    ): Promise<{ status: boolean; message: string; data?: ManualScoreResponse }> => {
+        const res = await api.post('/api/scores/manual', body);
+        return normalize<ManualScoreResponse>(res.data);
+    },
+
+    createBulkManualScore: async (
+        body: BulkManualScoreRequest
+    ): Promise<{ status: boolean; message: string; data?: BulkManualScoreResponse }> => {
+        const res = await api.post('/api/scores/manual/bulk', body);
+        return normalize<BulkManualScoreResponse>(res.data);
+    },
+
+    reverseManualScore: async (
+        adjustmentId: number,
+        body: ManualScoreReverseRequest
+    ): Promise<{ status: boolean; message: string; data?: { adjustmentId: number; reversedEntries: number } }> => {
+        const res = await api.post(`/api/scores/manual/${adjustmentId}/reverse`, body);
+        return normalize(res.data);
+    },
+
+    uploadAppealEvidence: async (
+        files: File[]
+    ): Promise<{ status: boolean; message: string; data?: ScoreAppealEvidenceUploadResponse }> => {
+        const form = new FormData();
+        files.forEach((f) => form.append('files', f));
+        const res = await api.post('/api/scores/appeals/evidence', form);
+        return normalize<ScoreAppealEvidenceUploadResponse>(res.data);
+    },
+
+    createScoreAppeal: async (
+        body: CreateScoreAppealRequest
+    ): Promise<{ status: boolean; message: string; data?: ScoreAppealResponse }> => {
+        const res = await api.post('/api/scores/appeals', body);
+        return normalize<ScoreAppealResponse>(res.data);
+    },
+
+    previewAppealDecision: async (
+        id: number,
+        body: ScoreAppealDecisionRequest
+    ): Promise<{ status: boolean; message: string; data?: ScoreAppealDecisionPreviewResponse }> => {
+        const res = await api.post(`/api/scores/appeals/${id}/decide/preview`, body);
+        return normalize<ScoreAppealDecisionPreviewResponse>(res.data);
+    },
+
+    listMyScoreAppeals: async (): Promise<{ status: boolean; message: string; data?: ScoreAppealResponse[] }> => {
+        const res = await api.get('/api/scores/appeals/my');
+        return normalize<ScoreAppealResponse[]>(res.data);
+    },
+
+    listScoreAppeals: async (params: {
+        status?: ScoreAppealStatus;
+        semesterId?: number;
+        studentId?: number;
+        page?: number;
+        size?: number;
+    }): Promise<{ status: boolean; message: string; data?: ScoreAppealPageBody }> => {
+        const queryParams = new URLSearchParams();
+        if (params.status) queryParams.append('status', params.status);
+        if (params.semesterId != null) queryParams.append('semesterId', String(params.semesterId));
+        if (params.studentId != null) queryParams.append('studentId', String(params.studentId));
+        queryParams.append('page', String(params.page ?? 0));
+        queryParams.append('size', String(params.size ?? 20));
+        const res = await api.get(`/api/scores/appeals?${queryParams.toString()}`);
+        return normalize<ScoreAppealPageBody>(res.data);
+    },
+
+    getScoreAppeal: async (
+        id: number
+    ): Promise<{ status: boolean; message: string; data?: ScoreAppealResponse }> => {
+        const res = await api.get(`/api/scores/appeals/${id}`);
+        return normalize<ScoreAppealResponse>(res.data);
+    },
+
+    addScoreAppealMessage: async (
+        id: number,
+        body: ScoreAppealMessageRequest
+    ): Promise<{ status: boolean; message: string; data?: ScoreAppealResponse }> => {
+        const res = await api.post(`/api/scores/appeals/${id}/messages`, body);
+        return normalize<ScoreAppealResponse>(res.data);
+    },
+
+    decideScoreAppeal: async (
+        id: number,
+        body: ScoreAppealDecisionRequest
+    ): Promise<{ status: boolean; message: string; data?: ScoreAppealResponse }> => {
+        const res = await api.put(`/api/scores/appeals/${id}/decide`, body);
+        return normalize<ScoreAppealResponse>(res.data);
+    },
+
+    closeScoreAppeal: async (
+        id: number
+    ): Promise<{ status: boolean; message: string; data?: ScoreAppealResponse }> => {
+        const res = await api.put(`/api/scores/appeals/${id}/close`);
+        return normalize<ScoreAppealResponse>(res.data);
+    },
+
+    withdrawScoreAppeal: async (
+        id: number
+    ): Promise<{ status: boolean; message: string; data?: ScoreAppealResponse }> => {
+        const res = await api.put(`/api/scores/appeals/${id}/withdraw`);
+        return normalize<ScoreAppealResponse>(res.data);
     },
 };

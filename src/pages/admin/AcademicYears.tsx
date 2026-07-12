@@ -1,9 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { AcademicYear, CreateAcademicYearRequest, UpdateAcademicYearRequest, Semester, CreateSemesterRequest } from '../../types/admin';
 import { academicYearAPI, semesterAPI } from '../../services/adminAPI';
+import {
+    StructureModal,
+    modalCancelBtnClass,
+    modalFieldClass,
+    modalLabelClass,
+    modalPrimaryBtnClass,
+} from '../../components/admin/StructureModal';
 
-const AcademicYears: React.FC = () => {
+interface AcademicYearsProps {
+    embedded?: boolean;
+}
+
+const AcademicYears: React.FC<AcademicYearsProps> = ({ embedded = false }) => {
     const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
     const [selectedYear, setSelectedYear] = useState<AcademicYear | null>(null);
     const [semesters, setSemesters] = useState<Semester[]>([]);
@@ -236,43 +246,62 @@ const AcademicYears: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white">
-                <div className="flex items-center justify-between">
+            {!embedded && (
+                <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h1 className="text-3xl font-bold mb-2 flex items-center">
+                                <span className="mr-3 text-4xl">📅</span>
+                                Quản lý năm học & học kỳ
+                            </h1>
+                            <p className="text-gray-200 text-lg">Quản lý các năm học và học kỳ trong hệ thống</p>
+                        </div>
+                        <button
+                            onClick={() => {
+                                setEditingYear(null);
+                                setShowYearForm(true);
+                            }}
+                            className="px-5 py-2.5 bg-[#FFD66D] text-[#001C44] rounded-lg hover:bg-[#FFC947] font-semibold shadow-lg hover:shadow-xl transition-all"
+                        >
+                            + Tạo năm học
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {embedded && (
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                        <h1 className="text-3xl font-bold mb-2 flex items-center">
-                            <span className="mr-3 text-4xl">📅</span>
-                            Quản lý năm học & học kỳ
-                        </h1>
-                        <p className="text-gray-200 text-lg">Quản lý các năm học và học kỳ trong hệ thống</p>
+                        <h2 className="text-lg font-semibold text-primary-900 tracking-tight">Năm học & học kỳ</h2>
+                        <p className="text-sm text-gray-500 mt-0.5">Chọn năm học bên trái để quản lý học kỳ</p>
                     </div>
                     <button
+                        type="button"
                         onClick={() => {
                             setEditingYear(null);
                             setShowYearForm(true);
                         }}
-                        className="px-5 py-2.5 bg-[#FFD66D] text-[#001C44] rounded-lg hover:bg-[#FFC947] font-semibold shadow-lg hover:shadow-xl transition-all"
+                        className="rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-primary-900 transition-all hover:bg-accent-hover active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900"
                     >
-                        + Tạo năm học
+                        Thêm năm học
                     </button>
                 </div>
-            </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Academic Years List */}
                 <div className="lg:col-span-1">
-                    <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-                        <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] px-6 py-4">
-                            <h3 className="text-xl font-bold text-white flex items-center">
-                                <span className="mr-2 text-2xl">📚</span>
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-premium overflow-hidden">
+                        <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
+                            <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500">
                                 Danh sách năm học
                             </h3>
                         </div>
                         <div className="max-h-[600px] overflow-y-auto bg-white">
                             {academicYears.length === 0 ? (
                                 <div className="p-8 text-center bg-white">
-                                    <div className="text-gray-400 text-5xl mb-3">📅</div>
-                                    <p className="text-gray-600 font-medium">Chưa có năm học nào</p>
+                                    <p className="text-gray-800 font-medium">Chưa có năm học nào</p>
+                                    <p className="text-gray-500 text-sm mt-1">Tạo năm học đầu tiên để bắt đầu</p>
                                 </div>
                             ) : (
                                 academicYears.map((year) => (
@@ -280,18 +309,18 @@ const AcademicYears: React.FC = () => {
                                         key={year.id}
                                         className={`p-4 border-b border-gray-100 bg-white cursor-pointer transition-all ${
                                             selectedYear?.id === year.id 
-                                                ? 'border-l-4 border-[#001C44] bg-[#001C44] bg-opacity-5 shadow-md' 
-                                                : 'hover:bg-gray-50'
+                                                ? 'border-l-4 border-primary-900 bg-primary-50/60'
+                                                : 'hover:bg-gray-50 border-l-4 border-transparent'
                                         }`}
                                         onClick={() => setSelectedYear(year)}
                                     >
                                         <div className="flex items-start justify-between">
-                                            <div className="flex-1">
-                                                <h4 className="text-base font-bold mb-2 text-gray-900">
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="text-base font-semibold mb-1.5 text-primary-900 tracking-tight">
                                                     {year.name}
                                                 </h4>
-                                                <div className="text-xs text-gray-500">
-                                                    📅 {formatDate(year.startDate)} - {formatDate(year.endDate)}
+                                                <div className="text-xs text-gray-500 tabular-nums">
+                                                    {formatDate(year.startDate)} – {formatDate(year.endDate)}
                                                 </div>
                                             </div>
                                             <div className="flex space-x-1 ml-2">
@@ -301,7 +330,7 @@ const AcademicYears: React.FC = () => {
                                                         setEditingYear(year);
                                                         setShowYearForm(true);
                                                     }}
-                                                    className="p-2 text-[#001C44] hover:bg-blue-50 rounded-lg transition-colors"
+                                                    className="p-2 text-primary-900 hover:bg-primary-50 rounded-lg transition-colors"
                                                     title="Chỉnh sửa"
                                                 >
                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -313,7 +342,7 @@ const AcademicYears: React.FC = () => {
                                                         e.stopPropagation();
                                                         handleDeleteYear(year.id);
                                                     }}
-                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                    className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
                                                     title="Xóa"
                                                 >
                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -331,97 +360,95 @@ const AcademicYears: React.FC = () => {
 
                 {/* Semesters List */}
                 <div className="lg:col-span-2">
-                    <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-                        <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] px-6 py-4">
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-xl font-bold text-white flex items-center">
-                                    <span className="mr-2 text-2xl">📖</span>
-                                    Học kỳ
-                                    {selectedYear && <span className="ml-2 text-[#FFD66D]">- {selectedYear.name}</span>}
-                                </h3>
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-premium overflow-hidden">
+                        <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
+                            <div className="flex items-center justify-between gap-3">
+                                <div>
+                                    <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500">
+                                        Học kỳ
+                                    </h3>
+                                    {selectedYear && (
+                                        <p className="text-sm font-medium text-primary-900 mt-0.5">{selectedYear.name}</p>
+                                    )}
+                                </div>
                                 {selectedYear && (
                                     <button
                                         onClick={() => {
                                             setEditingSemester(null);
                                             setShowSemesterForm(true);
                                         }}
-                                        className="px-4 py-2 bg-[#FFD66D] text-[#001C44] rounded-lg hover:bg-[#FFC947] font-semibold shadow-md hover:shadow-lg transition-all"
+                                        className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-primary-900 transition-all hover:bg-accent-hover active:scale-[0.98]"
                                     >
-                                        + Tạo học kỳ
+                                        Thêm học kỳ
                                     </button>
                                 )}
                             </div>
                         </div>
-                        <div className="p-6">
+                        <div className="p-5">
                             {selectedYear ? (
-                                <div className="space-y-4">
+                                <div className="space-y-3">
                                     {loadingSemesters ? (
                                         <div className="text-center py-12">
-                                            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#001C44] mx-auto"></div>
-                                            <p className="mt-3 text-gray-600 font-medium">Đang tải học kỳ...</p>
+                                            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-900 mx-auto"></div>
+                                            <p className="mt-3 text-gray-600 text-sm">Đang tải học kỳ...</p>
                                         </div>
                                     ) : semesters.length === 0 ? (
-                                        <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
-                                            <div className="text-gray-400 text-6xl mb-4">📚</div>
-                                            <p className="text-gray-600 font-medium text-lg">Chưa có học kỳ nào trong năm học này</p>
-                                            <p className="text-gray-500 text-sm mt-2">Tạo học kỳ mới để bắt đầu</p>
+                                        <div className="text-center py-12 rounded-xl border border-dashed border-gray-200 bg-gray-50/50">
+                                            <p className="text-gray-800 font-medium">Chưa có học kỳ trong năm này</p>
+                                            <p className="text-gray-500 text-sm mt-1">Tạo học kỳ mới để bắt đầu</p>
                                         </div>
                                     ) : (
                                         semesters.map((semester) => (
-                                            <div key={semester.id} className="bg-white border-2 border-gray-200 rounded-xl p-5 hover:shadow-lg transition-all">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center gap-3 mb-3">
-                                                            <div className="w-12 h-12 bg-gradient-to-br from-[#001C44] to-[#002A66] rounded-xl flex items-center justify-center text-2xl text-white shadow-md">
-                                                                📖
+                                            <div key={semester.id} className="bg-white border border-gray-100 rounded-2xl p-4 hover:shadow-premium transition-all">
+                                                <div className="flex flex-wrap items-center justify-between gap-3">
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 shrink-0 bg-primary-900 rounded-xl flex items-center justify-center text-sm font-semibold text-white tabular-nums">
+                                                                {semester.name.replace(/[^0-9]/g, '').slice(0, 2) || 'HK'}
                                                             </div>
-                                                            <div>
-                                                                <h4 className="text-lg font-bold text-gray-900">
+                                                            <div className="min-w-0">
+                                                                <h4 className="text-base font-semibold text-primary-900 tracking-tight">
                                                                     {semester.name}
                                                                 </h4>
-                                                                <div className="flex items-center space-x-3 text-sm text-gray-600 mt-1">
-                                                                    <span>📅 Bắt đầu: {formatDate(semester.startDate)}</span>
-                                                                    <span>•</span>
-                                                                    <span>📅 Kết thúc: {formatDate(semester.endDate)}</span>
-                                                                </div>
+                                                                <p className="text-sm text-gray-500 mt-0.5 tabular-nums">
+                                                                    {formatDate(semester.startDate)} – {formatDate(semester.endDate)}
+                                                                </p>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div className="flex items-center space-x-3">
-                                                        <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm ${
+                                                    <div className="flex items-center flex-wrap gap-2">
+                                                        <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${
                                                             semester.open
-                                                                ? 'bg-green-50 text-green-700 border-2 border-green-200'
-                                                                : 'bg-red-50 text-red-700 border-2 border-red-200'
+                                                                ? 'bg-emerald-50 text-emerald-800'
+                                                                : 'bg-rose-50 text-rose-700'
                                                         }`}>
-                                                            {semester.open ? '✅ Đang mở' : '🔒 Đã đóng'}
+                                                            {semester.open ? 'Đang mở' : 'Đã đóng'}
                                                         </span>
-                                                        <div className="flex space-x-2">
-                                                            <button
-                                                                onClick={() => handleToggleSemester(semester.id, !semester.open)}
-                                                                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                                                                    semester.open
-                                                                        ? 'bg-red-50 text-red-700 border-2 border-red-200 hover:bg-red-100'
-                                                                        : 'bg-green-50 text-green-700 border-2 border-green-200 hover:bg-green-100'
-                                                                }`}
-                                                            >
-                                                                {semester.open ? '🔒 Đóng' : '✅ Mở'}
-                                                            </button>
-                                                            <button
-                                                                onClick={() => {
-                                                                    setEditingSemester(semester);
-                                                                    setShowSemesterForm(true);
-                                                                }}
-                                                                className="px-3 py-1.5 text-xs font-semibold bg-blue-50 text-blue-700 border-2 border-blue-200 rounded-lg hover:bg-blue-100 transition-all"
-                                                            >
-                                                                ✏️ Sửa
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDeleteSemester(semester.id)}
-                                                                className="px-3 py-1.5 text-xs font-semibold bg-rose-50 text-rose-700 border-2 border-rose-200 rounded-lg hover:bg-rose-100 transition-all"
-                                                            >
-                                                                🗑️ Xóa
-                                                            </button>
-                                                        </div>
+                                                        <button
+                                                            onClick={() => handleToggleSemester(semester.id, !semester.open)}
+                                                            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all active:scale-[0.98] ${
+                                                                semester.open
+                                                                    ? 'bg-rose-50 text-rose-700 hover:bg-rose-100'
+                                                                    : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                                                            }`}
+                                                        >
+                                                            {semester.open ? 'Đóng' : 'Mở'}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                setEditingSemester(semester);
+                                                                setShowSemesterForm(true);
+                                                            }}
+                                                            className="px-3 py-1.5 text-xs font-medium rounded-lg bg-primary-50 text-primary-900 hover:bg-primary-100 transition-all active:scale-[0.98]"
+                                                        >
+                                                            Sửa
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteSemester(semester.id)}
+                                                            className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-100 transition-all active:scale-[0.98]"
+                                                        >
+                                                            Xóa
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
@@ -429,10 +456,9 @@ const AcademicYears: React.FC = () => {
                                     )}
                                 </div>
                             ) : (
-                                <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
-                                    <div className="text-gray-400 text-6xl mb-4">📚</div>
-                                    <p className="text-gray-600 font-medium text-lg">Chọn một năm học để xem học kỳ</p>
-                                    <p className="text-gray-500 text-sm mt-2">Danh sách học kỳ sẽ hiển thị ở đây</p>
+                                <div className="text-center py-12 rounded-xl border border-dashed border-gray-200 bg-gray-50/50">
+                                    <p className="text-gray-800 font-medium">Chọn một năm học để xem học kỳ</p>
+                                    <p className="text-gray-500 text-sm mt-1">Danh sách học kỳ sẽ hiện ở đây</p>
                                 </div>
                             )}
                         </div>
@@ -525,94 +551,68 @@ const YearFormModal: React.FC<YearFormModalProps> = ({ year, onSubmit, onClose }
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl">
-                <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] px-6 py-4 rounded-t-xl">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-2xl font-bold text-white flex items-center">
-                            <span className="mr-3 text-3xl">📅</span>
-                            {year ? 'Chỉnh sửa năm học' : 'Tạo năm học mới'}
-                        </h3>
-                        <button onClick={onClose} className="text-white hover:text-[#FFD66D] transition-colors">
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
+        <StructureModal
+            title={year ? 'Chỉnh sửa năm học' : 'Thêm năm học'}
+            subtitle="Đặt tên và khoảng thời gian cho năm học"
+            onClose={onClose}
+            size="lg"
+            footer={
+                <>
+                    <button type="button" onClick={onClose} className={modalCancelBtnClass}>
+                        Hủy
+                    </button>
+                    <button type="submit" form="year-form" className={modalPrimaryBtnClass}>
+                        {year ? 'Cập nhật' : 'Tạo năm học'}
+                    </button>
+                </>
+            }
+        >
+            <form id="year-form" onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                    <label className={modalLabelClass}>
+                        Tên năm học <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        className={modalFieldClass(!!errors.name)}
+                        placeholder="Ví dụ: 2024-2025"
+                    />
+                    {errors.name && <p className="mt-1 text-sm text-rose-600">{errors.name}</p>}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label className={modalLabelClass}>
+                            Ngày bắt đầu <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                            type="date"
+                            name="startDate"
+                            value={formData.startDate}
+                            onChange={handleChange}
+                            className={modalFieldClass(!!errors.startDate)}
+                        />
+                        {errors.startDate && <p className="mt-1 text-sm text-rose-600">{errors.startDate}</p>}
+                    </div>
+                    <div>
+                        <label className={modalLabelClass}>
+                            Ngày kết thúc <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                            type="date"
+                            name="endDate"
+                            value={formData.endDate}
+                            onChange={handleChange}
+                            className={modalFieldClass(!!errors.endDate)}
+                        />
+                        {errors.endDate && <p className="mt-1 text-sm text-rose-600">{errors.endDate}</p>}
                     </div>
                 </div>
-                <div className="p-6">
-
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                📝 Tên năm học *
-                            </label>
-                            <input
-                                type="text"
-                                name="name"
-                                value={formData.name}
-                                onChange={handleChange}
-                                className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors ${
-                                    errors.name ? 'border-red-500' : 'border-gray-300'
-                                }`}
-                                placeholder="Ví dụ: 2024-2025"
-                            />
-                            {errors.name && <p className="text-red-500 text-sm mt-1 font-medium">{errors.name}</p>}
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    📅 Ngày bắt đầu *
-                                </label>
-                                <input
-                                    type="date"
-                                    name="startDate"
-                                    value={formData.startDate}
-                                    onChange={handleChange}
-                                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors ${
-                                        errors.startDate ? 'border-red-500' : 'border-gray-300'
-                                    }`}
-                                />
-                                {errors.startDate && <p className="text-red-500 text-sm mt-1 font-medium">{errors.startDate}</p>}
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    📅 Ngày kết thúc *
-                                </label>
-                                <input
-                                    type="date"
-                                    name="endDate"
-                                    value={formData.endDate}
-                                    onChange={handleChange}
-                                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors ${
-                                        errors.endDate ? 'border-red-500' : 'border-gray-300'
-                                    }`}
-                                />
-                                {errors.endDate && <p className="text-red-500 text-sm mt-1 font-medium">{errors.endDate}</p>}
-                            </div>
-                        </div>
-
-                        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className="px-5 py-2.5 border-2 border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-semibold transition-all"
-                            >
-                                Hủy
-                            </button>
-                            <button
-                                type="submit"
-                                className="px-5 py-2.5 bg-gradient-to-r from-[#001C44] to-[#002A66] text-white rounded-lg hover:from-[#002A66] hover:to-[#001C44] font-semibold shadow-md hover:shadow-lg transition-all"
-                            >
-                                {year ? '💾 Cập nhật' : '✨ Tạo mới'}
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
+            </form>
+        </StructureModal>
     );
 };
 
@@ -679,112 +679,85 @@ const SemesterFormModal: React.FC<SemesterFormModalProps> = ({ yearId, yearName,
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl">
-                <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] px-6 py-4 rounded-t-xl">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-2xl font-bold text-white flex items-center">
-                            <span className="mr-3 text-3xl">📖</span>
-                            {semester ? 'Chỉnh sửa học kỳ' : 'Tạo học kỳ mới'}
-                        </h3>
-                        <button onClick={onClose} className="text-white hover:text-[#FFD66D] transition-colors">
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
+        <StructureModal
+            title={semester ? 'Chỉnh sửa học kỳ' : 'Thêm học kỳ'}
+            subtitle={`Thuộc năm học ${yearName}`}
+            onClose={onClose}
+            size="lg"
+            footer={
+                <>
+                    <button type="button" onClick={onClose} className={modalCancelBtnClass}>
+                        Hủy
+                    </button>
+                    <button type="submit" form="semester-form" className={modalPrimaryBtnClass}>
+                        {semester ? 'Cập nhật' : 'Tạo học kỳ'}
+                    </button>
+                </>
+            }
+        >
+            <form id="semester-form" onSubmit={handleSubmit} className="space-y-4">
+                <div className="rounded-xl border border-primary-100 bg-primary-50/60 px-3.5 py-2.5 text-sm text-primary-900">
+                    Năm học: <span className="font-semibold">{yearName}</span>
+                </div>
+
+                <div>
+                    <label className={modalLabelClass}>
+                        Tên học kỳ <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        className={modalFieldClass(!!errors.name)}
+                        placeholder="Ví dụ: Học kỳ 1"
+                    />
+                    {errors.name && <p className="mt-1 text-sm text-rose-600">{errors.name}</p>}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label className={modalLabelClass}>
+                            Ngày bắt đầu <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                            type="date"
+                            name="startDate"
+                            value={formData.startDate}
+                            onChange={handleChange}
+                            className={modalFieldClass(!!errors.startDate)}
+                        />
+                        {errors.startDate && <p className="mt-1 text-sm text-rose-600">{errors.startDate}</p>}
+                    </div>
+                    <div>
+                        <label className={modalLabelClass}>
+                            Ngày kết thúc <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                            type="date"
+                            name="endDate"
+                            value={formData.endDate}
+                            onChange={handleChange}
+                            className={modalFieldClass(!!errors.endDate)}
+                        />
+                        {errors.endDate && <p className="mt-1 text-sm text-rose-600">{errors.endDate}</p>}
                     </div>
                 </div>
-                <div className="p-6">
-                    <div className="mb-5 p-4 bg-gradient-to-r from-[#001C44] to-[#002A66] bg-opacity-10 border-2 border-[#001C44] border-opacity-20 rounded-lg">
-                        <p className="text-sm font-semibold text-[#001C44]">
-                            📅 <strong>Năm học:</strong> {yearName}
-                        </p>
-                    </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                📝 Tên học kỳ *
-                            </label>
-                            <input
-                                type="text"
-                                name="name"
-                                value={formData.name}
-                                onChange={handleChange}
-                                className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors ${
-                                    errors.name ? 'border-red-500' : 'border-gray-300'
-                                }`}
-                                placeholder="Ví dụ: Học kỳ 1, Học kỳ 2"
-                            />
-                            {errors.name && <p className="text-red-500 text-sm mt-1 font-medium">{errors.name}</p>}
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    📅 Ngày bắt đầu *
-                                </label>
-                                <input
-                                    type="date"
-                                    name="startDate"
-                                    value={formData.startDate}
-                                    onChange={handleChange}
-                                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors ${
-                                        errors.startDate ? 'border-red-500' : 'border-gray-300'
-                                    }`}
-                                />
-                                {errors.startDate && <p className="text-red-500 text-sm mt-1 font-medium">{errors.startDate}</p>}
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    📅 Ngày kết thúc *
-                                </label>
-                                <input
-                                    type="date"
-                                    name="endDate"
-                                    value={formData.endDate}
-                                    onChange={handleChange}
-                                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors ${
-                                        errors.endDate ? 'border-red-500' : 'border-gray-300'
-                                    }`}
-                                />
-                                {errors.endDate && <p className="text-red-500 text-sm mt-1 font-medium">{errors.endDate}</p>}
-                            </div>
-                        </div>
-
-                        <div className="flex items-center p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
-                            <input
-                                type="checkbox"
-                                name="open"
-                                checked={formData.open}
-                                onChange={handleChange}
-                                className="h-5 w-5 text-[#001C44] focus:ring-[#001C44] border-gray-300 rounded"
-                            />
-                            <label className="ml-3 block text-sm font-semibold text-gray-900">
-                                Mở học kỳ (cho phép sinh viên đăng ký)
-                            </label>
-                        </div>
-
-                        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className="px-5 py-2.5 border-2 border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-semibold transition-all"
-                            >
-                                Hủy
-                            </button>
-                            <button
-                                type="submit"
-                                className="px-5 py-2.5 bg-gradient-to-r from-[#001C44] to-[#002A66] text-white rounded-lg hover:from-[#002A66] hover:to-[#001C44] font-semibold shadow-md hover:shadow-lg transition-all"
-                            >
-                                {semester ? '💾 Cập nhật' : '✨ Tạo mới'}
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
+                <label className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/80 px-3.5 py-3 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        name="open"
+                        checked={formData.open}
+                        onChange={handleChange}
+                        className="h-4 w-4 rounded border-gray-300 text-primary-900 focus:ring-primary-900"
+                    />
+                    <span className="text-sm font-medium text-gray-800">
+                        Mở học kỳ — cho phép sinh viên đăng ký hoạt động
+                    </span>
+                </label>
+            </form>
+        </StructureModal>
     );
 };
 

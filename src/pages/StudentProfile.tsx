@@ -7,6 +7,7 @@ import { GENDER_OPTIONS, getGenderLabel } from '../types/student';
 import { Address, Province, Ward, CreateAddressRequest, UpdateAddressRequest } from '../types/address';
 import StudentLayout from '../components/layout/StudentLayout';
 import SearchableSelect from '../components/common/SearchableSelect';
+import { User, MapPin, GraduationCap, EnvelopeSimple, Phone, CalendarBlank, IdentificationCard, GenderIntersex, ArrowLeft, FloppyDisk, ImageSquare, Trash, MapTrifold, Buildings, WarningCircle, CheckCircle, Info, Camera } from '@phosphor-icons/react';
 
 const StudentProfile: React.FC = () => {
     const [student, setStudent] = useState<StudentProfileResponse | null>(null);
@@ -382,10 +383,10 @@ const StudentProfile: React.FC = () => {
     if (loading) {
         return (
             <StudentLayout>
-                <div className="flex items-center justify-center min-h-[400px]">
-                    <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#001C44] mx-auto"></div>
-                        <p className="mt-4 text-gray-600">Đang tải thông tin profile...</p>
+                <div className="flex items-center justify-center min-h-[500px]">
+                    <div className="text-center flex flex-col items-center">
+                        <div className="w-12 h-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
+                        <p className="mt-4 text-gray-500 font-medium">Đang tải thông tin cá nhân...</p>
                     </div>
                 </div>
             </StudentLayout>
@@ -394,202 +395,227 @@ const StudentProfile: React.FC = () => {
 
     return (
         <StudentLayout>
-            <div className="max-w-4xl mx-auto space-y-6">
+            <div className="max-w-5xl mx-auto space-y-8 p-6 md:p-8">
+                {/* Header */}
+                <div className="bg-primary-900 rounded-3xl shadow-premium p-8 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+                    <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary-400 opacity-10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/4"></div>
+                    
+                    <div className="relative z-10 flex items-center gap-5">
+                        <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20 shrink-0 shadow-inner">
+                            <User weight="duotone" className="w-8 h-8 text-secondary-400" />
+                        </div>
+                        <div>
+                            <h1 className="text-3xl font-extrabold text-white mb-2 tracking-tight">Hồ sơ sinh viên</h1>
+                            <p className="text-primary-100 font-medium">Quản lý thông tin cá nhân và địa chỉ liên lạc</p>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Success/Error Messages */}
                 {success && (
-                    <div className="mb-6 bg-green-50 border border-green-200 rounded-md p-4">
-                        <div className="flex">
-                            <div className="flex-shrink-0">
-                                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                </svg>
-                            </div>
-                            <div className="ml-3">
-                                <p className="text-sm font-medium text-green-800">{success}</p>
-                            </div>
-                        </div>
+                    <div className="bg-green-50/80 border border-green-200 rounded-2xl p-4 flex items-start gap-3 shadow-sm animate-fade-in">
+                        <CheckCircle weight="fill" className="w-6 h-6 text-green-500 shrink-0" />
+                        <p className="text-green-800 font-medium pt-0.5">{success}</p>
                     </div>
                 )}
 
                 {error && (
-                    <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
-                        <div className="flex">
-                            <div className="flex-shrink-0">
-                                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                                </svg>
-                            </div>
-                            <div className="ml-3">
-                                <p className="text-sm font-medium text-red-800">{error}</p>
-                            </div>
-                        </div>
+                    <div className="bg-red-50/80 border border-red-200 rounded-2xl p-4 flex items-start gap-3 shadow-sm animate-fade-in">
+                        <WarningCircle weight="fill" className="w-6 h-6 text-red-500 shrink-0" />
+                        <p className="text-red-800 font-medium pt-0.5">{error}</p>
                     </div>
                 )}
 
                 {/* Profile Form */}
-                <div className="card p-6">
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Profile Image */}
-                        <div className="flex items-center space-x-6">
-                            <div className="flex-shrink-0">
-                                <div className="h-24 w-24 rounded-full overflow-hidden bg-gray-200">
-                                    {imagePreview ? (
-                                        <img
-                                            src={imagePreview}
-                                            alt="Preview"
-                                            className="h-full w-full object-cover"
-                                        />
-                                    ) : formData.profileImageUrl ? (
-                                        <img
-                                            src={formData.profileImageUrl}
-                                            alt="Profile"
-                                            className="h-full w-full object-cover"
-                                        />
-                                    ) : (
-                                        <div className="h-full w-full flex items-center justify-center text-gray-400">
-                                            <svg className="h-12 w-12" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                                            </svg>
-                                        </div>
-                                    )}
+                <div className="bg-white rounded-3xl shadow-premium border border-gray-100 overflow-hidden">
+                    <form onSubmit={handleSubmit} className="divide-y divide-gray-100">
+                        
+                        {/* Section 1: Profile Image */}
+                        <div className="p-8 flex flex-col md:flex-row gap-8 items-start">
+                            <div className="w-full md:w-1/3 shrink-0">
+                                <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+                                    <ImageSquare weight="duotone" className="w-5 h-5 text-primary-500" />
+                                    Ảnh đại diện
+                                </h3>
+                                <p className="text-sm text-gray-500">Cập nhật ảnh đại diện của bạn. Ảnh chân dung rõ nét, kích thước tối đa 5MB.</p>
+                            </div>
+                            
+                            <div className="w-full md:w-2/3 flex flex-col sm:flex-row items-center sm:items-start gap-6">
+                                <div className="relative group">
+                                    <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-50 border-4 border-white shadow-md ring-1 ring-gray-100 flex items-center justify-center shrink-0">
+                                        {imagePreview ? (
+                                            <img
+                                                src={imagePreview}
+                                                alt="Preview"
+                                                className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300"
+                                            />
+                                        ) : formData.profileImageUrl ? (
+                                            <img
+                                                src={formData.profileImageUrl}
+                                                alt="Profile"
+                                                className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300"
+                                            />
+                                        ) : (
+                                            <User weight="fill" className="w-16 h-16 text-gray-300" />
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex-1 flex flex-col justify-center text-center sm:text-left h-32">
+                                    <label htmlFor="profileImage" className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary-50 text-primary-700 font-bold rounded-xl hover:bg-primary-100 transition-colors cursor-pointer border border-primary-100 shadow-sm mb-3">
+                                        <Camera weight="bold" className="w-5 h-5" />
+                                        Tải ảnh lên
+                                    </label>
+                                    <input
+                                        type="file"
+                                        id="profileImage"
+                                        accept="image/*"
+                                        onChange={handleImageChange}
+                                        className="hidden"
+                                    />
+                                    <p className="text-xs font-medium text-gray-500">
+                                        Định dạng hỗ trợ: JPG, PNG, GIF.
+                                    </p>
                                 </div>
                             </div>
-                            <div>
-                                <label htmlFor="profileImage" className="block text-sm font-medium text-gray-700">
-                                    Ảnh đại diện
-                                </label>
-                                <input
-                                    type="file"
-                                    id="profileImage"
-                                    accept="image/*"
-                                    onChange={handleImageChange}
-                                    className="mt-1 block text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#001C44] file:text-[#FFD66D] hover:file:bg-[#002A66] transition-colors"
-                                />
-                                <p className="mt-1 text-xs text-gray-500">
-                                    JPG, PNG hoặc GIF. Tối đa 5MB.
-                                </p>
-                            </div>
                         </div>
 
-                        {/* Basic Information */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
-                                    Họ và tên <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    id="fullName"
-                                    name="fullName"
-                                    value={formData.fullName}
-                                    onChange={handleChange}
-                                    className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors ${errors.fullName ? 'border-red-300' : 'border-gray-300'
-                                        }`}
-                                    placeholder="Nhập họ và tên"
-                                />
-                                {errors.fullName && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.fullName}</p>
-                                )}
+                        {/* Section 2: Basic Information */}
+                        <div className="p-8 flex flex-col lg:flex-row gap-8 items-start bg-gray-50/50">
+                            <div className="w-full lg:w-1/3 shrink-0">
+                                <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+                                    <IdentificationCard weight="duotone" className="w-5 h-5 text-primary-500" />
+                                    Thông tin cơ bản
+                                </h3>
+                                <p className="text-sm text-gray-500">Thông tin cá nhân và định danh của bạn trong hệ thống.</p>
                             </div>
-
-                            <div>
-                                <label htmlFor="studentCode" className="block text-sm font-medium text-gray-700">
-                                    Mã sinh viên <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    id="studentCode"
-                                    name="studentCode"
-                                    value={formData.studentCode}
-                                    onChange={handleChange}
-                                    className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors ${errors.studentCode ? 'border-red-300' : 'border-gray-300'
-                                        }`}
-                                    placeholder="Nhập mã sinh viên"
-                                />
-                                {errors.studentCode && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.studentCode}</p>
-                                )}
-                            </div>
-
-                            <div>
-                                <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">
-                                    Số điện thoại
-                                </label>
-                                <input
-                                    type="tel"
-                                    id="phoneNumber"
-                                    name="phoneNumber"
-                                    value={formData.phoneNumber}
-                                    onChange={handleChange}
-                                    className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors ${errors.phoneNumber ? 'border-red-300' : 'border-gray-300'
-                                        }`}
-                                    placeholder="Nhập số điện thoại"
-                                />
-                                {errors.phoneNumber && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.phoneNumber}</p>
-                                )}
-                            </div>
-
-                            <div>
-                                <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700">
-                                    Ngày sinh
-                                </label>
-                                <input
-                                    type="date"
-                                    id="dateOfBirth"
-                                    name="dateOfBirth"
-                                    value={formData.dateOfBirth}
-                                    onChange={handleChange}
-                                    className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors ${errors.dateOfBirth ? 'border-red-300' : 'border-gray-300'
-                                        }`}
-                                />
-                                {errors.dateOfBirth && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.dateOfBirth}</p>
-                                )}
-                            </div>
-
-                            <div>
-                                <label htmlFor="gender" className="block text-sm font-medium text-gray-700">
-                                    Giới tính
-                                </label>
-                                <select
-                                    id="gender"
-                                    name="gender"
-                                    value={formData.gender}
-                                    onChange={handleChange}
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
-                                >
-                                    <option value="">Chọn giới tính</option>
-                                    {GENDER_OPTIONS.map(option => (
-                                        <option key={option.value} value={option.value}>
-                                            {option.label}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">
-                                    Email
-                                </label>
-                                <input
-                                    type="email"
-                                    value={student?.email || ''}
-                                    disabled
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-500"
-                                />
-                                <p className="mt-1 text-xs text-gray-500">
-                                    Email không thể thay đổi
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Academic Information */}
-                        <div className="border-t border-gray-200 pt-6">
-                            <h3 className="text-lg font-medium text-gray-900 mb-4">Thông tin học tập</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            
+                            <div className="w-full lg:w-2/3 grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label htmlFor="departmentId" className="block text-sm font-medium text-gray-700">
+                                    <label htmlFor="fullName" className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                                        <User weight="bold" className="text-gray-400" />
+                                        Họ và tên <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="fullName"
+                                        name="fullName"
+                                        value={formData.fullName}
+                                        onChange={handleChange}
+                                        className={`w-full px-4 py-3 bg-white border rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all font-medium ${errors.fullName ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}
+                                        placeholder="Nhập họ và tên"
+                                    />
+                                    {errors.fullName && (
+                                        <p className="mt-2 text-sm text-red-600 font-medium flex items-center gap-1"><WarningCircle weight="fill" />{errors.fullName}</p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label htmlFor="studentCode" className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                                        <IdentificationCard weight="bold" className="text-gray-400" />
+                                        Mã sinh viên <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="studentCode"
+                                        name="studentCode"
+                                        value={formData.studentCode}
+                                        onChange={handleChange}
+                                        className={`w-full px-4 py-3 bg-white border rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all font-medium ${errors.studentCode ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}
+                                        placeholder="Nhập mã sinh viên"
+                                    />
+                                    {errors.studentCode && (
+                                        <p className="mt-2 text-sm text-red-600 font-medium flex items-center gap-1"><WarningCircle weight="fill" />{errors.studentCode}</p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label htmlFor="phoneNumber" className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                                        <Phone weight="bold" className="text-gray-400" />
+                                        Số điện thoại
+                                    </label>
+                                    <input
+                                        type="tel"
+                                        id="phoneNumber"
+                                        name="phoneNumber"
+                                        value={formData.phoneNumber}
+                                        onChange={handleChange}
+                                        className={`w-full px-4 py-3 bg-white border rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all font-medium ${errors.phoneNumber ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}
+                                        placeholder="Nhập số điện thoại"
+                                    />
+                                    {errors.phoneNumber && (
+                                        <p className="mt-2 text-sm text-red-600 font-medium flex items-center gap-1"><WarningCircle weight="fill" />{errors.phoneNumber}</p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label htmlFor="dateOfBirth" className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                                        <CalendarBlank weight="bold" className="text-gray-400" />
+                                        Ngày sinh
+                                    </label>
+                                    <input
+                                        type="date"
+                                        id="dateOfBirth"
+                                        name="dateOfBirth"
+                                        value={formData.dateOfBirth}
+                                        onChange={handleChange}
+                                        className={`w-full px-4 py-3 bg-white border rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all font-medium ${errors.dateOfBirth ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}
+                                    />
+                                    {errors.dateOfBirth && (
+                                        <p className="mt-2 text-sm text-red-600 font-medium flex items-center gap-1"><WarningCircle weight="fill" />{errors.dateOfBirth}</p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label htmlFor="gender" className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                                        <GenderIntersex weight="bold" className="text-gray-400" />
+                                        Giới tính
+                                    </label>
+                                    <select
+                                        id="gender"
+                                        name="gender"
+                                        value={formData.gender}
+                                        onChange={handleChange}
+                                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all font-medium"
+                                    >
+                                        <option value="">Chọn giới tính</option>
+                                        {GENDER_OPTIONS.map(option => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                                        <EnvelopeSimple weight="bold" className="text-gray-400" />
+                                        Email <span className="text-xs text-gray-400 font-normal ml-2 bg-gray-100 px-2 py-0.5 rounded-full">(Chỉ đọc)</span>
+                                    </label>
+                                    <input
+                                        type="email"
+                                        value={student?.email || ''}
+                                        disabled
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl shadow-sm text-gray-500 font-medium cursor-not-allowed"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Section 3: Academic Information */}
+                        <div className="p-8 flex flex-col lg:flex-row gap-8 items-start">
+                            <div className="w-full lg:w-1/3 shrink-0">
+                                <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+                                    <GraduationCap weight="duotone" className="w-5 h-5 text-primary-500" />
+                                    Thông tin học tập
+                                </h3>
+                                <p className="text-sm text-gray-500">Khoa và Lớp bạn đang trực thuộc.</p>
+                            </div>
+                            
+                            <div className="w-full lg:w-2/3 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label htmlFor="departmentId" className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                                        <Buildings weight="bold" className="text-gray-400" />
                                         Khoa <span className="text-red-500">*</span>
                                     </label>
                                     <select
@@ -597,8 +623,7 @@ const StudentProfile: React.FC = () => {
                                         name="departmentId"
                                         value={formData.departmentId}
                                         onChange={(e) => handleDepartmentChange(parseInt(e.target.value))}
-                                        className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors ${errors.departmentId ? 'border-red-300' : 'border-gray-300'
-                                            }`}
+                                        className={`w-full px-4 py-3 bg-white border rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all font-medium ${errors.departmentId ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}
                                     >
                                         <option value={0}>Chọn khoa</option>
                                         {departments.map(dept => (
@@ -608,12 +633,13 @@ const StudentProfile: React.FC = () => {
                                         ))}
                                     </select>
                                     {errors.departmentId && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.departmentId}</p>
+                                        <p className="mt-2 text-sm text-red-600 font-medium flex items-center gap-1"><WarningCircle weight="fill" />{errors.departmentId}</p>
                                     )}
                                 </div>
 
                                 <div>
-                                    <label htmlFor="classId" className="block text-sm font-medium text-gray-700">
+                                    <label htmlFor="classId" className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                                        <GraduationCap weight="bold" className="text-gray-400" />
                                         Lớp <span className="text-red-500">*</span>
                                     </label>
                                     <select
@@ -622,8 +648,7 @@ const StudentProfile: React.FC = () => {
                                         value={formData.classId}
                                         onChange={handleChange}
                                         disabled={!formData.departmentId || classes.length === 0}
-                                        className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors ${errors.classId ? 'border-red-300' : 'border-gray-300'
-                                            } ${!formData.departmentId || classes.length === 0 ? 'bg-gray-100' : ''}`}
+                                        className={`w-full px-4 py-3 bg-white border rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all font-medium ${errors.classId ? 'border-red-300 bg-red-50' : 'border-gray-200'} ${(!formData.departmentId || classes.length === 0) ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : ''}`}
                                     >
                                         <option value={0}>
                                             {!formData.departmentId ? 'Chọn khoa trước' :
@@ -636,162 +661,160 @@ const StudentProfile: React.FC = () => {
                                         ))}
                                     </select>
                                     {errors.classId && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.classId}</p>
+                                        <p className="mt-2 text-sm text-red-600 font-medium flex items-center gap-1"><WarningCircle weight="fill" />{errors.classId}</p>
                                     )}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Address Management */}
-                        <div className="border-t border-gray-200 pt-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-lg font-medium text-gray-900">Địa chỉ</h3>
-                                {address && (
-                                    <button
-                                        type="button"
-                                        onClick={handleDeleteAddress}
-                                        disabled={addressSaving}
-                                        className="text-sm text-red-600 hover:text-red-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        Xóa địa chỉ
-                                    </button>
-                                )}
+                        {/* Section 4: Address Management */}
+                        <div className="p-8 flex flex-col lg:flex-row gap-8 items-start bg-gray-50/50">
+                            <div className="w-full lg:w-1/3 shrink-0">
+                                <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+                                    <MapPin weight="duotone" className="w-5 h-5 text-primary-500" />
+                                    Địa chỉ liên hệ
+                                </h3>
+                                <p className="text-sm text-gray-500">Nơi ở hiện tại của bạn.</p>
                             </div>
-
-                            {/* Current Address Display */}
-                            {address && (
-                                <div className="mb-4 p-4 bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-md text-white">
-                                    <p className="text-sm font-medium text-[#FFD66D]">Địa chỉ hiện tại:</p>
-                                    <p className="text-sm mt-1">
-                                        {address.street && `${address.street}, `}
-                                        {address.wardName}, {address.provinceName}
-                                        {address.note && ` (${address.note})`}
-                                    </p>
-                                </div>
-                            )}
-
-                            {/* Address Form */}
-                            <div className="space-y-4">
+                            
+                            <div className="w-full lg:w-2/3 space-y-6">
+                                {/* Current Address Display */}
                                 {address && (
-                                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-                                        <p className="text-sm text-blue-700">
-                                            <strong>Lưu ý:</strong> Bạn đã có địa chỉ. Bạn có thể chỉnh sửa hoặc xóa địa chỉ hiện tại.
-                                        </p>
-                                    </div>
-                                )}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <SearchableSelect
-                                        id="addressProvince"
-                                        label="Tỉnh/Thành phố"
-                                        options={[
-                                            { value: 0, label: 'Chọn tỉnh/thành phố' },
-                                            ...provinces.map(province => ({
-                                                value: province.code,
-                                                label: province.name
-                                            }))
-                                        ]}
-                                        value={addressFormData.provinceCode}
-                                        onChange={(value) => handleProvinceChange(Number(value))}
-                                        placeholder="Tìm kiếm tỉnh/thành phố..."
-                                        required
-                                    />
-
-                                    <SearchableSelect
-                                        id="addressWard"
-                                        label="Phường/Xã"
-                                        options={[
-                                            { value: 0, label: 'Chọn phường/xã' },
-                                            ...wards.map(ward => ({
-                                                value: ward.code,
-                                                label: ward.name
-                                            }))
-                                        ]}
-                                        value={addressFormData.wardCode}
-                                        onChange={(value) => setAddressFormData(prev => ({ ...prev, wardCode: Number(value) }))}
-                                        placeholder="Tìm kiếm phường/xã..."
-                                        disabled={wards.length === 0}
-                                        required
-                                    />
-                                </div>
-
-                                <div>
-                                    <label htmlFor="addressStreet" className="block text-sm font-medium text-gray-700">
-                                        Số nhà, tên đường
-                                    </label>
-                                    <input
-                                        type="text"
-                                        id="addressStreet"
-                                        value={addressFormData.street}
-                                        onChange={(e) => setAddressFormData(prev => ({ ...prev, street: e.target.value }))}
-                                        placeholder="Nhập số nhà, tên đường..."
-                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label htmlFor="addressNote" className="block text-sm font-medium text-gray-700">
-                                        Ghi chú
-                                    </label>
-                                    <textarea
-                                        id="addressNote"
-                                        value={addressFormData.note}
-                                        onChange={(e) => setAddressFormData(prev => ({ ...prev, note: e.target.value }))}
-                                        placeholder="Ghi chú thêm về địa chỉ..."
-                                        rows={3}
-                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
-                                    />
-                                </div>
-
-                                {/* Address Messages */}
-                                {addressError && (
-                                    <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                                        <p className="text-sm text-red-600">{addressError}</p>
+                                    <div className="bg-primary-900 rounded-2xl p-5 text-white flex items-start gap-4 shadow-md relative overflow-hidden group">
+                                        <div className="absolute right-0 top-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/3 group-hover:bg-white/10 transition-colors"></div>
+                                        <MapTrifold weight="duotone" className="w-8 h-8 text-secondary-400 shrink-0" />
+                                        <div className="relative z-10">
+                                            <p className="text-xs font-bold text-secondary-400 uppercase tracking-wider mb-1">Địa chỉ hiện tại</p>
+                                            <p className="text-white font-medium leading-relaxed">
+                                                {address.street && `${address.street}, `}
+                                                {address.wardName}, {address.provinceName}
+                                                {address.note && <span className="block mt-1 text-primary-200 text-sm">Ghi chú: {address.note}</span>}
+                                            </p>
+                                        </div>
                                     </div>
                                 )}
 
-                                {addressSuccess && (
-                                    <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                                        <p className="text-sm text-green-600">{addressSuccess}</p>
-                                    </div>
-                                )}
+                                <div className="space-y-5">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                        <SearchableSelect
+                                            id="addressProvince"
+                                            label="Tỉnh/Thành phố"
+                                            options={[
+                                                { value: 0, label: 'Chọn tỉnh/thành phố' },
+                                                ...provinces.map(province => ({
+                                                    value: province.code,
+                                                    label: province.name
+                                                }))
+                                            ]}
+                                            value={addressFormData.provinceCode}
+                                            onChange={(value) => handleProvinceChange(Number(value))}
+                                            placeholder="Tìm kiếm..."
+                                            required
+                                        />
 
-                                <div className="flex justify-end gap-3">
-                                    {address && (
+                                        <SearchableSelect
+                                            id="addressWard"
+                                            label="Phường/Xã"
+                                            options={[
+                                                { value: 0, label: 'Chọn phường/xã' },
+                                                ...wards.map(ward => ({
+                                                    value: ward.code,
+                                                    label: ward.name
+                                                }))
+                                            ]}
+                                            value={addressFormData.wardCode}
+                                            onChange={(value) => setAddressFormData(prev => ({ ...prev, wardCode: Number(value) }))}
+                                            placeholder="Tìm kiếm..."
+                                            disabled={wards.length === 0}
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label htmlFor="addressStreet" className="block text-sm font-bold text-gray-700 mb-2">
+                                            Số nhà, tên đường
+                                        </label>
+                                        <input
+                                            type="text"
+                                            id="addressStreet"
+                                            value={addressFormData.street}
+                                            onChange={(e) => setAddressFormData(prev => ({ ...prev, street: e.target.value }))}
+                                            placeholder="Nhập số nhà, tên đường..."
+                                            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all font-medium"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label htmlFor="addressNote" className="block text-sm font-bold text-gray-700 mb-2">
+                                            Ghi chú
+                                        </label>
+                                        <textarea
+                                            id="addressNote"
+                                            value={addressFormData.note}
+                                            onChange={(e) => setAddressFormData(prev => ({ ...prev, note: e.target.value }))}
+                                            placeholder="Chỉ dẫn thêm về địa chỉ (không bắt buộc)..."
+                                            rows={2}
+                                            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all font-medium resize-none"
+                                        />
+                                    </div>
+
+                                    {/* Address Messages */}
+                                    {addressError && (
+                                        <div className="bg-red-50/80 border border-red-200 rounded-xl p-3 flex items-start gap-2">
+                                            <WarningCircle weight="fill" className="w-5 h-5 text-red-500 shrink-0" />
+                                            <p className="text-sm font-medium text-red-700">{addressError}</p>
+                                        </div>
+                                    )}
+
+                                    {addressSuccess && (
+                                        <div className="bg-green-50/80 border border-green-200 rounded-xl p-3 flex items-start gap-2">
+                                            <CheckCircle weight="fill" className="w-5 h-5 text-green-500 shrink-0" />
+                                            <p className="text-sm font-medium text-green-700">{addressSuccess}</p>
+                                        </div>
+                                    )}
+
+                                    <div className="flex flex-wrap justify-end gap-3 pt-2">
+                                        {address && (
+                                            <button
+                                                type="button"
+                                                onClick={handleDeleteAddress}
+                                                disabled={addressSaving}
+                                                className="px-5 py-2.5 bg-white border-2 border-red-100 text-red-600 font-bold rounded-xl hover:bg-red-50 hover:border-red-200 transition-all disabled:opacity-50 flex items-center gap-2"
+                                            >
+                                                <Trash weight="bold" />
+                                                {addressSaving ? 'Đang xử lý...' : 'Xóa địa chỉ'}
+                                            </button>
+                                        )}
                                         <button
                                             type="button"
-                                            onClick={handleDeleteAddress}
+                                            onClick={handleAddressSubmit}
                                             disabled={addressSaving}
-                                            className="px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            className="px-5 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 flex items-center gap-2"
                                         >
-                                            {addressSaving ? 'Đang xử lý...' : 'Xóa địa chỉ'}
+                                            <FloppyDisk weight="bold" />
+                                            {addressSaving ? 'Đang lưu...' : (address ? 'Cập nhật địa chỉ' : 'Lưu địa chỉ')}
                                         </button>
-                                    )}
-                                    <button
-                                        type="button"
-                                        onClick={handleAddressSubmit}
-                                        disabled={addressSaving}
-                                        className="btn-primary px-4 py-2 text-sm font-medium disabled:opacity-50"
-                                    >
-                                        {addressSaving ? 'Đang lưu...' : (address ? 'Cập nhật địa chỉ' : 'Tạo địa chỉ')}
-                                    </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Submit Button */}
-                        <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                        {/* Form Submit Action */}
+                        <div className="p-8 bg-gray-50 flex items-center justify-between border-t border-gray-100">
                             <Link
-                                to="/dashboard"
-                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#001C44] transition-colors"
+                                to="/student/dashboard"
+                                className="px-6 py-3 bg-white border-2 border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all flex items-center gap-2"
                             >
-                                Hủy
+                                <ArrowLeft weight="bold" />
+                                Trở về
                             </Link>
                             <button
                                 type="submit"
                                 disabled={saving}
-                                className="btn-primary px-4 py-2 text-sm font-medium disabled:opacity-50"
+                                className="px-8 py-3 bg-primary-900 text-white font-bold rounded-xl hover:bg-primary-800 transition-all shadow-md hover:shadow-lg disabled:opacity-50 flex items-center gap-2"
                             >
-                                {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
+                                <FloppyDisk weight="bold" className="w-5 h-5" />
+                                {saving ? 'Đang lưu...' : 'Lưu tất cả thay đổi'}
                             </button>
                         </div>
                     </form>

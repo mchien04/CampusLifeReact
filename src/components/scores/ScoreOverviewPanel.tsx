@@ -42,33 +42,16 @@ export const ScoreOverviewPanel: React.FC<ScoreOverviewPanelProps> = ({
                             backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
                         }}
                     />
-                    <div className="relative flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
-                        <div>
-                            <p className="text-sm font-medium tracking-wide text-white/70 uppercase">
-                                Tổng điểm học kỳ
-                            </p>
-                            <p className="mt-2 text-5xl sm:text-6xl font-bold tabular-nums tracking-tight">
-                                {formatScore(totalData.grandTotal)}
-                            </p>
-                            <p className="mt-2 text-sm text-white/60">
-                                {totalData.scoreCount} khoản điểm trong kỳ
-                            </p>
-                        </div>
-                        <div className="flex flex-wrap gap-3">
-                            {SCORE_TYPE_ORDER.map(type => (
-                                <div
-                                    key={type}
-                                    className="rounded-xl bg-white/10 backdrop-blur-sm px-4 py-3 border border-white/10 min-w-[120px]"
-                                >
-                                    <p className="text-xs text-white/60 font-medium">
-                                        {SCORE_TYPE_META[type].shortLabel}
-                                    </p>
-                                    <p className="text-lg font-semibold tabular-nums mt-0.5">
-                                        {formatScore(totalData.totalsByType?.[type] ?? 0)}
-                                    </p>
-                                </div>
-                            ))}
-                        </div>
+                    <div className="relative">
+                        <p className="text-sm font-medium tracking-wide text-white/70 uppercase">
+                            Tổng điểm học kỳ
+                        </p>
+                        <p className="mt-2 text-5xl sm:text-6xl font-bold tabular-nums tracking-tight">
+                            {formatScore(totalData.grandTotal)}
+                        </p>
+                        <p className="mt-2 text-sm text-white/60">
+                            {totalData.scoreCount} khoản điểm trong kỳ
+                        </p>
                     </div>
                 </section>
             )}

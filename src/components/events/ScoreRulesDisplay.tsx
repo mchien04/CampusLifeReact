@@ -4,47 +4,15 @@ import {
     ScoreType, 
     ScoreRuleTrigger, 
     ScoreRuleCalculation, 
-    ScoreRuleAudience, 
     ScoreSemesterPolicy 
 } from '../../types/activity';
-import { departmentAPI } from '../../services/adminAPI'; // Wait, let's use the one in api.ts
 import { academicPublicAPI } from '../../services/academicPublicAPI';
-import api from '../../services/api'; // I'll just use api.get directly for departments if departmentAPI isn't exported there cleanly. Let's do a direct fetch or use academicPublicAPI.
+import api from '../../services/api';
+import { getCodeLabel } from '../../utils/vietnameseLabels';
 
 interface ScoreRulesDisplayProps {
     rules?: ActivityScoreRuleResponse[];
 }
-
-const getScoreTypeLabel = (type: ScoreType) => {
-    switch (type) {
-        case ScoreType.REN_LUYEN: return 'Điểm rèn luyện';
-        case ScoreType.CONG_TAC_XA_HOI: return 'Điểm CTXH';
-        case ScoreType.CHUYEN_DE: return 'Điểm chuyên đề';
-        default: return type;
-    }
-};
-
-const getTriggerLabel = (trigger: ScoreRuleTrigger) => {
-    switch (trigger) {
-        case ScoreRuleTrigger.PARTICIPATION_COMPLETED: return 'Hoàn thành tham gia';
-        case ScoreRuleTrigger.NO_SHOW: return 'Không tham gia (Vắng)';
-        case ScoreRuleTrigger.SUBMISSION_GRADED: return 'Nộp bài và được chấm';
-        case ScoreRuleTrigger.MINIGAME_PASSED: return 'Đạt Minigame';
-        case ScoreRuleTrigger.SERIES_MILESTONE_REACHED: return 'Đạt mốc chuỗi sự kiện';
-        case ScoreRuleTrigger.TASK_OVERDUE: return 'Quá hạn nhiệm vụ';
-        case ScoreRuleTrigger.MINIGAME_EXHAUSTED_ATTEMPTS: return 'Hết lượt Minigame';
-        default: return trigger;
-    }
-};
-
-const getAudienceLabel = (audience: ScoreRuleAudience) => {
-    switch (audience) {
-        case ScoreRuleAudience.ALL_PARTICIPANTS: return 'Tất cả';
-        case ScoreRuleAudience.DEPARTMENT_ONLY: return 'Khoa/Ngành nội bộ';
-        case ScoreRuleAudience.OUTSIDE_DEPARTMENTS_ONLY: return 'Sinh viên ngoài khoa';
-        default: return audience;
-    }
-};
 
 export const ScoreRulesDisplay: React.FC<ScoreRulesDisplayProps> = ({ rules }) => {
     const [departments, setDepartments] = useState<any[]>([]);
@@ -108,7 +76,7 @@ export const ScoreRulesDisplay: React.FC<ScoreRulesDisplayProps> = ({ rules }) =
                         }`} />
                         <div className="flex justify-between items-start pl-2">
                             <span className="font-semibold text-gray-800 flex items-center gap-2">
-                                {getScoreTypeLabel(rule.scoreType)}
+                                {getCodeLabel(rule.scoreType)}
                                 {rule.isPresetGenerated === true && (
                                     <span
                                         title="Luật này được sinh ra từ mẫu cấu hình (preset)"
@@ -141,7 +109,7 @@ export const ScoreRulesDisplay: React.FC<ScoreRulesDisplayProps> = ({ rules }) =
                             })()}
                         </div>
                         <div className="text-gray-600 pl-2 flex flex-col gap-1">
-                            <div><span className="font-medium">Khi:</span> {getTriggerLabel(rule.triggerType)}</div>
+                            <div><span className="font-medium">Khi:</span> {getCodeLabel(rule.triggerType)}</div>
                             {rule.semesterPolicy === ScoreSemesterPolicy.EXPLICIT_SEMESTER && rule.explicitSemesterId && (
                                 <div className="text-xs text-blue-700 bg-blue-50 inline-block px-2 py-0.5 rounded-md border border-blue-100 self-start">
                                     Áp dụng: {getSemesterDisplay(rule.explicitSemesterId)}
@@ -150,7 +118,7 @@ export const ScoreRulesDisplay: React.FC<ScoreRulesDisplayProps> = ({ rules }) =
                         </div>
                         <div className="flex flex-col pl-2 pt-1 mt-1 border-t border-gray-100 text-xs text-gray-500 gap-1">
                             <div className="flex justify-between items-center">
-                                <span>Đối tượng: <span className="font-medium">{getAudienceLabel(rule.audience)}</span></span>
+                                <span>Đối tượng: <span className="font-medium">{getCodeLabel(rule.audience)}</span></span>
                             </div>
                             {(() => {
                                 const deptIds = rule.targetDepartmentIds || (rule as any).departmentIds;

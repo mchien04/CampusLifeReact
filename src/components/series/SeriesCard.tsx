@@ -1,7 +1,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import {
+    Stack,
+    CalendarBlank,
+    Clock,
+    ClipboardText,
+    Medal,
+    CheckCircle,
+} from '@phosphor-icons/react';
 import { SeriesResponse } from '../../types/series';
-import { ScoreType } from '../../types/activity';
+import { getScoreTypeLabel } from '../../types/score';
+import { localizeVi } from '../../utils/vietnameseLabels';
 import ProgressBar from '../common/ProgressBar';
 
 interface SeriesCardProps {
@@ -14,24 +23,31 @@ interface SeriesCardProps {
     isRegistered?: boolean;
 }
 
+const btnPrimary =
+    'w-full inline-flex items-center justify-center rounded-xl bg-primary-900 px-4 py-2.5 text-sm font-semibold text-white text-center transition-all hover:bg-primary-800 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900/30';
+const btnAccent =
+    'w-full inline-flex items-center justify-center rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-primary-900 text-center transition-all hover:bg-accent/90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50';
+
+const formatDateTime = (date: string) =>
+    new Date(date).toLocaleString('vi-VN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+
 const SeriesCard: React.FC<SeriesCardProps> = ({
     series,
     progress,
     onRegister,
-    isRegistered
+    isRegistered,
 }) => {
     const milestones = series.milestonePoints || {};
     const totalActivities = series.activities?.length || series.totalActivities || 0;
     const completedCount = progress?.completedCount || 0;
-
-    const getScoreTypeLabel = (type: ScoreType) => {
-        const labels: Record<ScoreType, string> = {
-            [ScoreType.REN_LUYEN]: 'Rèn luyện',
-            [ScoreType.CONG_TAC_XA_HOI]: 'Công tác xã hội',
-            [ScoreType.CHUYEN_DE]: 'Chuyên đề'
-        };
-        return labels[type] || type;
-    };
+    const displayName = localizeVi(series.name) || series.name;
+    const displayDescription = series.description ? localizeVi(series.description) : null;
 
     const canRegister = () => {
         if (isRegistered) return false;
@@ -46,77 +62,68 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
     };
 
     return (
-        <div className="card overflow-hidden hover:shadow-lg transition-all duration-200 flex flex-col h-full border-2 border-transparent hover:border-[#FFD66D]">
-            <div className="p-6 flex flex-col flex-grow">
-                {/* Header */}
-                <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
-                            {series.name}
+        <article className="group flex flex-col h-full rounded-2xl border border-gray-100 bg-white shadow-premium overflow-hidden transition-all hover:border-accent/40 hover:shadow-lg">
+            <div className="p-5 sm:p-6 flex flex-col flex-grow">
+                <div className="flex items-start gap-3 mb-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-900 text-white">
+                        <Stack size={20} weight="duotone" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <h3 className="text-base font-semibold text-primary-900 line-clamp-2 leading-snug">
+                            {displayName}
                         </h3>
-                        <div className="flex flex-wrap gap-2">
-                            <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
-                                Chuỗi sự kiện
-                            </span>
-                            <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                            <span className="inline-flex items-center gap-1 rounded-lg bg-primary-50 px-2 py-0.5 text-[11px] font-semibold text-primary-900 ring-1 ring-primary-100">
+                                <Medal size={12} weight="duotone" />
                                 {getScoreTypeLabel(series.scoreType)}
                             </span>
+                            {isRegistered && (
+                                <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 ring-1 ring-emerald-200/80">
+                                    <CheckCircle size={12} weight="fill" />
+                                    Đã đăng ký
+                                </span>
+                            )}
                         </div>
                     </div>
                 </div>
 
-                {/* Description */}
-                {series.description && (
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-3 flex-grow">
-                        {series.description}
+                {displayDescription && (
+                    <p className="text-sm text-gray-600 mb-4 line-clamp-3 flex-grow leading-relaxed">
+                        {displayDescription}
                     </p>
                 )}
 
-                {/* Series Info */}
                 <div className="space-y-2 text-sm text-gray-500 mb-4">
-                    <div className="flex items-center">
-                        <span className="w-4 h-4 mr-2">📋</span>
-                        <span className="truncate">
+                    <div className="flex items-center gap-2">
+                        <CalendarBlank size={16} className="shrink-0 text-gray-400" />
+                        <span className="truncate tabular-nums">
                             {totalActivities} sự kiện trong chuỗi
                         </span>
                     </div>
                     {series.registrationStartDate && (
-                        <div className="flex items-center">
-                            <span className="w-4 h-4 mr-2">🚀</span>
+                        <div className="flex items-center gap-2">
+                            <Clock size={16} className="shrink-0 text-gray-400" />
                             <span className="truncate">
-                                Mở đăng ký: {new Date(series.registrationStartDate).toLocaleString('vi-VN', {
-                                    year: 'numeric',
-                                    month: '2-digit',
-                                    day: '2-digit',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                })}
+                                Mở đăng ký: {formatDateTime(series.registrationStartDate)}
                             </span>
                         </div>
                     )}
                     {series.registrationDeadline && (
-                        <div className="flex items-center">
-                            <span className="w-4 h-4 mr-2">⏰</span>
+                        <div className="flex items-center gap-2">
+                            <Clock size={16} className="shrink-0 text-gray-400" />
                             <span className="truncate">
-                                Hạn đăng ký: {new Date(series.registrationDeadline).toLocaleString('vi-VN', {
-                                    year: 'numeric',
-                                    month: '2-digit',
-                                    day: '2-digit',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                })}
+                                Hạn đăng ký: {formatDateTime(series.registrationDeadline)}
                             </span>
                         </div>
                     )}
-                    <div className="flex items-center">
-                        <span className="w-4 h-4 mr-2">📝</span>
+                    <div className="flex items-center gap-2">
+                        <ClipboardText size={16} className="shrink-0 text-gray-400" />
                         <span className="truncate">
                             {series.requiresApproval ? 'Đăng ký cần duyệt' : 'Đăng ký tự duyệt'}
                         </span>
                     </div>
                 </div>
 
-                {/* Progress */}
                 {progress && (
                     <div className="mb-4">
                         <ProgressBar
@@ -129,58 +136,49 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
                     </div>
                 )}
 
-                {/* Milestone Preview */}
-                <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                    <div className="text-xs font-medium text-gray-700 mb-1">Điểm milestone:</div>
-                    <div className="flex flex-wrap gap-1">
-                        {Object.entries(milestones)
-                            .slice(0, 3)
-                            .map(([count, points]) => (
-                                <span
-                                    key={count}
-                                    className="text-xs px-2 py-1 bg-white rounded border border-gray-200"
-                                >
-                                    {count} sự kiện → {points} điểm
+                {Object.keys(milestones).length > 0 && (
+                    <div className="mb-4 rounded-xl border border-gray-100 bg-gray-50/60 p-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-2">
+                            Điểm milestone
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                            {Object.entries(milestones)
+                                .slice(0, 3)
+                                .map(([count, points]) => (
+                                    <span
+                                        key={count}
+                                        className="text-xs px-2 py-1 bg-white rounded-lg border border-gray-100 font-medium text-gray-700 tabular-nums"
+                                    >
+                                        {count} sự kiện → {points} điểm
+                                    </span>
+                                ))}
+                            {Object.keys(milestones).length > 3 && (
+                                <span className="text-xs px-2 py-1 text-gray-500">
+                                    +{Object.keys(milestones).length - 3} mốc khác
                                 </span>
-                            ))}
-                        {Object.keys(milestones).length > 3 && (
-                            <span className="text-xs px-2 py-1 text-gray-500">
-                                +{Object.keys(milestones).length - 3} mốc khác
-                            </span>
-                        )}
+                            )}
+                        </div>
                     </div>
-                </div>
+                )}
 
-                {/* Action Buttons */}
-                <div className="flex flex-col space-y-2 mt-auto">
-                    <Link
-                        to={`/student/series/${series.id}`}
-                        className="w-full btn-primary px-4 py-2 rounded-lg text-sm font-medium text-center"
-                    >
+                <div className="flex flex-col gap-2 mt-auto">
+                    <Link to={`/student/series/${series.id}`} className={btnPrimary}>
                         Xem chi tiết
                     </Link>
 
                     {canRegister() && onRegister && (
                         <button
+                            type="button"
                             onClick={() => onRegister(series.id)}
-                            className="w-full btn-yellow px-4 py-2 rounded-lg text-sm font-medium"
+                            className={btnAccent}
                         >
                             Đăng ký chuỗi
                         </button>
                     )}
-
-                    {isRegistered && (
-                        <div className="text-center">
-                            <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                                ✅ Đã đăng ký
-                            </span>
-                        </div>
-                    )}
                 </div>
             </div>
-        </div>
+        </article>
     );
 };
 
 export default SeriesCard;
-

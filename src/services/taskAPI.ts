@@ -14,7 +14,8 @@ import {
     ActivityTaskResponse,
     TaskAssignmentRequest,
     TaskAssignmentResponse,
-    RegisteredStudent
+    RegisteredStudent,
+    TaskDashboardItem,
 } from '../types/task';
 import { Student } from '../types/student';
 import { Response } from '../types/auth';
@@ -127,6 +128,29 @@ export const taskAPI = {
             return {
                 status: false,
                 message: error.response?.data?.message || 'Có lỗi xảy ra khi lấy danh sách nhiệm vụ',
+                data: undefined
+            };
+        }
+    },
+
+    getTaskDashboard: async (activityId: number): Promise<Response<TaskDashboardItem[]>> => {
+        try {
+            const response = await api.get(`/api/tasks/activity/${activityId}/dashboard`);
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Error fetching task dashboard:', error);
+            const httpStatus = error.response?.status;
+            const apiMessage = error.response?.data?.message;
+            return {
+                status: false,
+                message:
+                    httpStatus === 403
+                        ? (apiMessage || 'Bạn không có quyền xem dashboard nhiệm vụ của sự kiện này')
+                        : (apiMessage || 'Có lỗi xảy ra khi lấy dashboard nhiệm vụ'),
                 data: undefined
             };
         }

@@ -9,9 +9,25 @@ import {
     ActivityRegistrationResponse,
     RegistrationStatus,
     TicketCodeValidateResponse,
-    getRegistrationStatusLabel,
     getParticipationTypeLabel,
 } from '../types/registration';
+import { 
+    WarningCircle,
+    CheckCircle,
+    X,
+    Ticket,
+    User,
+    CalendarBlank,
+    Info,
+    SignIn,
+    SignOut,
+    XCircle,
+    ClipboardText,
+    MapPin,
+    ListChecks,
+    QrCode,
+    MagnifyingGlass,
+} from '@phosphor-icons/react';
 
 type EventTab = 'upcoming' | 'ongoing' | 'past';
 
@@ -31,8 +47,8 @@ const TAB_LABELS: Record<EventTab, string> = {
 };
 
 const TAB_BADGE_STYLES: Record<EventTab, string> = {
-    upcoming: 'bg-[#FFD66D] text-[#001C44]',
-    ongoing: 'bg-green-500 text-white',
+    upcoming: 'bg-accent text-primary-900',
+    ongoing: 'bg-emerald-500 text-white',
     past: 'bg-gray-400 text-white',
 };
 
@@ -85,7 +101,7 @@ const PaginationControls: React.FC<PaginationProps> = ({
                 type="button"
                 onClick={() => onPageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className={`${buttonClass} rounded-lg border border-gray-300 text-gray-700 hover:border-[#001C44] hover:text-[#001C44] disabled:opacity-50 disabled:cursor-not-allowed transition-all`}
+                className={`${buttonClass} rounded-xl border border-gray-200 text-gray-700 transition-all hover:border-primary-900 hover:text-primary-900 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900/20`}
             >
                 Trang trước
             </button>
@@ -96,7 +112,7 @@ const PaginationControls: React.FC<PaginationProps> = ({
                 type="button"
                 onClick={() => onPageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className={`${buttonClass} rounded-lg border border-gray-300 text-gray-700 hover:border-[#001C44] hover:text-[#001C44] disabled:opacity-50 disabled:cursor-not-allowed transition-all`}
+                className={`${buttonClass} rounded-xl border border-gray-200 text-gray-700 transition-all hover:border-primary-900 hover:text-primary-900 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900/20`}
             >
                 Trang sau
             </button>
@@ -132,11 +148,6 @@ const ManagerRegistrationsSplit: React.FC = () => {
     const totalEventPages = Math.max(1, Math.ceil(eventsInTab.length / EVENTS_PER_PAGE));
     const paginatedEvents = eventsInTab.slice((eventPage - 1) * EVENTS_PER_PAGE, eventPage * EVENTS_PER_PAGE);
     const selectedEvent = events.find((event) => event.id === selectedEventId) ?? null;
-    const primaryCheckInActionLabel = validatedInfo?.canCheckIn
-        ? 'Xác nhận Check-in'
-        : validatedInfo?.canCheckOut
-            ? 'Xác nhận Check-out'
-            : 'Không thể check-in';
 
     useEffect(() => {
         void loadEvents();
@@ -372,41 +383,83 @@ const ManagerRegistrationsSplit: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Đang tải dữ liệu...</p>
+            <div className="mx-auto max-w-[1600px] space-y-6 animate-pulse">
+                <div className="h-28 rounded-2xl bg-gray-200/80" />
+                <div className="grid grid-cols-1 xl:grid-cols-[400px_minmax(0,1fr)] gap-6">
+                    <div className="h-[560px] rounded-2xl bg-gray-200/80" />
+                    <div className="space-y-6">
+                        <div className="h-36 rounded-2xl bg-gray-200/80" />
+                        <div className="h-48 rounded-2xl bg-gray-200/80" />
+                        <div className="h-72 rounded-2xl bg-gray-200/80" />
+                    </div>
                 </div>
             </div>
         );
     }
 
     return (
-        <div>
-            <div className="w-full max-w-none">
-                <div className="grid grid-cols-1 xl:grid-cols-[420px_minmax(0,1fr)] 2xl:grid-cols-[460px_minmax(0,1fr)] gap-6 items-start">
-                    <aside className="xl:sticky xl:top-6">
-                        <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-                            <div className="p-6">
-                                <h2 className="text-2xl font-bold text-[#001C44] mb-6 flex items-center">
-                                    <span className="mr-3 text-3xl">📋</span>
-                                    Chọn sự kiện
-                                </h2>
+        <div className="mx-auto max-w-[1600px] space-y-6">
+            <header className="relative overflow-hidden rounded-2xl border border-primary-900/10 bg-primary-900 px-6 py-7 sm:px-8 text-white shadow-premium">
+                <div
+                    className="pointer-events-none absolute inset-0 opacity-[0.12]"
+                    style={{
+                        backgroundImage:
+                            'radial-gradient(ellipse at 0% 0%, #FFD66D 0%, transparent 55%), radial-gradient(ellipse at 100% 100%, #4b88b6 0%, transparent 50%)',
+                    }}
+                />
+                <div className="relative flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+                    <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent/90">
+                            Quản lý sự kiện
+                        </p>
+                        <h1 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight">
+                            Quản lý đăng ký
+                        </h1>
+                        <p className="mt-2 text-sm text-primary-100/90 max-w-xl leading-relaxed">
+                            Duyệt đăng ký, check-in sinh viên và xuất danh sách tham gia theo từng sự kiện.
+                        </p>
+                    </div>
+                    {selectedEvent && (
+                        <div className="shrink-0 rounded-xl bg-white/10 px-4 py-3 backdrop-blur-sm border border-white/10">
+                            <p className="text-[11px] font-semibold uppercase tracking-wider text-primary-100/80">Đang chọn</p>
+                            <p className="mt-0.5 text-sm font-semibold line-clamp-2 max-w-xs">{selectedEvent.name}</p>
+                            <p className="mt-1 text-xs text-accent tabular-nums">{registrations.length} đăng ký</p>
+                        </div>
+                    )}
+                </div>
+            </header>
 
-                                <div className="grid grid-cols-3 gap-2 mb-6">
+            <div className="w-full max-w-none">
+                <div className="grid grid-cols-1 xl:grid-cols-[400px_minmax(0,1fr)] 2xl:grid-cols-[420px_minmax(0,1fr)] gap-6 items-start">
+                    <aside className="xl:sticky xl:top-6">
+                        <div className="rounded-2xl border border-gray-100 bg-white shadow-premium overflow-hidden">
+                            <div className="border-b border-gray-100 px-5 py-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-900">
+                                        <ClipboardText size={22} weight="duotone" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-base font-semibold tracking-tight text-primary-900">Chọn sự kiện</h2>
+                                        <p className="text-xs text-gray-500 mt-0.5">Theo trạng thái thời gian</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="p-5">
+                                <div className="grid grid-cols-3 gap-2 mb-5">
                                     {TAB_ORDER.map((tab) => (
                                         <button
                                             key={tab}
+                                            type="button"
                                             onClick={() => handleTabChange(tab)}
-                                            className={`rounded-xl border px-3 py-3 text-sm font-semibold transition-all ${
+                                            className={`rounded-xl border px-2 py-2.5 text-xs font-semibold transition-all active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900/25 ${
                                                 eventTab === tab
-                                                    ? 'border-[#001C44] bg-[#001C44] text-white shadow-md'
-                                                    : 'border-gray-200 text-gray-600 hover:border-[#001C44] hover:text-[#001C44]'
+                                                    ? 'border-primary-900 bg-primary-900 text-white shadow-sm'
+                                                    : 'border-gray-200 text-gray-600 hover:border-primary-900/30 hover:text-primary-900'
                                             }`}
                                         >
-                                            <div>{TAB_LABELS[tab]}</div>
+                                            <div className="leading-tight">{TAB_LABELS[tab]}</div>
                                             <div
-                                                className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-bold ${
+                                                className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums ${
                                                     eventTab === tab ? 'bg-white/20 text-white' : TAB_BADGE_STYLES[tab]
                                                 }`}
                                             >
@@ -416,52 +469,54 @@ const ManagerRegistrationsSplit: React.FC = () => {
                                     ))}
                                 </div>
 
-                                <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+                                <div className="space-y-2.5 max-h-[58vh] overflow-y-auto pr-1">
                                     {eventsInTab.length === 0 ? (
-                                        <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-8 text-center text-gray-500">
-                                            <p className="text-sm">Không có sự kiện nào trong mục này</p>
+                                        <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/80 px-4 py-10 text-center">
+                                            <p className="text-sm text-gray-500">Không có sự kiện trong mục này</p>
                                         </div>
                                     ) : (
                                         paginatedEvents.map((event) => {
                                             const currentTab = getEventTab(event, now);
+                                            const isSelected = selectedEventId === event.id;
 
                                             return (
                                                 <button
                                                     key={event.id}
+                                                    type="button"
                                                     onClick={() => setSelectedEventId(event.id)}
-                                                    className={`w-full p-4 text-left border-2 rounded-xl transition-all ${
-                                                        selectedEventId === event.id
-                                                            ? 'border-[#001C44] bg-gradient-to-br from-[#001C44] to-[#002A66] text-white shadow-xl'
-                                                            : 'border-gray-200 hover:border-[#001C44] hover:shadow-md bg-white'
+                                                    className={`w-full p-4 text-left rounded-xl border transition-all active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900/25 ${
+                                                        isSelected
+                                                            ? 'border-primary-900 bg-primary-900 text-white shadow-premium'
+                                                            : 'border-gray-100 bg-white hover:border-primary-900/20 hover:shadow-sm'
                                                     }`}
                                                 >
-                                                    <div className="flex items-start justify-between gap-3 mb-3">
+                                                    <div className="flex items-start justify-between gap-2 mb-2">
                                                         <h3
-                                                            className={`font-bold text-base leading-6 ${
-                                                                selectedEventId === event.id ? 'text-white' : 'text-[#001C44]'
+                                                            className={`font-semibold text-sm leading-snug line-clamp-2 ${
+                                                                isSelected ? 'text-white' : 'text-primary-900'
                                                             }`}
                                                         >
                                                             {event.name}
                                                         </h3>
                                                         <span
-                                                            className={`shrink-0 px-2 py-1 rounded-full text-[11px] font-semibold ${TAB_BADGE_STYLES[currentTab]}`}
+                                                            className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${TAB_BADGE_STYLES[currentTab]}`}
                                                         >
                                                             {TAB_LABELS[currentTab]}
                                                         </span>
                                                     </div>
 
                                                     <div
-                                                        className={`space-y-2 text-sm ${
-                                                            selectedEventId === event.id ? 'text-gray-100' : 'text-gray-600'
+                                                        className={`space-y-1.5 text-xs ${
+                                                            isSelected ? 'text-primary-100' : 'text-gray-500'
                                                         }`}
                                                     >
-                                                        <p className="flex items-center">
-                                                            <span className="mr-2">📅</span>
-                                                            {formatEventDate(event.startDate)}
+                                                        <p className="flex items-center gap-2">
+                                                            <CalendarBlank size={14} weight={isSelected ? 'fill' : 'regular'} className="shrink-0 opacity-80" />
+                                                            <span className="tabular-nums">{formatEventDate(event.startDate)}</span>
                                                         </p>
-                                                        <p className="flex items-center">
-                                                            <span className="mr-2">📍</span>
-                                                            <span className="line-clamp-2">{event.location}</span>
+                                                        <p className="flex items-start gap-2">
+                                                            <MapPin size={14} weight={isSelected ? 'fill' : 'regular'} className="shrink-0 mt-0.5 opacity-80" />
+                                                            <span className="line-clamp-2">{event.location || 'Chưa cập nhật'}</span>
                                                         </p>
                                                     </div>
                                                 </button>
@@ -482,60 +537,68 @@ const ManagerRegistrationsSplit: React.FC = () => {
                     <section className="space-y-6 min-w-0">
                         {selectedEvent ? (
                             <>
-                                <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl shadow-lg text-white overflow-hidden">
-                                    <div className="p-6">
-                                        <h2 className="text-2xl font-bold mb-4 flex items-center">
-                                            <span className="mr-3 text-3xl">ℹ️</span>
-                                            Thông tin sự kiện đã chọn
-                                        </h2>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                            <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
-                                                <span className="text-sm font-medium text-gray-200 block mb-2">Tên sự kiện</span>
-                                                <p className="text-lg font-semibold">{selectedEvent.name}</p>
+                                <div className="rounded-2xl border border-gray-100 bg-white shadow-premium overflow-hidden">
+                                    <div className="border-b border-gray-100 bg-primary-900 px-5 py-4 text-white">
+                                        <div className="flex items-center gap-2">
+                                            <Info size={20} weight="duotone" className="text-accent" />
+                                            <h2 className="text-base font-semibold tracking-tight">Thông tin sự kiện</h2>
+                                        </div>
+                                    </div>
+                                    <div className="p-5">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div className="rounded-xl bg-gray-50/80 border border-gray-100 p-4">
+                                                <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Tên sự kiện</span>
+                                                <p className="mt-1.5 text-sm font-semibold text-primary-900 leading-snug">{selectedEvent.name}</p>
                                             </div>
-                                            <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
-                                                <span className="text-sm font-medium text-gray-200 block mb-2">Thời gian</span>
-                                                <p className="text-lg font-semibold">{formatEventDate(selectedEvent.startDate)}</p>
+                                            <div className="rounded-xl bg-gray-50/80 border border-gray-100 p-4">
+                                                <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Thời gian</span>
+                                                <p className="mt-1.5 text-sm font-semibold text-primary-900 tabular-nums">{formatEventDate(selectedEvent.startDate)}</p>
                                             </div>
-                                            <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
-                                                <span className="text-sm font-medium text-gray-200 block mb-2">Địa điểm</span>
-                                                <p className="text-lg font-semibold">{selectedEvent.location}</p>
+                                            <div className="rounded-xl bg-gray-50/80 border border-gray-100 p-4">
+                                                <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Địa điểm</span>
+                                                <p className="mt-1.5 text-sm font-semibold text-primary-900 leading-snug">{selectedEvent.location || 'Chưa cập nhật'}</p>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="bg-white rounded-lg shadow-lg border border-gray-100">
-                                    <div className="p-6">
-                                        <h3 className="text-xl font-semibold text-[#001C44] mb-4 flex items-center">
-                                            <span className="mr-2">✅</span>
-                                            Check-in sinh viên
-                                        </h3>
-
-                                        <div className="flex flex-col md:flex-row gap-4 items-center">
-                                            <input
-                                                type="text"
-                                                placeholder="Nhập ticket code hoặc quét QR"
-                                                value={ticketCode}
-                                                onChange={(e) => {
-                                                    setTicketCode(e.target.value);
-                                                    setValidatedInfo(null);
-                                                }}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter' && ticketCode.trim()) {
-                                                        void handleValidateTicketCode(ticketCode);
-                                                    }
-                                                }}
-                                                className="px-4 py-2.5 border-2 border-gray-300 rounded-lg w-full md:flex-1 focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all"
-                                            />
+                                <div className="rounded-2xl border border-gray-100 bg-white shadow-premium overflow-hidden">
+                                    <div className="border-b border-gray-100 px-5 py-4">
+                                        <div className="flex items-center gap-2">
+                                            <QrCode size={20} weight="duotone" className="text-primary-900" />
+                                            <h3 className="text-base font-semibold tracking-tight text-primary-900">Check-in sinh viên</h3>
+                                        </div>
+                                    </div>
+                                    <div className="p-5">
+                                        <div className="flex flex-col md:flex-row gap-3">
+                                            <div className="relative flex-1">
+                                                <MagnifyingGlass size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Nhập mã vé hoặc quét QR"
+                                                    value={ticketCode}
+                                                    onChange={(e) => {
+                                                        setTicketCode(e.target.value);
+                                                        setValidatedInfo(null);
+                                                    }}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter' && ticketCode.trim()) {
+                                                            void handleValidateTicketCode(ticketCode);
+                                                        }
+                                                    }}
+                                                    className="w-full rounded-xl border border-gray-200 py-2.5 pl-10 pr-4 text-sm focus:border-primary-900 focus:outline-none focus:ring-2 focus:ring-primary-900/15 transition-all"
+                                                />
+                                            </div>
                                             <button
+                                                type="button"
                                                 onClick={() => void handleValidateTicketCode(ticketCode)}
                                                 disabled={isValidating || !ticketCode.trim()}
-                                                className="w-full md:w-auto px-5 py-2.5 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66] disabled:bg-gray-400 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md font-medium"
+                                                className="rounded-xl bg-primary-900 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-primary-800 active:scale-[0.98] disabled:bg-gray-300 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900"
                                             >
                                                 {isValidating ? 'Đang kiểm tra...' : 'Kiểm tra mã vé'}
                                             </button>
                                             <button
+                                                type="button"
                                                 onClick={() => {
                                                     const nextShowScanner = !showScanner;
                                                     setShowScanner(nextShowScanner);
@@ -545,9 +608,10 @@ const ManagerRegistrationsSplit: React.FC = () => {
                                                         setValidatedInfo(null);
                                                     }
                                                 }}
-                                                className="w-full md:w-auto px-5 py-2.5 bg-[#FFD66D] text-[#001C44] rounded-lg hover:bg-[#FFC947] transition-all shadow-sm hover:shadow-md font-medium"
+                                                className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-primary-900 transition-all hover:bg-accent-hover active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                                             >
-                                                {showScanner ? 'Đóng camera' : '📷 Quét QR'}
+                                                <QrCode size={18} weight="bold" />
+                                                {showScanner ? 'Đóng camera' : 'Quét QR'}
                                             </button>
                                         </div>
 
@@ -562,105 +626,125 @@ const ManagerRegistrationsSplit: React.FC = () => {
                                         )}
 
                                         {validatedInfo && !showConfirmDialog && (
-                                            <div className="mt-6 bg-white shadow-xl rounded-xl border-2 border-[#001C44] overflow-hidden">
-                                                <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] px-6 py-4">
-                                                    <div className="flex items-center justify-between gap-4">
-                                                        <div className="flex items-center">
-                                                            <div className="w-10 h-10 bg-[#FFD66D] rounded-lg flex items-center justify-center mr-3">
-                                                                <span className="text-2xl">🎫</span>
+                                            <div className="mt-8 bg-white shadow-premium rounded-3xl border border-gray-100 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                                {/* Header */}
+                                                <div className="bg-gradient-to-r from-[#001C44] via-[#002A66] to-[#001C44] px-8 py-5">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-[#FFD66D] shadow-inner">
+                                                                <Ticket size={28} weight="duotone" />
                                                             </div>
                                                             <div>
-                                                                <h4 className="font-bold text-white text-xl">Thông tin mã vé</h4>
-                                                                <p className="text-sm text-gray-200 mt-0.5">Chi tiết đăng ký sự kiện</p>
+                                                                <h4 className="font-extrabold text-white text-xl tracking-wide">Thông tin mã vé</h4>
+                                                                <p className="text-sm text-blue-200 mt-1 font-medium">Chi tiết đăng ký sự kiện</p>
                                                             </div>
                                                         </div>
-                                                        <div className="px-3 py-1 bg-[#FFD66D] rounded-full">
-                                                            <span className="text-xs font-semibold text-[#001C44] font-mono">
-                                                                {validatedInfo.ticketCode}
-                                                            </span>
+                                                        <div className="px-4 py-2 bg-[#FFD66D] rounded-xl shadow-sm border border-[#FFC947]">
+                                                            <span className="text-sm font-extrabold text-[#001C44] font-mono tracking-wider">{validatedInfo.ticketCode}</span>
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                <div className="p-6">
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                                                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                                            <h5 className="font-semibold text-gray-900 mb-3">Thông tin sinh viên</h5>
-                                                            <div className="space-y-2">
+                                                {/* Content */}
+                                                <div className="p-8">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                                                        {/* Student Info */}
+                                                        <div className="bg-gray-50/80 p-5 rounded-2xl border border-gray-100 shadow-inner-light hover:shadow-md transition-shadow">
+                                                            <div className="flex items-center gap-2 mb-4 text-[#001C44]">
+                                                                <User size={20} weight="fill" />
+                                                                <h5 className="font-bold text-gray-900">Thông tin sinh viên</h5>
+                                                            </div>
+                                                            <div className="space-y-3 pl-7 border-l-2 border-indigo-100 ml-2">
                                                                 <div>
-                                                                    <span className="text-xs font-medium text-gray-600">Mã sinh viên:</span>
-                                                                    <p className="text-sm font-semibold text-gray-900 mt-0.5">
-                                                                        {validatedInfo.studentCode}
-                                                                    </p>
+                                                                    <span className="text-[11px] font-bold tracking-widest text-gray-400 uppercase">Mã sinh viên</span>
+                                                                    <p className="text-sm font-bold text-gray-900 mt-0.5">{validatedInfo.studentCode}</p>
                                                                 </div>
                                                                 <div>
-                                                                    <span className="text-xs font-medium text-gray-600">Tên sinh viên:</span>
-                                                                    <p className="text-sm font-semibold text-gray-900 mt-0.5">
-                                                                        {validatedInfo.studentName}
-                                                                    </p>
+                                                                    <span className="text-[11px] font-bold tracking-widest text-gray-400 uppercase">Tên sinh viên</span>
+                                                                    <p className="text-sm font-bold text-gray-900 mt-0.5">{validatedInfo.studentName}</p>
                                                                 </div>
                                                             </div>
                                                         </div>
 
-                                                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                                            <h5 className="font-semibold text-gray-900 mb-3">Thông tin sự kiện</h5>
-                                                            <span className="text-xs font-medium text-gray-600">Tên sự kiện:</span>
-                                                            <p className="text-sm font-semibold text-gray-900 mt-0.5 line-clamp-2">
-                                                                {validatedInfo.activityName}
-                                                            </p>
-                                                        </div>
-
-                                                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                                            <h5 className="font-semibold text-gray-900 mb-3">Trạng thái</h5>
-                                                            <span className="text-xs font-medium text-gray-600">Trạng thái hiện tại:</span>
-                                                            <p className="text-sm font-semibold text-gray-900 mt-0.5">
-                                                                {getParticipationTypeLabel(validatedInfo.currentStatus)}
-                                                            </p>
-                                                            <div className="mt-3 space-y-2 text-xs text-gray-600">
-                                                                <p>Mở check-in: {formatCheckInWindow(validatedInfo.checkInOpenAt)}</p>
-                                                                <p>Đóng check-in: {formatCheckInWindow(validatedInfo.checkInClosedAt)}</p>
+                                                        {/* Event Info */}
+                                                        <div className="bg-gray-50/80 p-5 rounded-2xl border border-gray-100 shadow-inner-light hover:shadow-md transition-shadow">
+                                                            <div className="flex items-center gap-2 mb-4 text-[#001C44]">
+                                                                <CalendarBlank size={20} weight="fill" />
+                                                                <h5 className="font-bold text-gray-900">Thông tin sự kiện</h5>
+                                                            </div>
+                                                            <div className="pl-7 border-l-2 border-emerald-100 ml-2">
+                                                                <span className="text-[11px] font-bold tracking-widest text-gray-400 uppercase">Tên sự kiện</span>
+                                                                <p className="text-sm font-bold text-gray-900 mt-0.5 line-clamp-2 leading-relaxed">{validatedInfo.activityName}</p>
                                                             </div>
                                                         </div>
 
-                                                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                                            <h5 className="font-semibold text-gray-900 mb-3">Thao tác có thể</h5>
-                                                            <div className="flex flex-wrap gap-2">
+                                                        {/* Status Info */}
+                                                        <div className="bg-gray-50/80 p-5 rounded-2xl border border-gray-100 shadow-inner-light hover:shadow-md transition-shadow">
+                                                            <div className="flex items-center gap-2 mb-4 text-[#001C44]">
+                                                                <Info size={20} weight="fill" />
+                                                                <h5 className="font-bold text-gray-900">Trạng thái</h5>
+                                                            </div>
+                                                            <div className="pl-7 border-l-2 border-amber-100 ml-2">
+                                                                <span className="text-[11px] font-bold tracking-widest text-gray-400 uppercase">Trạng thái hiện tại</span>
+                                                                <p className="text-sm font-extrabold text-[#001C44] mt-1 bg-white inline-block px-3 py-1 rounded-lg border border-gray-200">
+                                                                    {getParticipationTypeLabel(validatedInfo.currentStatus)}
+                                                                </p>
+                                                                <div className="mt-3 space-y-2 text-xs text-gray-600">
+                                                                    <p>Mở check-in: {formatCheckInWindow(validatedInfo.checkInOpenAt)}</p>
+                                                                    <p>Đóng check-in: {formatCheckInWindow(validatedInfo.checkInClosedAt)}</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Actions Available */}
+                                                        <div className="bg-[#001C44]/5 p-5 rounded-2xl border border-[#001C44]/10 shadow-inner-light hover:shadow-md transition-shadow">
+                                                            <div className="flex items-center gap-2 mb-4 text-[#001C44]">
+                                                                <CheckCircle size={20} weight="fill" />
+                                                                <h5 className="font-bold text-[#001C44]">Thao tác có thể thực hiện</h5>
+                                                            </div>
+                                                            <div className="flex flex-wrap gap-3 pl-7">
                                                                 {validatedInfo.canCheckIn && (
-                                                                    <span className="inline-flex items-center px-3 py-1.5 bg-green-500 text-white rounded-lg text-xs font-semibold">
-                                                                        Check-in
+                                                                    <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-500 text-white rounded-xl text-xs font-extrabold shadow-sm">
+                                                                        <SignIn size={16} weight="bold" />
+                                                                        Điểm danh (Check-in)
                                                                     </span>
                                                                 )}
                                                                 {validatedInfo.canCheckOut && (
-                                                                    <span className="inline-flex items-center px-3 py-1.5 bg-orange-500 text-white rounded-lg text-xs font-semibold">
-                                                                        Check-out
+                                                                    <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 text-white rounded-xl text-xs font-extrabold shadow-sm">
+                                                                        <SignOut size={16} weight="bold" />
+                                                                        Ra về (Check-out)
                                                                     </span>
                                                                 )}
                                                                 {!validatedInfo.canCheckIn && !validatedInfo.canCheckOut && (
-                                                                    <span className="inline-flex items-center px-3 py-1.5 bg-gray-400 text-white rounded-lg text-xs font-semibold">
-                                                                        Không thể thao tác
+                                                                    <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-200 text-gray-600 rounded-xl text-xs font-bold">
+                                                                        <XCircle size={16} weight="bold" />
+                                                                        Không có thao tác khả dụng
                                                                     </span>
                                                                 )}
                                                             </div>
                                                         </div>
                                                     </div>
 
-                                                    <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200">
+                                                    {/* Action Buttons */}
+                                                    <div className="flex gap-4 pt-6 border-t border-gray-100">
                                                         <button
                                                             onClick={() => setShowConfirmDialog(true)}
                                                             disabled={!validatedInfo.canCheckIn && !validatedInfo.canCheckOut}
-                                                            className="flex-1 px-6 py-3 bg-gradient-to-r from-[#001C44] to-[#002A66] text-white rounded-lg hover:from-[#002A66] hover:to-[#001C44] disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                                                            className="flex-[2] px-8 py-4 bg-[#001C44] text-white rounded-2xl hover:bg-blue-900 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed font-extrabold shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 text-sm uppercase tracking-wider"
                                                         >
-                                                            {primaryCheckInActionLabel}
+                                                            <CheckCircle size={20} weight="bold" />
+                                                            Xác nhận điểm danh
                                                         </button>
                                                         <button
                                                             onClick={() => {
                                                                 setValidatedInfo(null);
-                                                                setTicketCode('');
+                                                                setTicketCode("");
                                                                 setShowConfirmDialog(false);
                                                             }}
-                                                            className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-semibold transition-all duration-200"
+                                                            className="flex-1 px-8 py-4 bg-gray-50 text-gray-600 border border-gray-200 rounded-2xl hover:bg-gray-100 hover:text-gray-900 font-extrabold transition-all duration-300 text-sm uppercase tracking-wider flex items-center justify-center gap-2"
                                                         >
-                                                            Hủy
+                                                            <X size={20} weight="bold" />
+                                                            Hủy bỏ
                                                         </button>
                                                     </div>
                                                 </div>
@@ -669,20 +753,20 @@ const ManagerRegistrationsSplit: React.FC = () => {
                                     </div>
                                 </div>
 
-                                <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-                                    <div className="p-6">
-                                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                                            <h3 className="text-2xl font-bold text-[#001C44] flex items-center">
-                                                <span className="mr-3 text-3xl">📝</span>
-                                                Danh sách đăng ký
-                                            </h3>
-                                            <span className="px-4 py-2 bg-[#FFD66D] text-[#001C44] rounded-lg font-semibold">
-                                                {registrations.length} đăng ký
-                                            </span>
+                                <div className="rounded-2xl border border-gray-100 bg-white shadow-premium overflow-hidden">
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-gray-100 px-5 py-4">
+                                        <div className="flex items-center gap-2">
+                                            <ListChecks size={20} weight="duotone" className="text-primary-900" />
+                                            <h3 className="text-base font-semibold tracking-tight text-primary-900">Danh sách đăng ký</h3>
                                         </div>
-
+                                        <span className="inline-flex items-center rounded-full bg-accent/90 px-3 py-1 text-xs font-semibold text-primary-900 tabular-nums">
+                                            {registrations.length} đăng ký
+                                        </span>
+                                    </div>
+                                    <div className="p-5">
                                         <ManagerRegistrationTabs
                                             registrations={registrations}
+                                            activityId={selectedEventId}
                                             eventName={selectedEvent?.name}
                                             onUpdateStatus={handleUpdateStatus}
                                             onBulkUpdateStatus={handleBulkUpdateStatus}
@@ -691,8 +775,14 @@ const ManagerRegistrationsSplit: React.FC = () => {
                                 </div>
                             </>
                         ) : (
-                            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-10 text-center text-gray-500">
-                                Chọn một sự kiện ở cột bên trái để xem và quản lý đăng ký.
+                            <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/80 px-8 py-16 text-center">
+                                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-50 text-primary-900">
+                                    <ClipboardText size={28} weight="duotone" />
+                                </div>
+                                <h3 className="text-base font-semibold text-gray-800">Chưa chọn sự kiện</h3>
+                                <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
+                                    Chọn một sự kiện ở cột bên trái để duyệt đăng ký, check-in và xuất danh sách tham gia.
+                                </p>
                             </div>
                         )}
                     </section>
@@ -700,36 +790,78 @@ const ManagerRegistrationsSplit: React.FC = () => {
             </div>
 
             {showConfirmDialog && validatedInfo && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">{primaryCheckInActionLabel}</h3>
-                        <div className="mb-4">
-                            <p className="text-sm text-gray-600 mb-2">Bạn có chắc chắn muốn thực hiện thao tác này?</p>
-                            <div className="bg-gray-50 p-3 rounded space-y-1">
-                                <p className="text-sm">
-                                    <span className="font-medium">Sinh viên:</span> {validatedInfo.studentName} ({validatedInfo.studentCode})
-                                </p>
-                                <p className="text-sm">
-                                    <span className="font-medium">Sự kiện:</span> {validatedInfo.activityName}
-                                </p>
-                                <p className="text-sm">
-                                    <span className="font-medium">Mã vé:</span> <span className="font-mono">{validatedInfo.ticketCode}</span>
-                                </p>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-3xl p-8 max-w-md w-full mx-4 shadow-premium relative animate-in fade-in zoom-in duration-300">
+                        {/* Close button */}
+                        <button 
+                            onClick={() => setShowConfirmDialog(false)}
+                            className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 transition-colors bg-gray-50 hover:bg-gray-100 p-2 rounded-full"
+                        >
+                            <X size={20} weight="bold" />
+                        </button>
+
+                        {/* Icon & Title */}
+                        <div className="flex flex-col items-center text-center mb-8">
+                            <div className="w-16 h-16 bg-primary-50 text-primary-900 rounded-2xl flex items-center justify-center mb-4">
+                                <WarningCircle size={32} weight="duotone" />
+                            </div>
+                            <h3 className="text-xl font-bold text-primary-900 tracking-tight">Xác nhận thao tác</h3>
+                            <p className="text-gray-500 text-sm mt-2 leading-relaxed">
+                                Bạn có chắc muốn thực hiện <strong className="text-primary-900">check-in / check-out</strong> cho sinh viên này?
+                            </p>
+                        </div>
+                        
+                        {/* Details Card */}
+                        <div className="bg-gray-50/80 border border-gray-100 p-5 rounded-2xl mb-8 space-y-4">
+                            <div className="flex items-start gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                                    <User size={18} weight="fill" />
+                                </div>
+                                <div>
+                                    <p className="text-[11px] font-bold tracking-widest text-gray-400 uppercase">Sinh viên</p>
+                                    <p className="text-sm font-bold text-gray-900 mt-0.5">{validatedInfo.studentName}</p>
+                                    <p className="text-xs text-gray-500 font-medium mt-0.5">{validatedInfo.studentCode}</p>
+                                </div>
+                            </div>
+                            
+                            <div className="flex items-start gap-3 pt-3 border-t border-gray-200/60">
+                                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                                    <CalendarBlank size={18} weight="fill" />
+                                </div>
+                                <div>
+                                    <p className="text-[11px] font-bold tracking-widest text-gray-400 uppercase">Sự kiện</p>
+                                    <p className="text-sm font-bold text-gray-900 mt-0.5 line-clamp-2">{validatedInfo.activityName}</p>
+                                </div>
+                            </div>
+                            
+                            <div className="flex items-start gap-3 pt-3 border-t border-gray-200/60">
+                                <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                                    <Ticket size={18} weight="fill" />
+                                </div>
+                                <div>
+                                    <p className="text-[11px] font-bold tracking-widest text-gray-400 uppercase">Mã vé</p>
+                                    <p className="text-sm font-bold text-[#001C44] mt-0.5 font-mono bg-white px-2 py-0.5 rounded border border-gray-200 inline-block">
+                                        {validatedInfo.ticketCode}
+                                    </p>
+                                </div>
                             </div>
                         </div>
-                        <div className="flex gap-2 justify-end">
+                        
+                        {/* Actions */}
+                        <div className="flex gap-3">
                             <button
                                 onClick={() => setShowConfirmDialog(false)}
-                                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+                                className="flex-1 px-5 py-3.5 bg-gray-100 text-gray-700 rounded-2xl hover:bg-gray-200 font-bold transition-all"
                             >
-                                Hủy
+                                Hủy bỏ
                             </button>
                             <button
-                                onClick={() => void handleConfirmCheckIn()}
+                                onClick={handleConfirmCheckIn}
                                 disabled={!validatedInfo.canCheckIn && !validatedInfo.canCheckOut}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                className="flex-[2] flex items-center justify-center gap-2 px-5 py-3.5 bg-primary-900 text-white rounded-2xl hover:bg-primary-800 font-semibold shadow-premium transition-all active:scale-[0.98] disabled:bg-gray-300 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900"
                             >
-                                {validatedInfo.canCheckIn ? 'Check-in' : validatedInfo.canCheckOut ? 'Check-out' : 'Không thể thao tác'}
+                                <CheckCircle size={20} weight="bold" />
+                                Xác nhận ngay
                             </button>
                         </div>
                     </div>

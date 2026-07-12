@@ -12,6 +12,14 @@ export type ScoreEntrySourceType =
     | "RECALCULATION";
 export type ScoreType = 'REN_LUYEN' | 'CONG_TAC_XA_HOI' | 'CHUYEN_DE';
 
+/** Params for GET /api/scores/export — omit scoreType to export all 3 types + total. */
+export interface ExportSemesterScoresParams {
+    semesterId: number;
+    departmentId?: number;
+    classId?: number;
+    scoreType?: ScoreType;
+}
+
 export interface TrainingCalculateItem {
     criterionId: number;
     criterionName: string;
@@ -255,6 +263,187 @@ export const formatDateTime = (dateTime: string): string => {
         return dateTime;
     }
 };
+
+export type ScoreAppealStatus =
+    | 'PENDING'
+    | 'IN_REVIEW'
+    | 'APPROVED'
+    | 'REJECTED'
+    | 'CLOSED';
+
+export interface ManualScoreRequest {
+    studentId: number;
+    /** Học kỳ tích điểm — bắt buộc */
+    semesterId: number;
+    scoreType: ScoreType;
+    /** Có thể âm (phạt) hoặc dương (cộng). */
+    points: number | string;
+    reason: string;
+    activityId?: number | null;
+}
+
+/** Bulk: cùng học kỳ + loại điểm + lý do chung cho nhiều SV */
+export interface BulkManualScoreRequest {
+    semesterId: number;
+    scoreType: ScoreType;
+    reason: string;
+    activityId?: number | null;
+    entries: Array<{
+        studentId: number;
+        points: number | string;
+        reason?: string | null;
+    }>;
+}
+
+export interface BulkManualScoreItemResult {
+    studentId: number;
+    success: boolean;
+    data?: ManualScoreResponse | null;
+    error?: string | null;
+}
+
+export interface BulkManualScoreResponse {
+    semesterId: number;
+    scoreType: ScoreType;
+    total: number;
+    successCount: number;
+    failureCount: number;
+    results: BulkManualScoreItemResult[];
+}
+
+export interface ManualScoreReverseRequest {
+    reason: string;
+}
+
+export interface ManualScoreResponse {
+    adjustmentId: number;
+    scoreEntryId: number;
+    studentId: number;
+    semesterId: number;
+    scoreType: ScoreType;
+    points: number | string;
+    reason: string;
+    activityId?: number | null;
+    createdByUserId?: number | null;
+    createdAt?: string | null;
+}
+
+export interface CreateScoreAppealRequest {
+    semesterId: number;
+    scoreType: ScoreType;
+    relatedScoreEntryId?: number | null;
+    title: string;
+    reason: string;
+    requestedPoints?: number | string | null;
+    /** URL ảnh minh chứng từ POST /api/scores/appeals/evidence (max 5) */
+    evidenceUrls?: string[] | null;
+}
+
+export interface ScoreAppealEvidenceUploadResponse {
+    urls: string[];
+}
+
+export interface ScoreAppealDecisionPreviewResponse {
+    appealId: number;
+    studentId: number;
+    studentCode?: string | null;
+    studentFullName?: string | null;
+    semesterId: number;
+    scoreType: ScoreType;
+    decision: 'APPROVED' | 'REJECTED';
+    currentScore: number | string;
+    adjustedPoints?: number | string | null;
+    projectedScore: number | string;
+    willCreateLedgerEntry: boolean;
+    relatedScoreEntryId?: number | null;
+    relatedEntryPoints?: number | string | null;
+    note: string;
+}
+
+export interface ScoreAppealMessageRequest {
+    content: string;
+}
+
+export interface ScoreAppealDecisionRequest {
+    decision: 'APPROVED' | 'REJECTED';
+    decisionNotes?: string | null;
+    adjustedPoints?: number | string | null;
+    scoreType?: ScoreType | null;
+    semesterId?: number | null;
+}
+
+export interface ScoreAppealMessageResponse {
+    id: number;
+    senderId: number;
+    senderUsername: string;
+    content: string;
+    createdAt?: string | null;
+}
+
+export interface ScoreAppealResponse {
+    id: number;
+    studentId: number;
+    studentCode?: string | null;
+    studentFullName?: string | null;
+    semesterId: number;
+    scoreType: ScoreType;
+    relatedScoreEntryId?: number | null;
+    title: string;
+    reason: string;
+    /** URL ảnh minh chứng */
+    evidenceUrls?: string[] | null;
+    requestedPoints?: number | string | null;
+    status: ScoreAppealStatus;
+    decisionNotes?: string | null;
+    decidedAt?: string | null;
+    decidedById?: number | null;
+    decidedByUsername?: string | null;
+    resultingScoreEntryId?: number | null;
+    createdAt?: string | null;
+    updatedAt?: string | null;
+    messages: ScoreAppealMessageResponse[];
+}
+
+export interface ScoreAppealPageBody {
+    content: ScoreAppealResponse[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+}
+
+export const SCORE_APPEAL_STATUS_META: Record<
+    ScoreAppealStatus,
+    { label: string; className: string }
+> = {
+    PENDING: {
+        label: 'Chờ xử lý',
+        className: 'bg-amber-50 text-amber-900 border-amber-200',
+    },
+    IN_REVIEW: {
+        label: 'Đang xem xét',
+        className: 'bg-sky-50 text-sky-900 border-sky-200',
+    },
+    APPROVED: {
+        label: 'Đã chấp nhận',
+        className: 'bg-emerald-50 text-emerald-900 border-emerald-200',
+    },
+    REJECTED: {
+        label: 'Từ chối',
+        className: 'bg-red-50 text-red-800 border-red-200',
+    },
+    CLOSED: {
+        label: 'Đã đóng',
+        className: 'bg-gray-50 text-gray-700 border-gray-200',
+    },
+};
+
+export const getScoreAppealStatusLabel = (status: ScoreAppealStatus | string): string =>
+    SCORE_APPEAL_STATUS_META[status as ScoreAppealStatus]?.label ?? status;
+
+export const getScoreAppealStatusClass = (status: ScoreAppealStatus | string): string =>
+    SCORE_APPEAL_STATUS_META[status as ScoreAppealStatus]?.className
+    ?? 'bg-gray-50 text-gray-700 border-gray-200';
 
 export type RecalculationJobStatus = "PENDING" | "RUNNING" | "COMPLETED" | "FAILED" | "TIMEOUT";
 

@@ -64,6 +64,47 @@ export enum ParticipationType {
     COMPLETED = 'COMPLETED'
 }
 
+export enum EventTimeStatus {
+    UPCOMING = 'UPCOMING',
+    ONGOING = 'ONGOING',
+    PAST = 'PAST'
+}
+
+export type ActivityTypeCalendar =
+    | 'SUKIEN'
+    | 'MINIGAME'
+    | 'CONG_TAC_XA_HOI'
+    | 'CHUYEN_DE_DOANH_NGHIEP';
+
+export interface CalendarMarkedDate {
+    date: string; // YYYY-MM-DD
+    eventCount: number;
+}
+
+export interface PersonalCalendarEventItem {
+    registrationId: number;
+    activityId: number;
+    title: string;
+    startTime: string;
+    endTime: string | null;
+    location?: string;
+    status: RegistrationStatus;
+    eventTimeStatus: EventTimeStatus;
+    activityType?: ActivityTypeCalendar | null;
+    bannerUrl?: string | null;
+    shareLink?: string | null;
+    ticketCode?: string | null;
+    seriesId?: number | null;
+    important: boolean;
+}
+
+export interface PersonalCalendarResponse {
+    from: string | null;
+    to: string | null;
+    markedDates: CalendarMarkedDate[];
+    events: PersonalCalendarEventItem[];
+}
+
 export interface ActivityRegistrationRequest {
     activityId: number;
     feedback?: string;

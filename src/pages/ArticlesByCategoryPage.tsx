@@ -12,7 +12,7 @@ const ArticlesByCategoryPage: React.FC = () => {
     const { categorySlug } = useParams<{ categorySlug: string }>();
     const [articles, setArticles] = useState<ArticleListResponse[]>([]);
     const [pageData, setPageData] = useState<SpringPage<ArticleListResponse> | null>(null);
-    const [categories, setCategories] = useState<{ id: number; name: string; slug: string }[]>([]);
+    const [categories, setCategories] = useState<{ id: number; name: string; slug: string; articleCount?: number }[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [currentCategory, setCurrentCategory] = useState<string>('');

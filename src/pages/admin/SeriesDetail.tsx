@@ -1,16 +1,94 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import {
+    ArrowLeft,
+    PencilSimple,
+    WarningCircle,
+    Info,
+    CalendarBlank,
+    Clock,
+    Medal,
+    Users,
+    ChartBar,
+    MagnifyingGlass,
+    CalendarCheck,
+    GameController,
+    LinkSimple,
+    X,
+    GraduationCap,
+    Ticket,
+    Flag,
+} from '@phosphor-icons/react';
 import { seriesAPI } from '../../services/seriesAPI';
 import { SeriesResponse, SeriesOverviewResponse, SeriesProgressListResponse } from '../../types/series';
 import { ActivityResponse, SeriesChildActivityCreateRequest, SeriesChildActivityResponse } from '../../types/activity';
-import { LoadingSpinner } from '../../components/common';
 import { SeriesActivityList } from '../../components/series';
 import { toast } from 'react-toastify';
-import { ScoreType } from '../../types/activity';
+import { getScoreTypeLabel } from '../../types/score';
 import SeriesActivityForm from '../../components/events/SeriesActivityForm';
 import QuizForm from '../../components/minigame/QuizForm';
 import { minigameAPI } from '../../services/minigameAPI';
 import { CreateMiniGameRequest, UpdateMiniGameRequest } from '../../types/minigame';
+import { getPresetDisplayName, getCodeLabel, localizeVi } from '../../utils/vietnameseLabels';
+
+const formatDateTime = (date: string) =>
+    new Date(date).toLocaleString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+
+const SeriesDetailSkeleton: React.FC = () => (
+    <div className="mx-auto max-w-6xl space-y-6 animate-pulse">
+        <div className="h-36 rounded-2xl bg-gray-200/80" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+                <div className="h-64 rounded-2xl bg-gray-200/80" />
+                <div className="h-80 rounded-2xl bg-gray-200/80" />
+            </div>
+            <div className="h-[520px] rounded-2xl bg-gray-200/80" />
+        </div>
+    </div>
+);
+
+const InfoTile: React.FC<{
+    icon: React.ReactNode;
+    label: string;
+    value: React.ReactNode;
+    className?: string;
+}> = ({ icon, label, value, className = '' }) => (
+    <div className={`rounded-xl border border-gray-100 bg-gray-50/60 p-4 ${className}`}>
+        <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-primary-900 shadow-sm ring-1 ring-gray-100">
+                {icon}
+            </div>
+            <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{label}</p>
+                <div className="mt-1 text-sm font-medium text-gray-900 leading-relaxed">{value}</div>
+            </div>
+        </div>
+    </div>
+);
+
+const SeriesStatusBadge: React.FC<{ series: SeriesResponse }> = ({ series }) => {
+    const isDraft = series.isDraft ?? series.draft ?? false;
+
+    if (isDraft) {
+        return (
+            <span className="inline-flex items-center rounded-lg bg-amber-400/20 px-2.5 py-1 text-xs font-semibold text-amber-100 ring-1 ring-amber-300/30">
+                Bản nháp
+            </span>
+        );
+    }
+
+    return (
+        <span className="inline-flex items-center rounded-lg bg-emerald-400/20 px-2.5 py-1 text-xs font-semibold text-emerald-100 ring-1 ring-emerald-300/30">
+            Đã công bố
+        </span>
+    );
+};
 
 const SeriesDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -271,53 +349,51 @@ const SeriesDetail: React.FC = () => {
         return parseFloat(value).toFixed(2);
     };
 
-    const formatDate = (date: string): string => {
-        return new Date(date).toLocaleString('vi-VN');
-    };
+    const formatDate = (date: string): string => formatDateTime(date);
 
     const getCompletionRateColor = (rate: number): string => {
-        if (rate >= 0.8) return 'text-green-600';
-        if (rate >= 0.5) return 'text-yellow-600';
-        return 'text-red-600';
+        if (rate >= 0.8) return 'text-emerald-600';
+        if (rate >= 0.5) return 'text-amber-600';
+        return 'text-rose-600';
     };
 
     const getMilestoneColor = (milestoneKey: string): string => {
         const colors: Record<string, string> = {
-            '3': 'bg-blue-100 text-blue-800',
-            '4': 'bg-purple-100 text-purple-800',
-            '5': 'bg-green-100 text-green-800'
+            '3': 'bg-blue-50 text-blue-800 ring-blue-200/80',
+            '4': 'bg-purple-50 text-purple-800 ring-purple-200/80',
+            '5': 'bg-emerald-50 text-emerald-800 ring-emerald-200/80',
         };
-        return colors[milestoneKey] || 'bg-gray-100 text-gray-800';
+        return colors[milestoneKey] || 'bg-gray-100 text-gray-800 ring-gray-200/80';
     };
 
-    const getScoreTypeLabel = (type: ScoreType) => {
-        const labels: Record<ScoreType, string> = {
-            [ScoreType.REN_LUYEN]: 'Rèn luyện',
-            [ScoreType.CONG_TAC_XA_HOI]: 'Công tác xã hội',
-            [ScoreType.CHUYEN_DE]: 'Chuyên đề'
-        };
-        return labels[type] || type;
-    };
+    const milestoneEntries = Object.entries(series?.milestonePoints || {})
+        .map(([count, points]) => ({ count: parseInt(count, 10), points: Number(points) }))
+        .filter((m) => !Number.isNaN(m.count))
+        .sort((a, b) => a.count - b.count);
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <LoadingSpinner />
-            </div>
-        );
+        return <SeriesDetailSkeleton />;
     }
 
     if (error || !series) {
         return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <div className="text-center">
-                    <div className="text-red-600 text-6xl mb-4">⚠️</div>
-                    <h2 className="text-2xl font-bold text-[#001C44] mb-2">Có lỗi xảy ra</h2>
-                    <p className="text-gray-600 mb-6">{error || 'Không tìm thấy chuỗi sự kiện'}</p>
+            <div className="mx-auto max-w-6xl flex items-center justify-center min-h-[50vh]">
+                <div className="text-center max-w-md px-6">
+                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
+                        <WarningCircle size={28} weight="duotone" />
+                    </div>
+                    <h2 className="text-xl font-semibold tracking-tight text-primary-900 mb-2">
+                        Không tải được dữ liệu
+                    </h2>
+                    <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+                        {error || 'Không tìm thấy chuỗi sự kiện'}
+                    </p>
                     <button
+                        type="button"
                         onClick={() => navigate('/manager/series')}
-                        className="btn-primary px-6 py-3 rounded-lg font-medium"
+                        className="inline-flex items-center gap-2 rounded-xl bg-primary-900 px-5 py-2.5 text-sm font-semibold text-white shadow-premium transition-all hover:bg-primary-800 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900/30"
                     >
+                        <ArrowLeft size={18} weight="bold" />
                         Quay lại danh sách
                     </button>
                 </div>
@@ -326,216 +402,298 @@ const SeriesDetail: React.FC = () => {
     }
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white">
-                <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                        <div className="flex items-center mb-2">
-                            <span className="mr-3 text-4xl">📋</span>
-                            <h1 className="text-3xl font-bold">{series.name}</h1>
+        <div className="mx-auto max-w-6xl space-y-6">
+            <header className="relative overflow-hidden rounded-2xl border border-primary-900/10 bg-primary-900 px-6 py-7 sm:px-8 text-white shadow-premium">
+                <div
+                    className="pointer-events-none absolute inset-0 opacity-[0.12]"
+                    style={{
+                        backgroundImage:
+                            'radial-gradient(ellipse at 0% 0%, #FFD66D 0%, transparent 55%), radial-gradient(ellipse at 100% 100%, #4b88b6 0%, transparent 50%)',
+                    }}
+                />
+                <div className="relative space-y-5">
+                    <button
+                        type="button"
+                        onClick={() => navigate('/manager/series')}
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-100/90 transition-colors hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 rounded-lg px-1 -ml-1"
+                    >
+                        <ArrowLeft size={16} weight="bold" />
+                        Danh sách chuỗi sự kiện
+                    </button>
+
+                    <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
+                        <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                                <SeriesStatusBadge series={series} />
+                                {series.requiresApproval ? (
+                                    <span className="inline-flex items-center rounded-lg bg-white/10 px-2.5 py-1 text-xs font-semibold text-primary-100 ring-1 ring-white/15">
+                                        Cần duyệt đăng ký
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center rounded-lg bg-white/10 px-2.5 py-1 text-xs font-semibold text-primary-100 ring-1 ring-white/15">
+                                        Tự duyệt đăng ký
+                                    </span>
+                                )}
+                            </div>
+                            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-balance">
+                                {series.name}
+                            </h1>
+                            {series.description && (
+                                <p className="mt-2 text-sm text-primary-100/90 max-w-3xl leading-relaxed">
+                                    {series.description}
+                                </p>
+                            )}
                         </div>
-                        {series.description && (
-                            <p className="text-gray-200 text-lg ml-12">{series.description}</p>
-                        )}
-                    </div>
-                    <div className="flex space-x-3 ml-4">
-                        <Link
-                            to={`/manager/series/${id}/edit`}
-                            className="px-5 py-2.5 bg-[#FFD66D] text-[#001C44] rounded-lg hover:bg-[#FFC947] font-semibold shadow-lg hover:shadow-xl transition-all"
-                        >
-                            ✏️ Chỉnh sửa
-                        </Link>
-                        <button
-                            onClick={() => navigate('/manager/series')}
-                            className="px-5 py-2.5 bg-white/20 text-white rounded-lg hover:bg-white/30 font-semibold transition-all backdrop-blur-sm"
-                        >
-                            ← Quay lại
-                        </button>
+
+                        <div className="flex shrink-0 flex-wrap gap-2">
+                            <Link
+                                to={`/manager/series/${id}/edit`}
+                                className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-primary-900 shadow-premium transition-all hover:bg-accent/90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                            >
+                                <PencilSimple size={18} weight="bold" />
+                                Chỉnh sửa
+                            </Link>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </header>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Main Content */}
-                <div className="lg:col-span-2 space-y-6">
-                    {/* Series Info */}
-                    <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
-                        <h3 className="text-xl font-bold text-[#001C44] mb-6 flex items-center">
-                            <span className="mr-2 text-2xl">ℹ️</span>
-                            Thông tin chuỗi sự kiện
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="flex items-start p-4 bg-blue-50 rounded-lg">
-                                <span className="text-2xl mr-3">📋</span>
-                                <div>
-                                    <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Số sự kiện</div>
-                                    <div className="text-lg font-semibold text-[#001C44]">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                <div className="lg:col-span-2 space-y-6 min-w-0">
+                    <section className="rounded-2xl border border-gray-100 bg-white shadow-premium p-5 sm:p-6 space-y-5">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-900">
+                                <Info size={22} weight="duotone" />
+                            </div>
+                            <div>
+                                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
+                                    Thông tin chuỗi
+                                </p>
+                                <h2 className="text-lg font-semibold tracking-tight text-primary-900">
+                                    Cấu hình & đăng ký
+                                </h2>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <InfoTile
+                                icon={<CalendarCheck size={18} weight="duotone" />}
+                                label="Số sự kiện"
+                                value={
+                                    <span className="tabular-nums">
                                         {activities.length || series.totalActivities || 0} sự kiện
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex items-start p-4 bg-purple-50 rounded-lg">
-                                <span className="text-2xl mr-3">⭐</span>
-                                <div>
-                                    <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Loại điểm</div>
-                                    <div className="text-lg font-semibold text-[#001C44]">
-                                        {getScoreTypeLabel(series.scoreType)}
-                                    </div>
-                                </div>
-                            </div>
+                                    </span>
+                                }
+                            />
+                            <InfoTile
+                                icon={<Medal size={18} weight="duotone" />}
+                                label="Loại điểm"
+                                value={getScoreTypeLabel(series.scoreType)}
+                            />
+                            {series.presetCode && (
+                                <InfoTile
+                                    icon={<Flag size={18} weight="duotone" />}
+                                    label="Mẫu cấu hình"
+                                    value={getPresetDisplayName(series.presetCode)}
+                                />
+                            )}
+                            {series.audience && (
+                                <InfoTile
+                                    icon={<Users size={18} weight="duotone" />}
+                                    label="Đối tượng"
+                                    value={getCodeLabel(series.audience, series.audience)}
+                                />
+                            )}
                             {series.registrationStartDate && (
-                                <div className="flex items-start p-4 bg-green-50 rounded-lg">
-                                    <span className="text-2xl mr-3">🚀</span>
-                                    <div>
-                                        <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Mở đăng ký</div>
-                                        <div className="text-sm font-medium text-gray-700">
-                                            {new Date(series.registrationStartDate).toLocaleString('vi-VN')}
-                                        </div>
-                                    </div>
-                                </div>
+                                <InfoTile
+                                    icon={<CalendarBlank size={18} weight="duotone" />}
+                                    label="Mở đăng ký"
+                                    value={
+                                        <span className="tabular-nums">{formatDate(series.registrationStartDate)}</span>
+                                    }
+                                />
                             )}
                             {series.registrationDeadline && (
-                                <div className="flex items-start p-4 bg-yellow-50 rounded-lg">
-                                    <span className="text-2xl mr-3">⏰</span>
-                                    <div>
-                                        <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Hạn đăng ký</div>
-                                        <div className="text-sm font-medium text-gray-700">
-                                            {new Date(series.registrationDeadline).toLocaleString('vi-VN')}
-                                        </div>
-                                    </div>
-                                </div>
+                                <InfoTile
+                                    icon={<Clock size={18} weight="duotone" />}
+                                    label="Hạn đăng ký"
+                                    value={
+                                        <span className="tabular-nums">{formatDate(series.registrationDeadline)}</span>
+                                    }
+                                />
                             )}
-                            <div className="flex items-start p-4 bg-gray-50 rounded-lg md:col-span-2">
-                                <span className="text-2xl mr-3">📝</span>
-                                <div>
-                                    <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Trạng thái duyệt</div>
-                                    <div className="text-sm font-medium text-gray-700">
-                                        {series.requiresApproval ? 'Đăng ký cần duyệt' : 'Đăng ký tự duyệt'}
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex items-start p-4 bg-indigo-50 rounded-lg">
-                                <span className="text-2xl mr-3">🎓</span>
-                                <div>
-                                    <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Học kỳ cộng điểm</div>
-                                    <div className="text-sm font-medium text-gray-700">
-                                        {series.targetSemesterId ? `Học kỳ ID: ${series.targetSemesterId}` : 'Tự động (theo sự kiện đầu tiên)'}
-                                    </div>
-                                </div>
-                            </div>
+                            <InfoTile
+                                icon={<Ticket size={18} weight="duotone" />}
+                                label="Trạng thái duyệt"
+                                value={series.requiresApproval ? 'Đăng ký cần duyệt' : 'Đăng ký tự duyệt'}
+                            />
+                            <InfoTile
+                                icon={<GraduationCap size={18} weight="duotone" />}
+                                label="Học kỳ cộng điểm"
+                                value={
+                                    series.targetSemesterId
+                                        ? `Học kỳ ID: ${series.targetSemesterId}`
+                                        : 'Tự động (theo sự kiện đầu tiên)'
+                                }
+                            />
+                            {series.ticketQuantity != null && (
+                                <InfoTile
+                                    icon={<Users size={18} weight="duotone" />}
+                                    label="Số lượng vé"
+                                    value={<span className="tabular-nums">{series.ticketQuantity}</span>}
+                                />
+                            )}
                             {series.minimumRequirementEnabled && (
-                                <div className="flex items-start p-4 bg-red-50 rounded-lg md:col-span-2">
-                                    <span className="text-2xl mr-3">⚠️</span>
-                                    <div>
-                                        <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Yêu cầu tối thiểu</div>
-                                        <div className="text-sm font-medium text-gray-700">
-                                            Phải hoàn thành <strong>{series.minimumRequiredEvents}</strong> sự kiện, nếu không bị trừ <strong>{series.minimumPenaltyPoints}</strong> điểm
-                                        </div>
-                                    </div>
-                                </div>
+                                <InfoTile
+                                    className="sm:col-span-2"
+                                    icon={<WarningCircle size={18} weight="duotone" />}
+                                    label="Yêu cầu tối thiểu"
+                                    value={
+                                        <span>
+                                            Phải hoàn thành{' '}
+                                            <strong className="tabular-nums">{series.minimumRequiredEvents}</strong> sự kiện,
+                                            nếu không bị trừ{' '}
+                                            <strong className="tabular-nums">{series.minimumPenaltyPoints}</strong> điểm
+                                        </span>
+                                    }
+                                />
                             )}
                         </div>
-                    </div>
 
-                    {/* Activities List */}
+                        {milestoneEntries.length > 0 && (
+                            <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-4">
+                                <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-3">
+                                    Mốc điểm thưởng
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                    {milestoneEntries.map((m) => (
+                                        <span
+                                            key={m.count}
+                                            className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm ring-1 ring-gray-100 shadow-sm"
+                                        >
+                                            <span className="font-semibold text-primary-900 tabular-nums">
+                                                {m.count} sự kiện
+                                            </span>
+                                            <span className="text-gray-400">→</span>
+                                            <span className="font-medium text-gray-700 tabular-nums">
+                                                +{m.points} {localizeVi(getScoreTypeLabel(series.scoreType))}
+                                            </span>
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </section>
+
                     <SeriesActivityList
                         series={{
                             ...series,
-                            activities: activities
+                            activities,
                         }}
                         onAddActivity={() => setShowAddActivityModal(true)}
-                        canManage={true}
+                        canManage
                     />
                 </div>
 
-                {/* Sidebar */}
-                <div className="space-y-6">
-                    {/* Tab Navigation */}
-                    <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-                        <div className="flex border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
+                <aside className="lg:sticky lg:top-6 space-y-6">
+                    <div className="rounded-2xl border border-gray-100 bg-white shadow-premium overflow-hidden">
+                        <div className="grid grid-cols-2 border-b border-gray-100 bg-gray-50/80 p-1.5 gap-1.5">
                             <button
+                                type="button"
                                 onClick={() => setActiveTab('overview')}
-                                className={`flex-1 px-4 py-3 text-sm font-semibold transition-all ${activeTab === 'overview'
-                                        ? 'bg-[#001C44] text-white shadow-md'
-                                        : 'text-gray-600 hover:bg-white hover:text-[#001C44]'
-                                    }`}
+                                className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900/25 ${
+                                    activeTab === 'overview'
+                                        ? 'bg-primary-900 text-white shadow-sm'
+                                        : 'text-gray-600 hover:bg-white hover:text-primary-900'
+                                }`}
                             >
-                                📊 Tổng quan
+                                <ChartBar size={18} weight={activeTab === 'overview' ? 'fill' : 'duotone'} />
+                                Tổng quan
                             </button>
                             <button
+                                type="button"
                                 onClick={() => setActiveTab('progress')}
-                                className={`flex-1 px-4 py-3 text-sm font-semibold transition-all ${activeTab === 'progress'
-                                        ? 'bg-[#001C44] text-white shadow-md'
-                                        : 'text-gray-600 hover:bg-white hover:text-[#001C44]'
-                                    }`}
+                                className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900/25 ${
+                                    activeTab === 'progress'
+                                        ? 'bg-primary-900 text-white shadow-sm'
+                                        : 'text-gray-600 hover:bg-white hover:text-primary-900'
+                                }`}
                             >
-                                👥 Tiến độ
+                                <Users size={18} weight={activeTab === 'progress' ? 'fill' : 'duotone'} />
+                                Tiến độ
                             </button>
                         </div>
 
-                        {/* Overview Tab */}
                         {activeTab === 'overview' && (
-                            <div className="p-6">
+                            <div className="p-5 sm:p-6">
                                 {loadingOverview ? (
-                                    <div className="flex items-center justify-center py-8">
-                                        <LoadingSpinner />
+                                    <div className="space-y-4 animate-pulse">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {[1, 2, 3, 4].map((i) => (
+                                                <div key={i} className="h-20 rounded-xl bg-gray-100" />
+                                            ))}
+                                        </div>
+                                        <div className="h-32 rounded-xl bg-gray-100" />
                                     </div>
                                 ) : overview ? (
                                     <div className="space-y-6">
-                                        {/* Statistics Cards */}
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4">
-                                                <div className="text-2xl font-bold text-[#001C44]">
-                                                    {overview.totalActivities}
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {[
+                                                { value: overview.totalActivities, label: 'Sự kiện' },
+                                                { value: overview.totalRegisteredStudents, label: 'Đã đăng ký' },
+                                                {
+                                                    value: overview.totalCompletedStudents,
+                                                    label: 'Đã hoàn thành',
+                                                    sub: formatPercentage(overview.completionRate),
+                                                    subClass: getCompletionRateColor(overview.completionRate),
+                                                },
+                                                {
+                                                    value: formatBigDecimal(overview.totalMilestonePointsAwarded),
+                                                    label: 'Điểm đã trao',
+                                                },
+                                            ].map((stat) => (
+                                                <div
+                                                    key={stat.label}
+                                                    className="rounded-xl border border-gray-100 bg-gray-50/60 p-3.5"
+                                                >
+                                                    <div className="text-xl font-bold text-primary-900 tabular-nums">
+                                                        {stat.value}
+                                                    </div>
+                                                    <div className="mt-1 text-xs text-gray-500">
+                                                        {stat.label}
+                                                        {'sub' in stat && stat.sub && (
+                                                            <span className={`ml-1 font-semibold ${stat.subClass}`}>
+                                                                {stat.sub}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <div className="text-sm text-gray-600 mt-1">Sự kiện</div>
-                                            </div>
-                                            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4">
-                                                <div className="text-2xl font-bold text-[#001C44]">
-                                                    {overview.totalRegisteredStudents}
-                                                </div>
-                                                <div className="text-sm text-gray-600 mt-1">Đã đăng ký</div>
-                                            </div>
-                                            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4">
-                                                <div className="text-2xl font-bold text-[#001C44]">
-                                                    {overview.totalCompletedStudents}
-                                                </div>
-                                                <div className="text-sm text-gray-600 mt-1">
-                                                    Đã hoàn thành
-                                                    <span className={`ml-2 font-semibold ${getCompletionRateColor(overview.completionRate)}`}>
-                                                        {formatPercentage(overview.completionRate)}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg p-4">
-                                                <div className="text-2xl font-bold text-[#001C44]">
-                                                    {formatBigDecimal(overview.totalMilestonePointsAwarded)}
-                                                </div>
-                                                <div className="text-sm text-gray-600 mt-1">Điểm đã trao</div>
-                                            </div>
+                                            ))}
                                         </div>
 
-                                        {/* Milestone Progress */}
                                         {overview.milestoneProgress && overview.milestoneProgress.length > 0 && (
                                             <div>
-                                                <h4 className="text-sm font-semibold text-gray-700 mb-3">
-                                                    Phân bố theo Milestone
+                                                <h4 className="text-sm font-semibold text-primary-900 mb-3">
+                                                    Phân bố theo mốc
                                                 </h4>
                                                 <div className="space-y-3">
                                                     {overview.milestoneProgress.map((milestone) => (
-                                                        <div key={milestone.milestoneKey} className="space-y-1">
-                                                            <div className="flex items-center justify-between text-sm">
-                                                                <span className="font-medium">
-                                                                    Milestone {milestone.milestoneKey} ({milestone.milestoneCount} sự kiện)
+                                                        <div key={milestone.milestoneKey} className="space-y-1.5">
+                                                            <div className="flex items-center justify-between gap-2 text-xs">
+                                                                <span className="font-medium text-gray-700">
+                                                                    Mốc {milestone.milestoneKey}{' '}
+                                                                    <span className="text-gray-500 tabular-nums">
+                                                                        ({milestone.milestoneCount} sự kiện)
+                                                                    </span>
                                                                 </span>
-                                                                <span className="text-gray-600">
-                                                                    {milestone.studentCount} SV ({formatPercentage(milestone.percentage / 100)})
+                                                                <span className="text-gray-500 tabular-nums shrink-0">
+                                                                    {milestone.studentCount} SV (
+                                                                    {formatPercentage(milestone.percentage / 100)})
                                                                 </span>
                                                             </div>
-                                                            <div className="w-full bg-gray-200 rounded-full h-2">
+                                                            <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
                                                                 <div
-                                                                    className="bg-[#001C44] h-2 rounded-full transition-all"
+                                                                    className="h-full rounded-full bg-primary-900 transition-all"
                                                                     style={{ width: `${milestone.percentage}%` }}
                                                                 />
                                                             </div>
@@ -545,73 +703,68 @@ const SeriesDetail: React.FC = () => {
                                             </div>
                                         )}
 
-                                        {/* Activity Stats */}
                                         {overview.activityStats && overview.activityStats.length > 0 && (
                                             <div>
-                                                <h4 className="text-base font-bold text-[#001C44] mb-4 flex items-center">
-                                                    <span className="mr-2 text-xl">📊</span>
-                                                    Thống kê từng Activity
+                                                <h4 className="text-sm font-semibold text-primary-900 mb-3">
+                                                    Thống kê từng sự kiện
                                                 </h4>
-                                                <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
+                                                <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
                                                     {overview.activityStats.map((activity, index) => {
-                                                        const participationColor = activity.participationRate >= 0.8 
-                                                            ? 'bg-green-500' 
-                                                            : activity.participationRate >= 0.5 
-                                                            ? 'bg-yellow-500' 
-                                                            : 'bg-red-500';
-                                                        
-                                                        return (
-                                                            <div 
-                                                                key={activity.activityId} 
-                                                                className="bg-gradient-to-r from-white to-gray-50 border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all hover:border-[#001C44]"
-                                                            >
-                                                                <div className="flex items-start justify-between mb-3">
-                                                                    <div className="flex items-start flex-1">
-                                                                        <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-[#001C44] to-[#002A66] rounded-lg flex items-center justify-center text-white font-bold text-sm mr-3">
-                                                                            {activity.order || index + 1}
-                                                                        </div>
-                                                                        <div className="flex-1 min-w-0">
-                                                                            <div className="font-semibold text-sm text-[#001C44] mb-1 line-clamp-2">
-                                                                                {activity.activityName}
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                
-                                                                <div className="grid grid-cols-2 gap-3 mb-3">
-                                                                    <div className="bg-blue-50 rounded-lg p-2.5 border border-blue-100">
-                                                                        <div className="text-xs text-gray-600 uppercase tracking-wide mb-1">Đăng ký</div>
-                                                                        <div className="text-lg font-bold text-[#001C44]">
-                                                                            {activity.registrationCount}
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="bg-green-50 rounded-lg p-2.5 border border-green-100">
-                                                                        <div className="text-xs text-gray-600 uppercase tracking-wide mb-1">Tham gia</div>
-                                                                        <div className="text-lg font-bold text-[#001C44]">
-                                                                            {activity.participationCount}
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
+                                                        const barColor =
+                                                            activity.participationRate >= 0.8
+                                                                ? 'bg-emerald-500'
+                                                                : activity.participationRate >= 0.5
+                                                                  ? 'bg-amber-500'
+                                                                  : 'bg-rose-500';
 
-                                                                <div className="space-y-2">
-                                                                    <div className="flex items-center justify-between text-xs">
-                                                                        <span className="text-gray-600 font-medium">Tỷ lệ tham gia</span>
-                                                                        <span className={`font-bold ${
-                                                                            activity.participationRate >= 0.8 
-                                                ? 'text-green-600' 
-                                                : activity.participationRate >= 0.5 
-                                                ? 'text-yellow-600' 
-                                                : 'text-red-600'
-                                                                        }`}>
-                                                                            {formatPercentage(activity.participationRate)}
-                                                                        </span>
+                                                        return (
+                                                            <div
+                                                                key={activity.activityId}
+                                                                className="rounded-xl border border-gray-100 bg-white p-3.5 transition-colors hover:border-primary-900/20"
+                                                            >
+                                                                <div className="flex items-start gap-2.5 mb-3">
+                                                                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-900 text-xs font-bold text-white tabular-nums">
+                                                                        {activity.order || index + 1}
+                                                                    </span>
+                                                                    <p className="text-sm font-semibold text-primary-900 line-clamp-2 leading-snug">
+                                                                        {activity.activityName}
+                                                                    </p>
+                                                                </div>
+                                                                <div className="grid grid-cols-2 gap-2 mb-2.5 text-xs">
+                                                                    <div className="rounded-lg bg-gray-50 px-2.5 py-2">
+                                                                        <p className="text-gray-500">Đăng ký</p>
+                                                                        <p className="font-bold text-primary-900 tabular-nums">
+                                                                            {activity.registrationCount}
+                                                                        </p>
                                                                     </div>
-                                                                    <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-                                                                        <div
-                                                                            className={`${participationColor} h-2.5 rounded-full transition-all duration-500`}
-                                                                            style={{ width: `${activity.participationRate * 100}%` }}
-                                                                        />
+                                                                    <div className="rounded-lg bg-gray-50 px-2.5 py-2">
+                                                                        <p className="text-gray-500">Tham gia</p>
+                                                                        <p className="font-bold text-primary-900 tabular-nums">
+                                                                            {activity.participationCount}
+                                                                        </p>
                                                                     </div>
+                                                                </div>
+                                                                <div className="flex items-center justify-between text-xs mb-1">
+                                                                    <span className="text-gray-500">Tỷ lệ tham gia</span>
+                                                                    <span
+                                                                        className={`font-semibold tabular-nums ${
+                                                                            activity.participationRate >= 0.8
+                                                                                ? 'text-emerald-600'
+                                                                                : activity.participationRate >= 0.5
+                                                                                  ? 'text-amber-600'
+                                                                                  : 'text-rose-600'
+                                                                        }`}
+                                                                    >
+                                                                        {formatPercentage(activity.participationRate)}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                                                                    <div
+                                                                        className={`h-full rounded-full transition-all ${barColor}`}
+                                                                        style={{
+                                                                            width: `${activity.participationRate * 100}%`,
+                                                                        }}
+                                                                    />
                                                                 </div>
                                                             </div>
                                                         );
@@ -621,105 +774,125 @@ const SeriesDetail: React.FC = () => {
                                         )}
                                     </div>
                                 ) : (
-                                    <div className="text-center py-8 text-gray-500 text-sm">
+                                    <div className="py-10 text-center text-sm text-gray-500">
                                         Không có dữ liệu tổng quan
                                     </div>
                                 )}
                             </div>
                         )}
 
-                        {/* Progress Tab */}
                         {activeTab === 'progress' && (
-                            <div className="p-6">
+                            <div className="p-5 sm:p-6">
                                 {loadingProgress ? (
-                                    <div className="flex items-center justify-center py-8">
-                                        <LoadingSpinner />
+                                    <div className="space-y-4 animate-pulse">
+                                        <div className="h-11 rounded-xl bg-gray-100" />
+                                        <div className="h-16 rounded-xl bg-gray-100" />
+                                        <div className="h-48 rounded-xl bg-gray-100" />
                                     </div>
                                 ) : progress ? (
                                     <div className="space-y-4">
-                                        {/* Search Bar */}
                                         <div className="relative">
+                                            <MagnifyingGlass
+                                                size={18}
+                                                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                                            />
                                             <input
                                                 type="text"
-                                                placeholder="Tìm kiếm theo tên hoặc mã sinh viên..."
+                                                placeholder="Tìm theo tên hoặc mã sinh viên…"
                                                 value={progressKeyword}
                                                 onChange={(e) => handleSearchChange(e.target.value)}
-                                                className="w-full px-4 py-3 pl-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-all bg-gray-50 focus:bg-white"
+                                                className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm transition-colors hover:border-gray-300 focus:border-primary-900/40 focus:outline-none focus:ring-2 focus:ring-primary-900/20"
                                             />
-                                            <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-xl">
-                                                🔍
-                                            </span>
                                         </div>
 
-                                        {/* Progress Info */}
-                                        <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <div className="text-xs text-gray-600 uppercase tracking-wide mb-1">Tổng số sinh viên</div>
-                                                    <div className="text-2xl font-bold text-[#001C44]">{progress.totalRegistered}</div>
-                                                </div>
-                                                <div className="text-4xl opacity-20">👥</div>
-                                            </div>
+                                        <div className="rounded-xl border border-primary-100 bg-primary-50/60 px-4 py-3.5">
+                                            <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                                                Tổng sinh viên đăng ký
+                                            </p>
+                                            <p className="mt-1 text-2xl font-bold text-primary-900 tabular-nums">
+                                                {progress.totalRegistered}
+                                            </p>
                                         </div>
 
-                                        {/* Progress Table */}
-                                        <div className="overflow-x-auto border border-gray-200 rounded-lg">
-                                            <table className="w-full text-sm">
+                                        <div className="overflow-x-auto rounded-xl border border-gray-100">
+                                            <table className="w-full min-w-[520px] text-sm">
                                                 <thead>
-                                                    <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-                                                        <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Mã SV</th>
-                                                        <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Tên SV</th>
-                                                        <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Lớp</th>
-                                                        <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Khoa</th>
-                                                        <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Hoàn thành</th>
-                                                        <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Điểm</th>
-                                                        <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Milestone</th>
+                                                    <tr className="border-b border-gray-100 bg-gray-50/80 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                                                        <th className="px-3 py-2.5 text-left">Mã SV</th>
+                                                        <th className="px-3 py-2.5 text-left">Tên</th>
+                                                        <th className="px-3 py-2.5 text-left">Hoàn thành</th>
+                                                        <th className="px-3 py-2.5 text-left">Điểm</th>
+                                                        <th className="px-3 py-2.5 text-left">Mốc</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody className="bg-white divide-y divide-gray-200">
+                                                <tbody className="divide-y divide-gray-100">
                                                     {progress.progressList.length === 0 ? (
                                                         <tr>
-                                                            <td colSpan={7} className="px-3 py-12 text-center">
-                                                                <div className="text-gray-400 text-5xl mb-3">📭</div>
-                                                                <p className="text-gray-500 font-medium">Không có dữ liệu</p>
+                                                            <td colSpan={5} className="px-3 py-10 text-center">
+                                                                <p className="text-sm font-medium text-gray-600">
+                                                                    Không có dữ liệu
+                                                                </p>
                                                                 {progressKeyword && (
-                                                                    <p className="text-gray-400 text-sm mt-1">Thử tìm kiếm với từ khóa khác</p>
+                                                                    <p className="mt-1 text-xs text-gray-400">
+                                                                        Thử từ khóa khác
+                                                                    </p>
                                                                 )}
                                                             </td>
                                                         </tr>
                                                     ) : (
                                                         progress.progressList.map((item) => (
-                                                            <tr key={item.studentId} className="hover:bg-blue-50 transition-colors">
-                                                                <td className="px-3 py-3 text-gray-900 font-semibold">{item.studentCode}</td>
-                                                                <td className="px-3 py-3 text-gray-900 font-medium">{item.studentName}</td>
-                                                                <td className="px-3 py-3 text-gray-600">{item.className || '-'}</td>
-                                                                <td className="px-3 py-3 text-gray-600">{item.departmentName || '-'}</td>
-                                                                <td className="px-3 py-2">
-                                                                    <div className="flex items-center space-x-2">
-                                                                        <span className="text-gray-900">
+                                                            <tr
+                                                                key={item.studentId}
+                                                                className="transition-colors hover:bg-primary-50/30"
+                                                            >
+                                                                <td className="px-3 py-2.5 font-semibold text-primary-900 tabular-nums">
+                                                                    {item.studentCode}
+                                                                </td>
+                                                                <td className="px-3 py-2.5">
+                                                                    <p className="font-medium text-gray-900 line-clamp-1">
+                                                                        {item.studentName}
+                                                                    </p>
+                                                                    {(item.className || item.departmentName) && (
+                                                                        <p className="text-xs text-gray-500 line-clamp-1">
+                                                                            {[item.className, item.departmentName]
+                                                                                .filter(Boolean)
+                                                                                .join(' · ')}
+                                                                        </p>
+                                                                    )}
+                                                                </td>
+                                                                <td className="px-3 py-2.5">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="tabular-nums text-gray-800">
                                                                             {item.completedCount}/{item.totalActivities}
                                                                         </span>
-                                                                        <div className="flex-1 bg-gray-200 rounded-full h-1.5 max-w-[60px]">
+                                                                        <div className="h-1.5 w-12 overflow-hidden rounded-full bg-gray-200">
                                                                             <div
-                                                                                className={`h-1.5 rounded-full ${item.completedCount === item.totalActivities
-                                                                                        ? 'bg-green-500'
-                                                                                        : 'bg-blue-500'
-                                                                                    }`}
-                                                                                style={{ width: `${(item.completedCount / item.totalActivities) * 100}%` }}
+                                                                                className={`h-full rounded-full ${
+                                                                                    item.completedCount === item.totalActivities
+                                                                                        ? 'bg-emerald-500'
+                                                                                        : 'bg-primary-900'
+                                                                                }`}
+                                                                                style={{
+                                                                                    width: `${(item.completedCount / item.totalActivities) * 100}%`,
+                                                                                }}
                                                                             />
                                                                         </div>
                                                                     </div>
                                                                 </td>
-                                                                <td className="px-3 py-2 text-gray-900 font-medium">
+                                                                <td className="px-3 py-2.5 font-medium tabular-nums">
                                                                     {formatBigDecimal(item.pointsEarned)}
                                                                 </td>
-                                                                <td className="px-3 py-2">
+                                                                <td className="px-3 py-2.5">
                                                                     {item.currentMilestone ? (
-                                                                        <span className={`px-2 py-1 rounded text-xs font-medium ${getMilestoneColor(item.currentMilestone)}`}>
+                                                                        <span
+                                                                            className={`inline-flex rounded-lg px-2 py-0.5 text-xs font-semibold ring-1 ${getMilestoneColor(item.currentMilestone)}`}
+                                                                        >
                                                                             Mốc {item.currentMilestone}
                                                                         </span>
                                                                     ) : (
-                                                                        <span className="text-gray-400 text-xs">Chưa đạt</span>
+                                                                        <span className="text-xs text-gray-400">
+                                                                            Chưa đạt
+                                                                        </span>
                                                                     )}
                                                                 </td>
                                                             </tr>
@@ -729,35 +902,25 @@ const SeriesDetail: React.FC = () => {
                                             </table>
                                         </div>
 
-                                        {/* Pagination */}
                                         {progress.totalPages > 1 && (
-                                            <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                                                <div className="text-sm text-gray-600">
-                                                    Trang {progress.page + 1} / {progress.totalPages}
-                                                    {progress.totalElements > 0 && (
-                                                        <span className="ml-2">
-                                                            (Hiển thị {progress.page * progress.size + 1} - {Math.min((progress.page + 1) * progress.size, progress.totalElements)} / {progress.totalElements})
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="flex space-x-2">
+                                            <div className="flex items-center justify-between gap-3 border-t border-gray-100 pt-4">
+                                                <p className="text-xs text-gray-500 tabular-nums">
+                                                    Trang {progress.page + 1}/{progress.totalPages}
+                                                </p>
+                                                <div className="flex gap-2">
                                                     <button
+                                                        type="button"
                                                         onClick={() => handlePageChange(progressPage - 1)}
                                                         disabled={progressPage === 0}
-                                                        className={`px-3 py-1 text-sm rounded-lg border ${progressPage === 0
-                                                                ? 'border-gray-200 text-gray-400 cursor-not-allowed'
-                                                                : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                                                            }`}
+                                                        className="rounded-xl border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 transition-all hover:border-primary-900 hover:text-primary-900 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900/20"
                                                     >
                                                         Trước
                                                     </button>
                                                     <button
+                                                        type="button"
                                                         onClick={() => handlePageChange(progressPage + 1)}
                                                         disabled={progressPage >= progress.totalPages - 1}
-                                                        className={`px-3 py-1 text-sm rounded-lg border ${progressPage >= progress.totalPages - 1
-                                                                ? 'border-gray-200 text-gray-400 cursor-not-allowed'
-                                                                : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                                                            }`}
+                                                        className="rounded-xl border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 transition-all hover:border-primary-900 hover:text-primary-900 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900/20"
                                                     >
                                                         Sau
                                                     </button>
@@ -766,96 +929,88 @@ const SeriesDetail: React.FC = () => {
                                         )}
                                     </div>
                                 ) : (
-                                    <div className="text-center py-8 text-gray-500 text-sm">
+                                    <div className="py-10 text-center text-sm text-gray-500">
                                         Không có dữ liệu tiến độ
                                     </div>
                                 )}
                             </div>
                         )}
                     </div>
-                </div>
+                </aside>
             </div>
 
-            {/* Add Activity Modal */}
             {showAddActivityModal && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-                    <div className="relative bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-                        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 z-10">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-900/40 p-4 backdrop-blur-sm">
+                    <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl border border-gray-100 bg-white shadow-premium">
+                        <div className="sticky top-0 z-10 border-b border-gray-100 bg-white px-6 py-4">
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-xl font-bold text-[#001C44]">
-                                    {showQuizForm ? 'Tạo Quiz' : 'Thêm sự kiện vào chuỗi'}
+                                <h3 className="text-lg font-semibold tracking-tight text-primary-900">
+                                    {showQuizForm ? 'Tạo quiz' : 'Thêm sự kiện vào chuỗi'}
                                 </h3>
                                 <button
+                                    type="button"
                                     onClick={handleCloseModal}
-                                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                                    className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900/20"
                                 >
-                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M6 18L18 6M6 6l12 12"
-                                        />
-                                    </svg>
+                                    <X size={20} />
                                 </button>
                             </div>
 
-                            {/* Step Indicator */}
                             {activityType === 'minigame' && (
-                                <div className="flex items-center space-x-2 mb-4">
-                                    <div className={`flex items-center ${showQuizForm ? 'text-gray-400' : 'text-[#001C44]'}`}>
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${showQuizForm ? 'bg-gray-200' : 'bg-[#001C44] text-white'
-                                            }`}>
+                                <div className="mb-4 flex items-center gap-2">
+                                    <div className={`flex items-center gap-2 ${showQuizForm ? 'text-gray-400' : 'text-primary-900'}`}>
+                                        <div className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold ${showQuizForm ? 'bg-gray-200' : 'bg-primary-900 text-white'}`}>
                                             1
                                         </div>
-                                        <span className="ml-2 text-sm">Thông tin activity</span>
+                                        <span className="text-sm">Thông tin sự kiện</span>
                                     </div>
-                                    <div className="flex-1 h-0.5 bg-gray-200">
-                                        <div className={`h-full transition-all ${showQuizForm ? 'bg-[#001C44] w-full' : 'w-0'}`}></div>
+                                    <div className="h-0.5 flex-1 bg-gray-200">
+                                        <div className={`h-full transition-all ${showQuizForm ? 'w-full bg-primary-900' : 'w-0'}`} />
                                     </div>
-                                    <div className={`flex items-center ${showQuizForm ? 'text-[#001C44]' : 'text-gray-400'}`}>
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${showQuizForm ? 'bg-[#001C44] text-white' : 'bg-gray-200'
-                                            }`}>
+                                    <div className={`flex items-center gap-2 ${showQuizForm ? 'text-primary-900' : 'text-gray-400'}`}>
+                                        <div className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold ${showQuizForm ? 'bg-primary-900 text-white' : 'bg-gray-200'}`}>
                                             2
                                         </div>
-                                        <span className="ml-2 text-sm">Tạo quiz</span>
+                                        <span className="text-sm">Tạo quiz</span>
                                     </div>
                                 </div>
                             )}
 
-                            {/* Activity Type Selection */}
                             {!activityType && !showQuizForm && (
-                                <div className="grid grid-cols-3 gap-4">
-                                    <button
-                                        onClick={() => setActivityType('normal')}
-                                        className="p-6 border-2 border-gray-300 rounded-lg hover:border-[#001C44] hover:bg-[#001C44] hover:text-white transition-all text-left group"
-                                    >
-                                        <div className="text-4xl mb-2">📅</div>
-                                        <h4 className="font-semibold text-lg mb-1">Tạo sự kiện thường</h4>
-                                        <p className="text-sm text-gray-600 group-hover:text-gray-200">
-                                            Tạo sự kiện hoạt động thông thường trong chuỗi
-                                        </p>
-                                    </button>
-                                    <button
-                                        onClick={() => setActivityType('minigame')}
-                                        className="p-6 border-2 border-gray-300 rounded-lg hover:border-[#001C44] hover:bg-[#001C44] hover:text-white transition-all text-left group"
-                                    >
-                                        <div className="text-4xl mb-2">🎮</div>
-                                        <h4 className="font-semibold text-lg mb-1">Tạo minigame</h4>
-                                        <p className="text-sm text-gray-600 group-hover:text-gray-200">
-                                            Tạo quiz/minigame với câu hỏi và đáp án
-                                        </p>
-                                    </button>
-                                    <button
-                                        onClick={() => setActivityType('attach')}
-                                        className="p-6 border-2 border-gray-300 rounded-lg hover:border-[#001C44] hover:bg-[#001C44] hover:text-white transition-all text-left group"
-                                    >
-                                        <div className="text-4xl mb-2">🔗</div>
-                                        <h4 className="font-semibold text-lg mb-1">Gắn sự kiện có sẵn</h4>
-                                        <p className="text-sm text-gray-600 group-hover:text-gray-200">
-                                            Gắn một sự kiện đã tồn tại vào chuỗi này
-                                        </p>
-                                    </button>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    {[
+                                        {
+                                            type: 'normal' as const,
+                                            icon: CalendarCheck,
+                                            title: 'Tạo sự kiện thường',
+                                            desc: 'Tạo sự kiện hoạt động thông thường trong chuỗi',
+                                        },
+                                        {
+                                            type: 'minigame' as const,
+                                            icon: GameController,
+                                            title: 'Tạo minigame',
+                                            desc: 'Tạo quiz/minigame với câu hỏi và đáp án',
+                                        },
+                                        {
+                                            type: 'attach' as const,
+                                            icon: LinkSimple,
+                                            title: 'Gắn sự kiện có sẵn',
+                                            desc: 'Gắn một sự kiện đã tồn tại vào chuỗi này',
+                                        },
+                                    ].map(({ type, icon: Icon, title, desc }) => (
+                                        <button
+                                            key={type}
+                                            type="button"
+                                            onClick={() => setActivityType(type)}
+                                            className="rounded-xl border-2 border-gray-200 p-5 text-left transition-all hover:border-primary-900 hover:bg-primary-900 hover:text-white active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900/25 group"
+                                        >
+                                            <Icon size={28} weight="duotone" className="mb-3" />
+                                            <h4 className="font-semibold mb-1">{title}</h4>
+                                            <p className="text-sm text-gray-500 group-hover:text-primary-100/90 leading-relaxed">
+                                                {desc}
+                                            </p>
+                                        </button>
+                                    ))}
                                 </div>
                             )}
                         </div>
@@ -874,40 +1029,39 @@ const SeriesDetail: React.FC = () => {
                                     }}
                                 />
                             ) : activityType === 'attach' ? (
-                                <div className="space-y-6">
-                                    <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-                                        <p className="text-sm text-blue-800">
-                                            Gắn một sự kiện đã tồn tại vào chuỗi này. Sự kiện sẽ kế thừa cấu hình đăng ký và điểm từ chuỗi.
-                                        </p>
+                                <div className="space-y-5">
+                                    <div className="rounded-xl border border-primary-100 bg-primary-50/60 px-4 py-3 text-sm text-primary-900 leading-relaxed">
+                                        Gắn một sự kiện đã tồn tại vào chuỗi này. Sự kiện sẽ kế thừa cấu hình đăng ký và điểm từ chuỗi.
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            ID sự kiện *
+                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                            ID sự kiện <span className="text-rose-500">*</span>
                                         </label>
                                         <input
                                             type="number"
                                             value={attachActivityId}
                                             onChange={(e) => setAttachActivityId(e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
+                                            className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm transition-colors hover:border-gray-300 focus:border-primary-900/40 focus:outline-none focus:ring-2 focus:ring-primary-900/20"
                                             placeholder="Nhập ID sự kiện"
                                             min={1}
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Thứ tự trong chuỗi *
+                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                            Thứ tự trong chuỗi <span className="text-rose-500">*</span>
                                         </label>
                                         <input
                                             type="number"
                                             value={attachOrder || (activities.length > 0 ? Math.max(...activities.map(a => a.seriesOrder || 0), 0) + 1 : 1)}
                                             onChange={(e) => setAttachOrder(parseInt(e.target.value) || 0)}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
+                                            className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm transition-colors hover:border-gray-300 focus:border-primary-900/40 focus:outline-none focus:ring-2 focus:ring-primary-900/20"
                                             placeholder="Nhập thứ tự"
                                             min={1}
                                         />
                                     </div>
-                                    <div className="flex space-x-3 pt-4">
+                                    <div className="flex gap-3 pt-2">
                                         <button
+                                            type="button"
                                             onClick={() => {
                                                 const activityId = parseInt(attachActivityId);
                                                 const order = attachOrder || (activities.length > 0 ? Math.max(...activities.map(a => a.seriesOrder || 0), 0) + 1 : 1);
@@ -918,17 +1072,18 @@ const SeriesDetail: React.FC = () => {
                                                 handleAttachActivity(activityId, order);
                                             }}
                                             disabled={isCreating}
-                                            className="flex-1 px-4 py-2 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66] transition-colors disabled:opacity-50"
+                                            className="flex-1 rounded-xl bg-primary-900 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-primary-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900/30"
                                         >
-                                            {isCreating ? 'Đang gắn...' : 'Gắn sự kiện'}
+                                            {isCreating ? 'Đang gắn…' : 'Gắn sự kiện'}
                                         </button>
                                         <button
+                                            type="button"
                                             onClick={() => {
                                                 setActivityType(null);
                                                 setAttachActivityId('');
                                                 setAttachOrder(0);
                                             }}
-                                            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                                            className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 transition-all hover:border-primary-900 hover:text-primary-900 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900/20"
                                         >
                                             Quay lại
                                         </button>

@@ -24,6 +24,7 @@ import { minigameAPI } from '../services/minigameAPI';
 import { MiniGame } from '../types/minigame';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'react-toastify';
+import { getPresetDisplayName, getActivityTypeLabel } from '../utils/vietnameseLabels';
 
 const EventDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -148,37 +149,9 @@ const EventDetail: React.FC = () => {
         fetchDepartments();
     }, [id]);
 
-    const translatePreset = (code?: string | null) => {
-        if (!code) return 'Không có';
-        const maps: Record<string, string> = {
-            'EVENT_BASIC': 'Sự kiện cơ bản',
-            'EVENT_WITH_SUBMISSION': 'Sự kiện có nộp bài',
-            'ENTERPRISE_SEMINAR_BASIC': 'Chuyên đề doanh nghiệp cơ bản',
-            'ENTERPRISE_SEMINAR_WITH_BONUS': 'Chuyên đề doanh nghiệp (có thưởng)',
-            'MINIGAME_PASS_ONLY': 'Minigame (chỉ tính đạt)',
-            'SERIES_MILESTONE_BASIC': 'Chuỗi sự kiện cơ bản',
-            'ENTERPRISE_SERIES': 'Chuỗi chuyên đề doanh nghiệp',
-            'DEFAULT': 'Mặc định',
-            'NO_SUBMISSION': 'Không yêu cầu nộp bài',
-            'INTERNAL_ONLY': 'Nội bộ khoa',
-            'STRICT_ATTENDANCE': 'Điểm danh bắt buộc',
-            'CUSTOM': 'Tùy chỉnh',
-            'MINIGAME_DEFAULT': 'Minigame mặc định',
-            'SERIES_DEFAULT': 'Chuỗi sự kiện'
-        };
-        return maps[code] || code;
-    };
+    const translatePreset = (code?: string | null) => getPresetDisplayName(code);
 
-    const translateActivityType = (type?: string | null) => {
-        if (!type) return 'N/A';
-        const maps: Record<string, string> = {
-            'SUKIEN': 'Sự kiện',
-            'MINIGAME': 'Mini Game',
-            'CONG_TAC_XA_HOI': 'Công tác xã hội',
-            'CHUYEN_DE_DOANH_NGHIEP': 'Chuyên đề doanh nghiệp'
-        };
-        return maps[type] || type;
-    };
+    const translateActivityType = (type?: string | null) => getActivityTypeLabel(type) || 'N/A';
 
     const getDepartmentNames = (ids?: number[]) => {
         if (!ids || ids.length === 0) return 'Chưa xác định';

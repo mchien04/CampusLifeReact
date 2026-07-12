@@ -4,7 +4,11 @@ import { classAPI, departmentAPI } from '../../services';
 import { ClassForm } from '../../components/class/ClassForm';
 import { ClassStudentList } from '../../components/class/ClassStudentList';
 
-const ClassManagement: React.FC = () => {
+interface ClassManagementProps {
+    embedded?: boolean;
+}
+
+const ClassManagement: React.FC<ClassManagementProps> = ({ embedded = false }) => {
     const [classes, setClasses] = useState<StudentClass[]>([]);
     const [departments, setDepartments] = useState<Department[]>([]);
     const [loading, setLoading] = useState(true);
@@ -128,42 +132,64 @@ const ClassManagement: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white">
-                <div className="flex items-center justify-between">
+            {!embedded && (
+                <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h1 className="text-3xl font-bold mb-2 flex items-center">
+                                <span className="mr-3 text-4xl">🏫</span>
+                                Quản lý lớp học
+                            </h1>
+                            <p className="text-gray-200 text-lg">Quản lý các lớp học trong hệ thống</p>
+                        </div>
+                        <button
+                            onClick={() => {
+                                setEditingClass(null);
+                                setShowForm(true);
+                            }}
+                            className="px-5 py-2.5 bg-[#FFD66D] text-[#001C44] rounded-lg hover:bg-[#FFC947] font-semibold shadow-lg hover:shadow-xl transition-all"
+                        >
+                            + Thêm lớp mới
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {embedded && (
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                        <h1 className="text-3xl font-bold mb-2 flex items-center">
-                            <span className="mr-3 text-4xl">🏫</span>
-                            Quản lý lớp học
-                        </h1>
-                        <p className="text-gray-200 text-lg">Quản lý các lớp học trong hệ thống</p>
+                        <h2 className="text-lg font-semibold text-primary-900 tracking-tight">Lớp học</h2>
+                        <p className="text-sm text-gray-500 mt-0.5 tabular-nums">
+                            {pagination.totalElements} lớp
+                        </p>
                     </div>
                     <button
+                        type="button"
                         onClick={() => {
                             setEditingClass(null);
                             setShowForm(true);
                         }}
-                        className="px-5 py-2.5 bg-[#FFD66D] text-[#001C44] rounded-lg hover:bg-[#FFC947] font-semibold shadow-lg hover:shadow-xl transition-all"
+                        className="rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-primary-900 transition-all hover:bg-accent-hover active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900"
                     >
-                        + Thêm lớp mới
+                        Thêm lớp
                     </button>
                 </div>
-            </div>
+            )}
 
             <div>
                 {/* Filters */}
-                <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 mb-6">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-premium p-5 mb-5">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                🏛️ Khoa
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
+                                Khoa
                             </label>
                             <select
                                 value={filters.departmentId || ''}
                                 onChange={(e) => handleFilterChange({
                                     departmentId: e.target.value ? parseInt(e.target.value) : undefined
                                 })}
-                                className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
+                                className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 transition-colors"
                             >
                                 <option value="">Tất cả khoa</option>
                                 {departments && departments.map(dept => (
@@ -174,15 +200,15 @@ const ClassManagement: React.FC = () => {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                🔍 Tìm kiếm
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
+                                Tìm kiếm
                             </label>
                             <input
                                 type="text"
                                 value={searchInput}
                                 onChange={(e) => setSearchInput(e.target.value)}
-                                placeholder="Tìm theo tên lớp..."
-                                className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
+                                placeholder="Tên lớp..."
+                                className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 transition-colors"
                             />
                         </div>
                         <div className="flex items-end">
@@ -191,9 +217,9 @@ const ClassManagement: React.FC = () => {
                                     setFilters({ page: 0, size: 10 });
                                     setSearchInput('');
                                 }}
-                                className="w-full px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 border-2 border-gray-300 font-semibold transition-all"
+                                className="w-full px-4 py-2.5 bg-gray-50 text-gray-700 rounded-xl hover:bg-gray-100 border border-gray-200 text-sm font-medium transition-all active:scale-[0.98]"
                             >
-                                🔄 Xóa bộ lọc
+                                Xóa bộ lọc
                             </button>
                         </div>
                     </div>
@@ -201,33 +227,32 @@ const ClassManagement: React.FC = () => {
 
                 {/* Classes Grid */}
                 {classes.length === 0 ? (
-                    <div className="bg-white rounded-xl shadow-lg border-2 border-dashed border-gray-300 p-12 text-center">
-                        <div className="text-gray-400 text-6xl mb-4">🏫</div>
-                        <p className="text-gray-600 text-lg font-medium">Chưa có lớp học nào</p>
-                        <p className="text-gray-500 text-sm mt-2">Bắt đầu bằng cách tạo lớp học đầu tiên</p>
+                    <div className="bg-white rounded-2xl border border-dashed border-gray-200 shadow-premium p-12 text-center">
+                        <p className="text-gray-800 font-medium">Chưa có lớp học nào</p>
+                        <p className="text-gray-500 text-sm mt-1">Tạo lớp đầu tiên hoặc đổi bộ lọc</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                         {classes.map((classItem) => {
                             const studentCount = classItem.studentCount || (classItem.students ? classItem.students.length : 0);
                             return (
                                 <div
                                     key={classItem.id}
-                                    className="bg-white rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 overflow-hidden group"
+                                    className="bg-white rounded-2xl border border-gray-100 shadow-premium hover:shadow-premium-hover transition-all duration-200 overflow-hidden"
                                 >
-                                    <div className="p-6">
+                                    <div className="p-5">
                                         <div className="flex items-start justify-between mb-4">
-                                            <div className="flex-1">
-                                                <div className="flex items-center space-x-2 mb-2">
-                                                    <div className="w-12 h-12 bg-gradient-to-br from-[#001C44] to-[#002A66] rounded-lg flex items-center justify-center text-white font-bold text-lg">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <div className="w-11 h-11 shrink-0 bg-primary-900 rounded-xl flex items-center justify-center text-white font-semibold">
                                                         {classItem.className.charAt(0).toUpperCase()}
                                                     </div>
                                                     <div className="flex-1 min-w-0">
-                                                        <h4 className="text-lg font-bold text-[#001C44] truncate">
+                                                        <h4 className="text-base font-semibold text-primary-900 truncate">
                                                             {classItem.className}
                                                         </h4>
-                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold mt-1 bg-blue-50 text-blue-700 border border-blue-200">
-                                                            🏛️ {classItem.department.name}
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium mt-1 bg-primary-50 text-primary-800">
+                                                            {classItem.department.name}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -236,36 +261,32 @@ const ClassManagement: React.FC = () => {
                                                         {classItem.description}
                                                     </p>
                                                 )}
-                                                <div className="flex items-center space-x-4 text-sm">
-                                                    <div className="flex items-center text-gray-600">
-                                                        <span className="mr-2">👥</span>
-                                                        <span className="font-semibold">{studentCount}</span>
-                                                        <span className="ml-1">sinh viên</span>
-                                                    </div>
-                                                </div>
+                                                <p className="text-sm text-gray-500 tabular-nums">
+                                                    <span className="font-semibold text-primary-900">{studentCount}</span> sinh viên
+                                                </p>
                                             </div>
                                         </div>
-                                        <div className="flex gap-2 pt-4 border-t border-gray-200">
+                                        <div className="flex gap-2 pt-4 border-t border-gray-100">
                                             <button
                                                 onClick={() => handleViewStudents(classItem)}
-                                                className="flex-1 px-4 py-2 text-sm font-semibold bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 border border-blue-200 transition-all"
+                                                className="flex-1 px-3 py-2 text-sm font-medium bg-sky-50 text-sky-800 rounded-xl hover:bg-sky-100 transition-all active:scale-[0.98]"
                                             >
-                                                👥 Xem SV
+                                                Sinh viên
                                             </button>
                                             <button
                                                 onClick={() => {
                                                     setEditingClass(classItem);
                                                     setShowForm(true);
                                                 }}
-                                                className="flex-1 px-4 py-2 text-sm font-semibold bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 border border-emerald-200 transition-all"
+                                                className="flex-1 px-3 py-2 text-sm font-medium bg-primary-50 text-primary-900 rounded-xl hover:bg-primary-100 transition-all active:scale-[0.98]"
                                             >
-                                                ✏️ Sửa
+                                                Sửa
                                             </button>
                                             <button
                                                 onClick={() => handleDeleteClass(classItem.id)}
-                                                className="px-4 py-2 text-sm font-semibold bg-rose-50 text-rose-700 rounded-lg hover:bg-rose-100 border border-rose-200 transition-all"
+                                                className="px-3 py-2 text-sm font-medium bg-rose-50 text-rose-700 rounded-xl hover:bg-rose-100 transition-all active:scale-[0.98]"
                                             >
-                                                🗑️
+                                                Xóa
                                             </button>
                                         </div>
                                     </div>
@@ -277,47 +298,45 @@ const ClassManagement: React.FC = () => {
 
                 {/* Pagination */}
                 {pagination.totalPages > 1 && (
-                    <div className="mt-6 bg-white rounded-xl shadow-lg border border-gray-100 px-6 py-4 flex items-center justify-between">
+                    <div className="mt-5 bg-white rounded-2xl border border-gray-100 shadow-premium px-5 py-4 flex items-center justify-between">
                         <div className="flex-1 flex justify-between sm:hidden">
                             <button
                                 onClick={() => handlePageChange(pagination.currentPage - 1)}
                                 disabled={pagination.currentPage === 0}
-                                className="relative inline-flex items-center px-4 py-2 border-2 border-gray-300 text-sm font-semibold rounded-lg text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                className="relative inline-flex items-center px-4 py-2 border border-gray-200 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                             >
-                                ← Trước
+                                Trước
                             </button>
                             <button
                                 onClick={() => handlePageChange(pagination.currentPage + 1)}
                                 disabled={pagination.currentPage === pagination.totalPages - 1}
-                                className="ml-3 relative inline-flex items-center px-4 py-2 border-2 border-gray-300 text-sm font-semibold rounded-lg text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-200 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                             >
-                                Sau →
+                                Sau
                             </button>
                         </div>
                         <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                             <div>
-                                <p className="text-sm text-gray-700 font-medium">
-                                    Hiển thị{' '}
-                                    <span className="font-bold text-[#001C44]">{pagination.currentPage * 10 + 1}</span>
-                                    {' '}đến{' '}
-                                    <span className="font-bold text-[#001C44]">
+                                <p className="text-sm text-gray-600 tabular-nums">
+                                    <span className="font-semibold text-primary-900">{pagination.currentPage * 10 + 1}</span>
+                                    {' – '}
+                                    <span className="font-semibold text-primary-900">
                                         {Math.min((pagination.currentPage + 1) * 10, pagination.totalElements)}
                                     </span>
-                                    {' '}trong{' '}
-                                    <span className="font-bold text-[#001C44]">{pagination.totalElements}</span>
-                                    {' '}kết quả
+                                    {' / '}
+                                    <span className="font-semibold text-primary-900">{pagination.totalElements}</span>
                                 </p>
                             </div>
                             <div>
-                                <nav className="relative z-0 inline-flex rounded-lg shadow-sm -space-x-px">
+                                <nav className="relative z-0 inline-flex rounded-xl overflow-hidden border border-gray-200">
                                     {Array.from({ length: pagination.totalPages }, (_, i) => (
                                         <button
                                             key={i}
                                             onClick={() => handlePageChange(i)}
-                                            className={`relative inline-flex items-center px-4 py-2 border-2 text-sm font-semibold transition-all ${
+                                            className={`relative inline-flex items-center px-3.5 py-2 text-sm font-medium transition-all tabular-nums ${
                                                 i === pagination.currentPage
-                                                    ? 'z-10 bg-gradient-to-r from-[#001C44] to-[#002A66] border-[#001C44] text-white shadow-md'
-                                                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                                                    ? 'bg-primary-900 text-white'
+                                                    : 'bg-white text-gray-700 hover:bg-gray-50'
                                             }`}
                                         >
                                             {i + 1}

@@ -20,7 +20,17 @@ const Submenu: React.FC<SubmenuProps> = ({ title, icon, items, isOpen: defaultOp
     const location = useLocation();
 
     const isActive = (href: string) => {
-        return location.pathname.startsWith(href);
+        const path = location.pathname;
+        if (path === href) return true;
+        if (!path.startsWith(href + '/')) return false;
+        // Prefer the more specific sibling (e.g. /scores/appeals over /scores)
+        const hasMoreSpecificSibling = items.some(
+            (item) =>
+                item.href !== href &&
+                item.href.length > href.length &&
+                path.startsWith(item.href)
+        );
+        return !hasMoreSpecificSibling;
     };
 
     const hasActiveItem = items.some(item => isActive(item.href));

@@ -7,6 +7,7 @@ import { ActivityResponse } from '../../types/activity';
 import { QuizForm } from '../../components/minigame';
 import { LoadingSpinner } from '../../components/common';
 import { toast } from 'react-toastify';
+import { WarningCircle, CaretLeft, Info, PencilSimple } from '@phosphor-icons/react';
 
 const EditQuiz: React.FC = () => {
     const navigate = useNavigate();
@@ -146,18 +147,16 @@ const EditQuiz: React.FC = () => {
 
     if (error || !minigame || !activity) {
         return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <div className="text-center">
-                    <div className="text-red-600 text-6xl mb-4">⚠️</div>
-                    <h2 className="text-2xl font-bold text-[#001C44] mb-2">Có lỗi xảy ra</h2>
-                    <p className="text-gray-600 mb-6">{error || 'Không tìm thấy dữ liệu'}</p>
-                    <button
-                        onClick={handleCancel}
-                        className="btn-primary px-6 py-3 rounded-lg font-medium"
-                    >
-                        Quay lại
-                    </button>
-                </div>
+            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+                <WarningCircle weight="duotone" className="w-16 h-16 text-red-500 mb-4" />
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Có lỗi xảy ra</h2>
+                <p className="text-gray-500 mb-6 max-w-md">{error || 'Không tìm thấy dữ liệu'}</p>
+                <button
+                    onClick={handleCancel}
+                    className="bg-[#001C44] hover:bg-[#002A66] text-white px-6 py-2.5 rounded-xl font-medium transition-colors"
+                >
+                    Quay lại
+                </button>
             </div>
         );
     }
@@ -185,45 +184,63 @@ const EditQuiz: React.FC = () => {
     });
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8">
-            <div className="max-w-4xl mx-auto px-4 mb-6">
-                <div className="flex items-center justify-between mb-4">
+        <div className="min-h-screen pb-12">
+            <div className="max-w-7xl mx-auto space-y-8">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-200">
                     <div>
-                        <h1 className="text-2xl font-bold text-[#001C44]">Chỉnh sửa Quiz</h1>
-                        <p className="text-gray-600 mt-1">Activity: {activity.name}</p>
+                        <div className="inline-flex items-center px-3 py-1 mb-3 rounded-full bg-blue-50 text-blue-700 text-sm font-semibold tracking-wide">
+                            <PencilSimple weight="bold" className="w-4 h-4 mr-1.5" />
+                            Cập nhật thông tin
+                        </div>
+                        <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Chỉnh sửa Quiz</h1>
+                        <p className="text-gray-500 mt-1">Sự kiện: <span className="font-medium text-gray-900">{activity.name}</span></p>
                     </div>
                     <button
                         onClick={handleCancel}
-                        className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                        className="inline-flex items-center justify-center px-4 py-2 border border-gray-200 rounded-xl text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 font-medium transition-all shadow-sm"
                     >
+                        <CaretLeft className="w-4 h-4 mr-1.5" />
                         Quay lại
                     </button>
                 </div>
+                
+                {/* Alerts */}
                 {initialQuestions.length > 0 && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                        <p className="text-sm text-blue-800">
-                            <strong>Thông tin:</strong> Đã tải {initialQuestions.length} câu hỏi với đáp án đúng. 
-                            Bạn có thể chỉnh sửa các câu hỏi này. Khi lưu, hệ thống sẽ cập nhật toàn bộ quiz.
-                        </p>
+                    <div className="flex items-start gap-3 bg-blue-50/80 border border-blue-200 rounded-2xl p-5 shadow-sm">
+                        <Info weight="fill" className="w-6 h-6 text-blue-500 flex-shrink-0 mt-0.5" />
+                        <div>
+                            <h4 className="font-semibold text-blue-900 mb-1">Đã tải {initialQuestions.length} câu hỏi</h4>
+                            <p className="text-sm text-blue-800/80 leading-relaxed">
+                                Bạn có thể chỉnh sửa các câu hỏi này. Khi lưu, hệ thống sẽ cập nhật toàn bộ quiz.
+                            </p>
+                        </div>
                     </div>
                 )}
                 {initialQuestions.length === 0 && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-                        <p className="text-sm text-yellow-800">
-                            <strong>Lưu ý:</strong> Quiz này chưa có câu hỏi. Vui lòng thêm các câu hỏi mới.
-                        </p>
+                    <div className="flex items-start gap-3 bg-yellow-50 border border-yellow-200 rounded-2xl p-5 shadow-sm">
+                        <WarningCircle weight="fill" className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                            <h4 className="font-semibold text-yellow-900 mb-1">Quiz chưa có nội dung</h4>
+                            <p className="text-sm text-yellow-800/80 leading-relaxed">
+                                Quiz này hiện tại chưa có câu hỏi nào. Vui lòng thêm các câu hỏi mới để hoàn thiện.
+                            </p>
+                        </div>
                     </div>
                 )}
+                
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mt-6">
+                    <QuizForm
+                        activity={activity}
+                        onSubmit={handleSubmit as any}
+                        loading={saving}
+                        initialData={initialData as any}
+                        title="Cấu hình bộ câu hỏi"
+                        onCancel={handleCancel}
+                        isInSeries={!!activity.seriesId}
+                    />
+                </div>
             </div>
-            <QuizForm
-                activity={activity}
-                onSubmit={handleSubmit as any}
-                loading={saving}
-                initialData={initialData as any}
-                title="Chỉnh sửa Quiz"
-                onCancel={handleCancel}
-                isInSeries={!!activity.seriesId}
-            />
         </div>
     );
 };

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { X, QrCode, SpinnerGap, ListChecks } from '@phosphor-icons/react';
 import { toast } from 'react-toastify';
 import { preparationAPI, registrationAPI } from '../../services';
 import AllocationAdjustmentRequestModal from './AllocationAdjustmentRequestModal';
@@ -647,75 +648,78 @@ export default function PreparationTaskDetailModal({
 
   if (!open) return null;
 
+  const modalTabBtn = (active: boolean) =>
+    `rounded-xl px-4 py-2 text-sm font-semibold transition-all active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900/30 ${
+      active ? 'bg-primary-900 text-white shadow-sm' : 'bg-gray-50 text-gray-600 ring-1 ring-gray-200 hover:bg-gray-100'
+    }`;
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-3xl">
-        <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] px-6 py-4 rounded-t-xl">
-          <div className="flex items-start justify-between gap-4">
+    <div className="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+      <div className="relative rounded-2xl border border-gray-100 bg-white shadow-premium w-full max-w-3xl overflow-hidden">
+        <div className="relative overflow-hidden bg-primary-900 px-6 py-4 text-white">
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.12]"
+            style={{
+              backgroundImage: 'radial-gradient(ellipse at 0% 0%, #FFD66D 0%, transparent 55%)',
+            }}
+          />
+          <div className="relative flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <h3 className="text-lg font-bold text-white truncate">Chi tiết nhiệm vụ</h3>
+              <div className="flex items-center gap-2 mb-1">
+                <ListChecks size={20} weight="duotone" className="text-accent shrink-0" />
+                <h3 className="text-lg font-bold truncate">Chi tiết nhiệm vụ</h3>
+              </div>
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 {!!task && (
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${getTaskStatusBadgeClass(task.status)}`}>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold ring-1 ${getTaskStatusBadgeClass(task.status)}`}>
                     {getTaskStatusLabel(task.status)}
                   </span>
                 )}
                 {myRole && (
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${getMemberRoleBadgeClass(myRole)}`}>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold ring-1 ${getMemberRoleBadgeClass(myRole)}`}>
                     {getMemberRoleLabel(myRole)}
                   </span>
                 )}
               </div>
             </div>
-            <button type="button" onClick={onClose} className="text-white hover:text-[#FFD66D] transition-colors">
-              <span className="sr-only">Đóng</span>
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-white ring-1 ring-white/20 hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+              aria-label="Đóng"
+            >
+              <X size={18} weight="bold" />
             </button>
           </div>
         </div>
 
-        <div className="p-6 space-y-5">
+        <div className="p-6 space-y-5 max-h-[calc(90vh-5rem)] overflow-y-auto">
           {loading ? (
-            <div className="text-sm text-gray-500">Đang tải...</div>
+            <div className="flex items-center gap-2 text-sm text-gray-500 py-4">
+              <SpinnerGap size={20} className="animate-spin text-primary-900/40" />
+              Đang tải...
+            </div>
           ) : !task ? (
             <div className="text-sm text-gray-500">Không tìm thấy nhiệm vụ.</div>
           ) : (
             <>
               <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setTab('DETAIL')}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold border ${tab === 'DETAIL' ? 'bg-[#001C44] text-white border-transparent' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-                >
+                <button type="button" onClick={() => setTab('DETAIL')} className={modalTabBtn(tab === 'DETAIL')}>
                   Chi tiết
                 </button>
                 {task.isFinancial && (
-                  <button
-                    type="button"
-                    onClick={() => setTab('EXPENSES')}
-                    className={`px-4 py-2 rounded-lg text-sm font-semibold border ${tab === 'EXPENSES' ? 'bg-[#001C44] text-white border-transparent' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-                  >
+                  <button type="button" onClick={() => setTab('EXPENSES')} className={modalTabBtn(tab === 'EXPENSES')}>
                     Chi phí
                   </button>
                 )}
                 {task.isFinancial && isLeaderOrOwner && (
                   <>
                     {isLeaderOrOwner && (
-                      <button
-                        type="button"
-                        onClick={() => setTab('LEADER')}
-                        className={`px-4 py-2 rounded-lg text-sm font-semibold border ${tab === 'LEADER' ? 'bg-[#001C44] text-white border-transparent' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-                      >
+                      <button type="button" onClick={() => setTab('LEADER')} className={modalTabBtn(tab === 'LEADER')}>
                         Duyệt chi phí
                       </button>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => setTab('ADVANCE')}
-                      className={`px-4 py-2 rounded-lg text-sm font-semibold border ${tab === 'ADVANCE' ? 'bg-[#001C44] text-white border-transparent' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-                    >
+                    <button type="button" onClick={() => setTab('ADVANCE')} className={modalTabBtn(tab === 'ADVANCE')}>
                       Tạm ứng
                     </button>
                   </>
@@ -746,7 +750,7 @@ export default function PreparationTaskDetailModal({
                             type="button"
                             disabled={!canAccept || submitting}
                             onClick={accept}
-                            className="px-4 py-2 bg-[#001C44] text-white rounded-lg text-sm font-semibold hover:bg-[#002A66] disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-4 py-2 bg-primary-900 text-white rounded-lg text-sm font-semibold hover:bg-[#002A66] disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             Nhận nhiệm vụ
                           </button>
@@ -769,7 +773,7 @@ export default function PreparationTaskDetailModal({
                               type="button"
                               disabled={submitting}
                               onClick={requestComplete}
-                              className="w-full sm:w-auto px-4 py-2 bg-[#FFD66D] text-[#001C44] rounded-lg text-sm font-semibold hover:bg-[#FFC947] disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                              className="w-full sm:w-auto px-4 py-2 bg-accent text-primary-900 rounded-xl text-sm font-semibold hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                             >
                               Yêu cầu hoàn thành
                             </button>
@@ -810,7 +814,7 @@ export default function PreparationTaskDetailModal({
                         <button
                           type="button"
                           onClick={() => loadSources()}
-                          className="text-xs font-semibold text-[#001C44] hover:underline disabled:opacity-50"
+                          className="text-xs font-semibold text-primary-900 hover:underline disabled:opacity-50"
                           disabled={loadingSources}
                         >
                           {loadingSources ? 'Đang tải...' : 'Tải lại'}
@@ -832,7 +836,7 @@ export default function PreparationTaskDetailModal({
                                   </div>
                                 </div>
                                 <div className="shrink-0 text-right">
-                                  <div className="text-sm font-semibold text-[#001C44]">{formatCurrency(s.allocationRemainingAmount)}</div>
+                                  <div className="text-sm font-semibold text-primary-900">{formatCurrency(s.allocationRemainingAmount)}</div>
                                   <div className="text-xs text-gray-500">Còn lại</div>
                                 </div>
                               </div>
@@ -846,8 +850,9 @@ export default function PreparationTaskDetailModal({
 
                   {task.isCheckinScanner && task.status === 'ACCEPTED' && (myRole !== null || task.ownerId === studentId) && (
                     <div className="border-2 border-dashed border-blue-200 rounded-xl p-5 bg-blue-50/30">
-                      <h4 className="text-base font-bold text-[#001C44] mb-3 flex items-center gap-2">
-                        <span>📷</span> Nhiệm vụ quét QR điểm danh
+                      <h4 className="text-base font-bold text-primary-900 mb-3 flex items-center gap-2">
+                        <QrCode size={20} weight="duotone" />
+                        Nhiệm vụ quét QR điểm danh
                       </h4>
                       <p className="text-sm text-gray-600 mb-4">
                         Bạn được phân công làm người quét QR check-in cho sự kiện này. Quét QR code trên vé của sinh viên khác để xác nhận tham gia.
@@ -860,13 +865,13 @@ export default function PreparationTaskDetailModal({
                             placeholder="Nhập mã vé thủ công..."
                             value={ticketCode}
                             onChange={(e) => setTicketCode(e.target.value)}
-                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] text-sm bg-white"
+                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-900 focus:border-[#001C44] text-sm bg-white"
                           />
                           <button
                             type="button"
                             onClick={() => handleValidateTicket(ticketCode)}
                             disabled={isValidatingTicket || !ticketCode.trim()}
-                            className="px-4 py-2 bg-[#001C44] text-white rounded-lg text-sm font-semibold hover:bg-[#002A66] disabled:opacity-50"
+                            className="px-4 py-2 bg-primary-900 text-white rounded-lg text-sm font-semibold hover:bg-[#002A66] disabled:opacity-50"
                           >
                             {isValidatingTicket ? 'Đang kiểm tra...' : 'Kiểm tra'}
                           </button>
@@ -938,7 +943,7 @@ export default function PreparationTaskDetailModal({
                           <div className="text-xs text-gray-600 mt-1">Tổng theo trạng thái HOLDING trong activity/task hiện tại.</div>
                         </div>
                         <div className="text-right">
-                          <div className="text-lg font-bold text-[#001C44]">{formatCurrency(String(myHoldingAdvanceAmount))}</div>
+                          <div className="text-lg font-bold text-primary-900">{formatCurrency(String(myHoldingAdvanceAmount))}</div>
                           <div className="text-xs text-gray-500">
                             {loadingMyFundAdvances ? 'Đang tải...' : `${myFundAdvances.length} khoản trong danh sách của tôi`}
                           </div>
@@ -973,7 +978,7 @@ export default function PreparationTaskDetailModal({
                                   <tr key={item.id}>
                                     <td className="px-3 py-2 text-xs text-gray-700">{item.categoryName}</td>
                                     <td className="px-3 py-2 text-xs font-semibold text-gray-900">{formatCurrency(item.amount)}</td>
-                                    <td className="px-3 py-2 text-xs font-semibold text-[#001C44]">{formatCurrency(item.remainingAmount)}</td>
+                                    <td className="px-3 py-2 text-xs font-semibold text-primary-900">{formatCurrency(item.remainingAmount)}</td>
                                     <td className="px-3 py-2 text-xs">
                                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ${getFundAdvanceStatusBadgeClass(item.status)}`}>
                                         {getFundAdvanceStatusLabel(item.status)}
@@ -996,7 +1001,7 @@ export default function PreparationTaskDetailModal({
                         <button
                           type="button"
                           onClick={() => setShowAllocationRequestModal(true)}
-                          className="px-4 py-2 bg-[#001C44] text-white rounded-lg text-sm font-semibold hover:bg-[#002A66]"
+                          className="px-4 py-2 bg-primary-900 text-white rounded-lg text-sm font-semibold hover:bg-[#002A66]"
                         >
                           Bổ sung cấp phát
                         </button>
@@ -1010,7 +1015,7 @@ export default function PreparationTaskDetailModal({
                       <div>
                         <div className="text-xs text-gray-500">Hạng mục</div>
                         <select
-                          className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
+                          className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-900 focus:border-[#001C44]"
                           value={expenseCategoryId ?? ''}
                           onChange={(e) => {
                             const v = Number(e.target.value);
@@ -1044,7 +1049,7 @@ export default function PreparationTaskDetailModal({
                           value={expenseAmount}
                           onChange={(e) => setExpenseAmount(e.target.value)}
                           placeholder="Ví dụ: 120000"
-                          className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
+                          className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-900 focus:border-[#001C44]"
                         />
                       </div>
                       <div>
@@ -1057,7 +1062,7 @@ export default function PreparationTaskDetailModal({
                             const f = e.target.files?.[0];
                             if (f) pickEvidence(f).catch(() => null);
                           }}
-                          className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
+                          className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-900 focus:border-[#001C44]"
                         />
                       </div>
                     </div>
@@ -1068,7 +1073,7 @@ export default function PreparationTaskDetailModal({
                         value={expenseDescription}
                         onChange={(e) => setExpenseDescription(e.target.value)}
                         placeholder="Mô tả chi phí (tùy chọn)"
-                        className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
+                        className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-900 focus:border-[#001C44]"
                       />
                     </div>
                     {evidencePreview && (
@@ -1084,7 +1089,7 @@ export default function PreparationTaskDetailModal({
                         type="button"
                         onClick={submitExpense}
                         disabled={!canAddExpense || submittingExpense}
-                        className="px-5 py-2 bg-[#FFD66D] text-[#001C44] rounded-lg text-sm font-semibold hover:bg-[#FFC947] disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-5 py-2 bg-accent text-primary-900 rounded-xl text-sm font-semibold hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {submittingExpense ? 'Đang gửi...' : 'Gửi chi phí'}
                       </button>
@@ -1096,7 +1101,7 @@ export default function PreparationTaskDetailModal({
                       <div className="flex items-center gap-2">
                         <div className="text-sm font-semibold text-gray-700">Danh sách chi phí</div>
                         <select
-                          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
+                          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-900 focus:border-[#001C44]"
                           value={expenseFilter}
                           onChange={(e) => setExpenseFilter(e.target.value as ExpenseStatusFilter)}
                         >
@@ -1214,14 +1219,14 @@ export default function PreparationTaskDetailModal({
                                   <button
                                     type="button"
                                     onClick={() => decideLeader(ex.id, true)}
-                                    className="px-3 py-2 bg-[#001C44] text-white rounded-lg text-sm font-semibold hover:bg-[#002A66]"
+                                    className="px-3 py-2 bg-primary-900 text-white rounded-lg text-sm font-semibold hover:bg-[#002A66]"
                                   >
                                     Duyệt
                                   </button>
                                   <button
                                     type="button"
                                     onClick={() => decideLeader(ex.id, false)}
-                                    className="px-3 py-2 bg-white text-[#001C44] border border-[#001C44] rounded-lg text-sm font-semibold hover:bg-gray-50"
+                                    className="px-3 py-2 bg-white text-primary-900 border border-[#001C44] rounded-lg text-sm font-semibold hover:bg-gray-50"
                                   >
                                     Từ chối
                                   </button>
@@ -1244,7 +1249,7 @@ export default function PreparationTaskDetailModal({
                         <div>
                           <div className="text-xs text-gray-500">Thành viên</div>
                           <select
-                            className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
+                            className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-900 focus:border-[#001C44]"
                             value={faStudentId ?? ''}
                             onChange={(e) => {
                               const v = Number(e.target.value);
@@ -1266,7 +1271,7 @@ export default function PreparationTaskDetailModal({
                             value={faAmount}
                             onChange={(e) => setFaAmount(e.target.value)}
                             placeholder="Ví dụ: 500000"
-                            className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
+                            className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-900 focus:border-[#001C44]"
                           />
                         </div>
                         <div className="sm:col-span-2">
@@ -1275,7 +1280,7 @@ export default function PreparationTaskDetailModal({
                             {loadingFaSuggestions && <span className="text-xs text-gray-400">Đang tải...</span>}
                           </div>
                           <select
-                            className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
+                            className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-900 focus:border-[#001C44]"
                             value={faCategoryId ?? ''}
                             onChange={(e) => {
                               const v = Number(e.target.value);
@@ -1305,7 +1310,7 @@ export default function PreparationTaskDetailModal({
                           type="button"
                           onClick={submitFundAdvanceRequest}
                           disabled={submittingFaRequest}
-                          className="px-5 py-2 bg-[#001C44] text-white rounded-lg text-sm font-semibold hover:bg-[#002A66] disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="px-5 py-2 bg-primary-900 text-white rounded-lg text-sm font-semibold hover:bg-[#002A66] disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {submittingFaRequest ? 'Đang gửi...' : 'Tạo yêu cầu'}
                         </button>
@@ -1317,7 +1322,7 @@ export default function PreparationTaskDetailModal({
                     <div className="bg-gray-50 px-4 py-3 flex items-center justify-between gap-3">
                       <div className="text-sm font-semibold text-gray-700">Lịch sử tạm ứng</div>
                       <select
-                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-900 focus:border-[#001C44]"
                         value={fundAdvanceFilter}
                         onChange={(e) => setFundAdvanceFilter(e.target.value as any)}
                       >
@@ -1353,7 +1358,7 @@ export default function PreparationTaskDetailModal({
                                   <td className="px-4 py-3 text-sm text-gray-700">{x.studentName || `#${x.studentId}`}</td>
                                   <td className="px-4 py-3 text-sm text-gray-700">{x.categoryName}</td>
                                   <td className="px-4 py-3 text-sm font-semibold text-gray-900">{formatCurrency(x.amount)}</td>
-                                  <td className="px-4 py-3 text-sm font-semibold text-[#001C44]">{formatCurrency(x.remainingAmount)}</td>
+                                  <td className="px-4 py-3 text-sm font-semibold text-primary-900">{formatCurrency(x.remainingAmount)}</td>
                                   <td className="px-4 py-3 text-sm">
                                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${getFundAdvanceStatusBadgeClass(x.status)}`}>
                                       {getFundAdvanceStatusLabel(x.status)}

@@ -1,17 +1,81 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import {
+    ArrowLeft,
+    WarningCircle,
+    CalendarBlank,
+    Clock,
+    ClipboardText,
+    Medal,
+    Users,
+    Star,
+    Flag,
+    Ticket,
+    CheckCircle,
+    Hourglass,
+    XCircle,
+} from '@phosphor-icons/react';
 import { seriesAPI } from '../services/seriesAPI';
 import { registrationAPI } from '../services/registrationAPI';
 import { SeriesResponse, StudentSeriesProgress, SeriesSlotInfo } from '../types/series';
 import { ActivityResponse } from '../types/activity';
-import { LoadingSpinner } from '../components/common';
 import { SeriesProgress, MilestoneDisplay, SeriesProgressBanner } from '../components/series';
 import { SeriesActivityList } from '../components/series';
 import StudentLayout from '../components/layout/StudentLayout';
 import { toast } from 'react-toastify';
-import { ScoreType } from '../types/activity';
 import { RegistrationStatus } from '../types/registration';
 import { computeSeriesSlots } from '../utils/seriesSlots';
+import { getScoreTypeLabel } from '../types/score';
+import { getPresetDisplayName, getCodeLabel, localizeVi } from '../utils/vietnameseLabels';
+
+const btnPrimary =
+    'inline-flex items-center justify-center rounded-xl bg-primary-900 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-primary-800 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900/30 disabled:opacity-50 disabled:cursor-not-allowed';
+const btnAccent =
+    'inline-flex items-center justify-center rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-primary-900 transition-all hover:bg-accent/90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 disabled:opacity-50 disabled:cursor-not-allowed';
+const btnDanger =
+    'inline-flex items-center justify-center rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-red-700 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed';
+const btnWaitlist =
+    'inline-flex items-center justify-center rounded-xl bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-800 ring-1 ring-amber-200 transition-all hover:bg-amber-100 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/30 disabled:opacity-50 disabled:cursor-not-allowed';
+
+const formatDateTime = (date: string) =>
+    new Date(date).toLocaleString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+
+const StudentSeriesDetailSkeleton: React.FC = () => (
+    <div className="mx-auto max-w-6xl space-y-6 animate-pulse">
+        <div className="h-36 rounded-2xl bg-gray-200/80" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+                <div className="h-64 rounded-2xl bg-gray-200/80" />
+                <div className="h-80 rounded-2xl bg-gray-200/80" />
+            </div>
+            <div className="h-[520px] rounded-2xl bg-gray-200/80" />
+        </div>
+    </div>
+);
+
+const InfoTile: React.FC<{
+    icon: React.ReactNode;
+    label: string;
+    value: React.ReactNode;
+}> = ({ icon, label, value }) => (
+    <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-4">
+        <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-primary-900 shadow-sm ring-1 ring-gray-100">
+                {icon}
+            </div>
+            <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{label}</p>
+                <div className="mt-1 text-sm font-medium text-gray-900 leading-relaxed">{value}</div>
+            </div>
+        </div>
+    </div>
+);
 
 const StudentSeriesDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -24,12 +88,11 @@ const StudentSeriesDetail: React.FC = () => {
     const [isRegistered, setIsRegistered] = useState(false);
     const [canCancelSeries, setCanCancelSeries] = useState(false);
     const [cancelReason, setCancelReason] = useState<string | null>(null);
-    // P7-10 (Q5): detect WAITLIST qua per-activity status của 1 activity con.
     const [isWaitlist, setIsWaitlist] = useState(false);
-    // P7-7/P7-9 (Q4): FE client-side compute slot APPROVED-only.
     const [slotInfo, setSlotInfo] = useState<SeriesSlotInfo | null>(null);
     const [cancellingSeries, setCancellingSeries] = useState(false);
     const [waitlistingSeries, setWaitlistingSeries] = useState(false);
+    const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
     useEffect(() => {
         if (id) {
@@ -42,25 +105,29 @@ const StudentSeriesDetail: React.FC = () => {
 
         try {
             setLoading(true);
+            setError(null);
             const seriesId = parseInt(id);
 
-            // Load series info and activities in parallel
             const [seriesResponse, activitiesResponse] = await Promise.all([
                 seriesAPI.getSeriesById(seriesId),
-                seriesAPI.getSeriesActivities(seriesId)
+                seriesAPI.getSeriesActivities(seriesId),
             ]);
 
             if (seriesResponse.status && seriesResponse.data) {
                 setSeries(seriesResponse.data);
                 await loadRegistrationAndProgress(seriesResponse.data.id);
-                // Cần activities trước khi compute slot/waitlist → đảm bảo đã set.
-                const loadedActivities = activitiesResponse.status && activitiesResponse.data
-                    ? activitiesResponse.data
-                    : [];
+                const loadedActivities =
+                    activitiesResponse.status && activitiesResponse.data
+                        ? activitiesResponse.data
+                        : [];
                 const regResponse = await seriesAPI.getMySeriesRegistrationStatus(seriesResponse.data.id);
                 const registered = !!(regResponse.status && regResponse.data?.isRegistered);
-                // P7-7/9/10: compute slot + detect WAITLIST (FE client-side, Q4/Q5).
-                loadSeriesSlotsAndWaitlist(seriesResponse.data.id, loadedActivities, registered, seriesResponse.data.ticketQuantity);
+                loadSeriesSlotsAndWaitlist(
+                    seriesResponse.data.id,
+                    loadedActivities,
+                    registered,
+                    seriesResponse.data.ticketQuantity
+                );
             } else {
                 setError(seriesResponse.message || 'Không thể tải thông tin chuỗi sự kiện');
             }
@@ -83,10 +150,9 @@ const StudentSeriesDetail: React.FC = () => {
         try {
             const [registrationResponse, progressResponse] = await Promise.all([
                 seriesAPI.getMySeriesRegistrationStatus(seriesId),
-                seriesAPI.getMySeriesProgress(seriesId)
+                seriesAPI.getMySeriesProgress(seriesId),
             ]);
 
-            // Update registration flag based on new API
             if (registrationResponse.status && registrationResponse.data) {
                 setIsRegistered(registrationResponse.data.isRegistered);
                 setCanCancelSeries(registrationResponse.data.canCancel ?? false);
@@ -97,7 +163,6 @@ const StudentSeriesDetail: React.FC = () => {
                 setCancelReason(null);
             }
 
-            // Update progress info (may be undefined if chưa có)
             if (progressResponse.status && progressResponse.data) {
                 setProgress(progressResponse.data);
             } else {
@@ -110,14 +175,12 @@ const StudentSeriesDetail: React.FC = () => {
         }
     };
 
-    // P7-7/P7-9 (Q4): compute slot APPROVED-only client-side + WAITLIST detection (P7-10/Q5).
     const loadSeriesSlotsAndWaitlist = async (
         seriesId: number,
         children: ActivityResponse[],
         registered: boolean,
         ticketQuantity: number | null | undefined
     ) => {
-        // Slot compute — đếm distinct APPROVED từ /api/registrations/series/{id}.
         if (ticketQuantity != null) {
             try {
                 const seriesRegs = await registrationAPI.getSeriesRegistrations(seriesId);
@@ -130,7 +193,6 @@ const StudentSeriesDetail: React.FC = () => {
             setSlotInfo(computeSeriesSlots(null, []));
         }
 
-        // WAITLIST detection — chỉ khi đã đăng ký và có ít nhất 1 activity con.
         if (registered && children.length > 0) {
             try {
                 const childStatus = await registrationAPI.getActivityRegistrationStatus(children[0].id);
@@ -151,7 +213,7 @@ const StudentSeriesDetail: React.FC = () => {
         try {
             const response = await seriesAPI.registerForSeries(series.id);
             if (response.status) {
-                toast.success(response.message || 'Đăng ký thành công!');
+                toast.success(response.message || 'Đăng ký thành công');
                 await loadRegistrationAndProgress(series.id);
                 const regResponse = await seriesAPI.getMySeriesRegistrationStatus(series.id);
                 const registered = !!(regResponse.status && regResponse.data?.isRegistered);
@@ -159,43 +221,42 @@ const StudentSeriesDetail: React.FC = () => {
             } else {
                 toast.error(response.message || 'Đăng ký thất bại');
             }
-        } catch (err: any) {
-            toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi đăng ký');
+        } catch (err: unknown) {
+            const msg =
+                (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+                'Có lỗi xảy ra khi đăng ký';
+            toast.error(msg);
             console.error('Error registering for series:', err);
         }
     };
 
-    // P7-6: huỷ đăng ký series — confirm dialog + refresh state.
     const handleCancelSeriesRegistration = async () => {
         if (!series) return;
-        const confirmed = window.confirm(
-            'Bạn có chắc muốn huỷ đăng ký chuỗi sự kiện này?\n\n' +
-            '⚠️ Tất cả đăng ký sự kiện con cũng sẽ bị huỷ.'
-        );
-        if (!confirmed) return;
 
         setCancellingSeries(true);
         try {
             const response = await seriesAPI.cancelSeriesRegistration(series.id);
             if (response.status) {
                 toast.success(response.message || 'Đã huỷ đăng ký chuỗi sự kiện');
+                setShowCancelConfirm(false);
                 await loadRegistrationAndProgress(series.id);
                 const regResponse = await seriesAPI.getMySeriesRegistrationStatus(series.id);
                 const registered = !!(regResponse.status && regResponse.data?.isRegistered);
                 loadSeriesSlotsAndWaitlist(series.id, activities, registered, series.ticketQuantity);
             } else {
-                // BE trả message (isImportant / mandatory / ATTENDED...).
                 toast.error(response.message || 'Không thể huỷ đăng ký chuỗi sự kiện');
             }
-        } catch (err: any) {
-            toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi huỷ đăng ký');
+        } catch (err: unknown) {
+            const msg =
+                (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+                'Có lỗi xảy ra khi huỷ đăng ký';
+            toast.error(msg);
             console.error('Error cancelling series registration:', err);
         } finally {
             setCancellingSeries(false);
         }
     };
 
-    // P7-7: đăng ký chờ (waitlist) khi series đã full.
     const handleWaitlistSeries = async () => {
         if (!series) return;
         setWaitlistingSeries(true);
@@ -210,8 +271,11 @@ const StudentSeriesDetail: React.FC = () => {
             } else {
                 toast.error(response.message || 'Không thể đăng ký danh sách chờ');
             }
-        } catch (err: any) {
-            toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi đăng ký danh sách chờ');
+        } catch (err: unknown) {
+            const msg =
+                (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+                'Có lỗi xảy ra khi đăng ký danh sách chờ';
+            toast.error(msg);
             console.error('Error waitlisting series:', err);
         } finally {
             setWaitlistingSeries(false);
@@ -233,9 +297,7 @@ const StudentSeriesDetail: React.FC = () => {
     if (loading) {
         return (
             <StudentLayout>
-                <div className="flex items-center justify-center min-h-[60vh]">
-                    <LoadingSpinner />
-                </div>
+                <StudentSeriesDetailSkeleton />
             </StudentLayout>
         );
     }
@@ -243,15 +305,23 @@ const StudentSeriesDetail: React.FC = () => {
     if (error || !series) {
         return (
             <StudentLayout>
-                <div className="flex items-center justify-center min-h-[60vh]">
-                    <div className="text-center">
-                        <div className="text-red-600 text-6xl mb-4">⚠️</div>
-                        <h2 className="text-2xl font-bold text-[#001C44] mb-2">Có lỗi xảy ra</h2>
-                        <p className="text-gray-600 mb-6">{error || 'Không tìm thấy chuỗi sự kiện'}</p>
+                <div className="mx-auto max-w-6xl flex items-center justify-center min-h-[50vh]">
+                    <div className="text-center max-w-md px-6">
+                        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
+                            <WarningCircle size={28} weight="duotone" />
+                        </div>
+                        <h2 className="text-xl font-semibold tracking-tight text-primary-900 mb-2">
+                            Không tải được dữ liệu
+                        </h2>
+                        <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+                            {error || 'Không tìm thấy chuỗi sự kiện'}
+                        </p>
                         <button
+                            type="button"
                             onClick={() => navigate('/student/series')}
-                            className="btn-primary px-6 py-3 rounded-lg font-medium"
+                            className={`${btnPrimary} gap-2 px-5`}
                         >
+                            <ArrowLeft size={16} weight="bold" />
                             Quay lại danh sách
                         </button>
                     </div>
@@ -260,221 +330,272 @@ const StudentSeriesDetail: React.FC = () => {
         );
     }
 
-    const getScoreTypeLabel = (type: ScoreType) => {
-        const labels: Record<ScoreType, string> = {
-            [ScoreType.REN_LUYEN]: 'Rèn luyện',
-            [ScoreType.CONG_TAC_XA_HOI]: 'Công tác xã hội',
-            [ScoreType.CHUYEN_DE]: 'Chuyên đề'
-        };
-        return labels[type] || type;
-    };
+    const displayName = localizeVi(series.name) || series.name;
+    const displayDescription = series.description ? localizeVi(series.description) : null;
+    const eventCount = activities.length || series.totalActivities || 0;
 
     return (
         <StudentLayout>
-            <div className="space-y-6">
-                {/* Header */}
-                <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl p-6 text-white mb-6">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-3xl font-bold mb-2">{series.name}</h1>
-                            <p className="text-gray-200">{series.description}</p>
-                        </div>
+            <div className="mx-auto max-w-6xl space-y-6 pb-12">
+                <header className="relative overflow-hidden rounded-2xl border border-primary-900/10 bg-primary-900 px-6 py-7 sm:px-8 text-white shadow-premium">
+                    <div
+                        className="pointer-events-none absolute inset-0 opacity-[0.12]"
+                        style={{
+                            backgroundImage:
+                                'radial-gradient(ellipse at 0% 0%, #FFD66D 0%, transparent 55%), radial-gradient(ellipse at 100% 100%, #4b88b6 0%, transparent 50%)',
+                        }}
+                    />
+                    <div className="relative space-y-5">
                         <button
+                            type="button"
                             onClick={() => navigate('/student/series')}
-                            className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-colors"
+                            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-100/90 transition-colors hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 rounded-lg px-1 -ml-1"
                         >
-                            ← Quay lại
+                            <ArrowLeft size={16} weight="bold" />
+                            Danh sách chuỗi sự kiện
                         </button>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="inline-flex items-center gap-1 rounded-lg bg-white/10 px-2.5 py-1 text-xs font-semibold text-primary-100 ring-1 ring-white/15">
+                                <Medal size={14} weight="duotone" />
+                                {getScoreTypeLabel(series.scoreType)}
+                            </span>
+                            <span className="inline-flex items-center gap-1 rounded-lg bg-white/10 px-2.5 py-1 text-xs font-semibold text-primary-100 ring-1 ring-white/15">
+                                {series.requiresApproval ? 'Cần duyệt đăng ký' : 'Tự duyệt đăng ký'}
+                            </span>
+                            {isRegistered && (
+                                <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-400/20 px-2.5 py-1 text-xs font-semibold text-emerald-100 ring-1 ring-emerald-300/30">
+                                    <CheckCircle size={14} weight="fill" />
+                                    {isWaitlist ? 'Danh sách chờ' : 'Đã đăng ký'}
+                                </span>
+                            )}
+                        </div>
+
+                        <div>
+                            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-balance">
+                                {displayName}
+                            </h1>
+                            {displayDescription && (
+                                <p className="mt-2 text-sm text-primary-100/90 max-w-3xl leading-relaxed">
+                                    {displayDescription}
+                                </p>
+                            )}
+                        </div>
                     </div>
-                </div>
+                </header>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Main Content */}
                     <div className="lg:col-span-2 space-y-6">
-                        {/* Progress Banner */}
-                        {isRegistered && progress && (
-                            <SeriesProgressBanner progress={progress} />
-                        )}
+                        {isRegistered && progress && <SeriesProgressBanner progress={progress} />}
 
-                        {/* Series Info */}
-                        <div className="card p-6">
-                            <h3 className="text-lg font-semibold text-[#001C44] mb-4">Thông tin chuỗi sự kiện</h3>
-                            <div className="space-y-3 text-sm">
-                                <div className="flex items-center">
-                                    <span className="w-4 h-4 mr-2">📋</span>
-                                    <span className="text-gray-600">
-                                        {activities.length || series.totalActivities || 0} sự kiện trong chuỗi
-                                    </span>
-                                </div>
-                                <div className="flex items-center">
-                                    <span className="w-4 h-4 mr-2">⭐</span>
-                                    <span className="text-gray-600">
-                                        Loại điểm: {getScoreTypeLabel(series.scoreType)}
-                                    </span>
-                                </div>
+                        <section className="rounded-2xl border border-gray-100 bg-white p-5 sm:p-6 shadow-premium">
+                            <h2 className="text-base font-semibold text-primary-900 mb-4">
+                                Thông tin chuỗi sự kiện
+                            </h2>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <InfoTile
+                                    icon={<CalendarBlank size={18} weight="duotone" />}
+                                    label="Số sự kiện"
+                                    value={`${eventCount} sự kiện trong chuỗi`}
+                                />
+                                <InfoTile
+                                    icon={<Medal size={18} weight="duotone" />}
+                                    label="Loại điểm"
+                                    value={getScoreTypeLabel(series.scoreType)}
+                                />
                                 {series.registrationStartDate && (
-                                    <div className="flex items-center">
-                                        <span className="w-4 h-4 mr-2">🚀</span>
-                                        <span className="text-gray-600">
-                                            Mở đăng ký:{' '}
-                                            {new Date(series.registrationStartDate).toLocaleString('vi-VN')}
-                                        </span>
-                                    </div>
+                                    <InfoTile
+                                        icon={<Clock size={18} weight="duotone" />}
+                                        label="Mở đăng ký"
+                                        value={formatDateTime(series.registrationStartDate)}
+                                    />
                                 )}
                                 {series.registrationDeadline && (
-                                    <div className="flex items-center">
-                                        <span className="w-4 h-4 mr-2">⏰</span>
-                                        <span className="text-gray-600">
-                                            Hạn đăng ký:{' '}
-                                            {new Date(series.registrationDeadline).toLocaleString('vi-VN')}
-                                        </span>
-                                    </div>
+                                    <InfoTile
+                                        icon={<Clock size={18} weight="duotone" />}
+                                        label="Hạn đăng ký"
+                                        value={formatDateTime(series.registrationDeadline)}
+                                    />
                                 )}
-                                <div className="flex items-center">
-                                    <span className="w-4 h-4 mr-2">📝</span>
-                                    <span className="text-gray-600">
-                                        {series.requiresApproval ? 'Đăng ký cần duyệt' : 'Đăng ký tự duyệt'}
-                                    </span>
-                                </div>
+                                <InfoTile
+                                    icon={<ClipboardText size={18} weight="duotone" />}
+                                    label="Hình thức duyệt"
+                                    value={series.requiresApproval ? 'Đăng ký cần duyệt' : 'Đăng ký tự duyệt'}
+                                />
                                 {series.audience && series.audience !== 'ALL_PARTICIPANTS' && (
-                                    <div className="flex items-center">
-                                        <span className="w-4 h-4 mr-2">🎯</span>
-                                        <span className="text-gray-600">
-                                            Đối tượng: {series.audience === 'DEPARTMENT_SCOPED' ? 'Theo khoa/ngành' : series.audience}
-                                        </span>
-                                    </div>
+                                    <InfoTile
+                                        icon={<Users size={18} weight="duotone" />}
+                                        label="Đối tượng"
+                                        value={getCodeLabel(series.audience, series.audience)}
+                                    />
                                 )}
-                                <div className="flex flex-wrap gap-2">
-                                    {series.isImportant && (
-                                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
-                                            ⭐ Quan trọng
-                                        </span>
-                                    )}
-                                    {series.mandatoryForFacultyStudents && (
-                                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-orange-100 text-orange-800 border border-orange-200">
-                                            ⚠️ Bắt buộc cho sinh viên khoa
-                                        </span>
-                                    )}
-                                    {series.presetCode && series.presetCode !== 'CUSTOM' && (
-                                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-100 text-indigo-700 border border-indigo-200">
-                                            Mẫu: {series.presetCode}
-                                        </span>
-                                    )}
-                                    {series.minimumRequirementEnabled && (
-                                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-amber-100 text-amber-700 border border-amber-200">
-                                            Yêu cầu tối thiểu: {series.minimumRequiredEvents} sự kiện
-                                        </span>
-                                    )}
-                                </div>
                             </div>
-                        </div>
 
-                        {/* Activities List */}
-                        <SeriesActivityList 
+                            <div className="mt-4 flex flex-wrap gap-2">
+                                {series.isImportant && (
+                                    <span className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-200/80">
+                                        <Star size={14} weight="fill" />
+                                        Quan trọng
+                                    </span>
+                                )}
+                                {series.mandatoryForFacultyStudents && (
+                                    <span className="inline-flex items-center gap-1 rounded-lg bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-800 ring-1 ring-orange-200/80">
+                                        <Flag size={14} weight="duotone" />
+                                        Bắt buộc cho sinh viên khoa
+                                    </span>
+                                )}
+                                {series.presetCode && series.presetCode !== 'CUSTOM' && (
+                                    <span className="inline-flex items-center gap-1 rounded-lg bg-primary-50 px-2.5 py-1 text-xs font-semibold text-primary-900 ring-1 ring-primary-100">
+                                        Mẫu: {getPresetDisplayName(series.presetCode, series.presetCode)}
+                                    </span>
+                                )}
+                                {series.minimumRequirementEnabled && (
+                                    <span className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-200/80">
+                                        Yêu cầu tối thiểu: {series.minimumRequiredEvents} sự kiện
+                                    </span>
+                                )}
+                            </div>
+                        </section>
+
+                        <SeriesActivityList
                             series={{
                                 ...series,
-                                activities: activities
-                            }} 
-                            canManage={false} 
+                                activities: activities,
+                            }}
+                            canManage={false}
                         />
                     </div>
 
-                    {/* Sidebar */}
-                    <div className="space-y-6">
-                        {/* Progress */}
+                    <aside className="space-y-6">
                         {isRegistered && progress && (
-                            <SeriesProgress series={series} progress={progress} />
+                            <div className="rounded-2xl border border-gray-100 bg-white shadow-premium overflow-hidden">
+                                <SeriesProgress series={series} progress={progress} />
+                            </div>
                         )}
 
-                        {/* Milestone Display */}
                         {isRegistered && progress && (
-                            <MilestoneDisplay
-                                milestonePoints={progress.milestonePoints || series.milestonePoints}
-                                scoreType={progress.scoreType || series.scoreType}
-                                completedCount={progress.completedCount}
-                                currentPoints={progress.pointsEarned}
-                                currentMilestone={progress.currentMilestone}
-                                nextMilestoneCount={progress.nextMilestoneCount}
-                                nextMilestonePoints={progress.nextMilestonePoints}
-                            />
+                            <div className="rounded-2xl border border-gray-100 bg-white p-5 sm:p-6 shadow-premium">
+                                <MilestoneDisplay
+                                    milestonePoints={progress.milestonePoints || series.milestonePoints}
+                                    scoreType={progress.scoreType || series.scoreType}
+                                    completedCount={progress.completedCount}
+                                    currentPoints={progress.pointsEarned}
+                                    currentMilestone={progress.currentMilestone}
+                                    nextMilestoneCount={progress.nextMilestoneCount}
+                                    nextMilestonePoints={progress.nextMilestonePoints}
+                                />
+                            </div>
                         )}
 
-                        {/* Registration */}
                         {!isRegistered && canRegister() && (
-                            <div className="card p-6">
-                                <h3 className="text-lg font-semibold text-[#001C44] mb-4">Đăng ký</h3>
-                                <p className="text-sm text-gray-600 mb-4">
-                                    Đăng ký để tham gia tất cả các sự kiện trong chuỗi này và nhận điểm milestone
+                            <div className="rounded-2xl border border-gray-100 bg-white p-5 sm:p-6 shadow-premium">
+                                <h3 className="text-base font-semibold text-primary-900 mb-2">Đăng ký</h3>
+                                <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+                                    Đăng ký để tham gia tất cả các sự kiện trong chuỗi và nhận điểm milestone.
                                 </p>
                                 {slotInfo && slotInfo.ticketQuantity !== null && (
-                                    <div className="mb-4 text-sm">
+                                    <div className="mb-4">
                                         {slotInfo.isFull ? (
-                                            <span className="inline-flex items-center px-3 py-1.5 rounded-md bg-red-50 text-red-700 border border-red-200 font-medium">
-                                                ⚠️ Đã đầy ({slotInfo.approvedCount}/{slotInfo.ticketQuantity})
+                                            <span className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-sm font-semibold text-red-700 ring-1 ring-red-200/80 tabular-nums">
+                                                <Ticket size={16} weight="duotone" />
+                                                Đã đầy ({slotInfo.approvedCount}/{slotInfo.ticketQuantity})
                                             </span>
                                         ) : (
-                                            <span className="inline-flex items-center px-3 py-1.5 rounded-md bg-green-50 text-green-700 border border-green-200 font-medium">
+                                            <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-800 ring-1 ring-emerald-200/80 tabular-nums">
+                                                <Ticket size={16} weight="duotone" />
                                                 Còn {slotInfo.remainingSlots} slot / {slotInfo.ticketQuantity}
                                             </span>
                                         )}
                                     </div>
                                 )}
                                 <button
+                                    type="button"
                                     onClick={handleRegister}
                                     disabled={slotInfo?.isFull === true}
-                                    className="w-full btn-yellow px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className={`${btnAccent} w-full`}
                                 >
                                     Đăng ký chuỗi sự kiện
                                 </button>
-                                {/* P7-7: nút "Đăng ký chờ" khi còn slot nhưng đã full. */}
                                 {slotInfo?.isFull === true && (
                                     <button
+                                        type="button"
                                         onClick={handleWaitlistSeries}
                                         disabled={waitlistingSeries}
-                                        className="w-full mt-2 bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-300 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                                        className={`${btnWaitlist} w-full mt-2`}
                                     >
-                                        {waitlistingSeries ? 'Đang xử lý...' : 'Đăng ký danh sách chờ'}
+                                        {waitlistingSeries ? 'Đang xử lý…' : 'Đăng ký danh sách chờ'}
                                     </button>
                                 )}
                             </div>
                         )}
 
                         {isRegistered && (
-                            <div className="card p-6 space-y-4">
+                            <div className="rounded-2xl border border-gray-100 bg-white p-5 sm:p-6 shadow-premium space-y-4">
                                 <div className="text-center">
                                     {isWaitlist ? (
-                                        <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-amber-100 text-amber-800 border border-amber-200">
-                                            ⏳ Đang chờ (danh sách chờ)
+                                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-800 ring-1 ring-amber-200/80">
+                                            <Hourglass size={16} weight="duotone" />
+                                            Đang chờ (danh sách chờ)
                                         </span>
                                     ) : (
-                                        <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-green-100 text-green-800 border border-green-200">
-                                            ✅ Đã đăng ký
+                                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-800 ring-1 ring-emerald-200/80">
+                                            <CheckCircle size={16} weight="fill" />
+                                            Đã đăng ký
                                         </span>
                                     )}
                                     {activities.length === 0 && (
-                                        <p className="mt-2 text-xs text-gray-500">
+                                        <p className="mt-2 text-xs text-gray-500 leading-relaxed">
                                             Chưa có sự kiện con trong chuỗi — trạng thái chờ chưa xác định.
                                         </p>
                                     )}
                                 </div>
-                                {/* P7-6: nút huỷ đăng ký series — chỉ hiện khi BE cho phép. */}
-                                {canCancelSeries && (
+
+                                {canCancelSeries && !showCancelConfirm && (
                                     <button
-                                        onClick={handleCancelSeriesRegistration}
-                                        disabled={cancellingSeries}
-                                        className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        type="button"
+                                        onClick={() => setShowCancelConfirm(true)}
+                                        className={`${btnDanger} w-full`}
                                     >
-                                        {cancellingSeries ? 'Đang huỷ...' : 'Huỷ đăng ký chuỗi sự kiện'}
+                                        Huỷ đăng ký chuỗi sự kiện
                                     </button>
                                 )}
+
+                                {canCancelSeries && showCancelConfirm && (
+                                    <div className="rounded-xl border border-red-100 bg-red-50/60 p-4 space-y-3">
+                                        <p className="text-sm text-red-800 leading-relaxed">
+                                            Bạn có chắc muốn huỷ đăng ký chuỗi sự kiện này? Tất cả đăng ký sự kiện con
+                                            cũng sẽ bị huỷ.
+                                        </p>
+                                        <div className="flex gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={handleCancelSeriesRegistration}
+                                                disabled={cancellingSeries}
+                                                className={`${btnDanger} flex-1`}
+                                            >
+                                                {cancellingSeries ? 'Đang huỷ…' : 'Xác nhận huỷ'}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowCancelConfirm(false)}
+                                                disabled={cancellingSeries}
+                                                className="flex-1 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 ring-1 ring-gray-200 transition-all hover:bg-gray-50 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300/50"
+                                            >
+                                                Không
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {!canCancelSeries && cancelReason && (
-                                    <div className="text-xs text-gray-500 text-center bg-gray-50 rounded-md px-3 py-2 border border-gray-200">
-                                        {cancelReason}
+                                    <div className="flex items-start gap-2 rounded-xl bg-gray-50 px-3 py-2.5 text-xs text-gray-600 ring-1 ring-gray-100">
+                                        <XCircle size={16} className="shrink-0 text-gray-400 mt-0.5" />
+                                        <span className="leading-relaxed">{localizeVi(cancelReason)}</span>
                                     </div>
                                 )}
                             </div>
                         )}
-                    </div>
+                    </aside>
                 </div>
             </div>
         </StudentLayout>
@@ -482,4 +603,3 @@ const StudentSeriesDetail: React.FC = () => {
 };
 
 export default StudentSeriesDetail;
-

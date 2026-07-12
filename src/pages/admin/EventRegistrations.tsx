@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { ActivityRegistrationResponse, RegistrationStatus } from '../../types/registration';
 import { registrationAPI } from '../../services/registrationAPI';
 import { eventAPI } from '../../services/eventAPI';
 import { ActivityResponse } from '../../types/activity';
 import { RegistrationList } from '../../components/registration';
+import { downloadBlobResponse, getBlobErrorMessage } from '../../utils/downloadBlob';
 
 const EventRegistrations: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -12,6 +14,7 @@ const EventRegistrations: React.FC = () => {
     const [registrations, setRegistrations] = useState<ActivityRegistrationResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState<RegistrationStatus | 'ALL'>('ALL');
+    const [exporting, setExporting] = useState(false);
 
     useEffect(() => {
         if (id) {
@@ -48,6 +51,21 @@ const EventRegistrations: React.FC = () => {
         }
     };
 
+    const handleExportParticipation = async () => {
+        if (!id) return;
+        const activityId = parseInt(id, 10);
+        try {
+            setExporting(true);
+            const res = await registrationAPI.exportActivityParticipationExcel(activityId);
+            await downloadBlobResponse(res, `ds_tham_gia_${activityId}.xlsx`);
+            toast.success('Xuất danh sách tham gia thành công');
+        } catch (error) {
+            toast.error(await getBlobErrorMessage(error));
+        } finally {
+            setExporting(false);
+        }
+    };
+
     const filteredRegistrations = registrations.filter(reg =>
         statusFilter === 'ALL' || reg.status === statusFilter
     );
@@ -77,12 +95,22 @@ const EventRegistrations: React.FC = () => {
                                 {event ? event.name : 'Đang tải...'}
                             </p>
                         </div>
-                        <Link
-                            to="/dashboard"
-                            className="px-4 py-2 text-gray-600 hover:text-gray-900"
-                        >
-                            ← Quay lại Dashboard
-                        </Link>
+                        <div className="flex items-center gap-3">
+                            <button
+                                type="button"
+                                onClick={() => void handleExportParticipation()}
+                                disabled={exporting || !id}
+                                className="px-4 py-2 rounded-md text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+                            >
+                                {exporting ? 'Đang xuất...' : 'Xuất DS tham gia'}
+                            </button>
+                            <Link
+                                to="/dashboard"
+                                className="px-4 py-2 text-gray-600 hover:text-gray-900"
+                            >
+                                ← Quay lại Dashboard
+                            </Link>
+                        </div>
                     </div>
                 </div>
             </div>

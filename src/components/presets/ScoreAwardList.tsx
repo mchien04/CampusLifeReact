@@ -1,6 +1,7 @@
 import React from 'react';
 import { AppliedScoreAward } from '../../types/registration';
 import { ScoreType } from '../../types/activity';
+import { getCodeLabel, localizeVi } from '../../utils/vietnameseLabels';
 
 interface ScoreAwardListProps {
     awards: AppliedScoreAward[];
@@ -79,16 +80,16 @@ const ScoreAwardList: React.FC<ScoreAwardListProps> = ({
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                                 <span className={`text-sm font-medium px-2 py-0.5 rounded-full ${getScoreTypeBadgeClass(award.scoreType)}`}>
-                                    {award.scoreTypeLabel}
+                                    {localizeVi(award.scoreTypeLabel) || getCodeLabel(award.scoreType)}
                                 </span>
                                 {award.triggerType && (
                                     <span className="text-xs text-gray-500">
-                                        {award.triggerType}
+                                        {getCodeLabel(award.triggerType)}
                                     </span>
                                 )}
                             </div>
                             <p className={`text-sm font-semibold mt-1 ${isNegative ? 'text-red-600' : 'text-gray-900'}`}>
-                                {award.displayText}
+                                {localizeVi(award.displayText) || award.displayText}
                             </p>
                         </div>
                     </div>

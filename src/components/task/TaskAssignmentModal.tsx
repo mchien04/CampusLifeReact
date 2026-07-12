@@ -166,7 +166,12 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                                 📋 Phân công nhiệm vụ: {'title' in task ? task.title : task.name}
                             </h3>
                             <p className="text-sm text-gray-200 mt-1">
-                                Sự kiện: {'activity' in task ? task.activity.name : 'Unknown Activity'}
+                                Sự kiện:{' '}
+                                {'activity' in task
+                                    ? task.activity.name
+                                    : 'activityName' in task && task.activityName
+                                      ? task.activityName
+                                      : '—'}
                             </p>
                         </div>
                         <button

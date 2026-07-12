@@ -2,8 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { UserResponse, CreateUserRequest, UpdateUserRequest, Role } from '../../types/auth';
 import { Department } from '../../types/admin';
 import { userAPI, departmentAPI } from '../../services/adminAPI';
+import { 
+    MagnifyingGlass, 
+    PencilSimple, 
+    Trash, 
+    Plus, 
+    CheckCircle, 
+    XCircle, 
+    UserFocus,
+    ShieldCheck,
+    X
+} from '@phosphor-icons/react';
 
-const UserManagement: React.FC = () => {
+interface UserManagementProps {
+    isNested?: boolean;
+}
+
+const UserManagement: React.FC<UserManagementProps> = ({ isNested = false }) => {
     const [users, setUsers] = useState<UserResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -198,15 +213,17 @@ const UserManagement: React.FC = () => {
     if (error) {
         return (
             <div className="space-y-6">
-                <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white">
-                    <div className="flex items-center">
-                        <span className="mr-3 text-4xl">👥</span>
-                        <div>
-                            <h1 className="text-3xl font-bold mb-2">Quản lý tài khoản</h1>
-                            <p className="text-gray-200 text-lg">Quản lý tài khoản ADMIN và MANAGER trong hệ thống</p>
+                {!isNested && (
+                    <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white">
+                        <div className="flex items-center">
+                            <span className="mr-3 text-4xl">👥</span>
+                            <div>
+                                <h1 className="text-3xl font-bold mb-2">Quản lý tài khoản</h1>
+                                <p className="text-gray-200 text-lg">Quản lý tài khoản ADMIN và MANAGER trong hệ thống</p>
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
                 <div className="flex items-center justify-center min-h-[400px]">
                     <div className="text-center">
                         <div className="text-red-500 text-6xl mb-4">❌</div>
@@ -227,197 +244,214 @@ const UserManagement: React.FC = () => {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold mb-2 flex items-center">
-                            <span className="mr-3 text-4xl">👥</span>
-                            Quản lý tài khoản
-                        </h1>
-                        <p className="text-gray-200 text-lg">Quản lý tài khoản ADMIN và MANAGER trong hệ thống</p>
+            {!isNested && (
+                <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h1 className="text-3xl font-bold mb-2 flex items-center">
+                                <span className="mr-3 text-4xl">👥</span>
+                                Quản lý tài khoản
+                            </h1>
+                            <p className="text-gray-200 text-lg">Quản lý tài khoản ADMIN và MANAGER trong hệ thống</p>
+                        </div>
+                        <button
+                            onClick={() => {
+                                setEditingUser(null);
+                                setShowCreateModal(true);
+                            }}
+                            className="px-5 py-2.5 bg-[#FFD66D] text-[#001C44] rounded-lg hover:bg-[#FFC947] font-semibold shadow-lg hover:shadow-xl transition-all"
+                        >
+                            + Tạo tài khoản mới
+                        </button>
                     </div>
+                </div>
+            )}
+
+            {/* Action button when nested */}
+            {isNested && (
+                <div className="flex justify-end mb-6">
                     <button
                         onClick={() => {
                             setEditingUser(null);
                             setShowCreateModal(true);
                         }}
-                        className="px-5 py-2.5 bg-[#FFD66D] text-[#001C44] rounded-lg hover:bg-[#FFC947] font-semibold shadow-lg hover:shadow-xl transition-all"
+                        className="px-6 py-2.5 bg-[#001C44] text-white rounded-xl hover:bg-[#002A66] font-semibold shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2 active:scale-95"
                     >
-                        + Tạo tài khoản mới
+                        <Plus weight="bold" className="w-5 h-5" />
+                        Tạo tài khoản mới
                     </button>
                 </div>
-            </div>
+            )}
 
             <div>
                 {/* Filters */}
-                <div className="bg-white rounded-lg shadow-lg p-6 mb-6 border border-gray-100">
-                    <h3 className="text-lg font-semibold text-[#001C44] mb-4">Bộ lọc</h3>
-                    
-                    {/* Search */}
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Tìm kiếm
-                        </label>
-                        <input
-                            type="text"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            placeholder="Tìm kiếm theo username hoặc email..."
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
-                        />
-                    </div>
-
-                    {/* Role Filter */}
-                    <div className="mb-4">
-                        <h4 className="text-sm font-medium text-gray-700 mb-3">Vai trò:</h4>
-                        <div className="flex flex-wrap gap-2">
-                            <button
-                                onClick={() => setRoleFilter('ALL')}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${roleFilter === 'ALL'
-                                    ? 'bg-[#001C44] text-white shadow-md'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                    }`}
-                            >
-                                Tất cả ({users.length})
-                            </button>
-                            <button
-                                onClick={() => setRoleFilter('ADMIN')}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${roleFilter === 'ADMIN'
-                                    ? 'bg-[#001C44] text-white shadow-md'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                    }`}
-                            >
-                                ADMIN ({users.filter(u => u.role === Role.ADMIN).length})
-                            </button>
-                            <button
-                                onClick={() => setRoleFilter('MANAGER')}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${roleFilter === 'MANAGER'
-                                    ? 'bg-[#001C44] text-white shadow-md'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                    }`}
-                            >
-                                MANAGER ({users.filter(u => u.role === Role.MANAGER).length})
-                            </button>
+                <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+                    <div className="flex flex-col lg:flex-row lg:items-end gap-6">
+                        {/* Search */}
+                        <div className="flex-1">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Tìm kiếm
+                            </label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <MagnifyingGlass className="h-5 w-5 text-gray-400" />
+                                </div>
+                                <input
+                                    type="text"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    placeholder="Theo username hoặc email..."
+                                    className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#001C44]/20 focus:border-[#001C44] transition-all duration-300"
+                                />
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Status Filter */}
-                    <div>
-                        <h4 className="text-sm font-medium text-gray-700 mb-3">Trạng thái:</h4>
-                        <div className="flex flex-wrap gap-2">
-                            <button
-                                onClick={() => setStatusFilter('ALL')}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${statusFilter === 'ALL'
-                                    ? 'bg-[#001C44] text-white shadow-md'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                    }`}
-                            >
-                                Tất cả
-                            </button>
-                            <button
-                                onClick={() => setStatusFilter('ACTIVATED')}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${statusFilter === 'ACTIVATED'
-                                    ? 'bg-green-600 text-white shadow-md'
-                                    : 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200'
-                                    }`}
-                            >
-                                <span>✓</span>
-                                <span>Đã kích hoạt ({users.filter(u => u.isActivated).length})</span>
-                            </button>
-                            <button
-                                onClick={() => setStatusFilter('DEACTIVATED')}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${statusFilter === 'DEACTIVATED'
-                                    ? 'bg-red-600 text-white shadow-md'
-                                    : 'bg-red-50 text-red-700 hover:bg-red-100 border border-red-200'
-                                    }`}
-                            >
-                                <span>✗</span>
-                                <span>Chưa kích hoạt ({users.filter(u => !u.isActivated).length})</span>
-                            </button>
+                        {/* Role Filter */}
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">Vai trò</label>
+                            <div className="flex bg-gray-100/80 p-1 rounded-xl">
+                                {['ALL', 'ADMIN', 'MANAGER'].map((role) => (
+                                    <button
+                                        key={role}
+                                        onClick={() => setRoleFilter(role as any)}
+                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                                            roleFilter === role
+                                                ? 'bg-white text-[#001C44] shadow-sm'
+                                                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/50'
+                                        }`}
+                                    >
+                                        {role === 'ALL' ? 'Tất cả' : role}
+                                        <span className="ml-1.5 text-xs px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500">
+                                            {role === 'ALL' 
+                                                ? users.length 
+                                                : users.filter(u => u.role === role).length}
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Status Filter */}
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">Trạng thái</label>
+                            <div className="flex bg-gray-100/80 p-1 rounded-xl">
+                                {[
+                                    { id: 'ALL', label: 'Tất cả', icon: null },
+                                    { id: 'ACTIVATED', label: 'Hoạt động', icon: <CheckCircle className="w-4 h-4 text-green-500" weight="fill" /> },
+                                    { id: 'DEACTIVATED', label: 'Đã khóa', icon: <XCircle className="w-4 h-4 text-red-500" weight="fill" /> }
+                                ].map((status) => (
+                                    <button
+                                        key={status.id}
+                                        onClick={() => setStatusFilter(status.id as any)}
+                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                                            statusFilter === status.id
+                                                ? 'bg-white text-[#001C44] shadow-sm'
+                                                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/50'
+                                        }`}
+                                    >
+                                        {status.icon}
+                                        {status.label}
+                                        <span className="ml-1 text-xs text-gray-400">
+                                            ({status.id === 'ALL' 
+                                                ? users.length 
+                                                : users.filter(u => status.id === 'ACTIVATED' ? u.isActivated : !u.isActivated).length})
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Bulk Actions Bar */}
                 {selectedUsers.length > 0 && (
-                    <div className="bg-[#FFD66D] rounded-lg shadow-md p-4 mb-6 border-2 border-[#001C44]">
-                        <div className="flex items-center justify-between">
-                            <span className="text-[#001C44] font-semibold">
-                                Đã chọn {selectedUsers.length} tài khoản
-                            </span>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={handleBulkActivate}
-                                    className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
-                                >
-                                    Kích hoạt
-                                </button>
-                                <button
-                                    onClick={handleBulkDeactivate}
-                                    className="px-3 py-1.5 bg-orange-600 text-white rounded-lg text-sm font-medium hover:bg-orange-700 transition-colors"
-                                >
-                                    Vô hiệu hóa
-                                </button>
-                                <button
-                                    onClick={handleBulkDelete}
-                                    className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
-                                >
-                                    Xóa
-                                </button>
-                                <button
-                                    onClick={() => setSelectedUsers([])}
-                                    className="px-3 py-1.5 bg-gray-600 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
-                                >
-                                    Bỏ chọn
-                                </button>
+                    <div className="bg-[#001C44] rounded-2xl shadow-xl p-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in slide-in-from-bottom-2 fade-in duration-300">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-white/20 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">
+                                {selectedUsers.length}
                             </div>
+                            <span className="text-white/90 font-medium text-sm">
+                                tài khoản đang được chọn
+                            </span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                onClick={handleBulkActivate}
+                                className="px-4 py-2 bg-white/10 text-white rounded-xl text-sm font-medium hover:bg-white/20 active:scale-95 transition-all duration-200 flex items-center gap-2"
+                            >
+                                <CheckCircle weight="bold" /> Kích hoạt
+                            </button>
+                            <button
+                                onClick={handleBulkDeactivate}
+                                className="px-4 py-2 bg-white/10 text-white rounded-xl text-sm font-medium hover:bg-white/20 active:scale-95 transition-all duration-200 flex items-center gap-2"
+                            >
+                                <XCircle weight="bold" /> Khóa
+                            </button>
+                            <div className="w-px h-8 bg-white/10 mx-1 hidden sm:block"></div>
+                            <button
+                                onClick={handleBulkDelete}
+                                className="px-4 py-2 bg-red-500/20 text-red-100 rounded-xl text-sm font-medium hover:bg-red-500/40 active:scale-95 transition-all duration-200 flex items-center gap-2 border border-red-500/30"
+                            >
+                                <Trash weight="bold" /> Xóa
+                            </button>
+                            <button
+                                onClick={() => setSelectedUsers([])}
+                                className="px-4 py-2 text-white/60 hover:text-white text-sm font-medium transition-colors"
+                            >
+                                Bỏ chọn
+                            </button>
                         </div>
                     </div>
                 )}
 
                 {/* Users Table */}
-                <div className="bg-white shadow-lg rounded-lg overflow-hidden border border-gray-100">
+                <div className="bg-white shadow-sm rounded-2xl overflow-hidden border border-gray-100">
                     <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-[#001C44]">
+                        <table className="min-w-full divide-y divide-gray-100">
+                            <thead className="bg-gray-50/50">
                                 <tr>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                         <input
                                             type="checkbox"
                                             checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
                                             onChange={toggleSelectAll}
-                                            className="rounded border-gray-300 text-[#001C44] focus:ring-[#001C44]"
+                                            className="rounded border-gray-300 text-[#001C44] focus:ring-[#001C44] transition-colors"
                                         />
                                     </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                         Username
                                     </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                         Email
                                     </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                         Vai trò
                                     </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                         Trạng thái
                                     </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                         Lần đăng nhập cuối
                                     </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                         Ngày tạo
                                     </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                         Thao tác
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
+                            <tbody className="bg-white divide-y divide-gray-100">
                                 {filteredUsers.length === 0 ? (
                                     <tr>
-                                        <td colSpan={8} className="px-6 py-12 text-center">
-                                            <div className="text-gray-400 text-5xl mb-4">👤</div>
-                                            <p className="text-gray-600">Không tìm thấy tài khoản nào</p>
+                                        <td colSpan={8} className="px-12 py-20 text-center">
+                                            <div className="flex flex-col items-center justify-center">
+                                                <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                                                    <UserFocus className="w-10 h-10 text-gray-400" weight="light" />
+                                                </div>
+                                                <p className="text-gray-500 font-medium text-lg">Không tìm thấy tài khoản nào</p>
+                                                <p className="text-gray-400 text-sm mt-1">Vui lòng điều chỉnh bộ lọc hoặc thêm tài khoản mới.</p>
+                                            </div>
                                         </td>
                                     </tr>
                                 ) : (
@@ -464,21 +498,23 @@ const UserManagement: React.FC = () => {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                <div className="flex gap-2">
+                                                <div className="flex items-center gap-2">
                                                     <button
                                                         onClick={() => {
                                                             setEditingUser(user);
                                                             setShowCreateModal(true);
                                                         }}
-                                                        className="text-[#001C44] hover:text-[#002A66] font-medium"
+                                                        className="p-2 text-gray-400 hover:text-[#001C44] hover:bg-gray-100 rounded-lg transition-all"
+                                                        title="Sửa"
                                                     >
-                                                        Sửa
+                                                        <PencilSimple weight="bold" className="w-4 h-4" />
                                                     </button>
                                                     <button
                                                         onClick={() => setDeleteConfirm({ show: true, userId: user.id, username: user.username })}
-                                                        className="text-red-600 hover:text-red-800 font-medium"
+                                                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                                        title="Xóa"
                                                     >
-                                                        Xóa
+                                                        <Trash weight="bold" className="w-4 h-4" />
                                                     </button>
                                                 </div>
                                             </td>
@@ -509,26 +545,29 @@ const UserManagement: React.FC = () => {
 
             {/* Delete Confirmation Modal */}
             {deleteConfirm.show && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-                    <div className="relative bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Xác nhận xóa</h3>
-                        <p className="text-gray-600 mb-6">
-                            Bạn có chắc chắn muốn xóa tài khoản <strong>{deleteConfirm.username}</strong>?
+                <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center animate-in fade-in duration-200">
+                    <div className="relative bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 animate-in zoom-in-95 duration-200">
+                        <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mb-4">
+                            <Trash weight="bold" className="w-6 h-6 text-red-500" />
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">Xác nhận xóa tài khoản</h3>
+                        <p className="text-gray-600 mb-6 leading-relaxed">
+                            Bạn có chắc chắn muốn xóa tài khoản <strong className="text-gray-900">{deleteConfirm.username}</strong>?
                             <br />
-                            <span className="text-sm text-gray-500">(Xóa mềm: tài khoản sẽ không còn hiển thị trong danh sách)</span>
+                            <span className="text-sm text-gray-500 mt-2 block">Lưu ý: Đây là thao tác xóa mềm, tài khoản sẽ bị vô hiệu hóa và không còn hiển thị trong danh sách nhưng dữ liệu lịch sử vẫn được giữ lại.</span>
                         </p>
                         <div className="flex justify-end gap-3">
                             <button
                                 onClick={() => setDeleteConfirm({ show: false, userId: null, username: '' })}
-                                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                                className="px-5 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 active:scale-95 transition-all duration-200"
                             >
                                 Hủy
                             </button>
                             <button
                                 onClick={() => deleteConfirm.userId && handleDelete(deleteConfirm.userId)}
-                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                                className="px-5 py-2.5 bg-red-500 text-white font-medium rounded-xl hover:bg-red-600 active:scale-95 transition-all duration-200"
                             >
-                                Xóa
+                                Xóa tài khoản
                             </button>
                         </div>
                     </div>
@@ -629,20 +668,23 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ user, departments, onSubm
     };
 
     return (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-            <div className="relative bg-white rounded-lg shadow-xl p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-[#001C44]">
-                        {user ? 'Chỉnh sửa tài khoản' : 'Tạo tài khoản mới'}
-                    </h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center animate-in fade-in duration-200 p-4">
+            <div className="relative bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+                <div className="flex items-center justify-between mb-8">
+                    <div>
+                        <h3 className="text-2xl font-bold text-[#001C44]">
+                            {user ? 'Chỉnh sửa tài khoản' : 'Tạo tài khoản mới'}
+                        </h3>
+                        <p className="text-sm text-gray-500 mt-1">
+                            {user ? 'Cập nhật thông tin và phân quyền' : 'Điền thông tin bên dưới để cấp tài khoản'}
+                        </p>
+                    </div>
+                    <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all duration-200">
+                        <X weight="bold" className="w-5 h-5" />
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-5">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                             Username *
@@ -759,26 +801,27 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ user, departments, onSubm
                             name="isActivated"
                             checked={formData.isActivated ?? true}
                             onChange={handleChange}
-                            className="rounded border-gray-300 text-[#001C44] focus:ring-[#001C44]"
+                            className="w-4 h-4 rounded border-gray-300 text-[#001C44] focus:ring-[#001C44]"
                         />
                         <label className="ml-2 text-sm text-gray-700">
                             Tài khoản đã được kích hoạt
                         </label>
                     </div>
 
-                    <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                    <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-8">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                            className="px-5 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 active:scale-95 transition-all duration-200"
                         >
                             Hủy
                         </button>
                         <button
                             type="submit"
-                            className="px-4 py-2 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66] transition-colors"
+                            className="px-5 py-2.5 bg-[#001C44] text-white font-medium rounded-xl hover:bg-[#002A66] active:scale-95 transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2"
                         >
-                            {user ? 'Cập nhật' : 'Tạo mới'}
+                            <CheckCircle weight="bold" />
+                            {user ? 'Lưu thay đổi' : 'Tạo tài khoản'}
                         </button>
                     </div>
                 </form>

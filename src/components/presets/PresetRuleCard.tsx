@@ -3,18 +3,16 @@ import { PresetRuleDescriptor, FieldDefinition, InputType, VisibilityType } from
 import { ScoreRuleTrigger } from '../../types/activity';
 import MapInputField from './MapInputField';
 import MultiSelectField from './MultiSelectField';
+import {
+    getCodeLabel,
+    getFieldLabel,
+    getOptionLabel,
+    getRuleDescription,
+    getRuleLabel,
+} from '../../utils/vietnameseLabels';
 
-const triggerLabelMap: Record<string, string> = {
-    PARTICIPATION_COMPLETED: 'Hoàn thành tham gia',
-    NO_SHOW: 'Vắng mặt',
-    SUBMISSION_GRADED: 'Nộp bài được chấm',
-    MINIGAME_PASSED: 'Đạt minigame',
-    MINIGAME_EXHAUSTED_ATTEMPTS: 'Hết lượt minigame',
-    TASK_OVERDUE: 'Quá hạn nhiệm vụ',
-    SERIES_MILESTONE_REACHED: 'Đạt mốc chuỗi',
-};
-
-const getSuggestedCombinationLabel = (trigger: string): string => triggerLabelMap[trigger] || trigger;
+const getSuggestedCombinationLabel = (trigger: string): string =>
+    getCodeLabel(trigger, trigger);
 
 interface PresetRuleCardProps {
     rule: PresetRuleDescriptor;
@@ -42,18 +40,27 @@ const getInputTypeComponent = (
 
     const resolveOptions = (): Array<{ value: string | number; label: string }> => {
         if (field.options && field.options.length > 0) {
-            return field.options.map(opt => ({ value: opt, label: opt }));
+            return field.options.map(opt => ({
+                value: opt,
+                label: getOptionLabel(opt, opt),
+            }));
         }
         // Direct lookup
         if (externalOptions?.[field.fieldName]) {
-            return externalOptions[field.fieldName];
+            return externalOptions[field.fieldName].map((opt) => ({
+                ...opt,
+                label: getOptionLabel(opt.value, opt.label),
+            }));
         }
         // Per-rule fallback: strip known trigger prefixes to find base externalOptions key
         // e.g. "submissionDepartmentIds" → "departmentIds", "noShowExplicitSemesterId" → "explicitSemesterId"
         const baseKey = field.fieldName
             .replace(/^(submission|participation|noShow|taskOverdue|bonus|minigamePassed|minigameExhausted)/, '')
             .replace(/^./, c => c.toLowerCase());
-        return externalOptions?.[baseKey] || [];
+        return (externalOptions?.[baseKey] || []).map((opt) => ({
+            ...opt,
+            label: getOptionLabel(opt.value, opt.label),
+        }));
     };
 
     switch (field.inputType) {
@@ -69,7 +76,7 @@ const getInputTypeComponent = (
                         className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                     <label htmlFor={field.fieldName} className="ml-2 text-sm text-gray-700">
-                        {field.label}
+                        {getFieldLabel(field.fieldName, field.label)}
                     </label>
                 </div>
             );
@@ -77,7 +84,7 @@ const getInputTypeComponent = (
             return (
                 <div>
                     <label htmlFor={field.fieldName} className="block text-sm font-medium text-gray-700 mb-1">
-                        {field.label} {field.required && <span className="text-red-500">*</span>}
+                        {getFieldLabel(field.fieldName, field.label)} {field.required && <span className="text-red-500">*</span>}
                     </label>
                     <select
                         id={field.fieldName}
@@ -86,7 +93,7 @@ const getInputTypeComponent = (
                         onChange={(e) => onChange(e.target.value || null)}
                         className={baseClass}
                     >
-                        <option value="">-- Chọn --</option>
+                        <option value="">— Chọn —</option>
                         {resolveOptions().map(opt => (
                             <option key={String(opt.value)} value={String(opt.value)}>{opt.label}</option>
                         ))}
@@ -97,7 +104,7 @@ const getInputTypeComponent = (
             return (
                 <div>
                     <label htmlFor={field.fieldName} className="block text-sm font-medium text-gray-700 mb-1">
-                        {field.label} {field.required && <span className="text-red-500">*</span>}
+                        {getFieldLabel(field.fieldName, field.label)} {field.required && <span className="text-red-500">*</span>}
                     </label>
                     <input
                         id={field.fieldName}
@@ -117,14 +124,14 @@ const getInputTypeComponent = (
                             }
                         }}
                         className={baseClass}
-                        placeholder={`Nhập ${field.label.toLowerCase()}`}
+                        placeholder={`Nhập ${getFieldLabel(field.fieldName, field.label).toLowerCase()}`}
                     />
                 </div>
             );
         case 'MAP':
             return (
                 <MapInputField
-                    label={field.label}
+                    label={getFieldLabel(field.fieldName, field.label)}
                     value={(value as Record<string, number>) || {}}
                     onChange={(val) => onChange(val)}
                     required={field.required}
@@ -134,7 +141,7 @@ const getInputTypeComponent = (
         case 'MULTI_SELECT':
             return (
                 <MultiSelectField
-                    label={field.label}
+                    label={getFieldLabel(field.fieldName, field.label)}
                     options={resolveOptions()}
                     value={(value as (number | string)[]) || []}
                     onChange={(val) => onChange(val)}
@@ -146,7 +153,7 @@ const getInputTypeComponent = (
             return (
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {field.label}
+                        {getFieldLabel(field.fieldName, field.label)}
                     </label>
                     <input
                         type="text"
@@ -225,7 +232,9 @@ const PresetRuleCard: React.FC<PresetRuleCardProps> = ({
                             />
                         </button>
                         <div>
-                            <h4 className="text-sm font-semibold text-gray-900">{rule.label}</h4>
+                            <h4 className="text-sm font-semibold text-gray-900">
+                                {getRuleLabel(rule.ruleKey, rule.label)}
+                            </h4>
                             <span className={`text-xs px-2 py-0.5 rounded-full ${
                                 rule.required
                                     ? 'bg-red-100 text-red-700'
@@ -235,7 +244,9 @@ const PresetRuleCard: React.FC<PresetRuleCardProps> = ({
                             </span>
                         </div>
                     </div>
-                    <p className="mt-1 text-sm text-gray-500 ml-14">{rule.description}</p>
+                    <p className="mt-1 text-sm text-gray-500 ml-14">
+                        {getRuleDescription(rule.ruleKey, rule.description)}
+                    </p>
                     {rule.suggestedCombinations && rule.suggestedCombinations.length > 0 && (
                         <div className="mt-2 ml-14 flex flex-wrap items-center gap-1.5">
                             <span className="text-xs text-gray-400">Có thể kết hợp với:</span>

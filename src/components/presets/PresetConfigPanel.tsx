@@ -4,6 +4,12 @@ import { ActivityType, ActivityScoreRuleRequest } from '../../types/activity';
 import { ScoreType } from '../../types/activity';
 import PresetRuleCard from './PresetRuleCard';
 import PresetSelector from './PresetSelector';
+import {
+    getCodeLabel,
+    getPresetDisplayName,
+    localizeNotes,
+    localizeVi,
+} from '../../utils/vietnameseLabels';
 
 type PresetDefinition = ActivityPresetDefinition | SeriesPresetDefinition;
 type PreviewResponse = ActivityPresetPreviewResponse | SeriesPresetPreviewResponse;
@@ -104,10 +110,15 @@ const PresetConfigPanel: React.FC<PresetConfigPanelProps> = ({
     };
 
     return (
-        <div className="space-y-6 border-t pt-6">
-            <h3 className="text-lg font-semibold text-gray-900">
-                Cấu hình điểm tự động (Preset)
-            </h3>
+        <div className="space-y-5">
+            <div>
+                <h3 className="text-base font-semibold tracking-tight text-primary-900">
+                    Mẫu cấu hình điểm
+                </h3>
+                <p className="mt-1 text-sm text-gray-500 leading-relaxed">
+                    Chọn mẫu có sẵn để hệ thống sinh luật điểm, hoặc tùy chỉnh thủ công.
+                </p>
+            </div>
 
             <PresetSelector
                 presets={presets}
@@ -115,11 +126,11 @@ const PresetConfigPanel: React.FC<PresetConfigPanelProps> = ({
                 onChange={handlePresetChange}
                 disabled={lockPreset}
                 label={mode === 'series' ? 'Mẫu cấu hình chuỗi sự kiện' : 'Mẫu cấu hình sự kiện'}
-                placeholder="-- Tùy chỉnh (Không dùng mẫu) --"
+                placeholder="— Tùy chỉnh (không dùng mẫu) —"
             />
             {lockPreset && (
-                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
-                    Mẫu cấu hình đã khoá khi chỉnh sửa. Bạn vẫn có thể tuỳ chỉnh chi tiết bên dưới.
+                <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 leading-relaxed">
+                    Mẫu cấu hình đã khóa khi chỉnh sửa. Bạn vẫn có thể tùy chỉnh chi tiết bên dưới.
                 </p>
             )}
 
@@ -149,42 +160,52 @@ const PresetConfigPanel: React.FC<PresetConfigPanelProps> = ({
                         type="button"
                         onClick={onPreview}
                         disabled={previewLoading}
-                        className="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                        className="w-full rounded-xl bg-primary-900 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-primary-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900"
                     >
-                        {previewLoading ? 'Đang xem trước...' : 'Xem trước cấu hình rule'}
+                        {previewLoading ? 'Đang xem trước...' : 'Xem trước cấu hình luật điểm'}
                     </button>
 
                     {previewResponse && isActivityPreview(previewResponse) && (
-                        <div className="p-4 bg-green-50 border border-green-200 rounded-md space-y-3">
-                            <h4 className="text-sm font-semibold text-green-900">
-                                Xem trước: {previewResponse.presetCode}
+                        <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-4 space-y-3">
+                            <h4 className="text-sm font-semibold text-emerald-900">
+                                Xem trước: {getPresetDisplayName(previewResponse.presetCode)}
                             </h4>
                             {(() => {
                                 // P6.1: ưu tiên previewRows (display-ready), fallback scoreRules.
                                 const rows = previewResponse.previewRows;
                                 if (rows && rows.length > 0) {
                                     return (
-                                        <div className="overflow-x-auto">
+                                        <div className="overflow-x-auto rounded-lg border border-emerald-200/80">
                                             <table className="min-w-full text-xs text-left">
-                                                <thead className="text-gray-600 bg-green-100">
+                                                <thead className="text-emerald-800 bg-emerald-100/80">
                                                     <tr>
-                                                        <th className="px-2 py-1">Tình huống</th>
-                                                        <th className="px-2 py-1">Loại điểm</th>
-                                                        <th className="px-2 py-1 text-right">Điểm</th>
-                                                        <th className="px-2 py-1">Đối tượng</th>
-                                                        <th className="px-2 py-1">Học kỳ</th>
+                                                        <th className="px-2.5 py-2 font-semibold">Tình huống</th>
+                                                        <th className="px-2.5 py-2 font-semibold">Loại điểm</th>
+                                                        <th className="px-2.5 py-2 font-semibold text-right">Điểm</th>
+                                                        <th className="px-2.5 py-2 font-semibold">Đối tượng</th>
+                                                        <th className="px-2.5 py-2 font-semibold">Học kỳ</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {rows.map((row, idx) => (
-                                                        <tr key={idx} className="border-t border-green-200">
-                                                            <td className="px-2 py-1 text-green-800">{row.description}</td>
-                                                            <td className="px-2 py-1 text-green-700">{row.scoreType}</td>
-                                                            <td className={`px-2 py-1 text-right font-semibold ${row.points >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+                                                        <tr key={idx} className="border-t border-emerald-200/70">
+                                                            <td className="px-2.5 py-2 text-emerald-900">
+                                                                {localizeVi(row.description) ||
+                                                                    getCodeLabel(row.scenario) ||
+                                                                    getCodeLabel(row.triggerType)}
+                                                            </td>
+                                                            <td className="px-2.5 py-2 text-emerald-800">
+                                                                {getCodeLabel(row.scoreType, localizeVi(row.scoreType))}
+                                                            </td>
+                                                            <td className={`px-2.5 py-2 text-right font-semibold tabular-nums ${row.points >= 0 ? 'text-emerald-800' : 'text-rose-600'}`}>
                                                                 {row.points >= 0 ? `+${row.points}` : row.points}
                                                             </td>
-                                                            <td className="px-2 py-1 text-gray-600">{row.audience === 'ALL_PARTICIPANTS' ? 'Tất cả' : row.audience}</td>
-                                                            <td className="px-2 py-1 text-gray-600">{row.semester === 'ACTIVITY_SEMESTER' ? 'Theo sự kiện' : row.semester}</td>
+                                                            <td className="px-2.5 py-2 text-gray-600">
+                                                                {getCodeLabel(row.audience, localizeVi(row.audience))}
+                                                            </td>
+                                                            <td className="px-2.5 py-2 text-gray-600">
+                                                                {getCodeLabel(row.semester, localizeVi(row.semester))}
+                                                            </td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
@@ -197,27 +218,31 @@ const PresetConfigPanel: React.FC<PresetConfigPanelProps> = ({
                                     (r: ActivityScoreRuleRequest) => r.failPoints !== null && r.failPoints !== undefined
                                 );
                                 return (
-                                    <div className="overflow-x-auto">
+                                    <div className="overflow-x-auto rounded-lg border border-emerald-200/80">
                                         <table className="min-w-full text-xs text-left">
-                                            <thead className="text-gray-600 bg-green-100">
+                                            <thead className="text-emerald-800 bg-emerald-100/80">
                                                 <tr>
-                                                    <th className="px-2 py-1">Trigger</th>
-                                                    <th className="px-2 py-1">Loại điểm</th>
-                                                    <th className="px-2 py-1 text-right">Điểm</th>
+                                                    <th className="px-2.5 py-2 font-semibold">Kích hoạt</th>
+                                                    <th className="px-2.5 py-2 font-semibold">Loại điểm</th>
+                                                    <th className="px-2.5 py-2 font-semibold text-right">Điểm</th>
                                                     {hasAnyFailPoints && (
-                                                        <th className="px-2 py-1 text-right">Điểm trừ</th>
+                                                        <th className="px-2.5 py-2 font-semibold text-right">Điểm trừ</th>
                                                     )}
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {previewResponse.scoreRules.map((rule: ActivityScoreRuleRequest, idx: number) => (
-                                                    <tr key={idx} className="border-t border-green-200">
-                                                        <td className="px-2 py-1 text-green-800">{rule.triggerType}</td>
-                                                        <td className="px-2 py-1 text-green-700">{rule.scoreType}</td>
-                                                        <td className="px-2 py-1 text-right text-green-700 font-semibold">{rule.points}</td>
+                                                    <tr key={idx} className="border-t border-emerald-200/70">
+                                                        <td className="px-2.5 py-2 text-emerald-900">
+                                                            {getCodeLabel(rule.triggerType)}
+                                                        </td>
+                                                        <td className="px-2.5 py-2 text-emerald-800">
+                                                            {getCodeLabel(rule.scoreType)}
+                                                        </td>
+                                                        <td className="px-2.5 py-2 text-right text-emerald-800 font-semibold tabular-nums">{rule.points}</td>
                                                         {hasAnyFailPoints && (
-                                                            <td className="px-2 py-1 text-right text-red-600">
-                                                                {rule.failPoints != null ? rule.failPoints : '-'}
+                                                            <td className="px-2.5 py-2 text-right text-rose-600 tabular-nums">
+                                                                {rule.failPoints != null ? rule.failPoints : '—'}
                                                             </td>
                                                         )}
                                                     </tr>
@@ -228,8 +253,8 @@ const PresetConfigPanel: React.FC<PresetConfigPanelProps> = ({
                                 );
                             })()}
                             {previewResponse.notes.length > 0 && (
-                                <ul className="list-disc list-inside text-xs text-green-700">
-                                    {previewResponse.notes.map((note, idx) => (
+                                <ul className="list-disc list-inside text-xs text-emerald-800 space-y-0.5">
+                                    {localizeNotes(previewResponse.notes).map((note, idx) => (
                                         <li key={idx}>{note}</li>
                                     ))}
                                 </ul>
@@ -238,30 +263,30 @@ const PresetConfigPanel: React.FC<PresetConfigPanelProps> = ({
                     )}
 
                     {previewResponse && isSeriesPreview(previewResponse) && (
-                        <div className="p-4 bg-green-50 border border-green-200 rounded-md space-y-3">
-                            <h4 className="text-sm font-semibold text-green-900">
-                                Xem trước: {previewResponse.presetCode}
+                        <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-4 space-y-3">
+                            <h4 className="text-sm font-semibold text-emerald-900">
+                                Xem trước: {getPresetDisplayName(previewResponse.presetCode)}
                             </h4>
-                            <div className="text-sm text-green-800">
-                                <p>Loại điểm: {previewResponse.scoreType}</p>
+                            <div className="text-sm text-emerald-800 space-y-1">
+                                <p>Loại điểm: {getCodeLabel(previewResponse.scoreType)}</p>
                                 <p>Mốc điểm:</p>
-                                <div className="ml-4 space-y-1">
+                                <div className="ml-1 space-y-1">
                                     {Object.entries(previewResponse.milestonePoints).map(([count, points]) => (
-                                        <div key={count} className="flex items-center gap-2">
-                                            <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                                        <div key={count} className="flex items-center gap-2 tabular-nums">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                             <span>{count} sự kiện → {points} điểm</span>
                                         </div>
                                     ))}
                                 </div>
                                 {previewResponse.minimumRequirementEnabled && (
-                                    <p className="mt-2 text-orange-700">
+                                    <p className="mt-2 text-amber-800">
                                         Yêu cầu tối thiểu: {previewResponse.minimumRequiredEvents} sự kiện, phạt {previewResponse.minimumPenaltyPoints} điểm
                                     </p>
                                 )}
                             </div>
                             {previewResponse.notes.length > 0 && (
-                                <ul className="list-disc list-inside text-xs text-green-700">
-                                    {previewResponse.notes.map((note, idx) => (
+                                <ul className="list-disc list-inside text-xs text-emerald-800">
+                                    {localizeNotes(previewResponse.notes).map((note, idx) => (
                                         <li key={idx}>{note}</li>
                                     ))}
                                 </ul>

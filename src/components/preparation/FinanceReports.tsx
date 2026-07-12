@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { ChartPie, SpinnerGap, Wallet, CurrencyCircleDollar, TrendUp, Coins } from '@phosphor-icons/react';
 import { FinanceOverviewReportDto, CashFlowReportDto } from '../../types';
 
 type FinanceReportsProps = {
@@ -50,7 +51,12 @@ export default function FinanceReports({ loading, financeOverview, cashFlowRepor
     }, [financeOverview]);
 
     if (loading) {
-        return <div className="text-sm text-gray-500 mb-6">Đang tải biểu đồ báo cáo...</div>;
+        return (
+            <div className="flex items-center gap-2 text-sm text-gray-500 mb-6 py-4">
+                <SpinnerGap size={18} className="animate-spin text-primary-900/40" />
+                Đang tải biểu đồ báo cáo...
+            </div>
+        );
     }
 
     if (!hasData || !financeOverview || !cashFlowReport) {
@@ -60,7 +66,7 @@ export default function FinanceReports({ loading, financeOverview, cashFlowRepor
     const CustomTooltip = ({ active, payload, label }: any) => {
         if (active && payload && payload.length) {
             return (
-                <div className="bg-white p-3 border border-gray-200 shadow-lg rounded-lg text-sm">
+                <div className="rounded-xl border border-gray-100 bg-white p-3 text-sm shadow-premium">
                     <p className="font-semibold text-gray-900 mb-2">{payload[0]?.payload?.fullTitle || label}</p>
                     {payload.map((entry: any, index: number) => (
                         <p key={`item-${index}`} style={{ color: entry.color }}>
@@ -76,9 +82,9 @@ export default function FinanceReports({ loading, financeOverview, cashFlowRepor
     const PieTooltip = ({ active, payload }: any) => {
         if (active && payload && payload.length) {
             return (
-                <div className="bg-white p-2 border border-gray-200 shadow-lg rounded-lg text-sm">
+                <div className="rounded-xl border border-gray-100 bg-white p-2 text-sm shadow-premium">
                     <p className="font-semibold">{payload[0].name}</p>
-                    <p className="text-[#001C44]">{formatMoney(payload[0].value)}</p>
+                    <p className="text-primary-900 tabular-nums">{formatMoney(payload[0].value)}</p>
                 </div>
             );
         }
@@ -87,13 +93,18 @@ export default function FinanceReports({ loading, financeOverview, cashFlowRepor
 
     return (
         <div className="mb-6 space-y-6">
-            <h2 className="text-lg font-semibold text-[#001C44]">Báo cáo tài chính (Reports)</h2>
+            <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-900">
+                    <ChartPie size={22} weight="duotone" />
+                </div>
+                <h2 className="text-lg font-semibold tracking-tight text-primary-900">Báo cáo tài chính</h2>
+            </div>
             
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                {/* Wallet Distribution Chart */}
-                <div className="card">
-                    <div className="p-4 border-b border-gray-100">
-                        <h3 className="text-sm font-semibold text-gray-700">Phân bổ ngân sách theo ví (Wallets)</h3>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                <div className="rounded-2xl border border-gray-100 bg-white shadow-premium overflow-hidden">
+                    <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+                        <Wallet size={18} weight="duotone" className="text-primary-900" />
+                        <h3 className="text-sm font-semibold text-gray-700">Phân bổ ngân sách theo ví</h3>
                     </div>
                     <div className="p-4 h-[300px]">
                         {walletPieData.length > 0 ? (
@@ -123,15 +134,17 @@ export default function FinanceReports({ loading, financeOverview, cashFlowRepor
                                 </PieChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div className="flex bg-gray-50 items-center justify-center h-full text-sm text-gray-500 rounded-lg">Không có dữ liệu ví ngân sách</div>
+                            <div className="flex items-center justify-center h-full rounded-xl bg-gray-50/80 text-sm text-gray-500">
+                                Không có dữ liệu ví ngân sách
+                            </div>
                         )}
                     </div>
                 </div>
 
-                {/* Task Value Chart */}
-                <div className="card">
-                    <div className="p-4 border-b border-gray-100">
-                        <h3 className="text-sm font-semibold text-gray-700">Tình hình chi tiêu theo Task</h3>
+                <div className="rounded-2xl border border-gray-100 bg-white shadow-premium overflow-hidden">
+                    <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+                        <TrendUp size={18} weight="duotone" className="text-primary-900" />
+                        <h3 className="text-sm font-semibold text-gray-700">Tình hình chi tiêu theo nhiệm vụ</h3>
                     </div>
                     <div className="p-4 h-[300px]">
                         {taskRenderData.length > 0 ? (
@@ -140,7 +153,7 @@ export default function FinanceReports({ loading, financeOverview, cashFlowRepor
                                     data={taskRenderData}
                                     margin={{ top: 10, right: 30, left: 10, bottom: 20 }}
                                 >
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
                                     <XAxis 
                                         dataKey="name" 
                                         tick={{ fill: '#6B7280', fontSize: 12 }}
@@ -155,34 +168,47 @@ export default function FinanceReports({ loading, financeOverview, cashFlowRepor
                                     />
                                     <Tooltip content={<CustomTooltip />} cursor={{ fill: '#F3F4F6' }} />
                                     <Legend wrapperStyle={{ fontSize: '12px' }} />
-                                    <Bar dataKey="allocated" name="Được cấp (Allocated)" fill="#FFD66D" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                                    <Bar dataKey="spent" name="Đã duyệt (Spent)" fill="#001C44" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                                    <Bar dataKey="allocated" name="Được cấp" fill="#FFD66D" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                                    <Bar dataKey="spent" name="Đã duyệt" fill="#001C44" radius={[4, 4, 0, 0]} maxBarSize={40} />
                                 </BarChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div className="flex bg-gray-50 items-center justify-center h-full text-sm text-gray-500 rounded-lg">Không có task tài chính</div>
+                            <div className="flex items-center justify-center h-full rounded-xl bg-gray-50/80 text-sm text-gray-500">
+                                Không có nhiệm vụ tài chính
+                            </div>
                         )}
                     </div>
                 </div>
             </div>
             
-            {/* Key Metrics Summary */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                <div className="financial-stat-card border border-[#002A66]">
-                    <div className="text-xs text-[#FFD66D] font-medium uppercase mb-1">Tổng ngân sách</div>
-                    <div className="financial-stat-value text-white">{formatMoney(financeOverview.totalBudget)}</div>
+                <div className="rounded-2xl border border-primary-900/20 bg-primary-900 p-5 text-white shadow-premium">
+                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-accent/90 mb-2">
+                        <CurrencyCircleDollar size={16} weight="duotone" />
+                        Tổng ngân sách
+                    </div>
+                    <div className="text-xl font-bold tabular-nums">{formatMoney(financeOverview.totalBudget)}</div>
                 </div>
-                <div className="border border-green-200 bg-green-50 rounded-xl p-4">
-                    <div className="text-xs text-green-700 font-medium uppercase mb-1">Đã chi (Approve Spent)</div>
-                    <div className="text-xl font-bold text-green-900">{formatMoney(financeOverview.totalApprovedSpent)}</div>
+                <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50 p-5">
+                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-emerald-700 mb-2">
+                        <TrendUp size={16} weight="duotone" />
+                        Đã chi (duyệt)
+                    </div>
+                    <div className="text-xl font-bold text-emerald-900 tabular-nums">{formatMoney(financeOverview.totalApprovedSpent)}</div>
                 </div>
-                <div className="border border-orange-200 bg-orange-50 rounded-xl p-4">
-                    <div className="text-xs text-orange-700 font-medium uppercase mb-1">Đã cấp cho Tasks</div>
-                    <div className="text-xl font-bold text-orange-900">{formatMoney(financeOverview.totalAllocatedToTasks)}</div>
+                <div className="rounded-2xl border border-orange-200/80 bg-orange-50 p-5">
+                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-orange-700 mb-2">
+                        <Wallet size={16} weight="duotone" />
+                        Đã cấp cho nhiệm vụ
+                    </div>
+                    <div className="text-xl font-bold text-orange-900 tabular-nums">{formatMoney(financeOverview.totalAllocatedToTasks)}</div>
                 </div>
-                <div className="border border-blue-200 bg-blue-50 rounded-xl p-4">
-                    <div className="text-xs text-blue-700 font-medium uppercase mb-1">Tiền mặt trong ví</div>
-                    <div className="text-xl font-bold text-blue-900">{formatMoney(cashFlowReport.cashInsideWallet)}</div>
+                <div className="rounded-2xl border border-blue-200/80 bg-blue-50 p-5">
+                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-blue-700 mb-2">
+                        <Coins size={16} weight="duotone" />
+                        Tiền mặt trong ví
+                    </div>
+                    <div className="text-xl font-bold text-blue-900 tabular-nums">{formatMoney(cashFlowReport.cashInsideWallet)}</div>
                 </div>
             </div>
         </div>

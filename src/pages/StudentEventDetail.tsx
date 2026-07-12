@@ -27,6 +27,7 @@ import { MiniGame } from '../types/minigame';
 import { seriesAPI } from '../services/seriesAPI';
 import { StudentSeriesProgress } from '../types/series';
 import SeriesProgressBanner from '../components/series/SeriesProgressBanner';
+import { getPresetDisplayName } from '../utils/vietnameseLabels';
 
 const StudentEventDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -163,26 +164,7 @@ const StudentEventDetail: React.FC = () => {
         fetchDepartments();
     }, []);
 
-    const translatePreset = (code?: string | null) => {
-        if (!code) return 'Không có';
-        const maps: Record<string, string> = {
-            'EVENT_BASIC': 'Sự kiện cơ bản',
-            'EVENT_WITH_SUBMISSION': 'Sự kiện có nộp bài',
-            'ENTERPRISE_SEMINAR_BASIC': 'Chuyên đề doanh nghiệp cơ bản',
-            'ENTERPRISE_SEMINAR_WITH_BONUS': 'Chuyên đề doanh nghiệp (có thưởng)',
-            'MINIGAME_PASS_ONLY': 'Minigame (chỉ tính đạt)',
-            'SERIES_MILESTONE_BASIC': 'Chuỗi sự kiện cơ bản',
-            'ENTERPRISE_SERIES': 'Chuỗi chuyên đề doanh nghiệp',
-            'DEFAULT': 'Mặc định',
-            'NO_SUBMISSION': 'Không yêu cầu nộp bài',
-            'INTERNAL_ONLY': 'Nội bộ khoa',
-            'STRICT_ATTENDANCE': 'Điểm danh bắt buộc',
-            'CUSTOM': 'Tùy chỉnh',
-            'MINIGAME_DEFAULT': 'Minigame mặc định',
-            'SERIES_DEFAULT': 'Chuỗi sự kiện'
-        };
-        return maps[code] || code;
-    };
+    const translatePreset = (code?: string | null) => getPresetDisplayName(code);
 
     const getDepartmentNames = (ids?: number[]) => {
         if (!ids || ids.length === 0) return 'Chưa xác định';

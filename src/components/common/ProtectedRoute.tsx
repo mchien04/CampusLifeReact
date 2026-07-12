@@ -31,8 +31,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         return <Navigate to="/login" replace />;
     }
 
-    // If user is authenticated but accessing login/register pages, redirect to dashboard
-    if (isAuthenticated && (window.location.pathname === '/login' || window.location.pathname === '/register')) {
+    // If user is authenticated but accessing login page, redirect to dashboard
+    if (isAuthenticated && window.location.pathname === '/login') {
         return <Navigate to="/dashboard" replace />;
     }
 

@@ -4,7 +4,22 @@ import { useAuth } from '../../contexts/AuthContext';
 import { statisticsAPI } from '../../services/statisticsAPI';
 import { DashboardStatisticsResponse } from '../../types/statistics';
 import { LoadingSpinner } from '../common';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { motion } from 'framer-motion';
+import { 
+    Users, 
+    CalendarBlank, 
+    ListDashes, 
+    GameController, 
+    ChartBar, 
+    Trophy, 
+    Star, 
+    Info,
+    CheckCircle,
+    TrendUp,
+    User,
+    ArrowRight
+} from '@phosphor-icons/react';
 
 const AdminDashboard: React.FC = () => {
     const { username } = useAuth();
@@ -39,16 +54,33 @@ const AdminDashboard: React.FC = () => {
     };
 
     const stats = dashboardData ? [
-        { name: 'Tổng sinh viên', value: formatNumber(dashboardData.totalStudents), icon: '👥' },
-        { name: 'Sự kiện hoạt động', value: formatNumber(dashboardData.totalActivities), icon: '📅' },
-        { name: 'Chuỗi sự kiện', value: formatNumber(dashboardData.totalSeries), icon: '📋' },
-        { name: 'Mini Games', value: formatNumber(dashboardData.totalMiniGames), icon: '🎮' },
+        { name: 'Tổng sinh viên', value: formatNumber(dashboardData.totalStudents), icon: Users, color: 'text-[#001C44]', bg: 'bg-[#001C44]/5' },
+        { name: 'Sự kiện hoạt động', value: formatNumber(dashboardData.totalActivities), icon: CalendarBlank, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+        { name: 'Chuỗi sự kiện', value: formatNumber(dashboardData.totalSeries), icon: ListDashes, color: 'text-purple-600', bg: 'bg-purple-50' },
+        { name: 'Mini Games', value: formatNumber(dashboardData.totalMiniGames), icon: GameController, color: 'text-[#FFD66D]', bg: 'bg-[#FFD66D]/10' },
     ] : [
-        { name: 'Tổng sinh viên', value: '...', icon: '👥' },
-        { name: 'Sự kiện hoạt động', value: '...', icon: '📅' },
-        { name: 'Chuỗi sự kiện', value: '...', icon: '📋' },
-        { name: 'Mini Games', value: '...', icon: '🎮' },
+        { name: 'Tổng sinh viên', value: '...', icon: Users, color: 'text-gray-400', bg: 'bg-gray-50' },
+        { name: 'Sự kiện hoạt động', value: '...', icon: CalendarBlank, color: 'text-gray-400', bg: 'bg-gray-50' },
+        { name: 'Chuỗi sự kiện', value: '...', icon: ListDashes, color: 'text-gray-400', bg: 'bg-gray-50' },
+        { name: 'Mini Games', value: '...', icon: GameController, color: 'text-gray-400', bg: 'bg-gray-50' },
     ];
+
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: { staggerChildren: 0.1 }
+        }
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: {
+            opacity: 1,
+            y: 0,
+            transition: { type: "spring" as const, stiffness: 300, damping: 24 }
+        }
+    };
 
     if (loading) {
         return (
@@ -59,185 +91,161 @@ const AdminDashboard: React.FC = () => {
     }
 
     return (
-        <div className="space-y-6">
-            <div className="max-w-7xl mx-auto">
+        <motion.div 
+            className="space-y-6"
+            initial="hidden"
+            animate="visible"
+            variants={containerVariants}
+        >
+            <div className="max-w-7xl mx-auto space-y-8">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white mb-6">
-                    <div className="flex items-center justify-between">
+                <motion.div variants={itemVariants} className="relative overflow-hidden bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+                    {/* Subtle decorative background */}
+                    <div className="absolute top-0 right-0 -mt-16 -mr-16 w-64 h-64 bg-gradient-to-br from-[#001C44]/5 to-transparent rounded-full blur-3xl"></div>
+                    <div className="absolute bottom-0 left-0 -mb-16 -ml-16 w-48 h-48 bg-gradient-to-tr from-[#FFD66D]/10 to-transparent rounded-full blur-2xl"></div>
+                    
+                    <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
-                            <h1 className="text-3xl font-bold mb-2 flex items-center">
-                                <span className="mr-3 text-4xl">📊</span>
+                            <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-2 flex items-center gap-3">
+                                <ChartBar className="text-[#001C44]" weight="duotone" size={36} />
                                 Thống kê tổng quan
                             </h1>
-                            <p className="text-gray-200 text-lg">Xem tổng quan các số liệu thống kê của hệ thống</p>
+                            <p className="text-gray-500 text-lg">Xem tổng quan các số liệu thống kê của hệ thống</p>
                         </div>
-                        <div className="hidden md:flex items-center space-x-2">
-                            <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                            <span className="text-sm text-gray-200">Hệ thống hoạt động</span>
+                        <div className="flex items-center space-x-3 bg-green-50/50 border border-green-100 px-4 py-2 rounded-full">
+                            <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></div>
+                            <span className="text-sm font-medium text-green-700">Hệ thống hoạt động ổn định</span>
                         </div>
                     </div>
-                </div>
+                </motion.div>
 
                 {error && (
-                    <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg text-red-700 shadow-md">
-                        <div className="flex items-center">
-                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            {error}
-                        </div>
-                    </div>
+                    <motion.div variants={itemVariants} className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-700 flex items-center gap-3">
+                        <Info size={20} weight="bold" />
+                        {error}
+                    </motion.div>
                 )}
 
                 {/* Main Stats Cards */}
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-                    {stats.map((stat, index) => {
-                        // Sử dụng theme colors: xanh đậm và vàng, với các tone khác nhau
-                        const iconVariants = [
-                            'from-[#001C44] to-[#002A66]', // Xanh đậm chính
-                            'from-[#002A66] to-[#003A88]', // Xanh đậm nhạt hơn
-                            'from-[#001C44] to-[#002A66]', // Xanh đậm chính
-                            'from-[#FFD66D] to-[#FFC947]', // Vàng theme
-                        ];
-                        const iconBg = iconVariants[index % iconVariants.length];
-
-                        return (
-                            <div
-                                key={stat.name}
-                                className="bg-gray-50 rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl hover:bg-gray-100 transition-all duration-300 overflow-hidden group relative"
-                            >
-                                {/* Subtle gradient overlay on hover */}
-                                <div className="absolute inset-0 bg-gradient-to-br from-[#001C44] to-[#002A66] opacity-0 group-hover:opacity-3 transition-opacity duration-300"></div>
-
-                                <div className="flex items-center justify-between relative z-10">
-                                    <div className="flex-1">
-                                        <p className="text-sm font-medium text-gray-600 mb-2">{stat.name}</p>
-                                        <p className="text-3xl font-bold text-[#001C44] group-hover:text-[#002A66] transition-colors duration-300">
-                                            {stat.value}
-                                        </p>
-                                    </div>
-                                    <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${iconBg} flex items-center justify-center text-3xl shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all duration-300`}>
-                                        {stat.icon}
-                                    </div>
+                <motion.div variants={itemVariants} className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                    {stats.map((stat) => (
+                        <div
+                            key={stat.name}
+                            className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:-translate-y-1 hover:shadow-md transition-all duration-300 group"
+                        >
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-500 mb-1">{stat.name}</p>
+                                    <p className="text-3xl font-bold text-gray-900 tracking-tight">
+                                        {stat.value}
+                                    </p>
                                 </div>
-
-                                {/* Subtle decorative line */}
-                                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#001C44] to-[#002A66] transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
+                                <div className={`w-12 h-12 rounded-xl ${stat.bg} flex items-center justify-center`}>
+                                    <stat.icon className={`${stat.color} transition-transform group-hover:scale-110`} weight="duotone" size={24} />
+                                </div>
                             </div>
-                        );
-                    })}
-                </div>
-
+                        </div>
+                    ))}
+                </motion.div>
 
                 {/* Statistics Overview */}
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 mb-8">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                     {/* Monthly Statistics */}
-                    <div className="lg:col-span-2 bg-white shadow-lg rounded-xl p-6 border border-gray-100 hover:shadow-xl transition-all duration-300">
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-2xl font-bold text-[#001C44] flex items-center">
-                                <span className="mr-3 text-3xl">📊</span>
+                    <motion.div variants={itemVariants} className="lg:col-span-2 bg-white shadow-sm rounded-2xl p-6 md:p-8 border border-gray-100">
+                        <div className="flex items-center justify-between mb-8">
+                            <h3 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+                                <CalendarBlank className="text-[#001C44]" weight="bold" size={24} />
                                 Thống kê tháng này
                             </h3>
-                            <div className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                            <div className="text-xs font-medium text-[#001C44] bg-[#001C44]/5 px-3 py-1.5 rounded-full">
                                 {new Date().toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' })}
                             </div>
                         </div>
                         {dashboardData ? (
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="bg-gray-50 rounded-xl p-5 border-l-4 border-[#001C44] hover:shadow-lg hover:bg-gray-100 transition-all group">
-                                    <div className="flex items-center mb-3">
-                                        <div className="w-12 h-12 bg-gradient-to-br from-[#001C44] to-[#002A66] rounded-xl flex items-center justify-center mr-3 shadow-md group-hover:scale-105 transition-transform">
-                                            <span className="text-2xl text-white">📝</span>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                <div className="bg-slate-50/50 rounded-2xl p-6 border border-gray-100 hover:bg-slate-50 transition-colors">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center">
+                                            <ListDashes weight="bold" size={20} />
                                         </div>
-                                        <p className="text-sm font-semibold text-gray-700">Đăng ký mới</p>
+                                        <p className="text-sm font-semibold text-gray-600">Đăng ký mới</p>
                                     </div>
-                                    <p className="text-3xl font-bold text-[#001C44]">{formatNumber(dashboardData.monthlyRegistrations)}</p>
+                                    <p className="text-3xl font-bold text-gray-900 tracking-tight">{formatNumber(dashboardData.monthlyRegistrations)}</p>
                                 </div>
-                                <div className="bg-gray-50 rounded-xl p-5 border-l-4 border-[#002A66] hover:shadow-lg hover:bg-gray-100 transition-all group">
-                                    <div className="flex items-center mb-3">
-                                        <div className="w-12 h-12 bg-gradient-to-br from-[#002A66] to-[#003A88] rounded-xl flex items-center justify-center mr-3 shadow-md group-hover:scale-105 transition-transform">
-                                            <span className="text-2xl text-white">✅</span>
+                                <div className="bg-slate-50/50 rounded-2xl p-6 border border-gray-100 hover:bg-slate-50 transition-colors">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-10 h-10 bg-green-100 text-green-600 rounded-lg flex items-center justify-center">
+                                            <CheckCircle weight="bold" size={20} />
                                         </div>
-                                        <p className="text-sm font-semibold text-gray-700">Tham gia</p>
+                                        <p className="text-sm font-semibold text-gray-600">Tham gia</p>
                                     </div>
-                                    <p className="text-3xl font-bold text-[#002A66]">{formatNumber(dashboardData.monthlyParticipations)}</p>
+                                    <p className="text-3xl font-bold text-gray-900 tracking-tight">{formatNumber(dashboardData.monthlyParticipations)}</p>
                                 </div>
-                                <div className="bg-gray-50 rounded-xl p-5 border-l-4 border-[#FFD66D] hover:shadow-lg hover:bg-gray-100 transition-all group">
-                                    <div className="flex items-center mb-3">
-                                        <div className="w-12 h-12 bg-gradient-to-br from-[#FFD66D] to-[#FFC947] rounded-xl flex items-center justify-center mr-3 shadow-md group-hover:scale-105 transition-transform">
-                                            <span className="text-2xl text-[#001C44]">📈</span>
+                                <div className="bg-slate-50/50 rounded-2xl p-6 border border-gray-100 hover:bg-slate-50 transition-colors">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center">
+                                            <TrendUp weight="bold" size={20} />
                                         </div>
-                                        <p className="text-sm font-semibold text-gray-700">Tỷ lệ tham gia</p>
+                                        <p className="text-sm font-semibold text-gray-600">Tỷ lệ tham gia</p>
                                     </div>
-                                    <p className="text-3xl font-bold text-[#001C44]">{(dashboardData.averageParticipationRate * 100).toFixed(1)}%</p>
+                                    <p className="text-3xl font-bold text-gray-900 tracking-tight">{(dashboardData.averageParticipationRate * 100).toFixed(1)}%</p>
                                 </div>
                             </div>
                         ) : (
-                            <div className="text-center py-8 text-gray-500">
+                            <div className="text-center py-8">
                                 <LoadingSpinner />
                             </div>
                         )}
-                    </div>
+                    </motion.div>
 
                     {/* Quick Info */}
-                    <div className="bg-gradient-to-br from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white hover:shadow-xl transition-all duration-300">
-                        <h3 className="text-2xl font-bold mb-6 flex items-center">
-                            <span className="mr-3 text-3xl">ℹ️</span>
+                    <motion.div variants={itemVariants} className="bg-[#001C44] rounded-2xl shadow-sm p-8 text-white relative overflow-hidden">
+                        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-[#FFD66D]/10 rounded-full blur-2xl"></div>
+                        <h3 className="text-xl font-bold mb-8 tracking-tight flex items-center gap-2 relative z-10">
+                            <Info weight="fill" size={24} className="text-[#FFD66D]" />
                             Thông tin hệ thống
                         </h3>
-                        <div className="space-y-4">
-                            <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-4 border border-white border-opacity-20 hover:bg-opacity-20 transition-all">
+                        <div className="space-y-4 relative z-10">
+                            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-gray-200">Trạng thái</span>
-                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-500 text-white shadow-md">
-                                        <span className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></span>
-                                        Hoạt động
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-4 border border-white border-opacity-20 hover:bg-opacity-20 transition-all">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-gray-200">Người dùng</span>
-                                    <span className="text-sm font-bold text-[#FFD66D] flex items-center">
-                                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                        </svg>
+                                    <span className="text-sm text-gray-300">Người dùng</span>
+                                    <span className="text-sm font-semibold flex items-center gap-1.5 text-white">
+                                        <User size={16} weight="bold" className="text-[#FFD66D]" />
                                         {username || 'Admin'}
                                     </span>
                                 </div>
                             </div>
                             <Link
                                 to="/admin/statistics"
-                                className="block w-full mt-6 px-4 py-3 bg-[#FFD66D] text-[#001C44] rounded-xl hover:bg-[#FFC947] transition-all text-center font-bold shadow-lg hover:shadow-xl hover:scale-105 transform duration-300 flex items-center justify-center"
+                                className="mt-8 flex items-center justify-between w-full px-5 py-3.5 bg-white text-[#001C44] rounded-xl font-bold hover:bg-gray-50 transition-colors shadow-sm group"
                             >
-                                <span>Xem thống kê chi tiết</span>
-                                <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
+                                <span>Xem báo cáo chi tiết</span>
+                                <ArrowRight size={20} weight="bold" className="transition-transform group-hover:translate-x-1" />
                             </Link>
                         </div>
-                    </div>
+                    </motion.div>
                 </div>
 
                 {/* Top Activities and Students */}
                 {dashboardData && (dashboardData.topActivities.length > 0 || dashboardData.topStudents.length > 0) && (
-                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                    <motion.div variants={itemVariants} className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                         {/* Top Activities */}
                         {dashboardData.topActivities.length > 0 && (
-                            <div className="bg-white shadow-lg rounded-xl border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300">
-                                <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] px-6 py-5">
-                                    <h3 className="text-2xl font-bold text-white flex items-center">
-                                        <span className="mr-3 text-3xl">🏆</span>
-                                        Top hoạt động phổ biến
-                                    </h3>
-                                    <p className="text-sm text-gray-300 mt-1">5 hoạt động được đăng ký nhiều nhất</p>
+                            <div className="bg-white shadow-sm rounded-2xl border border-gray-100 overflow-hidden">
+                                <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+                                    <div>
+                                        <h3 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
+                                            <Trophy weight="duotone" size={24} className="text-[#FFD66D]" />
+                                            Top hoạt động
+                                        </h3>
+                                        <p className="text-sm text-gray-500 mt-1">Phổ biến nhất tháng này</p>
+                                    </div>
                                 </div>
                                 <div className="p-6">
-                                    {/* Chart */}
-                                    <div className="mb-6 bg-gray-50 rounded-lg p-4 h-80">
+                                    <div className="mb-6 h-72">
                                         <ResponsiveContainer width="100%" height="100%">
                                             <BarChart
-                                                data={dashboardData.topActivities.slice(0, 5).map((activity, index) => ({
+                                                data={dashboardData.topActivities.slice(0, 5).map((activity) => ({
                                                     name: activity.activityName.length > 15
                                                         ? activity.activityName.substring(0, 15) + '...'
                                                         : activity.activityName,
@@ -245,120 +253,42 @@ const AdminDashboard: React.FC = () => {
                                                     'Đăng ký': activity.registrationCount,
                                                     'Tham gia': activity.participationCount,
                                                 }))}
-                                                margin={{ top: 10, right: 20, left: 10, bottom: 70 }}
+                                                margin={{ top: 10, right: 10, left: -20, bottom: 20 }}
                                             >
-                                                <defs>
-                                                    <linearGradient id="colorDangKy" x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="0%" stopColor="#001C44" stopOpacity={1} />
-                                                        <stop offset="100%" stopColor="#002A66" stopOpacity={0.8} />
-                                                    </linearGradient>
-                                                    <linearGradient id="colorThamGia" x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="0%" stopColor="#FFD66D" stopOpacity={1} />
-                                                        <stop offset="100%" stopColor="#FFC947" stopOpacity={0.8} />
-                                                    </linearGradient>
-                                                </defs>
-                                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" strokeOpacity={0.5} vertical={false} />
-                                                <XAxis
-                                                    dataKey="name"
-                                                    angle={-45}
-                                                    textAnchor="end"
-                                                    height={80}
-                                                    tick={{ fontSize: 11, fill: '#6B7280' }}
-                                                    stroke="#9CA3AF"
-                                                    strokeWidth={0.5}
-                                                />
-                                                <YAxis
-                                                    tick={{ fontSize: 11, fill: '#6B7280' }}
-                                                    stroke="#9CA3AF"
-                                                    strokeWidth={0.5}
-                                                />
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                                                <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} stroke="#cbd5e1" axisLine={false} tickLine={false} />
+                                                <YAxis tick={{ fontSize: 11, fill: '#64748b' }} stroke="#cbd5e1" axisLine={false} tickLine={false} />
                                                 <Tooltip
-                                                    contentStyle={{
-                                                        backgroundColor: '#fff',
-                                                        border: '2px solid #001C44',
-                                                        borderRadius: '12px',
-                                                        padding: '12px 16px',
-                                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-                                                    }}
-                                                    cursor={{ fill: 'rgba(0, 28, 68, 0.05)' }}
-                                                    formatter={(value: number) => formatNumber(value)}
-                                                    labelFormatter={(label) => {
-                                                        const item = dashboardData.topActivities.find(a =>
-                                                            a.activityName.length > 15
-                                                                ? a.activityName.substring(0, 15) + '...' === label
-                                                                : a.activityName === label
-                                                        );
-                                                        return (
-                                                            <div style={{ fontWeight: 'bold', color: '#001C44', marginBottom: '4px' }}>
-                                                                {item?.activityName || label}
-                                                            </div>
-                                                        );
-                                                    }}
+                                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)' }}
+                                                    cursor={{ fill: '#f8fafc' }}
                                                 />
-                                                <Legend
-                                                    wrapperStyle={{ paddingTop: '20px' }}
-                                                    iconType="rect"
-                                                    formatter={(value) => (
-                                                        <span style={{ color: '#374151', fontSize: '13px', fontWeight: '500' }}>{value}</span>
-                                                    )}
-                                                />
-                                                <Bar
-                                                    dataKey="Đăng ký"
-                                                    fill="url(#colorDangKy)"
-                                                    radius={[8, 8, 0, 0]}
-                                                    animationDuration={800}
-                                                    animationBegin={0}
-                                                />
-                                                <Bar
-                                                    dataKey="Tham gia"
-                                                    fill="url(#colorThamGia)"
-                                                    radius={[8, 8, 0, 0]}
-                                                    animationDuration={800}
-                                                    animationBegin={100}
-                                                />
+                                                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
+                                                <Bar dataKey="Đăng ký" fill="#001C44" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                                                <Bar dataKey="Tham gia" fill="#FFD66D" radius={[4, 4, 0, 0]} maxBarSize={40} />
                                             </BarChart>
                                         </ResponsiveContainer>
                                     </div>
-                                    {/* List */}
-                                    <div className="space-y-2">
-                                        {dashboardData.topActivities.slice(0, 5).map((activity, index) => {
-                                            // Sử dụng theme colors với các tone khác nhau
-                                            const badgeColors = [
-                                                'from-[#FFD66D] to-[#FFC947]', // Vàng cho top 1
-                                                'from-gray-300 to-gray-400', // Xám cho top 2
-                                                'from-[#002A66] to-[#003A88]', // Xanh nhạt cho top 3
-                                                'from-[#001C44] to-[#002A66]', // Xanh đậm cho các vị trí khác
-                                                'from-[#001C44] to-[#002A66]',
-                                            ];
-                                            const badgeColor = badgeColors[index] || 'from-[#001C44] to-[#002A66]';
-
-                                            return (
-                                                <div key={activity.activityId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 hover:shadow-md transition-all group">
-                                                    <div className="flex items-center flex-1">
-                                                        <div className={`w-10 h-10 bg-gradient-to-br ${badgeColor} rounded-lg flex items-center justify-center mr-3 font-bold ${index < 3 ? 'text-[#001C44]' : 'text-white'} text-sm shadow-md group-hover:scale-105 transition-transform`}>
-                                                            {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : index + 1}
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-semibold text-gray-900 truncate group-hover:text-[#001C44] transition-colors">{activity.activityName}</p>
-                                                            <div className="flex items-center gap-3 mt-1">
-                                                                <span className="text-xs text-gray-500 flex items-center">
-                                                                    <svg className="w-3 h-3 mr-1 text-[#001C44]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                                                    </svg>
-                                                                    <span className="font-semibold text-[#001C44]">{formatNumber(activity.registrationCount)}</span>
-                                                                </span>
-                                                                <span className="text-xs text-gray-500 flex items-center">
-                                                                    <svg className="w-3 h-3 mr-1 text-[#002A66]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                                    </svg>
-                                                                    <span className="font-semibold text-[#002A66]">{formatNumber(activity.participationCount)}</span>
-                                                                </span>
-                                                            </div>
+                                    <div className="space-y-3">
+                                        {dashboardData.topActivities.slice(0, 5).map((activity, index) => (
+                                            <div key={activity.activityId} className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-xl transition-colors">
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${index === 0 ? 'bg-[#FFD66D]/20 text-amber-700' : 'bg-gray-100 text-gray-600'}`}>
+                                                        {index + 1}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-semibold text-gray-900 line-clamp-1">{activity.activityName}</p>
+                                                        <div className="flex items-center gap-4 mt-1">
+                                                            <span className="text-xs text-gray-500 flex items-center gap-1">
+                                                                Đăng ký: <span className="font-semibold text-gray-900">{formatNumber(activity.registrationCount)}</span>
+                                                            </span>
+                                                            <span className="text-xs text-gray-500 flex items-center gap-1">
+                                                                Tham gia: <span className="font-semibold text-gray-900">{formatNumber(activity.participationCount)}</span>
+                                                            </span>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            );
-                                        })}
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             </div>
@@ -366,134 +296,65 @@ const AdminDashboard: React.FC = () => {
 
                         {/* Top Students */}
                         {dashboardData.topStudents.length > 0 && (
-                            <div className="bg-white shadow-lg rounded-xl border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300">
-                                <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] px-6 py-5">
-                                    <h3 className="text-2xl font-bold text-white flex items-center">
-                                        <span className="mr-3 text-3xl">⭐</span>
-                                        Top sinh viên tích cực
-                                    </h3>
-                                    <p className="text-sm text-gray-300 mt-1">5 sinh viên tham gia nhiều nhất</p>
+                            <div className="bg-white shadow-sm rounded-2xl border border-gray-100 overflow-hidden">
+                                <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+                                    <div>
+                                        <h3 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
+                                            <Star weight="duotone" size={24} className="text-[#001C44]" />
+                                            Sinh viên tích cực
+                                        </h3>
+                                        <p className="text-sm text-gray-500 mt-1">Tham gia nhiều nhất tháng</p>
+                                    </div>
                                 </div>
                                 <div className="p-6">
-                                    {/* Chart */}
-                                    <div className="mb-6 bg-gray-50 rounded-lg p-4 h-80">
+                                    <div className="mb-6 h-72">
                                         <ResponsiveContainer width="100%" height="100%">
                                             <BarChart
-                                                data={dashboardData.topStudents.slice(0, 5).map((student, index) => ({
+                                                data={dashboardData.topStudents.slice(0, 5).map((student) => ({
                                                     name: student.studentName.length > 12
                                                         ? student.studentName.substring(0, 12) + '...'
                                                         : student.studentName,
-                                                    fullName: student.studentName,
-                                                    studentCode: student.studentCode,
-                                                    'Số lần tham gia': student.participationCount,
+                                                    'Lượt tham gia': student.participationCount,
                                                 }))}
-                                                margin={{ top: 10, right: 20, left: 10, bottom: 70 }}
+                                                margin={{ top: 10, right: 10, left: -20, bottom: 20 }}
                                             >
-                                                <defs>
-                                                    <linearGradient id="colorThamGiaStudent" x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="0%" stopColor="#001C44" stopOpacity={1} />
-                                                        <stop offset="100%" stopColor="#002A66" stopOpacity={0.8} />
-                                                    </linearGradient>
-                                                </defs>
-                                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" strokeOpacity={0.5} vertical={false} />
-                                                <XAxis
-                                                    dataKey="name"
-                                                    angle={-45}
-                                                    textAnchor="end"
-                                                    height={80}
-                                                    tick={{ fontSize: 11, fill: '#6B7280' }}
-                                                    stroke="#9CA3AF"
-                                                    strokeWidth={0.5}
-                                                />
-                                                <YAxis
-                                                    tick={{ fontSize: 11, fill: '#6B7280' }}
-                                                    stroke="#9CA3AF"
-                                                    strokeWidth={0.5}
-                                                />
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                                                <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} stroke="#cbd5e1" axisLine={false} tickLine={false} />
+                                                <YAxis tick={{ fontSize: 11, fill: '#64748b' }} stroke="#cbd5e1" axisLine={false} tickLine={false} />
                                                 <Tooltip
-                                                    contentStyle={{
-                                                        backgroundColor: '#fff',
-                                                        border: '2px solid #001C44',
-                                                        borderRadius: '12px',
-                                                        padding: '12px 16px',
-                                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-                                                    }}
-                                                    cursor={{ fill: 'rgba(0, 28, 68, 0.05)' }}
-                                                    formatter={(value: number) => formatNumber(value)}
-                                                    labelFormatter={(label, payload) => {
-                                                        const item = payload && payload[0]?.payload;
-                                                        if (item) {
-                                                            return (
-                                                                <div style={{ fontWeight: 'bold', color: '#001C44', marginBottom: '4px' }}>
-                                                                    {item.fullName}
-                                                                    <div style={{ fontSize: '11px', color: '#6B7280', fontWeight: 'normal', marginTop: '2px' }}>
-                                                                        {item.studentCode}
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        }
-                                                        return label;
-                                                    }}
+                                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)' }}
+                                                    cursor={{ fill: '#f8fafc' }}
                                                 />
-                                                <Bar
-                                                    dataKey="Số lần tham gia"
-                                                    fill="url(#colorThamGiaStudent)"
-                                                    radius={[8, 8, 0, 0]}
-                                                    animationDuration={800}
-                                                    animationBegin={0}
-                                                />
+                                                <Bar dataKey="Lượt tham gia" fill="#001C44" radius={[4, 4, 0, 0]} maxBarSize={40} />
                                             </BarChart>
                                         </ResponsiveContainer>
                                     </div>
-                                    {/* List */}
-                                    <div className="space-y-2">
-                                        {dashboardData.topStudents.slice(0, 5).map((student, index) => {
-                                            // Sử dụng theme colors với các tone khác nhau
-                                            const badgeColors = [
-                                                'from-[#FFD66D] to-[#FFC947]', // Vàng cho top 1
-                                                'from-gray-300 to-gray-400', // Xám cho top 2
-                                                'from-[#002A66] to-[#003A88]', // Xanh nhạt cho top 3
-                                                'from-[#001C44] to-[#002A66]', // Xanh đậm cho các vị trí khác
-                                                'from-[#001C44] to-[#002A66]',
-                                            ];
-                                            const badgeColor = badgeColors[index] || 'from-[#001C44] to-[#002A66]';
-
-                                            return (
-                                                <div key={student.studentId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 hover:shadow-md transition-all group">
-                                                    <div className="flex items-center flex-1">
-                                                        <div className={`w-10 h-10 bg-gradient-to-br ${badgeColor} rounded-lg flex items-center justify-center mr-3 font-bold ${index < 3 ? 'text-[#001C44]' : 'text-white'} text-sm shadow-md group-hover:scale-105 transition-transform`}>
-                                                            {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : index + 1}
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-semibold text-gray-900 truncate group-hover:text-[#001C44] transition-colors">{student.studentName}</p>
-                                                            <div className="flex items-center gap-3 mt-1">
-                                                                <span className="text-xs text-gray-500 flex items-center">
-                                                                    <svg className="w-3 h-3 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
-                                                                    </svg>
-                                                                    <span className="font-medium">{student.studentCode}</span>
-                                                                </span>
-                                                                <span className="text-xs text-gray-500 flex items-center">
-                                                                    <svg className="w-3 h-3 mr-1 text-[#002A66]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                                    </svg>
-                                                                    <span className="font-semibold text-[#002A66]">{formatNumber(student.participationCount)}</span>
-                                                                    <span className="ml-1">hoạt động</span>
-                                                                </span>
-                                                            </div>
-                                                        </div>
+                                    <div className="space-y-3">
+                                        {dashboardData.topStudents.slice(0, 5).map((student, index) => (
+                                            <div key={student.studentId} className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-xl transition-colors">
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${index === 0 ? 'bg-[#FFD66D]/20 text-amber-700' : 'bg-gray-100 text-gray-600'}`}>
+                                                        {index + 1}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-semibold text-gray-900">{student.studentName}</p>
+                                                        <p className="text-xs text-gray-500 mt-0.5">{student.studentCode}</p>
                                                     </div>
                                                 </div>
-                                            );
-                                        })}
+                                                <div className="text-right">
+                                                    <p className="text-sm font-bold text-gray-900">{formatNumber(student.participationCount)}</p>
+                                                    <p className="text-xs text-gray-500">hoạt động</p>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             </div>
                         )}
-                    </div>
+                    </motion.div>
                 )}
             </div>
-        </div>
+        </motion.div>
     );
 };
 

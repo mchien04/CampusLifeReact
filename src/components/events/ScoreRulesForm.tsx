@@ -80,34 +80,33 @@ export const ScoreRulesForm: React.FC<ScoreRulesFormProps> = ({ rules = [], onCh
 
     return (
         <div className="space-y-4">
-            <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium text-gray-900">Luật tính điểm (Score Rules)</h3>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h3 className="text-base font-semibold tracking-tight text-primary-900">Luật tính điểm</h3>
+                    <p className="mt-0.5 text-sm text-gray-500">Tùy chỉnh thủ công khi không dùng mẫu cấu hình</p>
+                </div>
                 {!disabled && (
                     <button
                         type="button"
                         onClick={handleAddRule}
-                        className="px-3 py-1 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 text-sm font-medium"
+                        className="rounded-xl bg-primary-50 px-3 py-2 text-sm font-medium text-primary-900 transition-all hover:bg-primary-100 active:scale-[0.98]"
                     >
-                        + Thêm luật điểm
+                        Thêm luật điểm
                     </button>
                 )}
             </div>
 
             {disabled && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-md text-sm text-amber-800">
-                    ⚙️ Điểm được quyết định bởi <strong>mẫu cấu hình (preset)</strong> đã chọn ở trên.
-                    Chọn <em>"Tự do cấu hình"</em> để tự thêm/sửa luật điểm thủ công.
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-sm text-amber-900 leading-relaxed">
+                    Điểm được quyết định bởi <strong>mẫu cấu hình</strong> đã chọn ở trên.
+                    Chọn <em>Tùy chỉnh (không dùng mẫu)</em> để tự thêm/sửa luật điểm thủ công.
                 </div>
             )}
 
             {/* Live Preview Card */}
             {rules.length > 0 && (
-                <div className="bg-blue-50/50 rounded-lg p-4 mb-4 border border-blue-100">
-                    <h4 className="text-sm font-medium text-blue-800 mb-2 flex items-center">
-                        <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
+                <div className="rounded-xl border border-primary-100 bg-primary-50/40 p-4">
+                    <h4 className="text-sm font-semibold text-primary-900 mb-2">
                         Bản xem trước tổng hợp điểm
                     </h4>
                     <ScoreRulesDisplay rules={rules as any} />
@@ -115,7 +114,7 @@ export const ScoreRulesForm: React.FC<ScoreRulesFormProps> = ({ rules = [], onCh
             )}
 
             {rules.length === 0 && (
-                <div className="p-4 bg-gray-50 text-gray-500 rounded-md text-center text-sm">
+                <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 p-6 text-center text-sm text-gray-500">
                     Chưa có luật điểm nào được cấu hình cho hoạt động này.
                 </div>
             )}

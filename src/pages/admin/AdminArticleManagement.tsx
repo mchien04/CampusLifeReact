@@ -11,6 +11,8 @@ import CreateArticleModal from '../../components/article/admin/CreateArticleModa
 import SetPrimaryButton from '../../components/article/admin/SetPrimaryButton';
 import ArticleTypeBadge from '../../components/article/ArticleTypeBadge';
 
+import { Article, Plus, DownloadSimple, ChartBar } from '@phosphor-icons/react';
+
 type SortKey = 'title' | 'views' | 'wishlist' | 'date';
 type TabKey = 'articles' | 'categories' | 'tags';
 
@@ -220,39 +222,48 @@ const AdminArticleManagement: React.FC = () => {
     return (
         <div className="w-full">
             <div className="mx-auto max-w-7xl w-full">
-                {/* Header */}
-                <div className="mb-10 py-10 px-8 rounded-3xl bg-[#001C44] text-white shadow-premium relative overflow-hidden">
-                    {/* Decorative abstract shape */}
-                    <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 rounded-full bg-gradient-to-br from-[#0B5FFF]/30 to-[#FFD66D]/20 blur-3xl mix-blend-screen pointer-events-none" />
+                {/* Premium Header */}
+                <div className="relative overflow-hidden bg-[#001C44] rounded-2xl p-8 text-white shadow-xl mb-10">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 translate-x-1/2 -translate-y-1/2 animate-blob"></div>
+                    <div className="absolute bottom-0 right-32 w-64 h-64 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 translate-y-1/2 animate-blob animation-delay-2000"></div>
                     
-                    <div className="relative flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
-                        <div>
-                            <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight mb-3">Quản lý bài viết</h1>
-                            <p className="text-blue-100 font-medium">
-                                Tổng cộng <span className="font-extrabold text-[#FFD66D] text-lg px-1">{articlesPage?.totalElements ?? 0}</span> bài viết
-                            </p>
+                    <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div className="flex items-center gap-5">
+                            <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-white/20">
+                                <Article weight="duotone" className="w-8 h-8 text-white" />
+                            </div>
+                            <div>
+                                <h1 className="text-3xl font-bold mb-1 tracking-tight">Quản lý bài viết</h1>
+                                <p className="text-blue-100 text-lg">
+                                    Tổng cộng <span className="font-extrabold text-[#FFD66D]">{articlesPage?.totalElements ?? 0}</span> bài viết
+                                </p>
+                            </div>
                         </div>
-                        <div className="flex flex-wrap gap-3">
+                        
+                        <div className="flex flex-wrap items-center gap-3">
                             <button
                                 type="button"
                                 onClick={() => setCreateOpen(true)}
-                                className="px-6 py-3 rounded-2xl bg-[#FFD66D] text-[#001C44] font-extrabold hover:bg-yellow-400 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95"
+                                className="px-5 py-2.5 bg-[#FFD66D] text-[#001C44] rounded-xl hover:bg-yellow-400 active:scale-[0.98] font-bold transition-all flex items-center shadow-lg shadow-[#FFD66D]/20"
                             >
-                                ➕ Tạo bài viết
+                                <Plus weight="bold" className="w-4 h-4 mr-2" />
+                                Tạo bài viết
                             </button>
                             <button
                                 type="button"
                                 onClick={handleExportExcel}
                                 disabled={exporting}
-                                className="px-6 py-3 rounded-2xl bg-white text-[#001C44] font-extrabold hover:bg-blue-50 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:transform-none"
+                                className="px-5 py-2.5 bg-white text-[#001C44] rounded-xl hover:bg-gray-50 active:scale-[0.98] font-bold transition-all flex items-center shadow-lg shadow-white/10 disabled:opacity-50 disabled:transform-none"
                             >
-                                {exporting ? 'Đang xuất...' : '📥 Xuất Excel'}
+                                <DownloadSimple weight="bold" className="w-4 h-4 mr-2" />
+                                {exporting ? 'Đang xuất...' : 'Xuất Excel'}
                             </button>
                             <Link
                                 to={`${base}/articles/analytics`}
-                                className="px-6 py-3 rounded-2xl bg-blue-900/50 hover:bg-blue-800/80 text-white font-extrabold transition-all border border-blue-700/50 hover:shadow-lg hover:-translate-y-0.5 active:scale-95"
+                                className="px-5 py-2.5 bg-white/10 text-white border border-white/20 rounded-xl hover:bg-white/20 font-medium transition-all flex items-center backdrop-blur-sm"
                             >
-                                📊 Analytics
+                                <ChartBar weight="bold" className="w-4 h-4 mr-2" />
+                                Analytics
                             </Link>
                         </div>
                     </div>
@@ -281,7 +292,7 @@ const AdminArticleManagement: React.FC = () => {
                                     <div className="text-3xl font-extrabold text-[#001C44] mt-2 tracking-tight">{stats.totalViews.toLocaleString('vi-VN')}</div>
                                 </div>
                                 <div className="rounded-2xl border border-gray-300 shadow-sm bg-white/50 p-6 bg-white flex flex-col justify-between">
-                                    <div className="text-sm font-bold tracking-wide text-gray-400 uppercase">Tổng wishlist</div>
+                                    <div className="text-sm font-bold tracking-wide text-gray-400 uppercase">Yêu thích</div>
                                     <div className="text-3xl font-extrabold text-[#0B5FFF] mt-2 tracking-tight">{stats.totalWishlists.toLocaleString('vi-VN')}</div>
                                 </div>
                                 <div className="rounded-2xl border border-gray-300 shadow-sm bg-white/50 p-6 bg-white flex flex-col justify-between">
@@ -293,7 +304,7 @@ const AdminArticleManagement: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="rounded-2xl border border-gray-300 shadow-sm bg-white/50 p-6 bg-white flex flex-col justify-between">
-                                    <div className="text-sm font-bold tracking-wide text-gray-400 uppercase">Pinned / Featured</div>
+                                    <div className="text-sm font-bold tracking-wide text-gray-400 uppercase">Ghim / Nổi bật</div>
                                     <div className="text-3xl font-extrabold mt-2 tracking-tight flex items-center">
                                         <span className="text-indigo-500">{stats.pinnedArticles}</span>
                                         <span className="text-gray-300 mx-2 font-light">/</span>
@@ -552,17 +563,17 @@ const AdminArticleManagement: React.FC = () => {
                                                 >
                                                     <td className="px-6 py-4">
                                                         <div className="flex items-center gap-2.5 flex-wrap">
-                                                            {article.pinned && (
+                                                            {article.isPinned && (
                                                                 <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-[10px] uppercase tracking-wider font-extrabold text-amber-800">
                                                                     Ghim
                                                                 </span>
                                                             )}
-                                                            {article.featured && (
+                                                            {article.isFeatured && (
                                                                 <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-1 text-[10px] uppercase tracking-wider font-extrabold text-blue-800">
                                                                     Nổi bật
                                                                 </span>
                                                             )}
-                                                            {!article.published && (
+                                                            {!article.isPublished && (
                                                                 <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-[10px] uppercase tracking-wider font-extrabold text-gray-600 border border-gray-200">
                                                                     Nháp
                                                                 </span>
