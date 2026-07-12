@@ -43,13 +43,14 @@ const ScoreChangeBadge: React.FC<{ history: ScoreHistoryDetailResponse }> = ({ h
             >
                 <span className="hidden sm:inline text-gray-400 font-normal">→</span>
                 {isPositive ? '+' : ''}{formatScore(delta)}
-            </div>
-            <div className="text-right">
-                <p className="text-xs text-gray-400">Mới</p>
-                <p className="text-base font-bold text-primary-900 tabular-nums">
-                    {formatScore(history.newScore)}
-                </p>
-            </div>
+        <div
+            className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-sm font-semibold tabular-nums ${
+                isPositive
+                    ? 'bg-emerald-50 text-emerald-800'
+                    : 'bg-red-50 text-red-700'
+            }`}
+        >
+            {isPositive ? '+' : ''}{formatScore(delta)}
         </div>
     );
 };
@@ -64,46 +65,45 @@ export const ScoreHistoryPanel: React.FC<ScoreHistoryPanelProps> = ({
     return (
         <div className="space-y-6">
             <section
-                aria-label="Điểm hiện tại"
-                className="rounded-2xl bg-gradient-to-br from-primary-900 to-primary-800 p-6 text-white shadow-premium"
+                aria-label="Tổng quan điểm"
+                className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm ring-1 ring-black/5"
             >
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
-                    <div className="flex-1">
-                        <p className="text-sm text-white/70">Điểm hiện tại</p>
-                        {totalData ? (
-                            <div className="flex flex-wrap gap-3 mt-3">
-                                {SCORE_TYPE_ORDER.map(type => (
-                                    <div
-                                        key={type}
-                                        className="rounded-xl bg-white/10 backdrop-blur-sm px-4 py-3 border border-white/10 min-w-[120px]"
-                                    >
-                                        <p className="text-xs text-white/60 font-medium">
-                                            {SCORE_TYPE_META[type].shortLabel}
-                                        </p>
-                                        <p className="text-lg font-semibold tabular-nums mt-0.5">
-                                            {formatScore(totalData.totalsByType?.[type] ?? 0)}
-                                        </p>
-                                    </div>
-                                ))}
+                <h2 className="text-lg font-semibold text-primary-900 mb-6 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                    Tổng quan điểm
+                </h2>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    {totalData ? (
+                        SCORE_TYPE_ORDER.map(type => (
+                            <div key={type} className="rounded-xl bg-gray-50 p-4 border border-gray-100 transition-colors hover:bg-gray-100/50">
+                                <p className="text-sm font-medium text-gray-500 mb-1">{getScoreTypeLabel(type)}</p>
+                                <p className="text-2xl font-bold text-gray-900 tabular-nums tracking-tight">
+                                    {formatScore(totalData.totalsByType[type] || 0)}
+                                </p>
                             </div>
-                        ) : (
-                            <p className="text-4xl font-bold tabular-nums mt-1 tracking-tight">
+                        ))
+                    ) : (
+                        <div className="rounded-xl bg-gray-50 p-4 border border-gray-100 transition-colors hover:bg-gray-100/50">
+                            <p className="text-sm font-medium text-gray-500 mb-1">
+                                {data.scoreType ? getScoreTypeLabel(data.scoreType) : 'Tổng cộng'}
+                            </p>
+                            <p className="text-2xl font-bold text-gray-900 tabular-nums tracking-tight">
                                 {formatScore(data.currentScore)}
                             </p>
-                        )}
-                    </div>
-                    <div className="sm:text-right shrink-0">
-                        <p className="text-sm font-medium">{data.semesterName}</p>
-                        <p className="text-sm text-white/70 mt-1">
-                            {getScoreTypeLabel(data.scoreType)}
-                        </p>
-                        {data.studentCode && (
-                            <p className="text-xs text-white/50 mt-1 font-mono">
-                                {data.studentCode}
-                                {data.studentName ? ` · ${data.studentName}` : ''}
+                        </div>
+                    )}
+                    
+                    {totalData && (
+                        <div className="rounded-xl bg-primary-50 p-4 border border-primary-100">
+                            <p className="text-sm font-medium text-primary-600 mb-1">Tổng cộng</p>
+                            <p className="text-2xl font-bold text-primary-900 tabular-nums tracking-tight">
+                                {formatScore(totalData.grandTotal)}
                             </p>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
             </section>
 
@@ -112,6 +112,7 @@ export const ScoreHistoryPanel: React.FC<ScoreHistoryPanelProps> = ({
                     <h2 className="text-lg font-semibold text-primary-900 mb-4">
                         Lịch sử thay đổi
                     </h2>
+                    
                     <ol className="relative space-y-0">
                         {data.scoreHistories.map((history, idx) => (
                             <li key={history.id} className="relative pl-8 pb-6 last:pb-0">
@@ -121,46 +122,40 @@ export const ScoreHistoryPanel: React.FC<ScoreHistoryPanelProps> = ({
                                         aria-hidden
                                     />
                                 )}
-                                <span
-                                    className="absolute left-0 top-1.5 h-[22px] w-[22px] rounded-full border-2 border-primary-900 bg-white"
-                                    aria-hidden
-                                />
-                                <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
-                                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex flex-wrap items-center gap-2 mb-2">
-                                                <span
-                                                    className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${getSourceTypeColor(history.sourceType)}`}
-                                                >
+                                
+                                <div className="absolute left-0 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-white ring-2 ring-primary-900 z-10" />
+
+                                <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm hover:shadow-md transition-shadow">
+                                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                                        <div className="space-y-2">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getSourceTypeColor(history.sourceType)}`}>
                                                     {getSourceTypeLabel(history.sourceType)}
                                                 </span>
-                                                <time className="text-xs text-gray-500">
+                                                <time className="text-xs text-gray-500 font-medium">
                                                     {formatDateTime(history.changeDate)}
                                                 </time>
                                             </div>
-                                            <p className="text-sm text-gray-800 leading-relaxed">
+                                            <p className="text-sm text-gray-900 leading-relaxed">
                                                 {history.reason}
                                             </p>
+                                            
                                             {history.activityName && (
-                                                <p className="text-sm text-gray-500 mt-2">
-                                                    Hoạt động:{' '}
+                                                <div className="flex items-center gap-1.5 text-sm">
+                                                    <span className="text-gray-500">Hoạt động:</span>
                                                     {history.activityId ? (
-                                                        <Link
+                                                        <Link 
                                                             to={`${eventLinkPrefix}/${history.activityId}`}
-                                                            className="text-primary-900 font-medium hover:underline underline-offset-2"
+                                                            className="font-medium text-primary-700 hover:text-primary-900 hover:underline decoration-primary-300 underline-offset-4 transition-all"
                                                         >
                                                             {history.activityName}
                                                         </Link>
                                                     ) : (
-                                                        history.activityName
+                                                        <span className="font-medium text-gray-900">{history.activityName}</span>
                                                     )}
-                                                </p>
+                                                </div>
                                             )}
-                                            {history.seriesName && (
-                                                <p className="text-sm text-gray-500 mt-1">
-                                                    Chuỗi sự kiện: {history.seriesName}
-                                                </p>
-                                            )}
+
                                             {history.changedByFullName && (
                                                 <p className="text-xs text-gray-400 mt-2">
                                                     Bởi {history.changedByFullName}
@@ -170,13 +165,22 @@ export const ScoreHistoryPanel: React.FC<ScoreHistoryPanelProps> = ({
                                                 <button
                                                     type="button"
                                                     onClick={() => onAppeal(history)}
-                                                    className="mt-3 inline-flex items-center rounded-lg border border-primary-900/20 px-3 py-1.5 text-xs font-medium text-primary-900 transition-colors hover:bg-primary-900/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900"
+                                                    className="mt-2 text-xs font-medium text-amber-700 hover:text-amber-800 hover:underline underline-offset-4 decoration-amber-300 transition-all focus:outline-none focus:ring-2 focus:ring-amber-500/30 rounded-sm"
                                                 >
-                                                    Khiếu nại
+                                                    Khiếu nại điểm trừ
                                                 </button>
                                             )}
                                         </div>
-                                        <ScoreChangeBadge history={history} />
+
+                                        <div className="flex items-center justify-end sm:flex-col sm:items-end gap-3 sm:gap-1.5 min-w-[120px]">
+                                            <ScoreChangeBadge history={history} />
+                                            <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                                                <span>Mới</span>
+                                                <span className="font-bold text-gray-900 tabular-nums">
+                                                    {formatScore(history.newScore)}
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </li>
@@ -232,7 +236,7 @@ export const ScoreHistoryPanel: React.FC<ScoreHistoryPanelProps> = ({
                 </section>
             )}
 
-            {(!data.scoreHistories || data.scoreHistories.length === 0) &&
+            {(!calculatedHistories || calculatedHistories.length === 0) &&
                 (!data.activityParticipations || data.activityParticipations.length === 0) && (
                 <div className="rounded-2xl border border-dashed border-gray-200 py-16 text-center">
                     <p className="text-gray-500">Không có lịch sử điểm cho bộ lọc này.</p>
