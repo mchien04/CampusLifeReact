@@ -63,6 +63,7 @@ const ManagerScores: React.FC = () => {
     const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
     const [historyPage, setHistoryPage] = useState(0);
     const historyPageSize = 20;
+    const [historyScoreType, setHistoryScoreType] = useState<ScoreType>('REN_LUYEN');
     const [historyStartDate, setHistoryStartDate] = useState('');
     const [historyEndDate, setHistoryEndDate] = useState('');
     const [historyKeyword, setHistoryKeyword] = useState('');
@@ -176,12 +177,13 @@ const ManagerScores: React.FC = () => {
 
     const { data: historyData, isFetching: isHistoryFetching } = useQuery({
         enabled: Boolean(selectedStudentId && semesterId),
-        queryKey: ['scoreHistory', selectedStudentId, semesterId, scoreType, historyPage, historyStartDate, historyEndDate, historyKeyword],
+        queryKey: ['scoreHistory', selectedStudentId, semesterId, scoreType, historyScoreType, historyPage, historyStartDate, historyEndDate, historyKeyword],
         queryFn: async () => {
+            const currentHistoryScoreType = scoreType || historyScoreType;
             const response = await scoresAPI.getScoreHistory({
                 studentId: selectedStudentId!,
                 semesterId: semesterId!,
-                scoreType: scoreType || null,
+                scoreType: currentHistoryScoreType,
                 page: historyPage,
                 size: historyPageSize,
                 startDate: historyStartDate ? new Date(historyStartDate).toISOString() : null,
@@ -616,6 +618,28 @@ const ManagerScores: React.FC = () => {
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
+                            {!scoreType && (
+                                <div className="flex gap-2 border-b border-gray-200 pb-2 overflow-x-auto">
+                                    {(["REN_LUYEN", "CONG_TAC_XA_HOI", "CHUYEN_DE"] as ScoreType[]).map((type) => (
+                                        <button
+                                            key={type}
+                                            type="button"
+                                            onClick={() => {
+                                                setHistoryScoreType(type);
+                                                setHistoryPage(0);
+                                            }}
+                                            className={`whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                                historyScoreType === type
+                                                    ? 'bg-primary-50 text-primary-900 border border-primary-200'
+                                                    : 'text-gray-600 hover:bg-gray-50 border border-transparent'
+                                            }`}
+                                        >
+                                            {type === 'REN_LUYEN' ? 'Rèn luyện' : type === 'CONG_TAC_XA_HOI' ? 'Công tác xã hội' : 'Chuyên đề'}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <div>
                                     <label className="block text-xs font-medium text-gray-500 mb-1">Từ ngày</label>
