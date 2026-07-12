@@ -282,14 +282,14 @@ const ViewScores: React.FC = () => {
                     </div>
                 )}
 
-                {semesterId && (
+                {semesterId && appealEntry && (
                     <CreateScoreAppealModal
                         open={appealOpen}
                         semesterId={Number(semesterId)}
                         scoreType={
                             scoreType !== 'ALL'
                                 ? scoreType
-                                : historyData?.scoreType ?? null
+                                : historyScoreType
                         }
                         historyEntry={appealEntry}
                         onClose={() => {

@@ -80,11 +80,13 @@ const ManagerScoreAppeals: React.FC = () => {
         },
     });
 
-    const handleUpdated = (appeal: ScoreAppealResponse) => {
-        queryClient.setQueryData(['scoreAppeal', appeal.id], appeal);
+    const handleUpdated = (updated: ScoreAppealResponse) => {
+        queryClient.setQueryData(['scoreAppeal', detailId], updated);
         queryClient.invalidateQueries({ queryKey: ['staffScoreAppeals'] });
-        if (appeal.resultingScoreEntryId) {
+        if (updated.status === 'APPROVED') {
             queryClient.invalidateQueries({ queryKey: ['scoreHistory'] });
+            queryClient.invalidateQueries({ queryKey: ['scoresView'] });
+            queryClient.invalidateQueries({ queryKey: ['scoresTotal'] });
         }
     };
 

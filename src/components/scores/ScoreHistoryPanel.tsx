@@ -12,6 +12,7 @@ import {
     getSourceTypeColor,
     formatScore,
     formatDateTime,
+    isScoreDeduction,
 } from '../../types/score';
 
 interface ScoreHistoryPanelProps {
@@ -165,7 +166,7 @@ export const ScoreHistoryPanel: React.FC<ScoreHistoryPanelProps> = ({
                                                     Bởi {history.changedByFullName}
                                                 </p>
                                             )}
-                                            {onAppeal && (
+                                            {onAppeal && isScoreDeduction(history) && (
                                                 <button
                                                     type="button"
                                                     onClick={() => onAppeal(history)}
