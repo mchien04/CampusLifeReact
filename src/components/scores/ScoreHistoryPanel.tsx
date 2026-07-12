@@ -43,14 +43,7 @@ const ScoreChangeBadge: React.FC<{ history: ScoreHistoryDetailResponse }> = ({ h
             >
                 <span className="hidden sm:inline text-gray-400 font-normal">→</span>
                 {isPositive ? '+' : ''}{formatScore(delta)}
-        <div
-            className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-sm font-semibold tabular-nums ${
-                isPositive
-                    ? 'bg-emerald-50 text-emerald-800'
-                    : 'bg-red-50 text-red-700'
-            }`}
-        >
-            {isPositive ? '+' : ''}{formatScore(delta)}
+            </div>
         </div>
     );
 };
@@ -236,7 +229,7 @@ export const ScoreHistoryPanel: React.FC<ScoreHistoryPanelProps> = ({
                 </section>
             )}
 
-            {(!calculatedHistories || calculatedHistories.length === 0) &&
+            {(!data.scoreHistories || data.scoreHistories.length === 0) &&
                 (!data.activityParticipations || data.activityParticipations.length === 0) && (
                 <div className="rounded-2xl border border-dashed border-gray-200 py-16 text-center">
                     <p className="text-gray-500">Không có lịch sử điểm cho bộ lọc này.</p>
