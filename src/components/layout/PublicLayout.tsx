@@ -73,12 +73,7 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({
                                     >
                                         Đăng nhập
                                     </Link>
-                                    <Link
-                                        to="/register"
-                                        className="px-3 py-2 rounded-lg text-sm font-semibold bg-[#001C44] text-white hover:bg-[#002A66]"
-                                    >
-                                        Đăng ký
-                                    </Link>
+
                                 </>
                             )}
                         </nav>

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { scoresAPI } from '../services/scoresAPI';
-import { ScoreType } from '../types/score';
+import { ScoreType, ScoreHistoryDetailResponse } from '../types/score';
 import { academicPublicAPI } from '../services/academicPublicAPI';
 import { studentAPI } from '../services/studentAPI';
 import { toast } from 'react-toastify';
@@ -10,10 +11,12 @@ import ScoreFiltersBar from '../components/scores/ScoreFiltersBar';
 import ScoreOverviewPanel from '../components/scores/ScoreOverviewPanel';
 import ScoreHistoryPanel from '../components/scores/ScoreHistoryPanel';
 import ScoreSkeleton from '../components/scores/ScoreSkeleton';
+import CreateScoreAppealModal from '../components/scores/CreateScoreAppealModal';
 
 type TabId = 'overview' | 'history';
 
 const ViewScores: React.FC = () => {
+    const queryClient = useQueryClient();
     const [studentId, setStudentId] = useState<number | null>(null);
     const [semesterId, setSemesterId] = useState<string>('');
     const [semesters, setSemesters] = useState<Array<{ id: number; name: string }>>([]);
@@ -23,6 +26,8 @@ const ViewScores: React.FC = () => {
     const [activeTab, setActiveTab] = useState<TabId>('overview');
     const [historyPage, setHistoryPage] = useState(0);
     const historyPageSize = 20;
+    const [appealEntry, setAppealEntry] = useState<ScoreHistoryDetailResponse | null>(null);
+    const [appealOpen, setAppealOpen] = useState(false);
 
     useEffect(() => {
         studentAPI.getMyProfile()
@@ -107,13 +112,23 @@ const ViewScores: React.FC = () => {
                     <p className="text-sm font-medium text-gray-500 tracking-wide">
                         Học kỳ · Điểm rèn luyện
                     </p>
-                    <h1 className="text-3xl sm:text-4xl font-bold text-primary-900 tracking-tight">
-                        Bảng điểm của bạn
-                    </h1>
-                    <p className="text-gray-600 max-w-prose leading-relaxed">
-                        Theo dõi điểm rèn luyện, công tác xã hội và chuyên đề theo từng học kỳ.
-                        Với CTXH và chuyên đề, bạn cũng xem được điểm tích lũy suốt các kỳ.
-                    </p>
+                    <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+                        <div>
+                            <h1 className="text-3xl sm:text-4xl font-bold text-primary-900 tracking-tight">
+                                Bảng điểm của bạn
+                            </h1>
+                            <p className="text-gray-600 max-w-prose leading-relaxed mt-2">
+                                Theo dõi điểm rèn luyện, công tác xã hội và chuyên đề theo từng học kỳ.
+                                Với CTXH và chuyên đề, bạn cũng xem được điểm tích lũy suốt các kỳ.
+                            </p>
+                        </div>
+                        <Link
+                            to="/student/scores/appeals"
+                            className="rounded-xl border border-primary-900/20 px-4 py-2.5 text-sm font-medium text-primary-900 hover:bg-primary-900/5 transition-colors self-start shrink-0"
+                        >
+                            Khiếu nại của tôi
+                        </Link>
+                    </div>
                 </header>
 
                 <ScoreFiltersBar
@@ -189,7 +204,12 @@ const ViewScores: React.FC = () => {
                     <>
                         <ScoreHistoryPanel
                             data={historyData}
+                            totalData={totalData}
                             eventLinkPrefix="/student/events"
+                            onAppeal={(entry) => {
+                                setAppealEntry(entry);
+                                setAppealOpen(true);
+                            }}
                         />
 
                         {historyData.totalPages > 1 && (
@@ -219,6 +239,26 @@ const ViewScores: React.FC = () => {
                             </nav>
                         )}
                     </>
+                )}
+
+                {semesterId && (
+                    <CreateScoreAppealModal
+                        open={appealOpen}
+                        semesterId={Number(semesterId)}
+                        scoreType={
+                            scoreType !== 'ALL'
+                                ? scoreType
+                                : historyData?.scoreType ?? null
+                        }
+                        historyEntry={appealEntry}
+                        onClose={() => {
+                            setAppealOpen(false);
+                            setAppealEntry(null);
+                        }}
+                        onSuccess={() => {
+                            queryClient.invalidateQueries({ queryKey: ['myScoreAppeals'] });
+                        }}
+                    />
                 )}
             </div>
         </StudentLayout>

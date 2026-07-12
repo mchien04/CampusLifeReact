@@ -9,6 +9,8 @@ import PresetConfigPanel from '../presets/PresetConfigPanel';
 import MultiSelectField from '../presets/MultiSelectField';
 import { Department } from '../../types/admin';
 import { validateSeriesPresetConfig } from '../../utils/presetValidation';
+import { toast } from 'react-toastify';
+import { Plus, Trash } from '@phosphor-icons/react';
 
 // Helper functions for preset initialization
 const buildEnabledRules = (preset: SeriesPresetDefinition): Record<string, boolean> => {
@@ -37,6 +39,8 @@ interface SeriesFormProps {
     initialData?: Partial<CreateSeriesRequest>;
     title?: string;
     onCancel?: () => void;
+    /** When true, omit outer page chrome (used inside CreateSeries hero layout). */
+    embedded?: boolean;
 }
 
 const SeriesForm: React.FC<SeriesFormProps> = ({
@@ -44,7 +48,8 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
     loading = false,
     initialData = {},
     title = 'Tạo chuỗi sự kiện mới',
-    onCancel
+    onCancel,
+    embedded = false
 }) => {
     const [formData, setFormData] = useState<CreateSeriesRequest>(() => {
         const defaultData: CreateSeriesRequest = {
@@ -328,12 +333,12 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
         const points = parseFloat(milestoneInput.points);
 
         if (!count || count < 1 || !points || points < 0) {
-            alert('Vui lòng nhập số sự kiện và điểm hợp lệ');
+            toast.error('Vui lòng nhập số sự kiện và điểm hợp lệ');
             return;
         }
 
         if (milestoneEntries.some(e => e.count === count)) {
-            alert('Mốc này đã tồn tại');
+            toast.error('Mốc này đã tồn tại');
             return;
         }
 
@@ -457,345 +462,416 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
 
     const isCustomMode = !selectedPresetCode;
 
+    const inputClass = (hasError?: boolean) =>
+        `w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-colors placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-900/25 focus:border-primary-900/40 ${
+            hasError ? 'border-rose-400' : 'border-gray-200 hover:border-gray-300'
+        }`;
+
+    const sectionCard = 'rounded-2xl border border-gray-100 bg-white shadow-premium p-5 sm:p-6 space-y-5';
+
+    const presetPanel = presets.length > 0 ? (
+        <PresetConfigPanel
+            presets={presets as any}
+            selectedPresetCode={selectedPresetCode}
+            onPresetChange={handlePresetCodeChange}
+            config={(formData.presetConfig as Record<string, unknown>) || {}}
+            onConfigChange={handlePresetConfigChange}
+            enabledRules={enabledRules}
+            onRuleToggle={handleRuleToggle}
+            onPreview={handlePreview}
+            previewResponse={presetPreview}
+            previewLoading={previewLoading}
+            mode="series"
+            errors={errors}
+            externalOptions={externalOptions}
+        />
+    ) : (
+        <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/80 px-4 py-8 text-center">
+            <p className="text-sm font-medium text-gray-600">Đang tải mẫu cấu hình…</p>
+        </div>
+    );
+
     return (
-        <div className="max-w-4xl mx-auto p-6">
-            <div className="bg-white shadow-lg rounded-lg">
-                <div className="px-6 py-4 border-b border-gray-200">
-                    <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
-                    <p className="text-gray-600 mt-1">Điền thông tin chi tiết về chuỗi sự kiện</p>
-                </div>
-
-                <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                    {/* Basic Information */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Preset Config Panel */}
-                        {presets.length > 0 && (
-                            <div className="md:col-span-2 mb-4 p-4 bg-blue-50 rounded-md border border-blue-100">
-                                <PresetConfigPanel
-                                    presets={presets as any}
-                                    selectedPresetCode={selectedPresetCode}
-                                    onPresetChange={handlePresetCodeChange}
-                                    config={(formData.presetConfig as Record<string, unknown>) || {}}
-                                    onConfigChange={handlePresetConfigChange}
-                                    enabledRules={enabledRules}
-                                    onRuleToggle={handleRuleToggle}
-                                    onPreview={handlePreview}
-                                    previewResponse={presetPreview}
-                                    previewLoading={previewLoading}
-                                    mode="series"
-                                    errors={errors}
-                                    externalOptions={externalOptions}
-                                />
-                            </div>
-                        )}
-
-                        <div className="md:col-span-2">
-                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                                Tên chuỗi sự kiện *
-                            </label>
-                            <input
-                                type="text"
-                                id="name"
-                                name="name"
-                                value={formData.name}
-                                onChange={handleChange}
-                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44] ${
-                                    errors.name ? 'border-red-500' : 'border-gray-300'
-                                }`}
-                                placeholder="Nhập tên chuỗi sự kiện"
-                            />
-                            {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
-                        </div>
-
-                        <div className="md:col-span-2">
-                            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                                Mô tả
-                            </label>
-                            <textarea
-                                id="description"
-                                name="description"
-                                value={formData.description || ''}
-                                onChange={handleChange}
-                                rows={4}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
-                                placeholder="Nhập mô tả chuỗi sự kiện"
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="scoreType" className="block text-sm font-medium text-gray-700 mb-2">
-                                Loại điểm *
-                            </label>
-                            <select
-                                id="scoreType"
-                                name="scoreType"
-                                value={formData.scoreType}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
-                            >
-                                <option value={ScoreType.REN_LUYEN}>Rèn luyện</option>
-                                <option value={ScoreType.CONG_TAC_XA_HOI}>Công tác xã hội</option>
-                                <option value={ScoreType.CHUYEN_DE}>Chuyên đề</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label htmlFor="targetSemesterId" className="block text-sm font-medium text-gray-700 mb-2">
-                                Học kỳ cộng điểm milestone
-                            </label>
-                            <select
-                                id="targetSemesterId"
-                                name="targetSemesterId"
-                                value={formData.targetSemesterId ?? ''}
-                                onChange={handleSemesterChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
-                            >
-                                <option value="">Tự động (theo thời gian sự kiện đầu tiên)</option>
-                                {semesters.map(semester => (
-                                    <option key={semester.id} value={semester.id}>
-                                        {semester.name}
-                                    </option>
-                                ))}
-                            </select>
-                            <p className="text-xs text-gray-500 mt-1">
-                                Chọn học kỳ để cộng điểm milestone. Bỏ trống để hệ thống tự suy luận.
-                            </p>
-                        </div>
-
-                        <div>
-                            <label className="flex items-center space-x-2 mt-6">
-                                <input
-                                    type="checkbox"
-                                    checked={formData.requiresApproval}
-                                    onChange={(e) =>
-                                        setFormData(prev => ({ ...prev, requiresApproval: e.target.checked }))
-                                    }
-                                    className="rounded border-gray-300 text-[#001C44] focus:ring-[#001C44]"
-                                />
-                                <span className="text-sm text-gray-700">Yêu cầu duyệt đăng ký</span>
-                            </label>
-                        </div>
+        <div className={embedded ? '' : 'max-w-6xl mx-auto p-6'}>
+            <div className={embedded ? '' : 'bg-white shadow-lg rounded-lg overflow-hidden'}>
+                {!embedded && (
+                    <div className="px-6 py-4 border-b border-gray-200">
+                        <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
+                        <p className="text-gray-600 mt-1">Điền thông tin chi tiết về chuỗi sự kiện</p>
                     </div>
+                )}
 
-                    {/* Milestone Points - only show in CUSTOM mode */}
-                    {isCustomMode && (
-                        <div className="border-t pt-6">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Điểm Milestone *</h3>
-                            <p className="text-sm text-gray-600 mb-4">
-                                Định nghĩa các mốc điểm thưởng khi hoàn thành số lượng sự kiện nhất định
-                            </p>
-
-                            <div className="space-y-4">
-                                <div className="flex gap-2">
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        value={milestoneInput.count}
-                                        onChange={(e) => setMilestoneInput(prev => ({ ...prev, count: e.target.value }))}
-                                        placeholder="Số sự kiện"
-                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
-                                    />
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        step="0.1"
-                                        value={milestoneInput.points}
-                                        onChange={(e) => setMilestoneInput(prev => ({ ...prev, points: e.target.value }))}
-                                        placeholder="Điểm thưởng"
-                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={addMilestone}
-                                        className="px-4 py-2 bg-[#001C44] text-white rounded-md hover:bg-[#002A66] transition-colors"
-                                    >
-                                        Thêm mốc
-                                    </button>
-                                </div>
-
-                                {errors.milestonePoints && (
-                                    <p className="text-red-500 text-sm">{errors.milestonePoints}</p>
-                                )}
-
-                                {milestoneEntries.length > 0 && (
-                                    <div className="space-y-2">
-                                        {milestoneEntries.map((entry) => (
-                                            <div
-                                                key={entry.count}
-                                                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
-                                            >
-                                                <span className="text-sm font-medium text-gray-900">
-                                                    {entry.count} sự kiện → {entry.points} điểm{' '}
-                                                    {getScoreTypeLabel(formData.scoreType)}
-                                                </span>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeMilestone(entry.count)}
-                                                    className="text-red-600 hover:text-red-800 text-sm font-medium"
-                                                >
-                                                    Xóa
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Registration Dates */}
-                    <div className="border-t pt-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Thời gian đăng ký</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label htmlFor="registrationStartDate" className="block text-sm font-medium text-gray-700 mb-2">
-                                    Ngày mở đăng ký
-                                </label>
-                                <input
-                                    type="datetime-local"
-                                    id="registrationStartDate"
-                                    name="registrationStartDate"
-                                    value={formData.registrationStartDate || ''}
-                                    onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
-                                />
-                        </div>
-
-                        {/* Audience / Department — shown in CUSTOM mode */}
-                        {isCustomMode && (
-                            <>
+                <form onSubmit={handleSubmit} className={embedded ? 'space-y-6' : 'p-6 space-y-6'}>
+                    <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+                        {/* Left column — series info */}
+                        <div className="xl:col-span-7 space-y-6 min-w-0">
+                            <section className={sectionCard}>
                                 <div>
-                                    <label htmlFor="audience" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Đối tượng nhận điểm
-                                    </label>
-                                    <select
-                                        id="audience"
-                                        name="audience"
-                                        value={formData.audience || 'ALL_PARTICIPANTS'}
-                                        onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
-                                    >
-                                        <option value="ALL_PARTICIPANTS">Tất cả người tham gia</option>
-                                        <option value="DEPARTMENT_ONLY">Chỉ sinh viên thuộc khoa được chọn</option>
-                                        <option value="OUTSIDE_DEPARTMENTS_ONLY">Chỉ sinh viên ngoài khoa được chọn</option>
-                                    </select>
+                                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
+                                        Thông tin chuỗi
+                                    </p>
+                                    <h3 className="mt-1 text-lg font-semibold tracking-tight text-primary-900">
+                                        Chi tiết cơ bản
+                                    </h3>
+                                    <p className="mt-1 text-sm text-gray-500 leading-relaxed">
+                                        Tên, mô tả và loại điểm áp dụng cho các mốc thưởng.
+                                    </p>
                                 </div>
-                                {formData.audience && formData.audience !== 'ALL_PARTICIPANTS' && (
-                                    <div className="md:col-span-2">
-                                        <MultiSelectField
-                                            label="Danh sách Khoa"
-                                            options={departments.map(d => ({ value: d.id, label: d.name }))}
-                                            value={formData.departmentIds || []}
-                                            onChange={(val) => setFormData(prev => ({ ...prev, departmentIds: val as number[] }))}
-                                            required={formData.audience !== 'ALL_PARTICIPANTS'}
-                                            error={errors.departmentIds}
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1.5">
+                                            Tên chuỗi sự kiện <span className="text-rose-500">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            id="name"
+                                            name="name"
+                                            value={formData.name}
+                                            onChange={handleChange}
+                                            className={inputClass(!!errors.name)}
+                                            placeholder="Nhập tên chuỗi sự kiện"
+                                        />
+                                        {errors.name && <p className="text-rose-600 text-sm mt-1">{errors.name}</p>}
+                                    </div>
+
+                                    <div>
+                                        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1.5">
+                                            Mô tả
+                                        </label>
+                                        <textarea
+                                            id="description"
+                                            name="description"
+                                            value={formData.description || ''}
+                                            onChange={handleChange}
+                                            rows={4}
+                                            className={inputClass()}
+                                            placeholder="Nhập mô tả chuỗi sự kiện"
                                         />
                                     </div>
-                                )}
-                            </>
-                        )}
 
-                        <div>
-                                <label htmlFor="registrationDeadline" className="block text-sm font-medium text-gray-700 mb-2">
-                                    Hạn đăng ký
-                                </label>
-                                <input
-                                    type="datetime-local"
-                                    id="registrationDeadline"
-                                    name="registrationDeadline"
-                                    value={formData.registrationDeadline || ''}
-                                    onChange={handleChange}
-                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44] ${
-                                        errors.registrationDeadline ? 'border-red-500' : 'border-gray-300'
-                                    }`}
-                                />
-                                {errors.registrationDeadline && (
-                                    <p className="text-red-500 text-sm mt-1">{errors.registrationDeadline}</p>
-                                )}
-                            </div>
-                        </div>
-                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label htmlFor="scoreType" className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                Loại điểm <span className="text-rose-500">*</span>
+                                            </label>
+                                            <select
+                                                id="scoreType"
+                                                name="scoreType"
+                                                value={formData.scoreType}
+                                                onChange={handleChange}
+                                                disabled={!isCustomMode && !!selectedPresetCode}
+                                                className={`${inputClass()} disabled:bg-gray-50 disabled:text-gray-500`}
+                                            >
+                                                <option value={ScoreType.REN_LUYEN}>Rèn luyện</option>
+                                                <option value={ScoreType.CONG_TAC_XA_HOI}>Công tác xã hội</option>
+                                                <option value={ScoreType.CHUYEN_DE}>Chuyên đề</option>
+                                            </select>
+                                            {!isCustomMode && selectedPresetCode && (
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                    Đồng bộ từ mẫu cấu hình — dùng Preview để xem trước.
+                                                </p>
+                                            )}
+                                        </div>
 
-                    {/* Ticket Quantity */}
-                    <div className="border-t pt-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Số lượng vé</h3>
-                        <div className="space-y-4">
-                            <label className="flex items-center space-x-2">
-                                <input
-                                    type="checkbox"
-                                    checked={unlimitedTickets}
-                                    onChange={handleUnlimitedTicketsChange}
-                                    className="rounded border-gray-300 text-[#001C44] focus:ring-[#001C44]"
-                                />
-                                <span className="text-sm text-gray-700">Không giới hạn số lượng vé</span>
-                            </label>
+                                        <div>
+                                            <label htmlFor="targetSemesterId" className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                Học kỳ cộng điểm milestone
+                                            </label>
+                                            <select
+                                                id="targetSemesterId"
+                                                name="targetSemesterId"
+                                                value={formData.targetSemesterId ?? ''}
+                                                onChange={handleSemesterChange}
+                                                className={inputClass()}
+                                            >
+                                                <option value="">Tự động (theo thời gian sự kiện đầu tiên)</option>
+                                                {semesters.map(semester => (
+                                                    <option key={semester.id} value={semester.id}>
+                                                        {semester.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                Bỏ trống để hệ thống tự suy luận học kỳ.
+                                            </p>
+                                        </div>
+                                    </div>
 
-                            {!unlimitedTickets && (
-                                <div>
-                                    <label htmlFor="ticketQuantity" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Số lượng vé
+                                    <label className="flex items-start gap-3 rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3 cursor-pointer transition-colors hover:bg-gray-50">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.requiresApproval}
+                                            onChange={(e) =>
+                                                setFormData(prev => ({ ...prev, requiresApproval: e.target.checked }))
+                                            }
+                                            className="mt-0.5 rounded border-gray-300 text-primary-900 focus:ring-primary-900/30"
+                                        />
+                                        <span className="text-sm text-gray-700">Yêu cầu duyệt đăng ký trước khi tham gia</span>
                                     </label>
-                                    <input
-                                        type="number"
-                                        id="ticketQuantity"
-                                        name="ticketQuantity"
-                                        min="1"
-                                        value={formData.ticketQuantity || 0}
-                                        onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44]"
-                                    />
                                 </div>
+                            </section>
+
+                            {isCustomMode && (
+                                <section className={sectionCard}>
+                                    <div>
+                                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
+                                            Mốc điểm
+                                        </p>
+                                        <h3 className="mt-1 text-lg font-semibold tracking-tight text-primary-900">
+                                            Điểm milestone
+                                        </h3>
+                                        <p className="mt-1 text-sm text-gray-500">
+                                            Định nghĩa các mốc điểm thưởng khi hoàn thành số lượng sự kiện nhất định.
+                                        </p>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div className="flex flex-col sm:flex-row gap-2">
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                value={milestoneInput.count}
+                                                onChange={(e) => setMilestoneInput(prev => ({ ...prev, count: e.target.value }))}
+                                                placeholder="Số sự kiện"
+                                                className={`${inputClass()} sm:flex-1 tabular-nums`}
+                                            />
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="0.1"
+                                                value={milestoneInput.points}
+                                                onChange={(e) => setMilestoneInput(prev => ({ ...prev, points: e.target.value }))}
+                                                placeholder="Điểm thưởng"
+                                                className={`${inputClass()} sm:flex-1 tabular-nums`}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={addMilestone}
+                                                className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary-900 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-primary-800 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-primary-900/30"
+                                            >
+                                                <Plus size={18} weight="bold" />
+                                                Thêm mốc
+                                            </button>
+                                        </div>
+
+                                        {errors.milestonePoints && (
+                                            <p className="text-rose-600 text-sm">{errors.milestonePoints}</p>
+                                        )}
+
+                                        {milestoneEntries.length > 0 ? (
+                                            <ul className="space-y-2">
+                                                {milestoneEntries.map((entry) => (
+                                                    <li
+                                                        key={entry.count}
+                                                        className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50/80 px-4 py-3"
+                                                    >
+                                                        <span className="text-sm font-medium text-gray-900 tabular-nums">
+                                                            {entry.count} sự kiện → {entry.points} điểm{' '}
+                                                            {getScoreTypeLabel(formData.scoreType)}
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeMilestone(entry.count)}
+                                                            className="inline-flex items-center gap-1 text-sm font-medium text-rose-600 hover:text-rose-800 transition-colors focus:outline-none focus:ring-2 focus:ring-rose-200 rounded-lg px-2 py-1"
+                                                        >
+                                                            <Trash size={16} />
+                                                            Xóa
+                                                        </button>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            <p className="text-sm text-gray-500 rounded-xl border border-dashed border-gray-200 px-4 py-6 text-center">
+                                                Chưa có mốc điểm — thêm ít nhất một mốc để tiếp tục.
+                                            </p>
+                                        )}
+                                    </div>
+                                </section>
                             )}
+
+                            <section className={sectionCard}>
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
+                                        Đăng ký
+                                    </p>
+                                    <h3 className="mt-1 text-lg font-semibold tracking-tight text-primary-900">
+                                        Thời gian & đối tượng
+                                    </h3>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label htmlFor="registrationStartDate" className="block text-sm font-medium text-gray-700 mb-1.5">
+                                            Ngày mở đăng ký
+                                        </label>
+                                        <input
+                                            type="datetime-local"
+                                            id="registrationStartDate"
+                                            name="registrationStartDate"
+                                            value={formData.registrationStartDate || ''}
+                                            onChange={handleChange}
+                                            className={inputClass()}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label htmlFor="registrationDeadline" className="block text-sm font-medium text-gray-700 mb-1.5">
+                                            Hạn đăng ký
+                                        </label>
+                                        <input
+                                            type="datetime-local"
+                                            id="registrationDeadline"
+                                            name="registrationDeadline"
+                                            value={formData.registrationDeadline || ''}
+                                            onChange={handleChange}
+                                            className={inputClass(!!errors.registrationDeadline)}
+                                        />
+                                        {errors.registrationDeadline && (
+                                            <p className="text-rose-600 text-sm mt-1">{errors.registrationDeadline}</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {isCustomMode && (
+                                    <div className="space-y-4 pt-2 border-t border-gray-100">
+                                        <div>
+                                            <label htmlFor="audience" className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                Đối tượng nhận điểm
+                                            </label>
+                                            <select
+                                                id="audience"
+                                                name="audience"
+                                                value={formData.audience || 'ALL_PARTICIPANTS'}
+                                                onChange={handleChange}
+                                                className={inputClass()}
+                                            >
+                                                <option value="ALL_PARTICIPANTS">Tất cả người tham gia</option>
+                                                <option value="DEPARTMENT_ONLY">Chỉ sinh viên thuộc khoa được chọn</option>
+                                                <option value="OUTSIDE_DEPARTMENTS_ONLY">Chỉ sinh viên ngoài khoa được chọn</option>
+                                            </select>
+                                        </div>
+                                        {formData.audience && formData.audience !== 'ALL_PARTICIPANTS' && (
+                                            <MultiSelectField
+                                                label="Danh sách khoa"
+                                                options={departments.map(d => ({ value: d.id, label: d.name }))}
+                                                value={formData.departmentIds || []}
+                                                onChange={(val) => setFormData(prev => ({ ...prev, departmentIds: val as number[] }))}
+                                                required={formData.audience !== 'ALL_PARTICIPANTS'}
+                                                error={errors.departmentIds}
+                                            />
+                                        )}
+                                    </div>
+                                )}
+                            </section>
+
+                            <section className={sectionCard}>
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
+                                        Vé & trạng thái
+                                    </p>
+                                    <h3 className="mt-1 text-lg font-semibold tracking-tight text-primary-900">
+                                        Số lượng và công bố
+                                    </h3>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <label className="flex items-start gap-3 rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3 cursor-pointer transition-colors hover:bg-gray-50">
+                                        <input
+                                            type="checkbox"
+                                            checked={unlimitedTickets}
+                                            onChange={handleUnlimitedTicketsChange}
+                                            className="mt-0.5 rounded border-gray-300 text-primary-900 focus:ring-primary-900/30"
+                                        />
+                                        <span className="text-sm text-gray-700">Không giới hạn số lượng vé</span>
+                                    </label>
+
+                                    {!unlimitedTickets && (
+                                        <div>
+                                            <label htmlFor="ticketQuantity" className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                Số lượng vé
+                                            </label>
+                                            <input
+                                                type="number"
+                                                id="ticketQuantity"
+                                                name="ticketQuantity"
+                                                min="1"
+                                                value={formData.ticketQuantity || 0}
+                                                onChange={handleChange}
+                                                className={`${inputClass()} tabular-nums max-w-xs`}
+                                            />
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-2 pt-2 border-t border-gray-100">
+                                        <label className="flex items-start gap-3 rounded-xl px-1 py-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                name="isImportant"
+                                                checked={!!formData.isImportant}
+                                                onChange={handleChange}
+                                                className="mt-0.5 rounded border-gray-300 text-primary-900 focus:ring-primary-900/30"
+                                            />
+                                            <span className="text-sm text-gray-700">
+                                                Sự kiện quan trọng (tự động đăng ký tất cả sinh viên active)
+                                            </span>
+                                        </label>
+                                        <label className="flex items-start gap-3 rounded-xl px-1 py-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                name="mandatoryForFacultyStudents"
+                                                checked={!!formData.mandatoryForFacultyStudents}
+                                                onChange={handleChange}
+                                                className="mt-0.5 rounded border-gray-300 text-primary-900 focus:ring-primary-900/30"
+                                            />
+                                            <span className="text-sm text-gray-700">
+                                                Bắt buộc với sinh viên khoa tổ chức
+                                            </span>
+                                        </label>
+                                        <label className="flex items-start gap-3 rounded-xl px-1 py-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                name="isDraft"
+                                                checked={!!formData.isDraft}
+                                                onChange={handleChange}
+                                                className="mt-0.5 rounded border-gray-300 text-primary-900 focus:ring-primary-900/30"
+                                            />
+                                            <span className="text-sm text-gray-700">
+                                                Bản nháp (chưa công bố, không tự động đăng ký)
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </section>
                         </div>
+
+                        {/* Right column — preset / score config */}
+                        <aside className="xl:col-span-5 min-w-0">
+                            <div className="xl:sticky xl:top-24 rounded-2xl border border-primary-900/10 bg-white shadow-premium overflow-hidden">
+                                <div className="border-b border-gray-100 bg-primary-900 px-5 py-4 text-white">
+                                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent/90">
+                                        Điểm & mẫu cấu hình
+                                    </p>
+                                    <h3 className="mt-1 text-lg font-semibold tracking-tight">
+                                        Cấu hình mốc điểm
+                                    </h3>
+                                    <p className="mt-1 text-sm text-white/65 leading-relaxed">
+                                        Chọn mẫu chuỗi sự kiện hoặc tùy chỉnh mốc điểm thủ công.
+                                    </p>
+                                </div>
+                                <div className="p-5 space-y-5 max-h-[min(70vh,720px)] overflow-y-auto">
+                                    {presetPanel}
+                                </div>
+                            </div>
+                        </aside>
                     </div>
 
-                    {/* Minimum Requirements are now part of the preset system (SeriesPresetConfig).
-                        The PresetConfigPanel renders these fields via the series preset descriptor. */}
-
-                    {/* Auto-register & Draft Flags */}
-                    <div className="border-t pt-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Đăng ký tự động & Trạng thái</h3>
-                        <div className="space-y-3">
-                            <label className="flex items-center space-x-2">
-                                <input
-                                    type="checkbox"
-                                    name="isImportant"
-                                    checked={!!formData.isImportant}
-                                    onChange={handleChange}
-                                    className="rounded border-gray-300 text-[#001C44] focus:ring-[#001C44]"
-                                />
-                                <span className="text-sm text-gray-700">Sự kiện quan trọng (tự động đăng ký tất cả sinh viên active)</span>
-                            </label>
-                            <label className="flex items-center space-x-2">
-                                <input
-                                    type="checkbox"
-                                    name="mandatoryForFacultyStudents"
-                                    checked={!!formData.mandatoryForFacultyStudents}
-                                    onChange={handleChange}
-                                    className="rounded border-gray-300 text-[#001C44] focus:ring-[#001C44]"
-                                />
-                                <span className="text-sm text-gray-700">Bắt buộc với sinh viên khoa tổ chức (tự động đăng ký SV các khoa tổ chức)</span>
-                            </label>
-                            <label className="flex items-center space-x-2">
-                                <input
-                                    type="checkbox"
-                                    name="isDraft"
-                                    checked={!!formData.isDraft}
-                                    onChange={handleChange}
-                                    className="rounded border-gray-300 text-[#001C44] focus:ring-[#001C44]"
-                                />
-                                <span className="text-sm text-gray-700">Bản nháp (chưa công bố, không tự động đăng ký)</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    {/* Form Actions */}
-                    <div className="flex justify-end space-x-3 pt-6 border-t">
+                    <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
                         {onCancel && (
                             <button
                                 type="button"
                                 onClick={onCancel}
-                                className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+                                className="rounded-xl border border-gray-200 px-6 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-gray-200"
                             >
                                 Hủy
                             </button>
@@ -803,9 +879,9 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
                         <button
                             type="submit"
                             disabled={loading}
-                            className="px-6 py-2 bg-[#001C44] text-white rounded-md hover:bg-[#002A66] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="rounded-xl bg-primary-900 px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-primary-800 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary-900/30"
                         >
-                            {loading ? 'Đang xử lý...' : 'Lưu'}
+                            {loading ? 'Đang xử lý…' : 'Lưu chuỗi sự kiện'}
                         </button>
                     </div>
                 </form>

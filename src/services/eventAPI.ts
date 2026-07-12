@@ -75,6 +75,24 @@ export const eventAPI = {
         }
     },
 
+    getActivitiesWithTasks: async (): Promise<Response<ActivityResponse[]>> => {
+        try {
+            const response = await api.get('/api/activities/with-tasks');
+            return {
+                status: response.data.status,
+                message: response.data.message,
+                data: response.data.body || response.data.data
+            };
+        } catch (error: any) {
+            console.error('Error fetching activities with tasks:', error);
+            return {
+                status: false,
+                message: error.response?.data?.message || 'Không thể tải danh sách sự kiện có nhiệm vụ',
+                data: []
+            };
+        }
+    },
+
     // Get event by ID
     getEvent: async (id: number): Promise<Response<ActivityResponse>> => {
         try {

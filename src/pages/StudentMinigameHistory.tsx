@@ -7,6 +7,7 @@ import { ActivityResponse } from '../types/activity';
 import { LoadingSpinner } from '../components/common';
 import StudentLayout from '../components/layout/StudentLayout';
 import { toast } from 'react-toastify';
+import { CaretLeft, Clock, CheckCircle, Trophy, ChartBar, WarningCircle, ListChecks, FileText, XCircle, GameController, Eye } from '@phosphor-icons/react';
 
 const StudentMinigameHistory: React.FC = () => {
     const { activityId } = useParams<{ activityId: string }>();
@@ -140,99 +141,119 @@ const StudentMinigameHistory: React.FC = () => {
 
     return (
         <StudentLayout>
-            <div className="space-y-6">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div>
+            <div className="mx-auto max-w-5xl space-y-6 pb-12">
+                {/* Header matching StudentSeries style */}
+                <header className="relative overflow-hidden rounded-2xl border border-primary-900/10 bg-primary-900 px-6 py-7 sm:px-8 text-white shadow-premium">
+                    <div
+                        className="pointer-events-none absolute inset-0 opacity-[0.12]"
+                        style={{
+                            backgroundImage:
+                                'radial-gradient(ellipse at 0% 0%, #FFD66D 0%, transparent 55%), radial-gradient(ellipse at 100% 100%, #4b88b6 0%, transparent 50%)',
+                        }}
+                    />
+                    <div className="relative">
                         <Link
                             to="/student/minigames"
-                            className="text-[#001C44] hover:text-[#002A66] mb-2 inline-flex items-center"
+                            className="inline-flex items-center text-sm font-semibold tracking-wide text-primary-100 hover:text-white transition-colors mb-4"
                         >
-                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                            </svg>
-                            Quay lại danh sách quiz
+                            <CaretLeft weight="bold" className="w-4 h-4 mr-1" />
+                            Quay lại Mini Game
                         </Link>
-                        <h1 className="text-3xl font-bold text-[#001C44]">
-                            Lịch sử làm quiz
+                        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-balance">
+                            Lịch sử làm bài
                         </h1>
                         {minigame && (
-                            <p className="text-gray-600 mt-2">{minigame.title}</p>
+                            <p className="mt-2 text-sm text-primary-100/90 max-w-2xl leading-relaxed flex items-center">
+                                <GameController weight="fill" className="w-4 h-4 mr-2 text-accent" />
+                                {minigame.title}
+                            </p>
                         )}
                     </div>
-                </div>
+                </header>
 
                 {/* Attempts List */}
-                <div className="card p-6">
-                    <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                        Danh sách lần làm bài ({attempts.length})
-                    </h2>
+                <div className="rounded-2xl border border-gray-100 bg-white p-6 sm:p-8 shadow-premium">
+                    <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-6">
+                        <h2 className="text-xl font-bold text-gray-900">
+                            Các lần làm bài
+                        </h2>
+                        <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-semibold">
+                            {attempts.length} lần
+                        </span>
+                    </div>
 
                     {attempts.length === 0 ? (
-                        <div className="text-center py-12">
-                            <div className="text-gray-400 text-6xl mb-4">📝</div>
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">Chưa có lần làm bài nào</h3>
-                            <p className="text-gray-500 mb-6">
-                                Bạn chưa làm quiz này. Hãy bắt đầu làm quiz để xem lịch sử.
+                        <div className="flex flex-col items-center justify-center py-16 px-4 bg-gray-50 rounded-xl border border-gray-100 border-dashed text-center">
+                            <FileText weight="duotone" className="w-16 h-16 text-gray-300 mb-4" />
+                            <h3 className="text-lg font-bold text-gray-900 mb-2">Chưa có lần làm bài nào</h3>
+                            <p className="text-gray-500 max-w-sm mb-6">
+                                Bạn chưa làm quiz này. Hãy bắt đầu làm bài để xem lịch sử.
                             </p>
                             {activity && (
                                 <Link
                                     to={`/student/minigames/${activity.id}/play`}
-                                    className="btn-primary px-6 py-3 rounded-lg font-medium inline-block"
+                                    className="bg-primary-900 hover:bg-primary-800 text-white px-6 py-2.5 rounded-xl font-medium transition-colors shadow-sm inline-flex items-center"
                                 >
-                                    Bắt đầu làm quiz
+                                    <GameController weight="bold" className="w-5 h-5 mr-2" />
+                                    Bắt đầu làm bài
                                 </Link>
                             )}
                         </div>
                     ) : (
-                        <div className="space-y-3">
+                        <div className="grid gap-4">
                             {attempts
                                 .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())
-                                .map((attempt) => (
+                                .map((attempt, index) => (
                                     <div
                                         key={attempt.id}
-                                        className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                                        className="group relative flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-sm transition-all"
                                     >
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center space-x-4 flex-1">
-                                                <span
-                                                    className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
-                                                        attempt.status
-                                                    )}`}
-                                                >
-                                                    {getStatusLabel(attempt.status)}
-                                                </span>
-                                                <div className="flex-1">
-                                                    <div className="text-sm text-gray-600">
-                                                        <span className="font-medium">
-                                                            {attempt.correctCount}/{attempt.totalQuestions} câu đúng
+                                        <div className="flex items-start gap-4">
+                                            <div className="hidden sm:flex w-10 h-10 rounded-full bg-gray-50 border border-gray-100 items-center justify-center text-gray-400 font-bold">
+                                                #{attempts.length - index}
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-3 mb-1">
+                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold uppercase tracking-wider ${getStatusColor(attempt.status)}`}>
+                                                        {getStatusLabel(attempt.status)}
+                                                    </span>
+                                                    <span className="text-sm font-medium text-gray-900">
+                                                        {attempt.correctCount}/{attempt.totalQuestions} đúng
+                                                    </span>
+                                                    {attempt.pointsEarned && parseFloat(attempt.pointsEarned) > 0 && (
+                                                        <span className="inline-flex items-center text-sm font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-md">
+                                                            +{parseFloat(attempt.pointsEarned).toFixed(1)} đ
                                                         </span>
-                                                        {attempt.pointsEarned && parseFloat(attempt.pointsEarned) > 0 && (
-                                                            <span className="ml-3 text-green-600 font-semibold">
-                                                                +{parseFloat(attempt.pointsEarned).toFixed(1)} điểm
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <div className="text-xs text-gray-500 mt-1">
+                                                    )}
+                                                </div>
+                                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2 text-xs text-gray-500">
+                                                    <span className="flex items-center">
+                                                        <Clock className="w-3.5 h-3.5 mr-1" />
                                                         Bắt đầu: {new Date(attempt.startedAt).toLocaleString('vi-VN')}
-                                                        {attempt.submittedAt && (
-                                                            <span className="ml-3">
-                                                                Nộp: {new Date(attempt.submittedAt).toLocaleString('vi-VN')}
-                                                            </span>
-                                                        )}
-                                                    </div>
+                                                    </span>
+                                                    {attempt.submittedAt && (
+                                                        <span className="flex items-center">
+                                                            <CheckCircle className="w-3.5 h-3.5 mr-1" />
+                                                            Nộp: {new Date(attempt.submittedAt).toLocaleString('vi-VN')}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
-                                            {attempt.status !== 'IN_PROGRESS' && (
-                                                <button
-                                                    onClick={() => handleViewDetail(attempt.id)}
-                                                    disabled={loadingDetail}
-                                                    className="btn-primary px-4 py-2 rounded-lg text-sm font-medium ml-4"
-                                                >
-                                                    {loadingDetail ? 'Đang tải...' : 'Xem chi tiết'}
-                                                </button>
-                                            )}
                                         </div>
+                                        {attempt.status !== 'IN_PROGRESS' && (
+                                            <button
+                                                onClick={() => handleViewDetail(attempt.id)}
+                                                disabled={loadingDetail}
+                                                className="mt-4 sm:mt-0 inline-flex items-center justify-center px-4 py-2 border border-gray-200 bg-gray-50 text-gray-700 rounded-lg hover:bg-white hover:border-primary-900/30 hover:text-primary-900 transition-colors text-sm font-medium disabled:opacity-50"
+                                            >
+                                                {loadingDetail ? <LoadingSpinner size="small" /> : (
+                                                    <>
+                                                        <Eye className="w-4 h-4 mr-1.5" />
+                                                        Xem chi tiết
+                                                    </>
+                                                )}
+                                            </button>
+                                        )}
                                     </div>
                                 ))}
                         </div>
@@ -241,126 +262,135 @@ const StudentMinigameHistory: React.FC = () => {
 
                 {/* Attempt Detail Modal */}
                 {selectedAttempt && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                        <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-                            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
-                                <h2 className="text-2xl font-bold text-[#001C44]">
-                                    Chi tiết kết quả
-                                </h2>
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+                        <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={handleCloseDetail}></div>
+                        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                            {/* Modal Header */}
+                            <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
+                                <div>
+                                    <h2 className="text-xl font-bold text-gray-900">Chi tiết kết quả</h2>
+                                    <p className="text-sm text-gray-500 mt-1">Xem lại câu trả lời và đáp án</p>
+                                </div>
                                 <button
                                     onClick={handleCloseDetail}
-                                    className="text-gray-500 hover:text-gray-700"
+                                    className="p-2 rounded-lg text-gray-400 hover:bg-gray-200 hover:text-gray-600 transition-colors"
                                 >
-                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
+                                    <XCircle weight="fill" className="w-6 h-6" />
                                 </button>
                             </div>
 
-                            <div className="p-6">
-                                {/* Summary */}
-                                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                        <div>
-                                            <div className="text-sm text-gray-600">Trạng thái</div>
-                                            <div className={`text-lg font-semibold ${getStatusColor(selectedAttempt.status)} inline-block px-3 py-1 rounded-full mt-1`}>
-                                                {getStatusLabel(selectedAttempt.status)}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div className="text-sm text-gray-600">Số câu đúng</div>
-                                            <div className="text-lg font-semibold text-gray-900 mt-1">
-                                                {selectedAttempt.correctCount}/{selectedAttempt.totalQuestions}
-                                            </div>
-                                        </div>
-                                        {selectedAttempt.pointsEarned && parseFloat(selectedAttempt.pointsEarned) > 0 && (
-                                            <div>
-                                                <div className="text-sm text-gray-600">Điểm nhận được</div>
-                                                <div className="text-lg font-semibold text-green-600 mt-1">
-                                                    +{parseFloat(selectedAttempt.pointsEarned).toFixed(1)}
-                                                </div>
-                                            </div>
-                                        )}
-                                        {selectedAttempt.requiredCorrectAnswers && (
-                                            <div>
-                                                <div className="text-sm text-gray-600">Yêu cầu</div>
-                                                <div className="text-lg font-semibold text-gray-900 mt-1">
-                                                    {selectedAttempt.requiredCorrectAnswers}/{selectedAttempt.totalQuestions} câu đúng
-                                                </div>
-                                            </div>
-                                        )}
+                            {/* Modal Body */}
+                            <div className="p-6 overflow-y-auto">
+                                {/* Summary Cards */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                                    <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+                                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Trạng thái</div>
+                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-semibold uppercase tracking-wider ${getStatusColor(selectedAttempt.status)}`}>
+                                            {getStatusLabel(selectedAttempt.status)}
+                                        </span>
                                     </div>
+                                    <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+                                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Câu đúng</div>
+                                        <div className="text-2xl font-bold text-gray-900">
+                                            {selectedAttempt.correctCount}<span className="text-gray-400 text-base font-medium">/{selectedAttempt.totalQuestions}</span>
+                                        </div>
+                                    </div>
+                                    {selectedAttempt.pointsEarned && parseFloat(selectedAttempt.pointsEarned) > 0 && (
+                                        <div className="bg-green-50 border border-green-100 rounded-xl p-4 shadow-sm">
+                                            <div className="text-xs font-semibold text-green-700 uppercase tracking-wider mb-2">Điểm nhận</div>
+                                            <div className="text-2xl font-bold text-green-600">
+                                                +{parseFloat(selectedAttempt.pointsEarned).toFixed(1)}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {selectedAttempt.requiredCorrectAnswers && (
+                                        <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+                                            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Yêu cầu qua</div>
+                                            <div className="text-2xl font-bold text-gray-900">
+                                                {selectedAttempt.requiredCorrectAnswers} <span className="text-gray-500 text-sm font-medium">câu</span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Questions */}
-                                <div className="space-y-4">
-                                    <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                                        Chi tiết từng câu hỏi
+                                <div className="space-y-6">
+                                    <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-2">
+                                        Chi tiết câu hỏi
                                     </h3>
                                     {selectedAttempt.questions
                                         .sort((a, b) => a.displayOrder - b.displayOrder)
                                         .map((question, index) => (
                                             <div
                                                 key={question.id}
-                                                className={`p-4 border-2 rounded-lg ${
+                                                className={`rounded-xl border ${
                                                     selectedAttempt.showAnswers === false
-                                                        ? 'border-gray-200 bg-gray-50'
+                                                        ? 'border-gray-200'
                                                         : question.isCorrect
-                                                        ? 'border-green-200 bg-green-50'
-                                                        : 'border-red-200 bg-red-50'
-                                                }`}
+                                                        ? 'border-green-200 bg-green-50/30'
+                                                        : 'border-red-200 bg-red-50/30'
+                                                } overflow-hidden`}
                                             >
-                                                <div className="flex items-start justify-between mb-3">
-                                                    <h4 className="font-semibold text-gray-900 flex-1">
-                                                        Câu {index + 1}: {question.questionText}
-                                                    </h4>
-                                                    {selectedAttempt.showAnswers !== false && (
-                                                        question.isCorrect ? (
-                                                            <span className="ml-2 text-green-600 font-semibold">✓ Đúng</span>
-                                                        ) : (
-                                                            <span className="ml-2 text-red-600 font-semibold">✗ Sai</span>
-                                                        )
-                                                    )}
+                                                <div className={`px-5 py-4 ${
+                                                    selectedAttempt.showAnswers === false
+                                                        ? 'bg-gray-50'
+                                                        : question.isCorrect
+                                                        ? 'bg-green-100/50'
+                                                        : 'bg-red-100/50'
+                                                }`}>
+                                                    <div className="flex items-start gap-4">
+                                                        <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center font-bold text-sm shadow-sm shrink-0">
+                                                            {index + 1}
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <h4 className="font-semibold text-gray-900 text-base leading-snug">
+                                                                {question.questionText}
+                                                            </h4>
+                                                        </div>
+                                                        {selectedAttempt.showAnswers !== false && (
+                                                            <div className="shrink-0 ml-4">
+                                                                {question.isCorrect ? (
+                                                                    <span className="inline-flex items-center text-green-700 bg-green-100 px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wide border border-green-200">
+                                                                        <CheckCircle className="w-3.5 h-3.5 mr-1" /> Đúng
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="inline-flex items-center text-red-700 bg-red-100 px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wide border border-red-200">
+                                                                        <XCircle className="w-3.5 h-3.5 mr-1" /> Sai
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <div className="space-y-2">
-                                                    {question.options.map((option) => (
-                                                        <div
-                                                            key={option.id}
-                                                            className={`p-3 rounded-lg border-2 ${
-                                                                selectedAttempt.showAnswers === false
-                                                                    ? option.isSelected
-                                                                        ? 'border-blue-400 bg-blue-50 text-blue-900'
-                                                                        : 'border-gray-200 bg-white'
-                                                                    : option.isCorrect
-                                                                    ? 'border-green-400 bg-green-100'
-                                                                    : option.isSelected
-                                                                    ? 'border-red-400 bg-red-100'
-                                                                    : 'border-gray-200 bg-white'
-                                                            }`}
-                                                        >
-                                                            <div className="flex items-center justify-between">
-                                                                <span className="text-gray-900">{option.text}</span>
-                                                                <div className="flex items-center space-x-2">
-                                                                    {selectedAttempt.showAnswers !== false ? (
-                                                                        <>
-                                                                            {option.isCorrect && (
-                                                                                <span className="text-green-600 font-semibold text-sm">Đáp án đúng</span>
-                                                                            )}
-                                                                            {option.isSelected && !option.isCorrect && (
-                                                                                <span className="text-red-600 font-semibold text-sm">Bạn đã chọn</span>
-                                                                            )}
-                                                                        </>
-                                                                    ) : (
-                                                                        <>
-                                                                            {option.isSelected && (
-                                                                                <span className="text-blue-600 font-semibold text-sm">Bạn đã chọn</span>
-                                                                            )}
-                                                                        </>
-                                                                    )}
+                                                <div className="p-5 space-y-2.5 bg-white">
+                                                    {question.options.map((option) => {
+                                                        let optionStyle = 'border-gray-200 bg-white hover:bg-gray-50 text-gray-700';
+                                                        let badge = null;
+
+                                                        if (selectedAttempt.showAnswers === false) {
+                                                            if (option.isSelected) {
+                                                                optionStyle = 'border-blue-300 bg-blue-50 text-blue-900 font-medium shadow-sm';
+                                                                badge = <span className="text-blue-600 font-semibold text-xs tracking-wide">Bạn đã chọn</span>;
+                                                            }
+                                                        } else {
+                                                            if (option.isCorrect) {
+                                                                optionStyle = 'border-green-400 bg-green-50 text-green-900 font-medium shadow-sm';
+                                                                badge = <span className="text-green-700 font-bold text-xs tracking-wide flex items-center"><CheckCircle className="w-3.5 h-3.5 mr-1" /> ĐÁP ÁN ĐÚNG</span>;
+                                                            } else if (option.isSelected) {
+                                                                optionStyle = 'border-red-300 bg-red-50 text-red-900 font-medium';
+                                                                badge = <span className="text-red-600 font-semibold text-xs tracking-wide">Bạn đã chọn (Sai)</span>;
+                                                            }
+                                                        }
+
+                                                        return (
+                                                            <div key={option.id} className={`p-4 rounded-lg border transition-colors ${optionStyle}`}>
+                                                                <div className="flex items-center justify-between gap-4">
+                                                                    <span className="leading-relaxed">{option.text}</span>
+                                                                    {badge && <div className="shrink-0">{badge}</div>}
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                    ))}
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         ))}

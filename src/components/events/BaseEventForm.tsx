@@ -14,6 +14,7 @@ import { Department } from '../../types/admin';
 import ActivityScoreRulePreview from './ActivityScoreRulePreview';
 import PresetConfigPanel from '../presets/PresetConfigPanel';
 import { validateActivityPresetConfig } from '../../utils/presetValidation';
+import { useFormDraft } from '../../hooks/useFormDraft';
 
 export type FormMode = 'normal' | 'minigame' | 'series';
 
@@ -85,41 +86,54 @@ const BaseEventForm = <T extends BaseEventFormData>({
     lockApprovalWhenImportant = true,
     activeScoreEntryCount = 0
 }: BaseEventFormProps<T>) => {
-    const [formData, setFormData] = useState<T>(() => {
-        const defaultData: BaseEventFormData = {
-            name: '',
-            type: mode === 'minigame' ? ActivityType.MINIGAME : ActivityType.SUKIEN,
-            description: '',
-            startDate: '',
-            endDate: '',
-            location: '',
-            bannerUrl: '',
-            shareLink: '',
-            benefits: '',
-            requirements: '',
-            contactInfo: '',
-            organizerIds: [],
-            requiresSubmission: mode === 'series' ? undefined : false,
-            scoreRules: mode === 'series' ? undefined : [],
-            registrationStartDate: mode === 'series' ? undefined : '',
-            registrationDeadline: mode === 'series' ? undefined : '',
-            isImportant: false,
-            isDraft: true,
-            ticketQuantity: mode === 'series' ? undefined : (mode === 'minigame' ? 0 : 0),
-            requiresApproval: mode === 'series' ? undefined : true,
-            mandatoryForFacultyStudents: false,
-        };
+    const isEditing = !!(initialData && initialData.name);
 
-        return {
-            ...defaultData,
-            ...Object.fromEntries(
-                Object.entries(initialData).map(([key, value]) => [
-                    key,
-                    value !== undefined ? value : (defaultData as any)[key]
-                ])
-            )
-        } as T;
-    });
+    const { 
+        data: formData, 
+        setData: setFormData,
+        loadExternalData,
+        hasDraft, 
+        clearDraft, 
+        draftSavedAt 
+    } = useFormDraft<T>(
+        `draft_${mode}_create`, 
+        (() => {
+            const defaultData: BaseEventFormData = {
+                name: '',
+                type: mode === 'minigame' ? ActivityType.MINIGAME : ActivityType.SUKIEN,
+                description: '',
+                startDate: '',
+                endDate: '',
+                location: '',
+                bannerUrl: '',
+                shareLink: '',
+                benefits: '',
+                requirements: '',
+                contactInfo: '',
+                organizerIds: [],
+                requiresSubmission: mode === 'series' ? undefined : false,
+                scoreRules: mode === 'series' ? undefined : [],
+                registrationStartDate: mode === 'series' ? undefined : '',
+                registrationDeadline: mode === 'series' ? undefined : '',
+                isImportant: false,
+                isDraft: true,
+                ticketQuantity: mode === 'series' ? undefined : (mode === 'minigame' ? 0 : 0),
+                requiresApproval: mode === 'series' ? undefined : true,
+                mandatoryForFacultyStudents: false,
+            };
+    
+            return {
+                ...defaultData,
+                ...Object.fromEntries(
+                    Object.entries(initialData).map(([key, value]) => [
+                        key,
+                        value !== undefined ? value : (defaultData as any)[key]
+                    ])
+                )
+            } as T;
+        })(), 
+        !isEditing
+    );
 
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [originalBannerUrl, setOriginalBannerUrl] = useState<string>('');
@@ -134,7 +148,6 @@ const BaseEventForm = <T extends BaseEventFormData>({
     const [presetConfigErrors, setPresetConfigErrors] = useState<Record<string, string>>({});
     const [departments, setDepartments] = useState<Department[]>([]);
     const [semesters, setSemesters] = useState<Array<{ id: number; name: string }>>([]);
-    const isEditing = !!(initialData && initialData.name);
     const isScoreLocked = (activeScoreEntryCount ?? 0) > 0;
 
     // Sync selectedPresetCode and enabledRules when formData.presetCode changes (e.g. from initialData or preset selection)
@@ -636,7 +649,7 @@ const BaseEventForm = <T extends BaseEventFormData>({
                     presetErrs[e.fieldName] = e.message;
                 }
                 if (result.errors.length > 0) {
-                    toast.error('Vui lòng hoàn tất cấu hình preset bắt buộc');
+                    toast.error('Vui lòng hoàn tất cấu hình mẫu bắt buộc');
                     console.warn('Preset validation errors:', result.errors);
                 }
             }
@@ -743,6 +756,7 @@ const BaseEventForm = <T extends BaseEventFormData>({
                             bannerUrl: uploadResponse.data,
                             bannerFile: undefined
                         } as T;
+                        if (!isEditing) clearDraft();
                         onSubmit(updatedFormData);
                     } else {
                         setErrors(prev => ({
@@ -757,6 +771,7 @@ const BaseEventForm = <T extends BaseEventFormData>({
                         ...baseSubmitData,
                         bannerUrl: formData.bannerUrl || (originalBannerUrl && formData.bannerUrl === '' ? originalBannerUrl : undefined)
                     } as T;
+                    if (!isEditing) clearDraft();
                     onSubmit(submitData);
                 }
             } catch (error) {
@@ -783,28 +798,19 @@ const BaseEventForm = <T extends BaseEventFormData>({
         isScoreLocked
     };
 
-    const formContent = (
-        <form onSubmit={handleSubmit} className={inline ? "space-y-6" : "p-6 space-y-6"}>
-            {/* Score Lock Banner */}
+    const scoreConfigPanel = mode !== 'series' ? (
+        <div className="space-y-5">
             {isScoreLocked && (
-                <div className="p-4 bg-red-50 border border-red-300 rounded-md">
-                    <div className="flex items-start">
-                        <svg className="w-5 h-5 text-red-500 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                        </svg>
-                        <div>
-                            <p className="text-sm font-semibold text-red-800">Cấu hình điểm đã bị khóa</p>
-                            <p className="text-sm text-red-700 mt-1">
-                                Sự kiện đã có <strong>{activeScoreEntryCount}</strong> lượt tính điểm, không thể sửa cấu hình điểm (loại điểm, preset, luật điểm).
-                                Unpublish sự kiện trước để sửa.
-                            </p>
-                        </div>
-                    </div>
+                <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
+                    <p className="text-sm font-semibold text-rose-800">Cấu hình điểm đã bị khóa</p>
+                    <p className="mt-1 text-sm text-rose-700 leading-relaxed">
+                        Sự kiện đã có <strong className="tabular-nums">{activeScoreEntryCount}</strong> lượt tính điểm,
+                        không thể sửa cấu hình điểm (loại điểm, mẫu cấu hình, luật điểm). Hãy hủy công bố sự kiện trước khi sửa.
+                    </p>
                 </div>
             )}
 
-            {/* Preset Config Panel (Standard & Minigame) */}
-            {mode !== 'series' && presets.length > 0 && !isScoreLocked && (
+            {!isScoreLocked && presets.length > 0 && (
                 <PresetConfigPanel
                     presets={presets}
                     selectedPresetCode={selectedPresetCode}
@@ -830,27 +836,138 @@ const BaseEventForm = <T extends BaseEventFormData>({
                 />
             )}
 
-            {renderFields ? renderFields(renderFieldsProps) : null}
+            {!isScoreLocked && (!formData.presetCode || formData.presetCode === 'CUSTOM') && (
+                <ScoreRulesForm
+                    rules={formData.scoreRules || []}
+                    onChange={(rules) => setFormData(prev => ({ ...prev, scoreRules: rules } as T))}
+                    departments={departments}
+                    disabled={false}
+                />
+            )}
+        </div>
+    ) : null;
 
-            {/* Score Rules Section - only shown in CUSTOM mode and not locked */}
-            {mode !== 'series' && (!formData.presetCode || formData.presetCode === 'CUSTOM') && !isScoreLocked && (
-                <div className="pt-6 border-t border-gray-200">
-                    <ScoreRulesForm
-                        rules={formData.scoreRules || []}
-                        onChange={(rules) => setFormData(prev => ({ ...prev, scoreRules: rules } as T))}
-                        departments={departments}
-                        disabled={false}
-                    />
+    const useSplitLayout = !inline && mode !== 'series';
+
+    const formContent = (
+        <form onSubmit={handleSubmit} className={inline ? 'space-y-6' : 'p-5 sm:p-6 space-y-6'}>
+            {hasDraft && !isEditing && (
+                <div className="flex items-center justify-between rounded-2xl bg-amber-50 p-4 border border-amber-200 shadow-sm mb-6">
+                    <div className="flex items-center gap-3">
+                        <span className="text-xl">📝</span>
+                        <div>
+                            <div className="text-amber-800 text-sm font-extrabold">Đã tự động khôi phục bản nháp chưa lưu</div>
+                            {draftSavedAt && <div className="text-amber-600/80 text-xs font-semibold mt-0.5">Lưu lần cuối: {new Date(draftSavedAt).toLocaleString()}</div>}
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (window.confirm('Bạn có chắc chắn muốn xóa bản nháp này và bắt đầu lại từ đầu?')) {
+                                clearDraft();
+                            }
+                        }}
+                        className="text-xs font-extrabold px-4 py-2 rounded-xl bg-amber-100 text-amber-800 hover:bg-amber-200 transition-colors shadow-sm"
+                    >
+                        Làm mới
+                    </button>
                 </div>
             )}
+            {useSplitLayout ? (
+                <>
+                    <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+                        <div className="xl:col-span-7 space-y-6 min-w-0">
+                            <div className="rounded-2xl border border-gray-100 bg-white shadow-premium p-5 sm:p-6 space-y-6">
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
+                                        Thông tin sự kiện
+                                    </p>
+                                    <h3 className="mt-1 text-lg font-semibold tracking-tight text-primary-900">
+                                        Chi tiết cơ bản
+                                    </h3>
+                                    <p className="mt-1 text-sm text-gray-500">
+                                        Điền tên, thời gian, địa điểm và các tùy chọn tổ chức.
+                                    </p>
+                                </div>
+                                {renderFields ? renderFields(renderFieldsProps) : null}
+                            </div>
+                        </div>
 
-            {/* Submit Button */}
-            <div className={`flex justify-end space-x-4 ${inline ? 'pt-6 border-t border-gray-200' : 'pt-6 border-t border-gray-200'}`}>
+                        <aside className="xl:col-span-5 min-w-0">
+                            <div className="xl:sticky xl:top-24 rounded-2xl border border-primary-900/10 bg-white shadow-premium overflow-hidden">
+                                <div className="border-b border-gray-100 bg-primary-900 px-5 py-4 text-white">
+                                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent/90">
+                                        Điểm & mẫu cấu hình
+                                    </p>
+                                    <h3 className="mt-1 text-lg font-semibold tracking-tight">
+                                        Cấu hình điểm
+                                    </h3>
+                                    <p className="mt-1 text-sm text-white/65 leading-relaxed">
+                                        Chọn mẫu sẵn có hoặc tùy chỉnh luật điểm riêng cho sự kiện.
+                                    </p>
+                                </div>
+                                <div className="p-5 space-y-5 max-h-[min(70vh,720px)] overflow-y-auto">
+                                    {scoreConfigPanel}
+                                </div>
+                            </div>
+                        </aside>
+                    </div>
+                </>
+            ) : (
+                <>
+                    {isScoreLocked && (
+                        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
+                            <p className="text-sm font-semibold text-rose-800">Cấu hình điểm đã bị khóa</p>
+                            <p className="mt-1 text-sm text-rose-700">
+                                Sự kiện đã có <strong>{activeScoreEntryCount}</strong> lượt tính điểm, không thể sửa cấu hình điểm.
+                            </p>
+                        </div>
+                    )}
+                    {mode !== 'series' && presets.length > 0 && !isScoreLocked && (
+                        <PresetConfigPanel
+                            presets={presets}
+                            selectedPresetCode={selectedPresetCode}
+                            onPresetChange={handlePresetChange}
+                            config={(formData.presetConfig || {}) as Record<string, unknown>}
+                            onConfigChange={(config) => {
+                                setFormData(prev => ({
+                                    ...prev,
+                                    presetConfig: config as ActivityPresetConfig
+                                } as T));
+                            }}
+                            enabledRules={enabledRules}
+                            onRuleToggle={handleRuleToggle}
+                            onPreview={handlePreview}
+                            previewResponse={presetPreview}
+                            previewLoading={previewLoading}
+                            mode="activity"
+                            activityType={formData.type}
+                            requiresSubmission={formData.requiresSubmission}
+                            errors={presetConfigErrors}
+                            externalOptions={externalOptions}
+                            lockPreset={isEditing && !!formData.presetCode && formData.presetCode !== 'CUSTOM'}
+                        />
+                    )}
+                    {renderFields ? renderFields(renderFieldsProps) : null}
+                    {mode !== 'series' && (!formData.presetCode || formData.presetCode === 'CUSTOM') && !isScoreLocked && (
+                        <div className="pt-6 border-t border-gray-200">
+                            <ScoreRulesForm
+                                rules={formData.scoreRules || []}
+                                onChange={(rules) => setFormData(prev => ({ ...prev, scoreRules: rules } as T))}
+                                departments={departments}
+                                disabled={false}
+                            />
+                        </div>
+                    )}
+                </>
+            )}
+
+            <div className={`flex flex-wrap justify-end gap-3 ${inline ? 'pt-6 border-t border-gray-200' : 'pt-2'}`}>
                 {onCancel && (
                     <button
                         type="button"
                         onClick={onCancel}
-                        className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#001C44]"
+                        className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 transition-all hover:bg-gray-50 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900"
                     >
                         Hủy
                     </button>
@@ -858,9 +975,13 @@ const BaseEventForm = <T extends BaseEventFormData>({
                 <button
                     type="submit"
                     disabled={loading || isUploading}
-                    className="px-6 py-2 bg-[#001C44] text-white rounded-md hover:bg-[#002A66] focus:outline-none focus:ring-2 focus:ring-[#001C44] disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="rounded-xl bg-primary-900 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-primary-800 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                    {isUploading ? 'Đang upload ảnh...' : loading ? (isEditing ? 'Đang lưu...' : 'Đang tạo...') : (isEditing ? 'Lưu thay đổi' : 'Tạo sự kiện')}
+                    {isUploading
+                        ? 'Đang tải ảnh lên...'
+                        : loading
+                            ? (isEditing ? 'Đang lưu...' : 'Đang tạo...')
+                            : (isEditing ? 'Lưu thay đổi' : 'Tạo sự kiện')}
                 </button>
             </div>
         </form>
@@ -871,16 +992,28 @@ const BaseEventForm = <T extends BaseEventFormData>({
     }
 
     return (
-        <div className="max-w-4xl mx-auto p-6">
-            <div className="bg-white shadow-lg rounded-lg">
-                {title && (
-                    <div className="px-6 py-4 border-b border-gray-200">
-                        <h2 className="text-2xl font-bold text-[#001C44]">{title}</h2>
-                        <p className="text-gray-600 mt-1">Điền thông tin chi tiết về sự kiện</p>
-                    </div>
-                )}
-                {formContent}
-            </div>
+        <div className="mx-auto max-w-7xl">
+            <header className="mb-6 relative overflow-hidden rounded-2xl border border-primary-900/10 bg-primary-900 px-6 py-7 sm:px-8 text-white shadow-premium">
+                <div
+                    className="pointer-events-none absolute inset-0 opacity-[0.12]"
+                    style={{
+                        backgroundImage:
+                            'radial-gradient(ellipse at 0% 0%, #FFD66D 0%, transparent 55%), radial-gradient(ellipse at 100% 100%, #4b88b6 0%, transparent 50%)',
+                    }}
+                />
+                <div className="relative">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent/90">
+                        Quản lý sự kiện
+                    </p>
+                    <h1 className="mt-2 text-2xl sm:text-3xl font-semibold tracking-tight text-balance">
+                        {title || 'Tạo sự kiện mới'}
+                    </h1>
+                    <p className="mt-2 max-w-2xl text-sm text-white/70 leading-relaxed">
+                        Thông tin sự kiện bên trái — cấu hình điểm và mẫu sẵn có bên phải để dễ đối chiếu.
+                    </p>
+                </div>
+            </header>
+            {formContent}
         </div>
     );
 };

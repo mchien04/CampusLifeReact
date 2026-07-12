@@ -109,8 +109,8 @@ const ArticleEditorById: React.FC = () => {
                         seoDescription: response.body.seoDescription || '',
                         categoryId: response.body.categoryId ?? null,
                         tagIds: [],
-                        isFeatured: Boolean(response.body.featured),
-                        isPinned: Boolean(response.body.pinned),
+                        isFeatured: Boolean(response.body.isFeatured),
+                        isPinned: Boolean(response.body.isPinned),
                         priority: response.body.priority ?? 0,
                         articleType: response.body.articleType || 'ANNOUNCEMENT',
                         isPrimary: response.body.isPrimary || false,
@@ -189,8 +189,8 @@ const ArticleEditorById: React.FC = () => {
                     seoDescription: response.body.seoDescription || '',
                     categoryId: response.body.categoryId ?? null,
                     tagIds: form.tagIds ?? [],
-                    isFeatured: Boolean(response.body.featured),
-                    isPinned: Boolean(response.body.pinned),
+                    isFeatured: Boolean(response.body.isFeatured),
+                    isPinned: Boolean(response.body.isPinned),
                     priority: response.body.priority ?? 0,
                     articleType: response.body.articleType || 'ANNOUNCEMENT',
                     isPrimary: response.body.isPrimary || false,
@@ -210,7 +210,7 @@ const ArticleEditorById: React.FC = () => {
         setPublishing(true);
         setError('');
         try {
-            const response = article.published
+            const response = article.isPublished
                 ? await articleAPI.unpublishArticle(article.id)
                 : await articleAPI.publishArticle(article.id);
 
@@ -218,8 +218,8 @@ const ArticleEditorById: React.FC = () => {
                 setArticle(response.body);
                 setForm((prev) => ({
                     ...prev,
-                    isFeatured: Boolean(response.body?.featured),
-                    isPinned: Boolean(response.body?.pinned),
+                    isFeatured: Boolean(response.body?.isFeatured),
+                    isPinned: Boolean(response.body?.isPinned),
                     priority: response.body?.priority ?? 0,
                     categoryId: response.body?.categoryId ?? null,
                 }));
@@ -365,9 +365,9 @@ const ArticleEditorById: React.FC = () => {
                             type="button"
                             onClick={handlePublishToggle}
                             disabled={publishing}
-                            className={`flex-1 md:flex-none px-6 py-3 rounded-2xl font-extrabold transition-all active:scale-95 text-sm shadow-md hover:shadow-lg hover:-translate-y-0.5 ${article.published ? 'bg-amber-100 text-amber-800 hover:bg-amber-200' : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'} disabled:opacity-60 disabled:transform-none`}
+                            className={`flex-1 md:flex-none px-6 py-3 rounded-2xl font-extrabold transition-all active:scale-95 text-sm shadow-md hover:shadow-lg hover:-translate-y-0.5 ${article.isPublished ? 'bg-amber-100 text-amber-800 hover:bg-amber-200' : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'} disabled:opacity-60 disabled:transform-none`}
                         >
-                            {publishing ? 'Đang xử lý...' : article.published ? 'Gỡ bài' : 'Xuất bản'}
+                            {publishing ? 'Đang xử lý...' : article.isPublished ? 'Gỡ bài' : 'Xuất bản'}
                         </button>
                     )}
                     <Link
@@ -527,32 +527,40 @@ const ArticleEditorById: React.FC = () => {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-center bg-gray-50/50 p-4 rounded-3xl border border-gray-100">
-                        <label className="flex items-center justify-center gap-2.5 text-sm font-extrabold text-[#001C44] h-[48px] cursor-pointer hover:bg-white rounded-xl transition-colors">
-                            <input
-                                type="checkbox"
-                                checked={Boolean(form.isFeatured)}
-                                onChange={(e) => setForm((prev) => ({ ...prev, isFeatured: e.target.checked }))}
-                                className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                            />
-                            🌟 Nổi bật
-                        </label>
-                        <label className="flex items-center justify-center gap-2.5 text-sm font-extrabold text-[#001C44] h-[48px] cursor-pointer hover:bg-white rounded-xl transition-colors">
+                        <label className="flex items-center justify-center gap-2.5 text-sm font-extrabold text-[#001C44] h-[48px] cursor-pointer hover:bg-white rounded-xl transition-colors" title="Đẩy bài lên đầu danh sách">
                             <input
                                 type="checkbox"
                                 checked={Boolean(form.isPinned)}
                                 onChange={(e) => setForm((prev) => ({ ...prev, isPinned: e.target.checked }))}
                                 className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                             />
-                            📌 Ghim
+                            Ghim
                         </label>
-                        <label className="flex items-center justify-center gap-2.5 text-sm font-extrabold text-[#001C44] h-[48px] cursor-pointer hover:bg-white rounded-xl transition-colors">
+                        <label className="flex items-center justify-center gap-2.5 text-sm font-extrabold text-[#001C44] h-[48px] cursor-pointer hover:bg-white rounded-xl transition-colors" title="Hiện trong section nổi bật">
+                            <input
+                                type="checkbox"
+                                checked={Boolean(form.isFeatured)}
+                                onChange={(e) => setForm((prev) => ({ ...prev, isFeatured: e.target.checked }))}
+                                className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                            />
+                            Nổi bật
+                        </label>
+                        <label
+                            className={`flex items-center justify-center gap-2.5 text-sm font-extrabold h-[48px] rounded-xl transition-colors ${
+                                form.activityId
+                                    ? 'text-[#001C44] cursor-pointer hover:bg-white'
+                                    : 'text-gray-400 cursor-not-allowed opacity-60'
+                            }`}
+                            title={form.activityId ? 'Announcement chính của sự kiện (mỗi activity 1 bài)' : 'Chỉ dùng khi bài gắn sự kiện — hoặc dùng nút Đặt đại diện sau khi lưu'}
+                        >
                             <input
                                 type="checkbox"
                                 checked={Boolean(form.isPrimary)}
+                                disabled={!form.activityId}
                                 onChange={(e) => setForm((prev) => ({ ...prev, isPrimary: e.target.checked }))}
-                                className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed"
                             />
-                            🏆 Đại diện
+                            Đại diện chính
                         </label>
                         <div className="space-y-1.5 w-full">
                             <span className="block text-xs font-bold tracking-wide text-gray-500 uppercase px-2">Độ ưu tiên (Priority)</span>
@@ -690,13 +698,16 @@ const ArticleEditorById: React.FC = () => {
                     )}
 
                     <div className="space-y-4">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                            <span className="block text-xl font-extrabold text-[#001C44]">Nội dung bài viết (Content)</span>
+                        <div>
+                            <span className="block text-xl font-extrabold text-[#001C44]">Nội dung bài viết</span>
+                            <p className="text-sm text-slate-500 font-medium mt-1">
+                                Cỡ chữ, màu chữ và định dạng HTML được giữ khi lưu và hiển thị.
+                            </p>
                         </div>
                         <RichTextEditorTipTap
                             value={form.content || ''}
                             onChange={(nextValue) => updateField('content', nextValue)}
-                            placeholder="Nhập nội dung chi tiết bài viết..."
+                            placeholder="Viết nội dung bài viết..."
                         />
                     </div>
 

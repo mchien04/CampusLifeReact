@@ -11,10 +11,31 @@ import {
     BulkSendCredentialsResponse,
     CreateStudentRequest
 } from '../../types/studentAccount';
+import { 
+    MagnifyingGlass, 
+    PencilSimple, 
+    Trash, 
+    PaperPlaneRight, 
+    CheckCircle, 
+    XCircle,
+    UserFocus,
+    X,
+    UploadSimple,
+    Eye,
+    Plus,
+    FileCsv,
+    UserPlus,
+    List,
+    Warning
+} from '@phosphor-icons/react';
 
 type TabType = 'upload' | 'review' | 'create' | 'manage' | 'manual_create';
 
-const StudentAccountManagement: React.FC = () => {
+interface StudentAccountManagementProps {
+    isNested?: boolean;
+}
+
+const StudentAccountManagement: React.FC<StudentAccountManagementProps> = ({ isNested = false }) => {
     const [activeTab, setActiveTab] = useState<TabType>('upload');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -447,75 +468,75 @@ const StudentAccountManagement: React.FC = () => {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white">
-                <div>
-                    <h1 className="text-3xl font-bold mb-2 flex items-center">
-                        <span className="mr-3 text-4xl">🎓</span>
-                        Quản lý tài khoản sinh viên
-                    </h1>
-                    <p className="text-gray-200 text-lg">Upload Excel, tạo tài khoản hàng loạt và quản lý tài khoản sinh viên</p>
+            {!isNested && (
+                <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white">
+                    <div>
+                        <h1 className="text-3xl font-bold mb-2 flex items-center">
+                            <span className="mr-3 text-4xl">🎓</span>
+                            Quản lý tài khoản sinh viên
+                        </h1>
+                        <p className="text-gray-200 text-lg">Upload Excel, tạo tài khoản hàng loạt và quản lý tài khoản sinh viên</p>
+                    </div>
                 </div>
-            </div>
+            )}
 
             <div>
                 {/* Tabs */}
-                <div className="bg-white rounded-lg shadow-lg mb-6 border border-gray-100">
-                    <div className="border-b border-gray-200">
-                        <nav className="flex -mb-px">
+                <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm border border-gray-100 p-2 mb-6 inline-flex overflow-x-auto max-w-full">
+                    <nav className="flex gap-2 min-w-max">
+                        <button
+                            onClick={() => setActiveTab('upload')}
+                            className={`px-5 py-2.5 text-sm font-semibold rounded-xl transition-all duration-300 ${activeTab === 'upload'
+                                ? 'bg-[#001C44] text-white shadow-md'
+                                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                                }`}
+                        >
+                            Upload Excel
+                        </button>
+                        {uploadResponse && (
                             <button
-                                onClick={() => setActiveTab('upload')}
-                                className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'upload'
-                                    ? 'border-[#001C44] text-[#001C44]'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                onClick={() => setActiveTab('review')}
+                                className={`px-5 py-2.5 text-sm font-semibold rounded-xl transition-all duration-300 ${activeTab === 'review'
+                                    ? 'bg-[#001C44] text-white shadow-md'
+                                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                                     }`}
                             >
-                                Upload Excel
+                                Review Data
                             </button>
-                            {uploadResponse && (
-                                <button
-                                    onClick={() => setActiveTab('review')}
-                                    className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'review'
-                                        ? 'border-[#001C44] text-[#001C44]'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                        }`}
-                                >
-                                    Review Data
-                                </button>
-                            )}
-                            {createResponse && (
-                                <button
-                                    onClick={() => setActiveTab('create')}
-                                    className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'create'
-                                        ? 'border-[#001C44] text-[#001C44]'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                        }`}
-                                >
-                                    Create Results
-                                </button>
-                            )}
+                        )}
+                        {createResponse && (
                             <button
-                                onClick={() => {
-                                    setActiveTab('manage');
-                                    loadAccounts();
-                                }}
-                                className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'manage'
-                                    ? 'border-[#001C44] text-[#001C44]'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                onClick={() => setActiveTab('create')}
+                                className={`px-5 py-2.5 text-sm font-semibold rounded-xl transition-all duration-300 ${activeTab === 'create'
+                                    ? 'bg-[#001C44] text-white shadow-md'
+                                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                                     }`}
                             >
-                                Manage Accounts
+                                Create Results
                             </button>
-                            <button
-                                onClick={() => setActiveTab('manual_create')}
-                                className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'manual_create'
-                                    ? 'border-[#001C44] text-[#001C44]'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                    }`}
-                            >
-                                Tạo thủ công
-                            </button>
-                        </nav>
-                    </div>
+                        )}
+                        <button
+                            onClick={() => {
+                                setActiveTab('manage');
+                                loadAccounts();
+                            }}
+                            className={`px-5 py-2.5 text-sm font-semibold rounded-xl transition-all duration-300 ${activeTab === 'manage'
+                                ? 'bg-[#001C44] text-white shadow-md'
+                                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                                }`}
+                        >
+                            Manage Accounts
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('manual_create')}
+                            className={`px-5 py-2.5 text-sm font-semibold rounded-xl transition-all duration-300 ${activeTab === 'manual_create'
+                                ? 'bg-[#001C44] text-white shadow-md'
+                                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                                }`}
+                        >
+                            Tạo thủ công
+                        </button>
+                    </nav>
                 </div>
 
                 {/* Messages */}
@@ -609,11 +630,9 @@ const StudentAccountManagement: React.FC = () => {
 
                         <button
                             onClick={addManualStudentRow}
-                            className="w-full py-3.5 mt-5 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 font-medium hover:border-[#001C44] hover:text-[#001C44] hover:bg-[#001C44]/5 transition-all flex items-center justify-center gap-2 outline-none focus:ring-2 focus:ring-[#001C44]"
+                            className="w-full py-4 mt-6 border-2 border-dashed border-gray-200 rounded-2xl text-gray-500 font-medium hover:border-[#001C44]/30 hover:text-[#001C44] hover:bg-[#001C44]/5 transition-all flex items-center justify-center gap-2 outline-none focus:ring-2 focus:ring-[#001C44]/20"
                         >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                            </svg>
+                            <Plus weight="bold" className="w-5 h-5" />
                             Thêm một sinh viên khác
                         </button>
 
@@ -621,21 +640,16 @@ const StudentAccountManagement: React.FC = () => {
                             <button
                                 onClick={handleManualCreate}
                                 disabled={loading || manualStudents.filter(s => s.studentCode.trim() && s.fullName.trim() && s.email.trim()).length === 0}
-                                className="inline-flex items-center px-6 py-3 border border-transparent shadow-sm text-sm font-semibold rounded-xl text-white bg-[#001C44] hover:bg-[#002A66] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#001C44] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-semibold rounded-xl text-white bg-[#001C44] hover:bg-[#002A66] shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#001C44] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                             >
                                 {loading ? (
                                     <>
-                                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
+                                        <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-3"></span>
                                         Đang tạo...
                                     </>
                                 ) : (
                                     <>
-                                        <svg className="w-5 h-5 mr-2 -ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
+                                        <UserPlus weight="bold" className="w-5 h-5 mr-2" />
                                         Tạo {manualStudents.filter(s => s.studentCode.trim() && s.fullName.trim() && s.email.trim()).length} tài khoản
                                     </>
                                 )}
@@ -646,19 +660,21 @@ const StudentAccountManagement: React.FC = () => {
 
                 {/* Upload Excel Tab */}
                 {activeTab === 'upload' && (
-                    <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100">
-                        <h2 className="text-xl font-semibold text-[#001C44] mb-4">Upload File Excel</h2>
-                        <p className="text-gray-600 mb-4">
-                            File Excel phải có 3 cột: Mã số sinh viên, Họ tên, Email
-                        </p>
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+                        <div className="mb-6">
+                            <h2 className="text-xl font-bold text-[#001C44] mb-2">Upload File Excel</h2>
+                            <p className="text-gray-500 text-sm">
+                                File Excel phải có 3 cột bắt buộc: <span className="font-medium text-gray-700">Mã số sinh viên</span>, <span className="font-medium text-gray-700">Họ tên</span>, <span className="font-medium text-gray-700">Email</span>.
+                            </p>
+                        </div>
 
                         <div
                             onDragOver={handleDragOver}
                             onDragLeave={handleDragLeave}
                             onDrop={handleDrop}
-                            className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${isDragging
-                                ? 'border-[#001C44] bg-[#001C44] bg-opacity-5'
-                                : 'border-gray-300 hover:border-[#001C44]'
+                            className={`border-2 border-dashed rounded-2xl p-12 text-center transition-all duration-300 ${isDragging
+                                ? 'border-[#001C44] bg-[#001C44]/5 scale-[0.99]'
+                                : 'border-gray-200 hover:border-[#001C44]/50 bg-gray-50/50 hover:bg-gray-50'
                                 }`}
                         >
                             <input
@@ -668,38 +684,28 @@ const StudentAccountManagement: React.FC = () => {
                                 onChange={(e) => handleFileSelect(e.target.files)}
                                 className="hidden"
                             />
-                            <svg
-                                className="mx-auto h-12 w-12 text-gray-400"
-                                stroke="currentColor"
-                                fill="none"
-                                viewBox="0 0 48 48"
-                            >
-                                <path
-                                    d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                                    strokeWidth={2}
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                />
-                            </svg>
-                            <div className="mt-4">
+                            <div className="w-16 h-16 bg-white shadow-sm rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100 text-gray-400">
+                                <UploadSimple weight="bold" className="w-8 h-8" />
+                            </div>
+                            <div>
                                 <button
                                     onClick={() => fileInputRef.current?.click()}
-                                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#001C44] hover:bg-[#002A66] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#001C44]"
+                                    className="inline-flex items-center px-6 py-2.5 shadow-sm text-sm font-semibold rounded-xl text-white bg-[#001C44] hover:bg-[#002A66] transition-all hover:shadow-md active:scale-95"
                                 >
                                     Chọn file Excel
                                 </button>
-                                <p className="mt-2 text-sm text-gray-600">
+                                <p className="mt-4 text-sm text-gray-500">
                                     hoặc kéo thả file vào đây
                                 </p>
-                                <p className="mt-1 text-xs text-gray-500">
-                                    Chỉ chấp nhận file .xlsx hoặc .xls
+                                <p className="mt-2 text-xs text-gray-400 font-medium">
+                                    Hỗ trợ định dạng .xlsx, .xls
                                 </p>
                             </div>
                         </div>
 
                         {loading && (
-                            <div className="mt-4 flex justify-center">
-                                <LoadingSpinner text="Đang upload và parse file..." />
+                            <div className="mt-8 flex justify-center">
+                                <LoadingSpinner text="Đang xử lý file..." />
                             </div>
                         )}
                     </div>
@@ -709,78 +715,94 @@ const StudentAccountManagement: React.FC = () => {
                 {activeTab === 'review' && uploadResponse && (
                     <div className="space-y-6">
                         {/* Summary */}
-                        <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100">
-                            <h2 className="text-xl font-semibold text-[#001C44] mb-4">Kết quả Parse</h2>
-                            <div className="grid grid-cols-3 gap-4">
-                                <div className="bg-blue-50 p-4 rounded-lg">
-                                    <p className="text-sm text-gray-600">Tổng số dòng</p>
-                                    <p className="text-2xl font-bold text-[#001C44]">{uploadResponse.totalRows}</p>
+                        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                            <h2 className="text-xl font-bold text-[#001C44] mb-6">Tổng quan dữ liệu</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="bg-gray-50 rounded-xl p-5 border border-gray-100 flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-500 mb-1">Tổng số dòng</p>
+                                        <p className="text-3xl font-bold text-[#001C44]">{uploadResponse.totalRows}</p>
+                                    </div>
+                                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-100">
+                                        <List weight="bold" className="w-6 h-6 text-gray-400" />
+                                    </div>
                                 </div>
-                                <div className="bg-green-50 p-4 rounded-lg">
-                                    <p className="text-sm text-gray-600">Dòng hợp lệ</p>
-                                    <p className="text-2xl font-bold text-green-600">{uploadResponse.validRows.length}</p>
+                                <div className="bg-green-50/50 rounded-xl p-5 border border-green-100 flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm font-medium text-green-600 mb-1">Dòng hợp lệ</p>
+                                        <p className="text-3xl font-bold text-green-600">{uploadResponse.validRows.length}</p>
+                                    </div>
+                                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm border border-green-100">
+                                        <CheckCircle weight="fill" className="w-6 h-6 text-green-500" />
+                                    </div>
                                 </div>
-                                <div className="bg-red-50 p-4 rounded-lg">
-                                    <p className="text-sm text-gray-600">Dòng không hợp lệ</p>
-                                    <p className="text-2xl font-bold text-red-600">{uploadResponse.invalidRows.length}</p>
+                                <div className="bg-red-50/50 rounded-xl p-5 border border-red-100 flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm font-medium text-red-600 mb-1">Dòng không hợp lệ</p>
+                                        <p className="text-3xl font-bold text-red-600">{uploadResponse.invalidRows.length}</p>
+                                    </div>
+                                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm border border-red-100">
+                                        <Warning weight="fill" className="w-6 h-6 text-red-500" />
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         {/* Valid Rows */}
                         {uploadResponse.validRows.length > 0 && (
-                            <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-lg font-semibold text-[#001C44]">
-                                        Dòng hợp lệ ({uploadResponse.validRows.length})
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                                <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white">
+                                    <h3 className="text-lg font-bold text-[#001C44] flex items-center gap-2">
+                                        Dòng hợp lệ <span className="bg-green-100 text-green-700 py-0.5 px-2 rounded-full text-xs font-semibold">{uploadResponse.validRows.length}</span>
                                     </h3>
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-3">
                                         <button
                                             onClick={toggleSelectAllValid}
-                                            className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50"
+                                            className="px-4 py-2 text-sm font-medium border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-all active:scale-95"
                                         >
                                             {selectedValidRows.size === uploadResponse.validRows.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
                                         </button>
                                         <button
                                             onClick={handleBulkCreate}
                                             disabled={selectedValidRows.size === 0 || loading}
-                                            className="px-4 py-1 text-sm bg-[#001C44] text-white rounded hover:bg-[#002A66] disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="px-5 py-2 text-sm font-semibold bg-[#001C44] text-white rounded-xl hover:bg-[#002A66] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2 active:scale-95"
                                         >
+                                            <UserPlus weight="bold" />
                                             Tạo tài khoản ({selectedValidRows.size})
                                         </button>
                                     </div>
                                 </div>
                                 <div className="overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-gray-200">
-                                        <thead className="bg-gray-50">
+                                    <table className="min-w-full divide-y divide-gray-100">
+                                        <thead className="bg-gray-50/80">
                                             <tr>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th className="px-6 py-4 text-left">
                                                     <input
                                                         type="checkbox"
                                                         checked={selectedValidRows.size === uploadResponse.validRows.length && uploadResponse.validRows.length > 0}
                                                         onChange={toggleSelectAllValid}
-                                                        className="rounded border-gray-300 text-[#001C44] focus:ring-[#001C44]"
+                                                        className="w-4 h-4 rounded border-gray-300 text-[#001C44] focus:ring-[#001C44]"
                                                     />
                                                 </th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã số SV</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Họ tên</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Mã số SV</th>
+                                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Họ tên</th>
+                                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Email</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
+                                        <tbody className="bg-white divide-y divide-gray-100">
                                             {uploadResponse.validRows.map((row, index) => (
-                                                <tr key={index} className="hover:bg-gray-50">
-                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                <tr key={index} className={`hover:bg-gray-50 transition-colors ${selectedValidRows.has(index) ? 'bg-blue-50/30' : ''}`}>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
                                                         <input
                                                             type="checkbox"
                                                             checked={selectedValidRows.has(index)}
                                                             onChange={() => toggleRowSelection(index)}
-                                                            className="rounded border-gray-300 text-[#001C44] focus:ring-[#001C44]"
+                                                            className="w-4 h-4 rounded border-gray-300 text-[#001C44] focus:ring-[#001C44]"
                                                         />
                                                     </td>
-                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{row.studentCode}</td>
-                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{row.fullName}</td>
-                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{row.email}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{row.studentCode}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{row.fullName}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.email}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -791,31 +813,37 @@ const StudentAccountManagement: React.FC = () => {
 
                         {/* Invalid Rows */}
                         {uploadResponse.invalidRows.length > 0 && (
-                            <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100">
-                                <h3 className="text-lg font-semibold text-[#001C44] mb-4">
-                                    Dòng không hợp lệ ({uploadResponse.invalidRows.length})
-                                </h3>
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                                <div className="px-6 py-5 border-b border-gray-100 bg-white">
+                                    <h3 className="text-lg font-bold text-red-600 flex items-center gap-2">
+                                        <Warning weight="bold" />
+                                        Dòng không hợp lệ <span className="bg-red-100 text-red-700 py-0.5 px-2 rounded-full text-xs font-semibold">{uploadResponse.invalidRows.length}</span>
+                                    </h3>
+                                </div>
                                 <div className="overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-gray-200">
-                                        <thead className="bg-gray-50">
+                                    <table className="min-w-full divide-y divide-gray-100">
+                                        <thead className="bg-red-50/30">
                                             <tr>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã số SV</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Họ tên</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lỗi</th>
+                                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Mã số SV</th>
+                                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Họ tên</th>
+                                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Email</th>
+                                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Lý do lỗi</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
+                                        <tbody className="bg-white divide-y divide-gray-100">
                                             {uploadResponse.invalidRows.map((row, index) => {
-                                                // Find error for this row (errors are keyed by row number)
                                                 const rowNumber = uploadResponse.validRows.length + index + 1;
                                                 const error = uploadResponse.errors[rowNumber] || 'Không xác định';
                                                 return (
-                                                    <tr key={index} className="hover:bg-gray-50">
-                                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{row.studentCode || '-'}</td>
-                                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{row.fullName || '-'}</td>
-                                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{row.email || '-'}</td>
-                                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-red-600">{error}</td>
+                                                    <tr key={index} className="hover:bg-red-50/20 transition-colors">
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{row.studentCode || '-'}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{row.fullName || '-'}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.email || '-'}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                            <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-red-50 text-red-700 border border-red-100">
+                                                                {error}
+                                                            </span>
+                                                        </td>
                                                     </tr>
                                                 );
                                             })}
@@ -831,47 +859,65 @@ const StudentAccountManagement: React.FC = () => {
                 {activeTab === 'create' && createResponse && (
                     <div className="space-y-6">
                         {/* Summary */}
-                        <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100">
-                            <h2 className="text-xl font-semibold text-[#001C44] mb-4">Kết quả tạo tài khoản</h2>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-green-50 p-4 rounded-lg">
-                                    <p className="text-sm text-gray-600">Thành công</p>
-                                    <p className="text-2xl font-bold text-green-600">{createResponse.successCount}</p>
+                        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                            <h2 className="text-xl font-bold text-[#001C44] mb-6">Kết quả tạo tài khoản</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="bg-green-50/50 rounded-xl p-5 border border-green-100 flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm font-medium text-green-600 mb-1">Tạo thành công</p>
+                                        <p className="text-3xl font-bold text-green-600">{createResponse.successCount}</p>
+                                    </div>
+                                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm border border-green-100">
+                                        <CheckCircle weight="fill" className="w-6 h-6 text-green-500" />
+                                    </div>
                                 </div>
-                                <div className="bg-red-50 p-4 rounded-lg">
-                                    <p className="text-sm text-gray-600">Lỗi</p>
-                                    <p className="text-2xl font-bold text-red-600">{createResponse.errorCount}</p>
+                                <div className="bg-red-50/50 rounded-xl p-5 border border-red-100 flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm font-medium text-red-600 mb-1">Có lỗi</p>
+                                        <p className="text-3xl font-bold text-red-600">{createResponse.errorCount}</p>
+                                    </div>
+                                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm border border-red-100">
+                                        <Warning weight="fill" className="w-6 h-6 text-red-500" />
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         {/* Created Accounts */}
                         {createResponse.createdAccounts.length > 0 && (
-                            <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100">
-                                <h3 className="text-lg font-semibold text-[#001C44] mb-4">
-                                    Tài khoản đã tạo ({createResponse.createdAccounts.length})
-                                </h3>
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                                <div className="px-6 py-5 border-b border-gray-100 bg-white">
+                                    <h3 className="text-lg font-bold text-[#001C44] flex items-center gap-2">
+                                        Danh sách tài khoản được tạo <span className="bg-blue-100 text-blue-700 py-0.5 px-2 rounded-full text-xs font-semibold">{createResponse.createdAccounts.length}</span>
+                                    </h3>
+                                </div>
                                 <div className="overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-gray-200">
-                                        <thead className="bg-gray-50">
+                                    <table className="min-w-full divide-y divide-gray-100">
+                                        <thead className="bg-gray-50/80">
                                             <tr>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã số SV</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Họ tên</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khoa</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Password</th>
+                                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Username</th>
+                                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Email</th>
+                                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Mã số SV</th>
+                                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Họ tên</th>
+                                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Khoa</th>
+                                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Mật khẩu khởi tạo</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
+                                        <tbody className="bg-white divide-y divide-gray-100">
                                             {createResponse.createdAccounts.map((account) => (
-                                                <tr key={account.studentId} className="hover:bg-gray-50">
-                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{account.username}</td>
-                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{account.email}</td>
-                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{account.studentCode}</td>
-                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{account.fullName}</td>
-                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{account.departmentName || '-'}</td>
-                                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-mono text-gray-900">
+                                                <tr key={account.studentId} className="hover:bg-gray-50 transition-colors">
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{account.username}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{account.email}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{account.studentCode}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{account.fullName}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                        {account.departmentName ? (
+                                                            <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700">
+                                                                {account.departmentName}
+                                                            </span>
+                                                        ) : '-'}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono font-medium text-[#001C44]">
                                                         {account.password || 'Đã ẩn'}
                                                     </td>
                                                 </tr>
@@ -912,49 +958,46 @@ const StudentAccountManagement: React.FC = () => {
                 {activeTab === 'manage' && (
                     <div className="space-y-6">
                         {/* Filters */}
-                        <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100">
-                            <h3 className="text-lg font-semibold text-[#001C44] mb-4">Bộ lọc</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Tìm kiếm</label>
-                                    <input
-                                        type="text"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        placeholder="Tìm kiếm theo username, email, mã số SV, họ tên..."
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
-                                    />
+                        <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+                            <div className="flex flex-col lg:flex-row lg:items-end gap-6">
+                                {/* Search */}
+                                <div className="flex-1">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Tìm kiếm</label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <MagnifyingGlass className="h-5 w-5 text-gray-400" />
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            placeholder="Username, email, mã số SV, họ tên..."
+                                            className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#001C44]/20 focus:border-[#001C44] transition-all duration-300"
+                                        />
+                                    </div>
                                 </div>
+                                
+                                {/* Email Filter */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Trạng thái email</label>
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={() => setEmailSentFilter('ALL')}
-                                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${emailSentFilter === 'ALL'
-                                                ? 'bg-[#001C44] text-white'
-                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Trạng thái email</label>
+                                    <div className="flex bg-gray-100/80 p-1 rounded-xl">
+                                        {[
+                                            { id: 'ALL', label: 'Tất cả' },
+                                            { id: 'SENT', label: 'Đã gửi' },
+                                            { id: 'NOT_SENT', label: 'Chưa gửi' }
+                                        ].map((status) => (
+                                            <button
+                                                key={status.id}
+                                                onClick={() => setEmailSentFilter(status.id as any)}
+                                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                                                    emailSentFilter === status.id
+                                                        ? 'bg-white text-[#001C44] shadow-sm'
+                                                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/50'
                                                 }`}
-                                        >
-                                            Tất cả
-                                        </button>
-                                        <button
-                                            onClick={() => setEmailSentFilter('SENT')}
-                                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${emailSentFilter === 'SENT'
-                                                ? 'bg-[#001C44] text-white'
-                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                                }`}
-                                        >
-                                            Đã gửi
-                                        </button>
-                                        <button
-                                            onClick={() => setEmailSentFilter('NOT_SENT')}
-                                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${emailSentFilter === 'NOT_SENT'
-                                                ? 'bg-[#001C44] text-white'
-                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                                }`}
-                                        >
-                                            Chưa gửi
-                                        </button>
+                                            >
+                                                {status.label}
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
                             </div>
@@ -962,17 +1005,22 @@ const StudentAccountManagement: React.FC = () => {
 
                         {/* Bulk Actions */}
                         {selectedAccounts.size > 0 && (
-                            <div className="bg-white rounded-lg shadow-lg p-4 border border-gray-100">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm text-gray-600">
-                                        Đã chọn {selectedAccounts.size} tài khoản
+                            <div className="bg-[#001C44] rounded-2xl shadow-xl p-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in slide-in-from-bottom-2 fade-in duration-300">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-white/20 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">
+                                        {selectedAccounts.size}
+                                    </div>
+                                    <span className="text-white/90 font-medium text-sm">
+                                        tài khoản đang được chọn
                                     </span>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
                                     <button
                                         onClick={handleBulkSendCredentials}
                                         disabled={loading}
-                                        className="px-4 py-2 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66] disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                                        className="px-4 py-2 bg-white/10 text-white rounded-xl text-sm font-medium hover:bg-white/20 active:scale-95 transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        Gửi email hàng loạt
+                                        <PaperPlaneRight weight="bold" /> Gửi email hàng loạt
                                     </button>
                                 </div>
                             </div>
@@ -984,106 +1032,118 @@ const StudentAccountManagement: React.FC = () => {
                                 <LoadingSpinner text="Đang tải danh sách tài khoản..." />
                             </div>
                         ) : (
-                            <div className="bg-white rounded-lg shadow-lg border border-gray-100">
+                            <div className="bg-white shadow-sm rounded-2xl overflow-hidden border border-gray-100">
                                 <div className="overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-gray-200">
-                                        <thead className="bg-gray-50">
+                                    <table className="min-w-full divide-y divide-gray-100">
+                                        <thead className="bg-gray-50/50">
                                             <tr>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                                     <input
                                                         type="checkbox"
                                                         checked={selectedAccounts.size === filteredAccounts.length && filteredAccounts.length > 0}
                                                         onChange={toggleSelectAllAccounts}
-                                                        className="rounded border-gray-300 text-[#001C44] focus:ring-[#001C44]"
+                                                        className="rounded border-gray-300 text-[#001C44] focus:ring-[#001C44] transition-colors"
                                                     />
                                                 </th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã số SV</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Họ tên</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khoa</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    <div className="flex flex-col">
-                                                        <span>Email Sent</span>
-                                                    </div>
+                                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Username</th>
+                                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
+                                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Mã số SV</th>
+                                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Họ tên</th>
+                                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Khoa</th>
+                                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                                    Email Sent
                                                 </th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    <div className="flex flex-col">
-                                                        <span>Trạng thái</span>
-                                                    </div>
+                                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                                    Trạng thái
                                                 </th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Created At</th>
+                                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Thao tác</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
+                                        <tbody className="bg-white divide-y divide-gray-100">
                                             {filteredAccounts.length === 0 ? (
                                                 <tr>
-                                                    <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
-                                                        Không có tài khoản nào
+                                                    <td colSpan={10} className="px-12 py-20 text-center">
+                                                        <div className="flex flex-col items-center justify-center">
+                                                            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                                                                <UserFocus className="w-10 h-10 text-gray-400" weight="light" />
+                                                            </div>
+                                                            <p className="text-gray-500 font-medium text-lg">Không tìm thấy tài khoản nào</p>
+                                                            <p className="text-gray-400 text-sm mt-1">Vui lòng điều chỉnh bộ lọc.</p>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             ) : (
                                                 filteredAccounts.map((account) => (
-                                                    <tr key={account.studentId} className="hover:bg-gray-50">
-                                                        <td className="px-4 py-3 whitespace-nowrap">
+                                                    <tr key={account.studentId} className="hover:bg-gray-50/80 transition-colors">
+                                                        <td className="px-6 py-4 whitespace-nowrap">
                                                             <input
                                                                 type="checkbox"
                                                                 checked={selectedAccounts.has(account.studentId)}
                                                                 onChange={() => toggleAccountSelection(account.studentId)}
-                                                                className="rounded border-gray-300 text-[#001C44] focus:ring-[#001C44]"
+                                                                className="rounded border-gray-300 text-[#001C44] focus:ring-[#001C44] transition-colors"
                                                             />
                                                         </td>
-                                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{account.username}</td>
-                                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{account.email}</td>
-                                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{account.studentCode}</td>
-                                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{account.fullName}</td>
-                                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{account.departmentName || '-'}</td>
-                                                        <td className="px-4 py-3 whitespace-nowrap">
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{account.username}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{account.email}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{account.studentCode}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{account.fullName}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{account.departmentName || '-'}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
                                                             {account.emailSent ? (
-                                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                                    ✓ Đã gửi
+                                                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                                                                    <CheckCircle weight="fill" className="text-green-500" /> Đã gửi
                                                                 </span>
                                                             ) : (
-                                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                                                    ✗ Chưa gửi
+                                                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">
+                                                                    <XCircle weight="fill" className="text-yellow-500" /> Chưa gửi
                                                                 </span>
                                                             )}
                                                         </td>
-                                                        <td className="px-4 py-3 whitespace-nowrap">
+                                                        <td className="px-6 py-4 whitespace-nowrap">
                                                             {account.lastLogin ? (
                                                                 <div className="flex flex-col gap-1">
-                                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                                        ✓ Đã đăng nhập
+                                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 w-fit">
+                                                                        <CheckCircle weight="fill" className="text-blue-500" /> Đã đăng nhập
                                                                     </span>
-                                                                    <span className="text-xs text-gray-500">
+                                                                    <span className="text-xs text-gray-500 font-medium">
                                                                         {formatDate(account.lastLogin)}
                                                                     </span>
                                                                 </div>
                                                             ) : (
-                                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                                                    ✗ Chưa đăng nhập
+                                                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                                                                    <XCircle weight="fill" className="text-gray-400" /> Chưa đăng nhập
                                                                 </span>
                                                             )}
                                                         </td>
-                                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{formatDate(account.createdAt)}</td>
-                                                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
-                                                            <div className="flex gap-2">
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDate(account.createdAt)}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                            <div className="flex items-center gap-2">
                                                                 <button
                                                                     onClick={() => {
                                                                         setEditingAccount(account);
                                                                         setShowEditModal(true);
                                                                     }}
-                                                                    className="text-[#001C44] hover:text-[#002A66]"
+                                                                    className="p-2 text-gray-400 hover:text-[#001C44] hover:bg-gray-100 rounded-lg transition-all"
+                                                                    title="Sửa"
                                                                 >
-                                                                    Sửa
+                                                                    <PencilSimple weight="bold" className="w-4 h-4" />
                                                                 </button>
                                                                 <button
-                                                                    onClick={() => handleSendCredentials(account.studentId)}
+                                                                    onClick={() => {
+                                                                        if (window.confirm('Bạn có chắc chắn muốn gửi lại thông tin đăng nhập cho tài khoản này?')) {
+                                                                            handleSendCredentials(account.studentId);
+                                                                        }
+                                                                    }}
                                                                     disabled={sendingCredentials.has(account.studentId)}
-                                                                    className="text-blue-600 hover:text-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                    title="Gửi lại thông tin đăng nhập"
                                                                 >
-                                                                    {sendingCredentials.has(account.studentId) ? 'Đang gửi...' : 'Gửi email'}
+                                                                    {sendingCredentials.has(account.studentId) ? (
+                                                                        <span className="w-4 h-4 rounded-full border-2 border-blue-600 border-t-transparent animate-spin inline-block"></span>
+                                                                    ) : (
+                                                                        <PaperPlaneRight weight="bold" className="w-4 h-4" />
+                                                                    )}
                                                                 </button>
                                                                 <button
                                                                     onClick={() => setShowDeleteConfirm({ show: true, account })}
@@ -1161,10 +1221,16 @@ const StudentAccountManagement: React.FC = () => {
 
             {/* Edit Account Modal */}
             {showEditModal && editingAccount && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-                        <div className="px-6 py-4 border-b border-gray-200">
-                            <h3 className="text-lg font-semibold text-[#001C44]">Chỉnh sửa tài khoản</h3>
+                <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 animate-in zoom-in-95 duration-200">
+                        <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center">
+                            <h3 className="text-xl font-bold text-[#001C44]">Chỉnh sửa tài khoản</h3>
+                            <button onClick={() => {
+                                setShowEditModal(false);
+                                setEditingAccount(null);
+                            }} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all duration-200">
+                                <X weight="bold" className="w-5 h-5" />
+                            </button>
                         </div>
                         <EditAccountForm
                             account={editingAccount}
@@ -1181,36 +1247,44 @@ const StudentAccountManagement: React.FC = () => {
 
             {/* Delete Confirmation Modal */}
             {showDeleteConfirm.show && showDeleteConfirm.account && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-                        <div className="px-6 py-4 border-b border-gray-200">
-                            <h3 className="text-lg font-semibold text-red-600">Xác nhận xóa</h3>
+                <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center animate-in fade-in duration-200 p-4">
+                    <div className="relative bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 animate-in zoom-in-95 duration-200">
+                        <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mb-4">
+                            <Trash weight="bold" className="w-6 h-6 text-red-500" />
                         </div>
-                        <div className="px-6 py-4">
-                            <p className="text-gray-700 mb-4">
-                                Bạn có chắc chắn muốn xóa tài khoản này?
-                            </p>
-                            <div className="bg-gray-50 p-3 rounded mb-4">
-                                <p className="text-sm text-gray-600"><strong>Username:</strong> {showDeleteConfirm.account.username}</p>
-                                <p className="text-sm text-gray-600"><strong>Email:</strong> {showDeleteConfirm.account.email}</p>
-                                <p className="text-sm text-gray-600"><strong>Mã số SV:</strong> {showDeleteConfirm.account.studentCode}</p>
-                                <p className="text-sm text-gray-600"><strong>Họ tên:</strong> {showDeleteConfirm.account.fullName}</p>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">Xác nhận xóa tài khoản</h3>
+                        <p className="text-gray-600 mb-6 leading-relaxed">
+                            Bạn có chắc chắn muốn xóa tài khoản này? Thao tác này không thể hoàn tác.
+                        </p>
+                        
+                        <div className="bg-gray-50/80 p-4 rounded-xl mb-6 border border-gray-100">
+                            <div className="space-y-2 text-sm">
+                                <div className="flex justify-between"><span className="text-gray-500 font-medium">Username:</span> <span className="font-semibold text-gray-900">{showDeleteConfirm.account.username}</span></div>
+                                <div className="flex justify-between"><span className="text-gray-500 font-medium">Email:</span> <span className="font-semibold text-gray-900">{showDeleteConfirm.account.email}</span></div>
+                                <div className="flex justify-between"><span className="text-gray-500 font-medium">Mã số SV:</span> <span className="font-semibold text-gray-900">{showDeleteConfirm.account.studentCode}</span></div>
+                                <div className="flex justify-between"><span className="text-gray-500 font-medium">Họ tên:</span> <span className="font-semibold text-gray-900">{showDeleteConfirm.account.fullName}</span></div>
                             </div>
-                            <div className="flex justify-end gap-2">
-                                <button
-                                    onClick={() => setShowDeleteConfirm({ show: false, account: null })}
-                                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                                >
-                                    Hủy
-                                </button>
-                                <button
-                                    onClick={handleDeleteAccount}
-                                    disabled={loading}
-                                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {loading ? 'Đang xóa...' : 'Xóa'}
-                                </button>
-                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setShowDeleteConfirm({ show: false, account: null })}
+                                className="px-5 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 active:scale-95 transition-all duration-200"
+                            >
+                                Hủy
+                            </button>
+                            <button
+                                onClick={handleDeleteAccount}
+                                disabled={loading}
+                                className="px-5 py-2.5 bg-red-500 text-white font-medium rounded-xl hover:bg-red-600 active:scale-95 transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {loading ? (
+                                    <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin inline-block"></span>
+                                ) : (
+                                    <Trash weight="bold" />
+                                )}
+                                Xóa tài khoản
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1242,50 +1316,50 @@ const EditAccountForm: React.FC<EditAccountFormProps> = ({ account, departments,
     };
 
     return (
-        <form onSubmit={handleSubmit} className="px-6 py-4">
-            <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="px-8 py-6">
+            <div className="space-y-5">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Username</label>
                     <input
                         type="text"
                         value={formData.username || ''}
                         onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
+                        className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#001C44]/20 focus:border-[#001C44] transition-all duration-300"
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email</label>
                     <input
                         type="email"
                         value={formData.email || ''}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
+                        className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#001C44]/20 focus:border-[#001C44] transition-all duration-300"
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Mã số sinh viên</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Mã số sinh viên</label>
                     <input
                         type="text"
                         value={formData.studentCode || ''}
                         onChange={(e) => setFormData({ ...formData, studentCode: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
+                        className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#001C44]/20 focus:border-[#001C44] transition-all duration-300"
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Họ tên</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Họ tên</label>
                     <input
                         type="text"
                         value={formData.fullName || ''}
                         onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
+                        className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#001C44]/20 focus:border-[#001C44] transition-all duration-300"
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Khoa</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Khoa</label>
                     <select
                         value={formData.departmentId || ''}
                         onChange={(e) => setFormData({ ...formData, departmentId: e.target.value ? parseInt(e.target.value) : undefined })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
+                        className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#001C44]/20 focus:border-[#001C44] transition-all duration-300"
                     >
                         <option value="">Chọn khoa (Tùy chọn)</option>
                         {departments.map(d => (
@@ -1294,19 +1368,20 @@ const EditAccountForm: React.FC<EditAccountFormProps> = ({ account, departments,
                     </select>
                 </div>
             </div>
-            <div className="flex justify-end gap-2 mt-6">
+            <div className="flex justify-end gap-3 mt-8">
                 <button
                     type="button"
                     onClick={onCancel}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                    className="px-5 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 active:scale-95 transition-all duration-200"
                 >
                     Hủy
                 </button>
                 <button
                     type="submit"
-                    className="px-4 py-2 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66]"
+                    className="px-5 py-2.5 bg-[#001C44] text-white font-medium rounded-xl hover:bg-[#002A66] active:scale-95 transition-all duration-200 shadow-md flex items-center gap-2"
                 >
-                    Lưu
+                    <CheckCircle weight="bold" />
+                    Lưu thay đổi
                 </button>
             </div>
         </form>

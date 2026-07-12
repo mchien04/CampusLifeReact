@@ -9,6 +9,7 @@ import { LoadingSpinner } from '../components/common';
 import { QuizCard } from '../components/minigame';
 import StudentLayout from '../components/layout/StudentLayout';
 import { useNavigate } from 'react-router-dom';
+import { MagnifyingGlass, GameController } from '@phosphor-icons/react';
 
 const StudentMinigame: React.FC = () => {
     const navigate = useNavigate();
@@ -129,39 +130,54 @@ const StudentMinigame: React.FC = () => {
 
     return (
         <StudentLayout>
-            <div className="space-y-6">
-                {/* Page Header */}
-                <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl p-6 text-white mb-6">
-                    <h1 className="text-3xl font-bold mb-2">Mini Game Quiz</h1>
-                    <p className="text-gray-200">
-                        Thử thách bản thân với các bài quiz kiến thức và nhận điểm thưởng
-                    </p>
-                </div>
+            <div className="mx-auto max-w-6xl space-y-6 pb-12">
+                <header className="relative overflow-hidden rounded-2xl border border-primary-900/10 bg-primary-900 px-6 py-7 sm:px-8 text-white shadow-premium">
+                    <div
+                        className="pointer-events-none absolute inset-0 opacity-[0.12]"
+                        style={{
+                            backgroundImage:
+                                'radial-gradient(ellipse at 0% 0%, #FFD66D 0%, transparent 55%), radial-gradient(ellipse at 100% 100%, #4b88b6 0%, transparent 50%)',
+                        }}
+                    />
+                    <div className="relative">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent/90">
+                            Thử thách Mini Game
+                        </p>
+                        <h1 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight text-balance">
+                            Khám phá & Nhận thưởng
+                        </h1>
+                        <p className="mt-2 text-sm text-primary-100/90 max-w-2xl leading-relaxed">
+                            Kiểm tra kiến thức của bạn, tham gia các bài quiz thú vị và tích lũy điểm thưởng một cách dễ dàng.
+                        </p>
+                    </div>
+                </header>
 
-                {/* Search */}
-                <div className="card p-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Tìm kiếm
-                        </label>
+                <div className="rounded-2xl border border-gray-100 bg-white p-4 sm:p-5 shadow-premium space-y-4">
+                    <div className="relative max-w-xl">
+                        <MagnifyingGlass
+                            size={20}
+                            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                        />
                         <input
                             type="text"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            placeholder="Tìm kiếm quiz..."
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44]"
+                            placeholder="Tìm kiếm quiz, hoạt động, mô tả..."
+                            className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-11 pr-4 text-sm text-gray-900 placeholder:text-gray-400 transition-colors hover:border-gray-300 focus:border-primary-900/40 focus:outline-none focus:ring-2 focus:ring-primary-900/20"
                         />
                     </div>
                 </div>
 
-                {/* Minigames List */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Minigames List - Grid Layout */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {filteredMinigames.length === 0 ? (
-                        <div className="col-span-full text-center py-12">
-                            <div className="text-gray-400 text-6xl mb-4">🎮</div>
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">Không có quiz nào</h3>
-                            <p className="text-gray-500">
-                                Không tìm thấy quiz phù hợp với bộ lọc của bạn.
+                        <div className="col-span-full flex flex-col items-center justify-center py-20 px-4 bg-white/50 backdrop-blur-sm rounded-3xl border border-gray-100 border-dashed break-inside-avoid">
+                            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6 shadow-inner">
+                                <GameController weight="duotone" className="w-10 h-10 text-gray-300" />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-800 mb-2">Không tìm thấy quiz nào</h3>
+                            <p className="text-gray-500 text-center max-w-sm">
+                                Thử thay đổi từ khóa tìm kiếm hoặc quay lại sau nhé.
                             </p>
                         </div>
                     ) : (
@@ -173,15 +189,16 @@ const StudentMinigame: React.FC = () => {
                                                 registrationStatus === RegistrationStatus.ATTENDED;
                             
                             return (
-                                <QuizCard
-                                    key={minigame.id}
-                                    minigame={minigame}
-                                    activity={activity}
-                                    onStart={handleStart}
-                                    hasAttempts={attemptsMap.get(activity.id) || false}
-                                    attemptCount={attemptCountsMap.get(activity.id) || 0}
-                                    isRegistered={isRegistered}
-                                />
+                                <div key={minigame.id} className="h-full">
+                                    <QuizCard
+                                        minigame={minigame}
+                                        activity={activity}
+                                        onStart={handleStart}
+                                        hasAttempts={attemptsMap.get(activity.id) || false}
+                                        attemptCount={attemptCountsMap.get(activity.id) || 0}
+                                        isRegistered={isRegistered}
+                                    />
+                                </div>
                             );
                         })
                     )}

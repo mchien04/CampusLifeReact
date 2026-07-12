@@ -9,6 +9,7 @@ import ChangePassword from './components/auth/ChangePassword';
 import { Home, Dashboard, CreateEvent, EventList, EditEvent, EventDetail, StudentEvents, StudentReadingHistory } from './pages';
 import StudentEventDetail from './pages/StudentEventDetail';
 import StudentParticipationHistory from './pages/StudentParticipationHistory';
+import StudentPersonalCalendar from './pages/StudentPersonalCalendar';
 import StudentProfile from './pages/StudentProfile';
 import StudentSeries from './pages/StudentSeries';
 import StudentSeriesDetail from './pages/StudentSeriesDetail';
@@ -22,6 +23,7 @@ import ArticleDetail from './pages/ArticleDetail';
 import ArticleListPage from './pages/ArticleListPage';
 import FeaturedArticlesPage from './pages/FeaturedArticlesPage';
 import ArticlesByCategoryPage from './pages/ArticlesByCategoryPage';
+import ArticlesByTagPage from './pages/ArticlesByTagPage';
 import SearchArticlesPage from './pages/SearchArticlesPage';
 import ArticleEditor from './pages/admin/ArticleEditor';
 import ArticleEditorById from './pages/admin/ArticleEditorById';
@@ -39,15 +41,13 @@ import MinigameManagement from './pages/admin/MinigameManagement';
 import CreateMinigame from './pages/admin/CreateMinigame';
 import CreateMinigameWizard from './pages/admin/CreateMinigameWizard';
 import EditQuiz from './pages/admin/EditQuiz';
-import AcademicYears from './pages/admin/AcademicYears';
+import AcademicStructure from './pages/admin/AcademicStructure';
 import SemesterManagement from './pages/admin/SemesterManagement';
-import Departments from './pages/admin/Departments';
 import Statistics from './pages/admin/Statistics';
-import UserManagement from './pages/admin/UserManagement';
-import StudentAccountManagement from './pages/admin/StudentAccountManagement';
+import AccountManagement from './pages/admin/AccountManagement';
 import EventRegistrations from './pages/admin/EventRegistrations';
-import ClassManagement from './pages/admin/ClassManagement';
 import TaskManagement from './pages/admin/TaskManagement';
+import ActivityTaskDashboard from './pages/admin/ActivityTaskDashboard';
 import PreparationManagement from './pages/admin/PreparationManagement';
 import PreparationDetail from './pages/admin/PreparationDetail';
 import StudentRegistrations from './pages/StudentRegistrations';
@@ -58,6 +58,9 @@ import TaskSubmissionsRoute from './pages/TaskSubmissionsRoute';
 // Removed criteria-based TrainingScore page
 import ViewScores from './pages/ViewScores';
 import ManagerScores from './pages/ManagerScores';
+import StudentScoreAppeals from './pages/StudentScoreAppeals';
+import StudentScoreAppealDetail from './pages/StudentScoreAppealDetail';
+import ManagerScoreAppeals from './pages/ManagerScoreAppeals';
 import SendEmail from './pages/admin/SendEmail';
 import SendNotification from './pages/admin/SendNotification';
 import EmailHistory from './pages/admin/EmailHistory';
@@ -87,6 +90,7 @@ function App() {
               <Route path="/articles/featured" element={<FeaturedArticlesPage />} />
               <Route path="/articles/search" element={<SearchArticlesPage />} />
               <Route path="/articles/category/:categorySlug" element={<ArticlesByCategoryPage />} />
+              <Route path="/articles/tag/:tagSlug" element={<ArticlesByTagPage />} />
               <Route path="/articles/:slug" element={<ArticleDetail />} />
 
               {/* Auth Routes - redirect to dashboard if already authenticated */}
@@ -98,14 +102,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/register"
-                element={
-                  <ProtectedRoute requireAuth={false}>
-                    <Register />
-                  </ProtectedRoute>
-                }
-              />
+
               <Route path="/verify" element={<VerifyAccount />} />
               <Route path="/verify-account" element={<VerifyAccount />} />
               <Route
@@ -142,26 +139,24 @@ function App() {
                 }
               />
 
-              {/* Admin Management Routes */}
+              {/* Admin Management Routes — unified structure + legacy redirects */}
               <Route
-                path="/admin/departments/*"
+                path="/admin/structure"
                 element={
-                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
                     <ManagerLayout>
-                      <Departments />
+                      <AcademicStructure />
                     </ManagerLayout>
                   </ProtectedRoute>
                 }
               />
               <Route
+                path="/admin/departments/*"
+                element={<Navigate to="/admin/structure?tab=departments" replace />}
+              />
+              <Route
                 path="/admin/academic-years/*"
-                element={
-                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
-                    <ManagerLayout>
-                      <AcademicYears />
-                    </ManagerLayout>
-                  </ProtectedRoute>
-                }
+                element={<Navigate to="/admin/structure?tab=years" replace />}
               />
               {/* Removed /admin/criteria routes */}
 
@@ -376,13 +371,7 @@ function App() {
               {/* Admin Routes */}
               <Route
                 path="/admin/academic-years"
-                element={
-                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
-                    <ManagerLayout>
-                      <AcademicYears />
-                    </ManagerLayout>
-                  </ProtectedRoute>
-                }
+                element={<Navigate to="/admin/structure?tab=years" replace />}
               />
               <Route
                 path="/admin/semesters/*"
@@ -396,13 +385,7 @@ function App() {
               />
               <Route
                 path="/admin/departments"
-                element={
-                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
-                    <ManagerLayout>
-                      <Departments />
-                    </ManagerLayout>
-                  </ProtectedRoute>
-                }
+                element={<Navigate to="/admin/structure?tab=departments" replace />}
               />
               {/* Removed /admin/criteria route */}
               {/* Removed /admin/students route */}
@@ -418,21 +401,11 @@ function App() {
                 }
               />
               <Route
-                path="/admin/users"
+                path="/admin/accounts"
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
                     <ManagerLayout>
-                      <UserManagement />
-                    </ManagerLayout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/student-accounts"
-                element={
-                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN]}>
-                    <ManagerLayout>
-                      <StudentAccountManagement />
+                      <AccountManagement />
                     </ManagerLayout>
                   </ProtectedRoute>
                 }
@@ -449,13 +422,7 @@ function App() {
               />
               <Route
                 path="/admin/classes"
-                element={
-                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
-                    <ManagerLayout>
-                      <ClassManagement />
-                    </ManagerLayout>
-                  </ProtectedRoute>
-                }
+                element={<Navigate to="/admin/structure?tab=classes" replace />}
               />
               <Route
                 path="/manager/emails/send"
@@ -608,6 +575,14 @@ function App() {
                 }
               />
               <Route
+                path="/student/calendar"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
+                    <StudentPersonalCalendar />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/wishlist"
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
@@ -644,6 +619,22 @@ function App() {
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
                     <ViewScores />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/student/scores/appeals"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
+                    <StudentScoreAppeals />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/student/scores/appeals/:id"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.STUDENT]}>
+                    <StudentScoreAppealDetail />
                   </ProtectedRoute>
                 }
               />
@@ -695,11 +686,41 @@ function App() {
                 }
               />
               <Route
+                path="/manager/scores/appeals"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <ManagerLayout>
+                      <ManagerScoreAppeals />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/scores/appeals/:id"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <ManagerLayout>
+                      <ManagerScoreAppeals />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/manager/tasks"
                 element={
                   <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
                     <ManagerLayout>
                       <TaskManagement />
+                    </ManagerLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/activity-tasks"
+                element={
+                  <ProtectedRoute requireAuth={true} allowedRoles={[Role.ADMIN, Role.MANAGER]}>
+                    <ManagerLayout>
+                      <ActivityTaskDashboard />
                     </ManagerLayout>
                   </ProtectedRoute>
                 }

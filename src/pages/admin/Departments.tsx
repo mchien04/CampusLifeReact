@@ -1,9 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { Department, CreateDepartmentRequest, UpdateDepartmentRequest, DepartmentType } from '../../types/admin';
 import { departmentAPI } from '../../services/adminAPI';
+import {
+    StructureModal,
+    modalCancelBtnClass,
+    modalFieldClass,
+    modalLabelClass,
+    modalPrimaryBtnClass,
+} from '../../components/admin/StructureModal';
 
-const Departments: React.FC = () => {
+interface DepartmentsProps {
+    embedded?: boolean;
+}
+
+const Departments: React.FC<DepartmentsProps> = ({ embedded = false }) => {
     const [departments, setDepartments] = useState<Department[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -143,40 +153,63 @@ const Departments: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white">
-                <div className="flex items-center justify-between">
+            {!embedded && (
+                <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl shadow-lg p-6 text-white">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h1 className="text-3xl font-bold mb-2 flex items-center">
+                                <span className="mr-3 text-4xl">🏢</span>
+                                Quản lý phòng ban
+                            </h1>
+                            <p className="text-gray-200 text-lg">Quản lý các khoa và phòng ban trong hệ thống</p>
+                        </div>
+                        <button
+                            onClick={() => {
+                                setEditingDepartment(null);
+                                setShowForm(true);
+                            }}
+                            className="px-5 py-2.5 bg-[#FFD66D] text-[#001C44] rounded-lg hover:bg-[#FFC947] font-semibold shadow-lg hover:shadow-xl transition-all"
+                        >
+                            + Tạo phòng ban
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {embedded && (
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                        <h1 className="text-3xl font-bold mb-2 flex items-center">
-                            <span className="mr-3 text-4xl">🏢</span>
-                            Quản lý phòng ban
-                        </h1>
-                        <p className="text-gray-200 text-lg">Quản lý các khoa và phòng ban trong hệ thống</p>
+                        <h2 className="text-lg font-semibold text-primary-900 tracking-tight">Khoa & phòng ban</h2>
+                        <p className="text-sm text-gray-500 mt-0.5">
+                            {filteredDepartments.length} mục
+                            {filter !== 'ALL' ? ` · lọc ${getTypeLabel(filter)}` : ''}
+                        </p>
                     </div>
                     <button
+                        type="button"
                         onClick={() => {
                             setEditingDepartment(null);
                             setShowForm(true);
                         }}
-                        className="px-5 py-2.5 bg-[#FFD66D] text-[#001C44] rounded-lg hover:bg-[#FFC947] font-semibold shadow-lg hover:shadow-xl transition-all"
+                        className="rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-primary-900 transition-all hover:bg-accent-hover active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900"
                     >
-                        + Tạo phòng ban
+                        Thêm phòng ban
                     </button>
                 </div>
-            </div>
+            )}
 
             {/* Filters */}
-            <div className="mb-6 bg-white rounded-xl shadow-lg border border-gray-100 p-6">
-                <div className="flex flex-wrap gap-3">
+            <div className={`bg-white rounded-2xl border border-gray-100 shadow-premium p-4 ${embedded ? '' : 'mb-6 p-6'}`}>
+                <div className="flex flex-wrap gap-2">
                     <button
                         onClick={() => setFilter('ALL')}
-                        className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                             filter === 'ALL'
-                                ? 'bg-gradient-to-r from-[#001C44] to-[#002A66] text-white shadow-md'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
+                                ? 'bg-primary-900 text-white shadow-sm'
+                                : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
                         }`}
                     >
-                        📋 Tất cả ({departments.length})
+                        Tất cả ({departments.length})
                     </button>
                     {[DepartmentType.KHOA, DepartmentType.PHONG_BAN].map(type => {
                         const count = departments.filter(d => d.type === type).length;
@@ -184,13 +217,13 @@ const Departments: React.FC = () => {
                             <button
                                 key={type}
                                 onClick={() => setFilter(type)}
-                                className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                                     filter === type
-                                        ? 'bg-gradient-to-r from-[#001C44] to-[#002A66] text-white shadow-md'
-                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
+                                        ? 'bg-primary-900 text-white shadow-sm'
+                                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
                                 }`}
                             >
-                                {type === DepartmentType.KHOA ? '🏛️' : '🏢'} {getTypeLabel(type)} ({count})
+                                {getTypeLabel(type)} ({count})
                             </button>
                         );
                     })}
@@ -198,31 +231,30 @@ const Departments: React.FC = () => {
             </div>
 
             {/* Departments List */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {filteredDepartments.length === 0 ? (
-                    <div className="col-span-full bg-white rounded-xl shadow-lg border-2 border-dashed border-gray-300 p-12 text-center">
-                        <div className="text-gray-400 text-6xl mb-4">🏢</div>
-                        <p className="text-gray-600 text-lg font-medium">Chưa có phòng ban nào</p>
-                        <p className="text-gray-500 text-sm mt-2">Bắt đầu bằng cách tạo phòng ban đầu tiên</p>
+                    <div className="col-span-full rounded-2xl border border-dashed border-gray-200 bg-white p-12 text-center shadow-premium">
+                        <p className="text-gray-800 font-medium">Chưa có phòng ban nào</p>
+                        <p className="text-gray-500 text-sm mt-1">Tạo khoa hoặc phòng ban đầu tiên để bắt đầu</p>
                     </div>
                 ) : (
                     filteredDepartments.map((department) => (
                         <div
                             key={department.id}
-                            className="bg-white rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 overflow-hidden group"
+                            className="bg-white rounded-2xl border border-gray-100 shadow-premium hover:shadow-premium-hover transition-all duration-200 overflow-hidden group"
                         >
-                            <div className="p-6">
+                            <div className="p-5">
                                 <div className="flex items-start justify-between mb-4">
-                                    <div className="flex-1">
-                                        <div className="flex items-center space-x-2 mb-2">
-                                            <div className="w-12 h-12 bg-gradient-to-br from-[#001C44] to-[#002A66] rounded-lg flex items-center justify-center text-white font-bold text-lg">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <div className="w-11 h-11 shrink-0 bg-primary-900 rounded-xl flex items-center justify-center text-white font-semibold tabular-nums">
                                                 {department.name.charAt(0).toUpperCase()}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <h4 className="text-lg font-bold text-[#001C44] truncate">
+                                                <h4 className="text-base font-semibold text-primary-900 truncate">
                                                     {department.name}
                                                 </h4>
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold mt-1 ${getTypeColor(department.type)}`}>
+                                                <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium mt-1 ${getTypeColor(department.type)}`}>
                                                     {getTypeLabel(department.type)}
                                                 </span>
                                             </div>
@@ -232,27 +264,27 @@ const Departments: React.FC = () => {
                                                 {department.description}
                                             </p>
                                         )}
-                                        <div className="text-xs text-gray-500 space-y-1">
-                                            <p>👤 Tạo bởi: {department.createdBy}</p>
-                                            <p>🕒 Cập nhật: {new Date(department.updatedAt).toLocaleDateString('vi-VN')}</p>
+                                        <div className="text-xs text-gray-400 space-y-0.5 tabular-nums">
+                                            <p>Tạo bởi: {department.createdBy}</p>
+                                            <p>Cập nhật: {new Date(department.updatedAt).toLocaleDateString('vi-VN')}</p>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex gap-2 pt-4 border-t border-gray-200">
+                                <div className="flex gap-2 pt-4 border-t border-gray-100">
                                     <button
                                         onClick={() => {
                                             setEditingDepartment(department);
                                             setShowForm(true);
                                         }}
-                                        className="flex-1 px-4 py-2 text-sm font-semibold bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 border border-emerald-200 transition-all"
+                                        className="flex-1 px-3 py-2 text-sm font-medium bg-primary-50 text-primary-900 rounded-xl hover:bg-primary-100 transition-all active:scale-[0.98]"
                                     >
-                                        ✏️ Chỉnh sửa
+                                        Sửa
                                     </button>
                                     <button
                                         onClick={() => handleDelete(department.id)}
-                                        className="flex-1 px-4 py-2 text-sm font-semibold bg-rose-50 text-rose-700 rounded-lg hover:bg-rose-100 border border-rose-200 transition-all"
+                                        className="flex-1 px-3 py-2 text-sm font-medium bg-rose-50 text-rose-700 rounded-xl hover:bg-rose-100 transition-all active:scale-[0.98]"
                                     >
-                                        🗑️ Xóa
+                                        Xóa
                                     </button>
                                 </div>
                             </div>
@@ -320,100 +352,66 @@ const DepartmentFormModal: React.FC<DepartmentFormModalProps> = ({ department, o
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-            <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md">
-                {/* Header */}
-                <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] px-6 py-4 rounded-t-xl">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                            <div className="w-10 h-10 bg-[#FFD66D] rounded-lg flex items-center justify-center mr-3">
-                                <span className="text-2xl">🏢</span>
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-bold text-white">
-                                    {department ? 'Chỉnh sửa phòng ban' : 'Tạo phòng ban mới'}
-                                </h3>
-                                <p className="text-xs text-gray-200 mt-0.5">
-                                    {department ? 'Cập nhật thông tin phòng ban' : 'Thêm phòng ban mới vào hệ thống'}
-                                </p>
-                            </div>
-                        </div>
-                        <button onClick={onClose} className="text-white hover:text-[#FFD66D] transition-colors">
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </div>
+        <StructureModal
+            title={department ? 'Chỉnh sửa phòng ban' : 'Thêm phòng ban'}
+            subtitle="Khoa hoặc đơn vị hành chính trong hệ thống"
+            onClose={onClose}
+            size="md"
+            footer={
+                <>
+                    <button type="button" onClick={onClose} className={modalCancelBtnClass}>
+                        Hủy
+                    </button>
+                    <button type="submit" form="department-form" className={modalPrimaryBtnClass}>
+                        {department ? 'Cập nhật' : 'Tạo phòng ban'}
+                    </button>
+                </>
+            }
+        >
+            <form id="department-form" onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                    <label className={modalLabelClass}>
+                        Tên <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        className={modalFieldClass(!!errors.name)}
+                        placeholder="Ví dụ: Khoa Công nghệ thông tin"
+                    />
+                    {errors.name && <p className="mt-1 text-sm text-rose-600">{errors.name}</p>}
                 </div>
 
-                {/* Content */}
-                <div className="p-6">
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Tên phòng ban <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                name="name"
-                                value={formData.name}
-                                onChange={handleChange}
-                                className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] transition-colors ${
-                                    errors.name ? 'border-red-300 focus:ring-red-500' : 'border-gray-300'
-                                }`}
-                                placeholder="Ví dụ: Khoa Công nghệ thông tin"
-                            />
-                            {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name}</p>}
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Loại phòng ban <span className="text-red-500">*</span>
-                            </label>
-                            <select
-                                name="type"
-                                value={formData.type}
-                                onChange={handleChange}
-                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] transition-colors"
-                            >
-                                <option value={DepartmentType.KHOA}>Khoa</option>
-                                <option value={DepartmentType.PHONG_BAN}>Phòng ban</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Mô tả
-                            </label>
-                            <textarea
-                                name="description"
-                                value={formData.description}
-                                onChange={handleChange}
-                                rows={3}
-                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] transition-colors resize-none"
-                                placeholder="Mô tả về phòng ban (tùy chọn)..."
-                            />
-                        </div>
-
-                        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className="px-6 py-2.5 text-sm font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                            >
-                                Hủy
-                            </button>
-                            <button
-                                type="submit"
-                                className="px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-lg hover:from-[#002A66] hover:to-[#001C44] focus:outline-none focus:ring-2 focus:ring-[#001C44] transition-all shadow-lg hover:shadow-xl"
-                            >
-                                {department ? 'Cập nhật' : 'Tạo mới'}
-                            </button>
-                        </div>
-                    </form>
+                <div>
+                    <label className={modalLabelClass}>
+                        Loại <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                        name="type"
+                        value={formData.type}
+                        onChange={handleChange}
+                        className={modalFieldClass()}
+                    >
+                        <option value={DepartmentType.KHOA}>Khoa</option>
+                        <option value={DepartmentType.PHONG_BAN}>Phòng ban</option>
+                    </select>
                 </div>
-            </div>
-        </div>
+
+                <div>
+                    <label className={modalLabelClass}>Mô tả</label>
+                    <textarea
+                        name="description"
+                        value={formData.description}
+                        onChange={handleChange}
+                        rows={3}
+                        className={`${modalFieldClass()} resize-none`}
+                        placeholder="Mô tả ngắn (tùy chọn)"
+                    />
+                </div>
+            </form>
+        </StructureModal>
     );
 };
 

@@ -161,8 +161,10 @@ const TagsPanel: React.FC = () => {
                             name="slug"
                             value={formData.slug || ''}
                             onChange={handleChange}
+                            placeholder="Để trống = tự tạo từ tên"
                             className="w-full rounded-2xl border border-gray-300 shadow-sm bg-white/50 px-4 py-3 text-sm focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all font-semibold"
                         />
+                        <p className="text-[11px] font-medium text-gray-400">Không bắt buộc. Backend sẽ tạo slug từ tên nếu để trống.</p>
                     </div>
                     <div className="flex items-end justify-between gap-4">
                         <div className="flex items-center pb-3">

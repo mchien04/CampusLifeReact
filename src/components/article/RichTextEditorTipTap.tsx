@@ -1,19 +1,35 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
-import { Mark, mergeAttributes, Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
-import { TextStyle } from '@tiptap/extension-text-style';
+import { TextStyle, Color, FontSize } from '@tiptap/extension-text-style';
 import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
 import Youtube from '@tiptap/extension-youtube';
 import { Table, TableRow, TableHeader, TableCell } from '@tiptap/extension-table';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
-import Mention from '@tiptap/extension-mention';
 import Placeholder from '@tiptap/extension-placeholder';
 import { common, createLowlight } from 'lowlight';
+import {
+    TextB,
+    TextItalic,
+    TextUnderline,
+    TextHOne,
+    TextHTwo,
+    TextHThree,
+    ListBullets,
+    ListNumbers,
+    Quotes,
+    Code,
+    LinkSimple,
+    Image as ImageIcon,
+    YoutubeLogo,
+    Table as TableIcon,
+    Eraser,
+} from '@phosphor-icons/react';
 import DOMPurify from 'dompurify';
 import { uploadAPI } from '../../services/uploadAPI';
 import { compressImage } from '../../utils/compressImage';
+import { sanitizeArticleContent } from '../../utils/sanitizeHtml';
 
 const lowlight = createLowlight(common);
 
@@ -25,10 +41,26 @@ interface RichTextEditorTipTapProps {
     placeholder?: string;
 }
 
+const FONT_SIZES = ['12px', '14px', '16px', '18px', '20px', '24px', '28px', '32px', '36px'];
+
+const TEXT_COLORS = [
+    { label: 'Mặc định', value: '' },
+    { label: 'Navy', value: '#001C44' },
+    { label: 'Đen', value: '#0f172a' },
+    { label: 'Xám', value: '#64748b' },
+    { label: 'Xanh', value: '#0B5FFF' },
+    { label: 'Đỏ', value: '#dc2626' },
+    { label: 'Xanh lá', value: '#059669' },
+    { label: 'Vàng', value: '#b45309' },
+];
+
+/** Capture editor selection before toolbar native controls steal focus. */
+const selectionRef = { current: null as { from: number; to: number } | null };
+
 const RichTextEditorTipTap: React.FC<RichTextEditorTipTapProps> = ({
     value,
     onChange,
-    placeholder = 'Nhập nội dung...',
+    placeholder = 'Viết nội dung bài viết...',
 }) => {
     const [mode, setMode] = useState<EditorMode>('visual');
     const [sourceCode, setSourceCode] = useState(value);
@@ -41,61 +73,9 @@ const RichTextEditorTipTap: React.FC<RichTextEditorTipTapProps> = ({
     const [imageAlign, setImageAlign] = useState<'left' | 'center' | 'right' | 'wide'>('center');
     const [imageSize, setImageSize] = useState<'sm' | 'md' | 'lg'>('md');
     const [youtubeUrl, setYoutubeUrl] = useState('');
+    const [toolbarTick, setToolbarTick] = useState(0);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-    const Underline = Mark.create({
-        name: 'underline',
-        parseHTML() {
-            return [
-                { tag: 'u' },
-                { style: 'text-decoration', getAttrs: (value) => value === 'underline' && null },
-            ];
-        },
-        renderHTML({ HTMLAttributes }) {
-            return ['u', mergeAttributes(HTMLAttributes), 0];
-        },
-        addCommands() {
-            return {
-                setUnderline: () => ({ commands }) => commands.setMark(this.name),
-                toggleUnderline: () => ({ commands }) => commands.toggleMark(this.name),
-                unsetUnderline: () => ({ commands }) => commands.unsetMark(this.name),
-            };
-        },
-    });
-
-    const FontSize = Extension.create({
-        name: 'fontSize',
-        addOptions() {
-            return { types: ['textStyle'] };
-        },
-        addGlobalAttributes() {
-            return [
-                {
-                    types: this.options.types,
-                    attributes: {
-                        fontSize: {
-                            default: null,
-                            parseHTML: (element) => element.style.fontSize?.replace(/['"]+/g, ''),
-                            renderHTML: (attributes) => {
-                                if (!attributes.fontSize) return {};
-                                return { style: `font-size: ${attributes.fontSize}` };
-                            },
-                        },
-                    },
-                },
-            ];
-        },
-        addCommands() {
-            return {
-                setFontSize: (fontSize: string) => ({ chain }: any) => {
-                    return chain().setMark('textStyle', { fontSize }).run();
-                },
-                unsetFontSize: () => ({ chain }: any) => {
-                    return chain().setMark('textStyle', { fontSize: null }).removeEmptyTextStyle().run();
-                },
-            };
-        },
-    });
+    const skipNextSync = useRef(false);
 
     const editor = useEditor({
         extensions: [
@@ -103,8 +83,8 @@ const RichTextEditorTipTap: React.FC<RichTextEditorTipTapProps> = ({
                 codeBlock: false,
             }),
             TextStyle,
+            Color,
             FontSize,
-            Underline,
             Link.configure({
                 openOnClick: false,
                 autolink: true,
@@ -115,7 +95,7 @@ const RichTextEditorTipTap: React.FC<RichTextEditorTipTapProps> = ({
             }),
             Youtube.configure({
                 width: 640,
-                height: 480,
+                height: 360,
                 nocookie: true,
             }),
             Table.configure({
@@ -128,79 +108,81 @@ const RichTextEditorTipTap: React.FC<RichTextEditorTipTapProps> = ({
                 lowlight,
                 defaultLanguage: 'javascript',
             }),
-            Mention.configure({
-                HTMLAttributes: {
-                    class: 'mention',
-                },
-            }),
             Placeholder.configure({
                 placeholder,
             }),
         ],
-        content: value,
-        onUpdate: ({ editor }) => {
-            const html = editor.getHTML();
+        content: value || '',
+        onUpdate: ({ editor: current }) => {
+            const html = current.getHTML();
+            skipNextSync.current = true;
             setSourceCode(html);
             onChange(html);
         },
+        onSelectionUpdate: () => setToolbarTick((n) => n + 1),
+        onTransaction: () => setToolbarTick((n) => n + 1),
         editorProps: {
             attributes: {
-                class: 'prose prose-sm focus:outline-none min-h-96 max-w-full',
+                class: 'article-body ProseMirror px-5 py-4',
             },
         },
     });
 
+    useEffect(() => {
+        if (!editor) return;
+        if (skipNextSync.current) {
+            skipNextSync.current = false;
+            return;
+        }
+        const current = editor.getHTML();
+        if ((value || '') !== current) {
+            editor.commands.setContent(value || '', { emitUpdate: false });
+            setSourceCode(value || '');
+        }
+    }, [value, editor]);
+
+    const textStyle = useMemo(() => {
+        void toolbarTick;
+        return editor?.getAttributes('textStyle') || {};
+    }, [editor, toolbarTick]);
+
+    const currentFontSize = (textStyle.fontSize as string) || 'default';
+    const currentColor = (textStyle.color as string) || '';
+
     const handleModeChange = (newMode: EditorMode) => {
-        if (newMode === 'source' && editor) {
+        if (!editor) return;
+        if (newMode === 'source' || newMode === 'split') {
             setSourceCode(editor.getHTML());
-        } else if (newMode === 'visual' && editor) {
-            editor.commands.setContent(sourceCode);
+        }
+        if (newMode === 'visual' || newMode === 'split') {
+            editor.commands.setContent(sourceCode || '', { emitUpdate: false });
         }
         setMode(newMode);
     };
 
     const handleSourceChange = (html: string) => {
         setSourceCode(html);
-        if (editor) {
-            editor.commands.setContent(html);
+        if (editor && (mode === 'split' || mode === 'source')) {
+            skipNextSync.current = true;
+            editor.commands.setContent(html, { emitUpdate: false });
             onChange(html);
         }
     };
 
     const handleInsertImage = () => {
-        if (!imageUrl.trim()) return;
-
-        if (editor) {
-            const classes = `article-figure align-${imageAlign} size-${imageSize}`;
-            if (imageCaption.trim()) {
-                // Insert as figure with figcaption
-                const figureHtml = `
-                    <figure class="${classes}">
-                        <img src="${DOMPurify.sanitize(imageUrl)}" alt="${DOMPurify.sanitize(imageAlt)}" />
-                        <figcaption>${DOMPurify.sanitize(imageCaption)}</figcaption>
-                    </figure>
-                `;
-                editor.chain().focus().insertContent(figureHtml).run();
-            } else {
-                // Insert as plain image
-                const figureHtml = `
-                    <figure class="${classes}">
-                        <img src="${DOMPurify.sanitize(imageUrl)}" alt="${DOMPurify.sanitize(imageAlt)}" />
-                    </figure>
-                `;
-                editor.chain().focus().insertContent(figureHtml).run();
-            }
-
-            setImageUrl('');
-            setImageAlt('');
-            setImageCaption('');
-            setShowImagePanel(false);
-            editor.view.focus();
-        }
-    };
-
-    const handlePickImageFile = () => {
-        fileInputRef.current?.click();
+        if (!imageUrl.trim() || !editor) return;
+        const safeUrl = DOMPurify.sanitize(imageUrl.trim());
+        const safeAlt = DOMPurify.sanitize(imageAlt);
+        const safeCaption = DOMPurify.sanitize(imageCaption);
+        const classes = `article-figure align-${imageAlign} size-${imageSize}`;
+        const figureHtml = safeCaption.trim()
+            ? `<figure class="${classes}"><img src="${safeUrl}" alt="${safeAlt}" /><figcaption>${safeCaption}</figcaption></figure>`
+            : `<figure class="${classes}"><img src="${safeUrl}" alt="${safeAlt}" /></figure>`;
+        editor.chain().focus().insertContent(figureHtml).run();
+        setImageUrl('');
+        setImageAlt('');
+        setImageCaption('');
+        setShowImagePanel(false);
     };
 
     const handleUploadImageFile = async (file: File) => {
@@ -208,11 +190,9 @@ const RichTextEditorTipTap: React.FC<RichTextEditorTipTapProps> = ({
             setImageUploading(true);
             const compressed = await compressImage(file, { maxWidth: 1600, quality: 0.8 });
             const response = await uploadAPI.uploadImage(compressed);
-            if (!response.status || !response.data) {
-                throw new Error('Upload failed');
-            }
+            if (!response.status || !response.data) throw new Error('Upload failed');
             setImageUrl(response.data);
-        } catch (err: any) {
+        } catch (err) {
             console.error('Upload image failed:', err);
         } finally {
             setImageUploading(false);
@@ -220,43 +200,34 @@ const RichTextEditorTipTap: React.FC<RichTextEditorTipTapProps> = ({
     };
 
     const handleInsertYoutube = () => {
-        if (!youtubeUrl.trim()) return;
-
-        if (editor) {
-            editor.chain().focus().setYoutubeVideo({ src: youtubeUrl }).run();
-            setYoutubeUrl('');
-            setShowYoutubePanel(false);
-            editor.view.focus();
-        }
+        if (!youtubeUrl.trim() || !editor) return;
+        editor.chain().focus().setYoutubeVideo({ src: youtubeUrl.trim() }).run();
+        setYoutubeUrl('');
+        setShowYoutubePanel(false);
     };
 
     const handleInsertTable = () => {
         const input = window.prompt('Nhập số cột x số hàng (ví dụ: 3x3):', '3x3');
-        if (!input || !input.trim()) return;
+        if (!input?.trim() || !editor) return;
         const parts = input.toLowerCase().split('x');
         const cols = parseInt(parts[0]?.trim() || '3', 10);
         const rows = parseInt(parts[1]?.trim() || '3', 10);
-        
-        if (editor && !isNaN(cols) && !isNaN(rows) && cols > 0 && rows > 0) {
+        if (!Number.isNaN(cols) && !Number.isNaN(rows) && cols > 0 && rows > 0) {
             editor.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run();
         }
     };
 
     const handleInsertLink = () => {
+        if (!editor) return;
         const url = window.prompt('Nhập URL:');
         if (!url) return;
-
         const sanitizedUrl = DOMPurify.sanitize(url);
-        const selectionEmpty = editor?.state.selection.empty ?? true;
-
-        if (!selectionEmpty) {
-            editor?.chain().focus().setLink({ href: sanitizedUrl, target: '_blank' }).run();
+        if (!editor.state.selection.empty) {
+            editor.chain().focus().setLink({ href: sanitizedUrl, target: '_blank' }).run();
             return;
         }
-
         const textInput = window.prompt('Văn bản hiển thị (tùy chọn):');
         let displayText = (textInput || '').trim();
-
         if (!displayText) {
             try {
                 displayText = new URL(url).hostname;
@@ -264,18 +235,20 @@ const RichTextEditorTipTap: React.FC<RichTextEditorTipTapProps> = ({
                 displayText = url;
             }
         }
-
-        const sanitizedText = DOMPurify.sanitize(displayText);
-        const linkHtml = `<a href="${sanitizedUrl}" target="_blank" rel="noopener noreferrer">${sanitizedText}</a>`;
-        editor?.chain().focus().insertContent(linkHtml).run();
+        const linkHtml = `<a href="${sanitizedUrl}" target="_blank" rel="noopener noreferrer">${DOMPurify.sanitize(displayText)}</a>`;
+        editor.chain().focus().insertContent(linkHtml).run();
     };
 
     if (!editor) {
-        return <div>Loading editor...</div>;
+        return (
+            <div className="tiptap-editor min-h-[22rem] flex items-center justify-center text-sm text-gray-400 font-medium">
+                Đang tải trình soạn thảo...
+            </div>
+        );
     }
 
     return (
-        <div className="border rounded-lg overflow-hidden">
+        <div className="tiptap-editor">
             <input
                 ref={fileInputRef}
                 type="file"
@@ -283,401 +256,377 @@ const RichTextEditorTipTap: React.FC<RichTextEditorTipTapProps> = ({
                 className="hidden"
                 onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (file) {
-                        void handleUploadImageFile(file);
-                    }
+                    if (file) void handleUploadImageFile(file);
                     e.currentTarget.value = '';
                 }}
             />
 
-            {/* Mode Toggle Buttons */}
-            <div className="flex gap-2 p-3 bg-gray-100 border-b">
+            <div className="tiptap-mode-bar">
                 {(['visual', 'source', 'split'] as const).map((m) => (
                     <button
                         key={m}
+                        type="button"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => handleModeChange(m)}
-                        className={`px-4 py-2 rounded font-medium text-sm transition ${
-                            mode === m
-                                ? 'bg-blue-500 text-white'
-                                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                        }`}
+                        className={`tiptap-mode-btn ${mode === m ? 'is-active' : ''}`}
                     >
-                        {m === 'visual' && 'Visual'}
-                        {m === 'source' && 'HTML'}
-                        {m === 'split' && 'Split'}
+                        {m === 'visual' ? 'Trực quan' : m === 'source' ? 'HTML' : 'Chia đôi'}
                     </button>
                 ))}
+                <span className="ml-auto text-[11px] font-semibold text-slate-400 hidden sm:inline">
+                    Cỡ chữ / màu được lưu trong HTML (style)
+                </span>
             </div>
 
-            {/* Toolbar */}
             {(mode === 'visual' || mode === 'split') && (
-                <div className="flex flex-wrap gap-1 p-2 bg-gray-50 border-b">
-                    {/* Formatting */}
-                    <button
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => editor.chain().focus().toggleBold().run()}
-                        className={`p-2 rounded hover:bg-gray-200 ${
-                            editor.isActive('bold') ? 'bg-gray-300' : ''
-                        }`}
-                        title="Bold (Ctrl+B)"
-                    >
-                        <strong>B</strong>
-                    </button>
-                    <button
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => editor.chain().focus().toggleItalic().run()}
-                        className={`p-2 rounded hover:bg-gray-200 ${
-                            editor.isActive('italic') ? 'bg-gray-300' : ''
-                        }`}
-                        title="Italic (Ctrl+I)"
-                    >
-                        <em>I</em>
-                    </button>
-                    <button
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => editor.chain().focus().toggleUnderline().run()}
-                        className={`p-2 rounded hover:bg-gray-200 ${
-                            editor.isActive('underline') ? 'bg-gray-300' : ''
-                        }`}
-                        title="Underline (Ctrl+U)"
-                    >
-                        <u>U</u>
-                    </button>
-                    
-                    {/* Font Size Dropdown */}
-                    <select
-                        onChange={(e) => {
-                            if (e.target.value === 'default') {
-                                (editor.chain().focus() as any).unsetFontSize().run();
-                            } else {
-                                (editor.chain().focus() as any).setFontSize(e.target.value).run();
-                            }
-                        }}
-                        className="p-1.5 border rounded text-sm bg-white hover:bg-gray-50 focus:outline-none"
-                    >
-                        <option value="default">Cỡ chữ (mặc định)</option>
-                        <option value="12px">12px</option>
-                        <option value="14px">14px</option>
-                        <option value="16px">16px</option>
-                        <option value="18px">18px</option>
-                        <option value="20px">20px</option>
-                        <option value="24px">24px</option>
-                        <option value="30px">30px</option>
-                    </select>
-                    
-                    <div className="border-r mx-1" />
+                <div className="tiptap-toolbar">
+                    <div className="tiptap-toolbar__group">
+                        <button
+                            type="button"
+                            className={`tiptap-btn ${editor.isActive('bold') ? 'is-active' : ''}`}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => editor.chain().focus().toggleBold().run()}
+                            title="Đậm"
+                        >
+                            <TextB size={16} weight="bold" />
+                        </button>
+                        <button
+                            type="button"
+                            className={`tiptap-btn ${editor.isActive('italic') ? 'is-active' : ''}`}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => editor.chain().focus().toggleItalic().run()}
+                            title="Nghiêng"
+                        >
+                            <TextItalic size={16} weight="bold" />
+                        </button>
+                        <button
+                            type="button"
+                            className={`tiptap-btn ${editor.isActive('underline') ? 'is-active' : ''}`}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => editor.chain().focus().toggleUnderline().run()}
+                            title="Gạch chân"
+                        >
+                            <TextUnderline size={16} weight="bold" />
+                        </button>
+                    </div>
 
-                    {/* Headings */}
-                    <button
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-                        className={`p-2 rounded hover:bg-gray-200 ${
-                            editor.isActive('heading', { level: 1 }) ? 'bg-gray-300' : ''
-                        }`}
-                        title="Heading 1"
-                    >
-                        H1
-                    </button>
-                    <button
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-                        className={`p-2 rounded hover:bg-gray-200 ${
-                            editor.isActive('heading', { level: 2 }) ? 'bg-gray-300' : ''
-                        }`}
-                        title="Heading 2"
-                    >
-                        H2
-                    </button>
-                    <button
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-                        className={`p-2 rounded hover:bg-gray-200 ${
-                            editor.isActive('heading', { level: 3 }) ? 'bg-gray-300' : ''
-                        }`}
-                        title="Heading 3"
-                    >
-                        H3
-                    </button>
-                    <div className="border-r mx-1" />
+                    <div className="tiptap-toolbar__divider" />
 
-                    {/* Lists */}
-                    <button
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => editor.chain().focus().toggleBulletList().run()}
-                        className={`p-2 rounded hover:bg-gray-200 ${
-                            editor.isActive('bulletList') ? 'bg-gray-300' : ''
-                        }`}
-                        title="Bullet List"
-                    >
-                        •
-                    </button>
-                    <button
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                        className={`p-2 rounded hover:bg-gray-200 ${
-                            editor.isActive('orderedList') ? 'bg-gray-300' : ''
-                        }`}
-                        title="Ordered List"
-                    >
-                        1.
-                    </button>
-                    <div className="border-r mx-1" />
+                    <div className="tiptap-toolbar__group">
+                        <select
+                            className="tiptap-select"
+                            value={currentFontSize}
+                            onMouseDown={() => {
+                                const { from, to } = editor.state.selection;
+                                selectionRef.current = { from, to };
+                            }}
+                            onChange={(e) => {
+                                const next = e.target.value;
+                                const sel = selectionRef.current;
+                                let chain = editor.chain().focus();
+                                if (sel) chain = chain.setTextSelection(sel);
+                                if (next === 'default') {
+                                    chain.unsetFontSize().run();
+                                } else {
+                                    chain.setFontSize(next).run();
+                                }
+                            }}
+                            title="Cỡ chữ"
+                        >
+                            <option value="default">Cỡ chữ</option>
+                            {FONT_SIZES.map((size) => (
+                                <option key={size} value={size}>
+                                    {size}
+                                </option>
+                            ))}
+                        </select>
+                        <select
+                            className="tiptap-select"
+                            value={currentColor}
+                            onMouseDown={() => {
+                                const { from, to } = editor.state.selection;
+                                selectionRef.current = { from, to };
+                            }}
+                            onChange={(e) => {
+                                const next = e.target.value;
+                                const sel = selectionRef.current;
+                                let chain = editor.chain().focus();
+                                if (sel) chain = chain.setTextSelection(sel);
+                                if (!next) {
+                                    chain.unsetColor().run();
+                                } else {
+                                    chain.setColor(next).run();
+                                }
+                            }}
+                            title="Màu chữ"
+                        >
+                            {TEXT_COLORS.map((c) => (
+                                <option key={c.label} value={c.value}>
+                                    {c.label}
+                                </option>
+                            ))}
+                        </select>
+                        <input
+                            type="color"
+                            className="tiptap-color"
+                            value={/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(currentColor) ? currentColor : '#001C44'}
+                            onMouseDown={(e) => {
+                                e.preventDefault();
+                                const { from, to } = editor.state.selection;
+                                selectionRef.current = { from, to };
+                            }}
+                            onChange={(e) => {
+                                const sel = selectionRef.current;
+                                let chain = editor.chain().focus();
+                                if (sel) chain = chain.setTextSelection(sel);
+                                chain.setColor(e.target.value).run();
+                            }}
+                            title="Chọn màu tùy chỉnh"
+                        />
+                    </div>
 
-                    {/* Block elements */}
-                    <button
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => editor.chain().focus().toggleBlockquote().run()}
-                        className={`p-2 rounded hover:bg-gray-200 ${
-                            editor.isActive('blockquote') ? 'bg-gray-300' : ''
-                        }`}
-                        title="Blockquote"
-                    >
-                        "
-                    </button>
-                    <button
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-                        className={`p-2 rounded hover:bg-gray-200 ${
-                            editor.isActive('codeBlock') ? 'bg-gray-300' : ''
-                        }`}
-                        title="Code Block"
-                    >
-                        {'<>'}
-                    </button>
-                    <div className="border-r mx-1" />
+                    <div className="tiptap-toolbar__divider" />
 
-                    {/* Links & Media */}
-                    <button
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={handleInsertLink}
-                        className="p-2 rounded hover:bg-gray-200"
-                        title="Insert Link (Ctrl+K)"
-                    >
-                        🔗
-                    </button>
-                    <button
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => setShowImagePanel(!showImagePanel)}
-                        className="p-2 rounded hover:bg-gray-200"
-                        title="Insert Image"
-                    >
-                        🖼️
-                    </button>
-                    <button
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => setShowYoutubePanel(!showYoutubePanel)}
-                        className="p-2 rounded hover:bg-gray-200"
-                        title="Insert YouTube Video"
-                    >
-                        ▶️
-                    </button>
-                    <button
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={handleInsertTable}
-                        className="p-2 rounded hover:bg-gray-200"
-                        title="Insert Table"
-                    >
-                        ⊞
-                    </button>
+                    <div className="tiptap-toolbar__group">
+                        <button
+                            type="button"
+                            className={`tiptap-btn ${editor.isActive('heading', { level: 1 }) ? 'is-active' : ''}`}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                            title="Tiêu đề 1"
+                        >
+                            <TextHOne size={16} weight="bold" />
+                        </button>
+                        <button
+                            type="button"
+                            className={`tiptap-btn ${editor.isActive('heading', { level: 2 }) ? 'is-active' : ''}`}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                            title="Tiêu đề 2"
+                        >
+                            <TextHTwo size={16} weight="bold" />
+                        </button>
+                        <button
+                            type="button"
+                            className={`tiptap-btn ${editor.isActive('heading', { level: 3 }) ? 'is-active' : ''}`}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                            title="Tiêu đề 3"
+                        >
+                            <TextHThree size={16} weight="bold" />
+                        </button>
+                    </div>
+
+                    <div className="tiptap-toolbar__divider" />
+
+                    <div className="tiptap-toolbar__group">
+                        <button
+                            type="button"
+                            className={`tiptap-btn ${editor.isActive('bulletList') ? 'is-active' : ''}`}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => editor.chain().focus().toggleBulletList().run()}
+                            title="Danh sách"
+                        >
+                            <ListBullets size={16} weight="bold" />
+                        </button>
+                        <button
+                            type="button"
+                            className={`tiptap-btn ${editor.isActive('orderedList') ? 'is-active' : ''}`}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                            title="Danh sách số"
+                        >
+                            <ListNumbers size={16} weight="bold" />
+                        </button>
+                        <button
+                            type="button"
+                            className={`tiptap-btn ${editor.isActive('blockquote') ? 'is-active' : ''}`}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => editor.chain().focus().toggleBlockquote().run()}
+                            title="Trích dẫn"
+                        >
+                            <Quotes size={16} weight="bold" />
+                        </button>
+                        <button
+                            type="button"
+                            className={`tiptap-btn ${editor.isActive('codeBlock') ? 'is-active' : ''}`}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+                            title="Khối code"
+                        >
+                            <Code size={16} weight="bold" />
+                        </button>
+                    </div>
+
+                    <div className="tiptap-toolbar__divider" />
+
+                    <div className="tiptap-toolbar__group">
+                        <button
+                            type="button"
+                            className={`tiptap-btn ${editor.isActive('link') ? 'is-active' : ''}`}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={handleInsertLink}
+                            title="Chèn link"
+                        >
+                            <LinkSimple size={16} weight="bold" />
+                        </button>
+                        <button
+                            type="button"
+                            className={`tiptap-btn ${showImagePanel ? 'is-active' : ''}`}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                                setShowYoutubePanel(false);
+                                setShowImagePanel((v) => !v);
+                            }}
+                            title="Chèn ảnh"
+                        >
+                            <ImageIcon size={16} weight="bold" />
+                        </button>
+                        <button
+                            type="button"
+                            className={`tiptap-btn ${showYoutubePanel ? 'is-active' : ''}`}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                                setShowImagePanel(false);
+                                setShowYoutubePanel((v) => !v);
+                            }}
+                            title="Chèn YouTube"
+                        >
+                            <YoutubeLogo size={16} weight="bold" />
+                        </button>
+                        <button
+                            type="button"
+                            className="tiptap-btn"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={handleInsertTable}
+                            title="Chèn bảng"
+                        >
+                            <TableIcon size={16} weight="bold" />
+                        </button>
+                    </div>
+
                     {editor.isActive('table') && (
                         <>
-                            <div className="border-r mx-1" />
-                            <button
-                                onMouseDown={(e) => e.preventDefault()}
-                                onClick={() => editor.chain().focus().addColumnAfter().run()}
-                                className="p-2 rounded hover:bg-gray-200 text-xs font-semibold"
-                                title="Thêm cột"
-                            >
-                                +Cột
-                            </button>
-                            <button
-                                onMouseDown={(e) => e.preventDefault()}
-                                onClick={() => editor.chain().focus().deleteColumn().run()}
-                                className="p-2 rounded hover:bg-gray-200 text-xs font-semibold text-red-600"
-                                title="Xóa cột"
-                            >
-                                -Cột
-                            </button>
-                            <button
-                                onMouseDown={(e) => e.preventDefault()}
-                                onClick={() => editor.chain().focus().addRowAfter().run()}
-                                className="p-2 rounded hover:bg-gray-200 text-xs font-semibold"
-                                title="Thêm hàng"
-                            >
-                                +Hàng
-                            </button>
-                            <button
-                                onMouseDown={(e) => e.preventDefault()}
-                                onClick={() => editor.chain().focus().deleteRow().run()}
-                                className="p-2 rounded hover:bg-gray-200 text-xs font-semibold text-red-600"
-                                title="Xóa hàng"
-                            >
-                                -Hàng
-                            </button>
-                            <button
-                                onMouseDown={(e) => e.preventDefault()}
-                                onClick={() => editor.chain().focus().deleteTable().run()}
-                                className="p-2 rounded hover:bg-gray-200 text-xs font-semibold text-red-600"
-                                title="Xóa bảng"
-                            >
-                                Xóa Bảng
-                            </button>
+                            <div className="tiptap-toolbar__divider" />
+                            <div className="tiptap-toolbar__group">
+                                <button type="button" className="tiptap-btn" onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().addColumnAfter().run()}>
+                                    +Cột
+                                </button>
+                                <button type="button" className="tiptap-btn" onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().deleteColumn().run()}>
+                                    -Cột
+                                </button>
+                                <button type="button" className="tiptap-btn" onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().addRowAfter().run()}>
+                                    +Hàng
+                                </button>
+                                <button type="button" className="tiptap-btn" onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().deleteRow().run()}>
+                                    -Hàng
+                                </button>
+                                <button type="button" className="tiptap-btn" onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().deleteTable().run()}>
+                                    Xóa bảng
+                                </button>
+                            </div>
                         </>
                     )}
-                    <div className="border-r mx-1" />
 
-                    {/* Clear formatting */}
+                    <div className="tiptap-toolbar__divider" />
                     <button
+                        type="button"
+                        className="tiptap-btn"
                         onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()}
-                        className="p-2 rounded hover:bg-gray-200"
-                        title="Clear Formatting"
+                        onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}
+                        title="Xóa định dạng"
                     >
-                        ✓
+                        <Eraser size={16} weight="bold" />
                     </button>
                 </div>
             )}
 
-            {/* Image Insertion Panel */}
             {showImagePanel && (
-                <div className="p-4 bg-blue-50 border-b">
-                    <h4 className="font-semibold mb-3">Chèn ảnh</h4>
-                    <div className="space-y-2 mb-3">
-                        <div className="flex flex-col sm:flex-row gap-2">
+                <div className="tiptap-panel">
+                    <div className="tiptap-panel__title">Chèn ảnh</div>
+                    <div className="flex flex-col gap-2">
+                        <div className="flex flex-wrap gap-2">
                             <button
                                 type="button"
-                                onClick={handlePickImageFile}
-                                className="px-4 py-2 rounded bg-[#001C44] text-white font-semibold hover:bg-[#002A66] disabled:opacity-60"
+                                onClick={() => fileInputRef.current?.click()}
                                 disabled={imageUploading}
+                                className="px-4 py-2 rounded-xl bg-[#001C44] text-[#FFD66D] text-sm font-bold disabled:opacity-60"
                             >
-                                {imageUploading ? 'Đang upload...' : 'Chọn ảnh từ máy'}
+                                {imageUploading ? 'Đang upload...' : 'Chọn từ máy'}
                             </button>
-                            <div className="flex items-center gap-2">
-                                <select
-                                    value={imageAlign}
-                                    onChange={(e) => setImageAlign(e.target.value as any)}
-                                    className="px-3 py-2 border rounded bg-white"
-                                >
-                                    <option value="left">Trái</option>
-                                    <option value="center">Giữa</option>
-                                    <option value="right">Phải</option>
-                                    <option value="wide">Rộng</option>
-                                </select>
-                                <select
-                                    value={imageSize}
-                                    onChange={(e) => setImageSize(e.target.value as any)}
-                                    className="px-3 py-2 border rounded bg-white"
-                                >
-                                    <option value="sm">Nhỏ</option>
-                                    <option value="md">Vừa</option>
-                                    <option value="lg">Lớn</option>
-                                </select>
-                            </div>
+                            <select value={imageAlign} onChange={(e) => setImageAlign(e.target.value as typeof imageAlign)} className="tiptap-select">
+                                <option value="left">Trái</option>
+                                <option value="center">Giữa</option>
+                                <option value="right">Phải</option>
+                                <option value="wide">Rộng</option>
+                            </select>
+                            <select value={imageSize} onChange={(e) => setImageSize(e.target.value as typeof imageSize)} className="tiptap-select">
+                                <option value="sm">Nhỏ</option>
+                                <option value="md">Vừa</option>
+                                <option value="lg">Lớn</option>
+                            </select>
                         </div>
-                        <input
-                            type="url"
-                            placeholder="URL ảnh"
-                            value={imageUrl}
-                            onChange={(e) => setImageUrl(e.target.value)}
-                            className="w-full px-3 py-2 border rounded"
-                        />
-                        <input
-                            type="text"
-                            placeholder="Văn bản thay thế (alt text)"
-                            value={imageAlt}
-                            onChange={(e) => setImageAlt(e.target.value)}
-                            className="w-full px-3 py-2 border rounded"
-                        />
-                        <textarea
-                            placeholder="Chú thích ảnh (tùy chọn)"
-                            value={imageCaption}
-                            onChange={(e) => setImageCaption(e.target.value)}
-                            className="w-full px-3 py-2 border rounded"
-                            rows={2}
-                        />
-                    </div>
-                    {imageUrl && (
-                        <div className="mb-3">
-                            <img
-                                src={imageUrl}
-                                alt="Preview"
-                                className="max-w-xs max-h-40 object-contain rounded"
-                                onError={() => console.log('Image load failed')}
-                            />
+                        <input className="tiptap-field" type="url" placeholder="URL ảnh" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+                        <input className="tiptap-field" type="text" placeholder="Alt text" value={imageAlt} onChange={(e) => setImageAlt(e.target.value)} />
+                        <textarea className="tiptap-field" placeholder="Chú thích (tùy chọn)" value={imageCaption} onChange={(e) => setImageCaption(e.target.value)} rows={2} />
+                        <div className="flex gap-2">
+                            <button type="button" onClick={handleInsertImage} disabled={!imageUrl.trim()} className="px-4 py-2 rounded-xl bg-[#001C44] text-white text-sm font-bold disabled:opacity-50">
+                                Chèn ảnh
+                            </button>
+                            <button type="button" onClick={() => setShowImagePanel(false)} className="px-4 py-2 rounded-xl bg-white border border-gray-200 text-sm font-bold text-gray-600">
+                                Đóng
+                            </button>
                         </div>
-                    )}
-                    <div className="flex gap-2">
-                        <button
-                            type="button"
-                            onClick={handleInsertImage}
-                            disabled={!imageUrl.trim()}
-                            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400"
-                        >
-                            Chèn
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setShowImagePanel(false)}
-                            className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
-                        >
-                            Đóng
-                        </button>
                     </div>
                 </div>
             )}
 
-            {/* YouTube Insertion Panel */}
             {showYoutubePanel && (
-                <div className="p-4 bg-red-50 border-b">
-                    <h4 className="font-semibold mb-3">Chèn video YouTube</h4>
-                    <div className="space-y-2 mb-3">
+                <div className="tiptap-panel">
+                    <div className="tiptap-panel__title">Chèn YouTube</div>
+                    <div className="flex flex-col gap-2">
                         <input
+                            className="tiptap-field"
                             type="url"
-                            placeholder="YouTube URL (vd: https://www.youtube.com/watch?v=...)"
+                            placeholder="https://www.youtube.com/watch?v=..."
                             value={youtubeUrl}
                             onChange={(e) => setYoutubeUrl(e.target.value)}
-                            className="w-full px-3 py-2 border rounded"
                         />
-                    </div>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={handleInsertYoutube}
-                            disabled={!youtubeUrl.trim()}
-                            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:bg-gray-400"
-                        >
-                            Chèn
-                        </button>
-                        <button
-                            onClick={() => setShowYoutubePanel(false)}
-                            className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
-                        >
-                            Đóng
-                        </button>
+                        <div className="flex gap-2">
+                            <button type="button" onClick={handleInsertYoutube} disabled={!youtubeUrl.trim()} className="px-4 py-2 rounded-xl bg-[#001C44] text-white text-sm font-bold disabled:opacity-50">
+                                Chèn video
+                            </button>
+                            <button type="button" onClick={() => setShowYoutubePanel(false)} className="px-4 py-2 rounded-xl bg-white border border-gray-200 text-sm font-bold text-gray-600">
+                                Đóng
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
 
-            {/* Editor Container */}
-            <div className="flex gap-0 bg-white">
-                {/* Visual Editor */}
+            <div className={`flex ${mode === 'split' ? 'flex-col lg:flex-row' : 'flex-col'}`}>
                 {(mode === 'visual' || mode === 'split') && (
-                    <div className={`flex-1 border-r-0 ${mode === 'split' ? 'border-r' : ''}`}>
-                        <EditorContent
-                            editor={editor}
-                            className="px-4 py-3 min-h-96 prose prose-sm max-w-full focus:outline-none"
-                        />
+                    <div className={`bg-white ${mode === 'split' ? 'lg:w-1/2 lg:border-r border-gray-100' : 'w-full'}`}>
+                        <EditorContent editor={editor} />
                     </div>
                 )}
-
-                {/* Source Editor */}
                 {(mode === 'source' || mode === 'split') && (
-                    <div className={`flex-1 ${mode === 'split' ? 'w-1/2' : 'w-full'}`}>
+                    <div className={mode === 'split' ? 'lg:w-1/2' : 'w-full'}>
                         <textarea
                             value={sourceCode}
                             onChange={(e) => handleSourceChange(e.target.value)}
-                            className="w-full h-96 p-4 font-mono text-sm border-0 focus:outline-none resize-none"
+                            onBlur={() => {
+                                const cleaned = sanitizeArticleContent(sourceCode);
+                                setSourceCode(cleaned);
+                                if (editor) {
+                                    skipNextSync.current = true;
+                                    editor.commands.setContent(cleaned, { emitUpdate: false });
+                                }
+                                onChange(cleaned);
+                            }}
+                            className="tiptap-source"
                             placeholder="HTML content"
+                            spellCheck={false}
                         />
                     </div>
                 )}

@@ -32,6 +32,13 @@ const formatAmPmPreview = (value?: string | null) => {
     return `${day}/${month}/${year}, ${hour}:${minutes} ${period}`;
 };
 
+const fieldClass = (hasError?: boolean) =>
+    `w-full rounded-xl border px-3.5 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-900/15 focus:border-primary-900 ${
+        hasError ? 'border-rose-300' : 'border-gray-200'
+    }`;
+
+const labelClass = 'mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400';
+
 const renderStandardFields = (props: RenderFieldsProps<StandardActivityCreateRequest>) => {
     const {
         formData,
@@ -50,10 +57,10 @@ const renderStandardFields = (props: RenderFieldsProps<StandardActivityCreateReq
     return (
         <>
             {/* Basic Information */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="md:col-span-2">
-                    <label htmlFor="name" className="block text-sm font-medium text-[#001C44] mb-2">
-                        Tên sự kiện *
+                    <label htmlFor="name" className={labelClass}>
+                        Tên sự kiện <span className="text-rose-500">*</span>
                     </label>
                     <input
                         type="text"
@@ -61,15 +68,14 @@ const renderStandardFields = (props: RenderFieldsProps<StandardActivityCreateReq
                         name="name"
                         value={formData.name || ''}
                         onChange={handleChange}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#001C44] ${errors.name ? 'border-red-500' : 'border-gray-300'
-                            }`}
+                        className={fieldClass(!!errors.name)}
                         placeholder="Nhập tên sự kiện"
                     />
-                    {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+                    {errors.name && <p className="text-rose-600 text-sm mt-1">{errors.name}</p>}
                 </div>
 
                 <div>
-                    <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="type" className={labelClass}>
                         Loại sự kiện
                     </label>
                     <select
@@ -78,21 +84,21 @@ const renderStandardFields = (props: RenderFieldsProps<StandardActivityCreateReq
                         value={formData.type || ''}
                         onChange={handleChange}
                         disabled={isScoreLocked}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.type ? 'border-red-500' : 'border-gray-300'} ${isScoreLocked ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                        className={`${fieldClass(!!errors.type)} ${isScoreLocked ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                     >
                         <option value={ActivityType.SUKIEN}>Sự kiện</option>
                         <option value={ActivityType.CONG_TAC_XA_HOI}>Công tác xã hội</option>
                         <option value={ActivityType.CHUYEN_DE_DOANH_NGHIEP}>Chuyên đề doanh nghiệp</option>
                     </select>
                     {isScoreLocked && (
-                        <p className="text-xs text-amber-600 mt-1">Đã có lượt tính điểm, không thể đổi loại sự kiện</p>
+                        <p className="text-xs text-amber-700 mt-1">Đã có lượt tính điểm, không thể đổi loại sự kiện</p>
                     )}
-                    {errors.type && <p className="text-red-500 text-sm mt-1">{errors.type}</p>}
+                    {errors.type && <p className="text-rose-600 text-sm mt-1">{errors.type}</p>}
                 </div>
 
                 <div>
-                    <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">
-                        Địa điểm *
+                    <label htmlFor="location" className={labelClass}>
+                        Địa điểm <span className="text-rose-500">*</span>
                     </label>
                     <input
                         type="text"
@@ -100,17 +106,16 @@ const renderStandardFields = (props: RenderFieldsProps<StandardActivityCreateReq
                         name="location"
                         value={formData.location || ''}
                         onChange={handleChange}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.location ? 'border-red-500' : 'border-gray-300'
-                            }`}
+                        className={fieldClass(!!errors.location)}
                         placeholder="Nhập địa điểm tổ chức"
                     />
-                    {errors.location && <p className="text-red-500 text-sm mt-1">{errors.location}</p>}
+                    {errors.location && <p className="text-rose-600 text-sm mt-1">{errors.location}</p>}
                 </div>
             </div>
 
             {/* Description */}
             <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="description" className={labelClass}>
                     Mô tả sự kiện
                 </label>
                 <textarea
@@ -119,16 +124,16 @@ const renderStandardFields = (props: RenderFieldsProps<StandardActivityCreateReq
                     value={formData.description || ''}
                     onChange={handleChange}
                     rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={`${fieldClass()} resize-none`}
                     placeholder="Mô tả chi tiết về sự kiện..."
                 />
             </div>
 
             {/* Date and Time */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
-                    <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
-                        Ngày bắt đầu *
+                    <label htmlFor="startDate" className={labelClass}>
+                        Ngày bắt đầu <span className="text-rose-500">*</span>
                     </label>
                     <input
                         type="datetime-local"
@@ -136,20 +141,19 @@ const renderStandardFields = (props: RenderFieldsProps<StandardActivityCreateReq
                         name="startDate"
                         value={formData.startDate || ''}
                         onChange={handleChange}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.startDate ? 'border-red-500' : 'border-gray-300'
-                            }`}
+                        className={fieldClass(!!errors.startDate)}
                     />
                     {formData.startDate && (
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="mt-1 text-xs text-gray-500 tabular-nums">
                             {formatAmPmPreview(formData.startDate)}
                         </p>
                     )}
-                    {errors.startDate && <p className="text-red-500 text-sm mt-1">{errors.startDate}</p>}
+                    {errors.startDate && <p className="text-rose-600 text-sm mt-1">{errors.startDate}</p>}
                 </div>
 
                 <div>
-                    <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-2">
-                        Ngày kết thúc *
+                    <label htmlFor="endDate" className={labelClass}>
+                        Ngày kết thúc <span className="text-rose-500">*</span>
                     </label>
                     <input
                         type="datetime-local"
@@ -157,19 +161,18 @@ const renderStandardFields = (props: RenderFieldsProps<StandardActivityCreateReq
                         name="endDate"
                         value={formData.endDate || ''}
                         onChange={handleChange}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.endDate ? 'border-red-500' : 'border-gray-300'
-                            }`}
+                        className={fieldClass(!!errors.endDate)}
                     />
                     {formData.endDate && (
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="mt-1 text-xs text-gray-500 tabular-nums">
                             {formatAmPmPreview(formData.endDate)}
                         </p>
                     )}
-                    {errors.endDate && <p className="text-red-500 text-sm mt-1">{errors.endDate}</p>}
+                    {errors.endDate && <p className="text-rose-600 text-sm mt-1">{errors.endDate}</p>}
                 </div>
 
                 <div>
-                    <label htmlFor="registrationStartDate" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="registrationStartDate" className={labelClass}>
                         Ngày mở đăng ký
                     </label>
                     <input
@@ -178,17 +181,17 @@ const renderStandardFields = (props: RenderFieldsProps<StandardActivityCreateReq
                         name="registrationStartDate"
                         value={formData.registrationStartDate || ''}
                         onChange={handleChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className={fieldClass()}
                     />
                     {formData.registrationStartDate && (
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="mt-1 text-xs text-gray-500 tabular-nums">
                             {formatAmPmPreview(formData.registrationStartDate)}
                         </p>
                     )}
                 </div>
 
                 <div>
-                    <label htmlFor="registrationDeadline" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="registrationDeadline" className={labelClass}>
                         Hạn đăng ký
                     </label>
                     <input
@@ -197,93 +200,84 @@ const renderStandardFields = (props: RenderFieldsProps<StandardActivityCreateReq
                         name="registrationDeadline"
                         value={formData.registrationDeadline || ''}
                         onChange={handleChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className={fieldClass()}
                     />
                     {formData.registrationDeadline && (
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="mt-1 text-xs text-gray-500 tabular-nums">
                             {formatAmPmPreview(formData.registrationDeadline)}
                         </p>
                     )}
                 </div>
             </div>
 
-            {/* Important/Mandatory Checkboxes - Must be before ticketQuantity */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div className="flex items-center">
+            {/* Important/Mandatory Checkboxes */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <label className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/70 px-3.5 py-3 cursor-pointer">
                     <input
                         type="checkbox"
                         id="isImportant"
                         name="isImportant"
                         checked={!!formData.isImportant}
                         onChange={handleChange}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        className="h-4 w-4 rounded border-gray-300 text-primary-900 focus:ring-primary-900"
                     />
-                    <label htmlFor="isImportant" className="ml-2 block text-sm text-gray-900">
-                        Sự kiện quan trọng
-                    </label>
-                </div>
+                    <span className="text-sm font-medium text-gray-900">Sự kiện quan trọng</span>
+                </label>
 
-                <div className="flex items-center">
+                <label className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/70 px-3.5 py-3 cursor-pointer">
                     <input
                         type="checkbox"
                         id="mandatoryForFacultyStudents"
                         name="mandatoryForFacultyStudents"
                         checked={!!formData.mandatoryForFacultyStudents}
                         onChange={handleChange}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        className="h-4 w-4 rounded border-gray-300 text-primary-900 focus:ring-primary-900"
                     />
-                    <label htmlFor="mandatoryForFacultyStudents" className="ml-2 block text-sm text-gray-900">
-                        Bắt buộc cho sinh viên thuộc khoa
-                    </label>
-                </div>
+                    <span className="text-sm font-medium text-gray-900">Bắt buộc cho sinh viên thuộc khoa</span>
+                </label>
             </div>
 
-            {/* Additional Options */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                    <label htmlFor="ticketQuantity" className="block text-sm font-medium text-gray-700 mb-2">
-                        Số lượng vé/slot
-                    </label>
-                    <div className="space-y-2">
-                        <div className="flex items-center">
-                            <input
-                                type="checkbox"
-                                id="unlimitedTickets"
-                                name="unlimitedTickets"
-                                checked={unlimitedTickets}
-                                onChange={handleUnlimitedChange}
-                                disabled={!!formData.isImportant || !!formData.mandatoryForFacultyStudents}
-                                className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${(formData.isImportant || formData.mandatoryForFacultyStudents) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            />
-                            <label htmlFor="unlimitedTickets" className={`ml-2 block text-sm ${(formData.isImportant || formData.mandatoryForFacultyStudents) ? 'text-gray-500' : 'text-gray-900'}`}>
-                                Không giới hạn số lượng
-                            </label>
-                        </div>
+            {/* Ticket quantity */}
+            <div>
+                <label htmlFor="ticketQuantity" className={labelClass}>
+                    Số lượng vé / suất
+                </label>
+                <div className="space-y-2">
+                    <label className={`flex items-center gap-2 text-sm ${(formData.isImportant || formData.mandatoryForFacultyStudents) ? 'text-gray-500' : 'text-gray-900'}`}>
                         <input
-                            type="number"
-                            id="ticketQuantity"
-                            name="ticketQuantity"
-                            value={formData.ticketQuantity ?? ''}
-                            onChange={handleChange}
-                            min="0"
-                            disabled={unlimitedTickets || !!formData.isImportant || !!formData.mandatoryForFacultyStudents}
-                            className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${(unlimitedTickets || formData.isImportant || formData.mandatoryForFacultyStudents) ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                            placeholder="Nhập số lượng vé"
+                            type="checkbox"
+                            id="unlimitedTickets"
+                            name="unlimitedTickets"
+                            checked={unlimitedTickets}
+                            onChange={handleUnlimitedChange}
+                            disabled={!!formData.isImportant || !!formData.mandatoryForFacultyStudents}
+                            className={`h-4 w-4 rounded border-gray-300 text-primary-900 focus:ring-primary-900 ${(formData.isImportant || formData.mandatoryForFacultyStudents) ? 'opacity-50 cursor-not-allowed' : ''}`}
                         />
-                    </div>
-                    {(formData.isImportant || formData.mandatoryForFacultyStudents) && (
-                        <p className="text-xs text-gray-500 mt-1">Không giới hạn (sự kiện quan trọng/bắt buộc)</p>
-                    )}
+                        Không giới hạn số lượng
+                    </label>
+                    <input
+                        type="number"
+                        id="ticketQuantity"
+                        name="ticketQuantity"
+                        value={formData.ticketQuantity ?? ''}
+                        onChange={handleChange}
+                        min="0"
+                        disabled={unlimitedTickets || !!formData.isImportant || !!formData.mandatoryForFacultyStudents}
+                        className={`${fieldClass()} ${(unlimitedTickets || formData.isImportant || formData.mandatoryForFacultyStudents) ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                        placeholder="Nhập số lượng vé"
+                    />
                 </div>
+                {(formData.isImportant || formData.mandatoryForFacultyStudents) && (
+                    <p className="text-xs text-gray-500 mt-1">Không giới hạn (sự kiện quan trọng / bắt buộc)</p>
+                )}
             </div>
 
             {/* Banner */}
             <div>
-                <label htmlFor="bannerUrl" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="bannerUrl" className={labelClass}>
                     Banner sự kiện
                 </label>
                 <div className="space-y-2">
-                    {/* File Upload */}
                     <div>
                         <input
                             type="file"
@@ -316,14 +310,13 @@ const renderStandardFields = (props: RenderFieldsProps<StandardActivityCreateReq
                                     });
                                 }
                             }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className={fieldClass()}
                         />
-                        <p className="text-xs text-gray-500 mt-1">Chọn ảnh từ máy tính (JPG, PNG, GIF - tối đa 5MB)</p>
+                        <p className="text-xs text-gray-500 mt-1">Chọn ảnh từ máy tính (JPG, PNG, GIF — tối đa 5MB)</p>
                     </div>
 
-                    {/* Or URL Input */}
-                    <div className="flex items-center">
-                        <span className="text-sm text-gray-500 mr-2">hoặc</span>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-500 shrink-0">hoặc</span>
                         <input
                             type="url"
                             id="bannerUrl"
@@ -338,37 +331,34 @@ const renderStandardFields = (props: RenderFieldsProps<StandardActivityCreateReq
                                     });
                                 }
                             }}
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Nhập URL ảnh"
+                            className={`flex-1 ${fieldClass()}`}
+                            placeholder="Nhập đường dẫn ảnh"
                         />
                     </div>
 
-                    {/* Preview */}
                     {(formData.bannerUrl || (formData as any).bannerFile || originalBannerUrl) && (
-                        <div className="mt-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Ảnh hiện tại:
-                            </label>
-                            <div className="flex items-center space-x-4">
+                        <div className="mt-3">
+                            <p className={labelClass}>Xem trước</p>
+                            <div className="flex items-center gap-3">
                                 {(formData as any).bannerFile && (
                                     <img
                                         src={URL.createObjectURL((formData as any).bannerFile)}
-                                        alt="New banner preview"
-                                        className="w-32 h-20 object-cover rounded-lg border"
+                                        alt="Xem trước banner mới"
+                                        className="h-20 w-32 rounded-xl border border-gray-200 object-cover"
                                     />
                                 )}
                                 {formData.bannerUrl && !(formData as any).bannerFile && (
                                     <img
                                         src={getImageUrl(formData.bannerUrl) || ''}
-                                        alt="Banner preview"
-                                        className="w-32 h-20 object-cover rounded-lg border"
+                                        alt="Xem trước banner"
+                                        className="h-20 w-32 rounded-xl border border-gray-200 object-cover"
                                     />
                                 )}
                                 {!formData.bannerUrl && !(formData as any).bannerFile && originalBannerUrl && (
                                     <img
                                         src={getImageUrl(originalBannerUrl) || ''}
-                                        alt="Current banner"
-                                        className="w-32 h-20 object-cover rounded-lg border"
+                                        alt="Banner hiện tại"
+                                        className="h-20 w-32 rounded-xl border border-gray-200 object-cover"
                                     />
                                 )}
                             </div>
@@ -376,15 +366,15 @@ const renderStandardFields = (props: RenderFieldsProps<StandardActivityCreateReq
                     )}
 
                     {errors.banner && (
-                        <p className="text-red-500 text-sm mt-1">{errors.banner}</p>
+                        <p className="text-rose-600 text-sm mt-1">{errors.banner}</p>
                     )}
                 </div>
             </div>
 
             {/* Requirements & Benefits */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
-                    <label htmlFor="benefits" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="benefits" className={labelClass}>
                         Quyền lợi khi tham gia
                     </label>
                     <textarea
@@ -393,13 +383,13 @@ const renderStandardFields = (props: RenderFieldsProps<StandardActivityCreateReq
                         value={formData.benefits || ''}
                         onChange={handleChange}
                         rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className={`${fieldClass()} resize-none`}
                         placeholder="Chứng nhận, quà tặng, học bổng..."
                     />
                 </div>
 
                 <div>
-                    <label htmlFor="requirements" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="requirements" className={labelClass}>
                         Yêu cầu tham gia
                     </label>
                     <textarea
@@ -408,7 +398,7 @@ const renderStandardFields = (props: RenderFieldsProps<StandardActivityCreateReq
                         value={formData.requirements || ''}
                         onChange={handleChange}
                         rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className={`${fieldClass()} resize-none`}
                         placeholder="Điều kiện, chuẩn bị cần thiết..."
                     />
                 </div>
@@ -416,7 +406,7 @@ const renderStandardFields = (props: RenderFieldsProps<StandardActivityCreateReq
 
             {/* Contact Info */}
             <div>
-                <label htmlFor="contactInfo" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="contactInfo" className={labelClass}>
                     Thông tin liên hệ hỗ trợ
                 </label>
                 <input
@@ -425,7 +415,7 @@ const renderStandardFields = (props: RenderFieldsProps<StandardActivityCreateReq
                     name="contactInfo"
                     value={formData.contactInfo || ''}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={fieldClass()}
                     placeholder="Email hoặc số điện thoại"
                 />
             </div>
@@ -439,58 +429,56 @@ const renderStandardFields = (props: RenderFieldsProps<StandardActivityCreateReq
             />
 
             {/* Checkboxes */}
-            <div className="space-y-4">
-                <div className="flex items-center">
+            <div className="space-y-3">
+                <label className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/70 px-3.5 py-3 cursor-pointer">
                     <input
                         type="checkbox"
                         id="isDraft"
                         name="isDraft"
                         checked={!!formData.isDraft}
                         onChange={handleChange}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        className="h-4 w-4 rounded border-gray-300 text-primary-900 focus:ring-primary-900"
                     />
-                    <label htmlFor="isDraft" className="ml-2 block text-sm text-gray-900">
-                        Lưu dưới dạng bản nháp (chưa công bố)
+                    <span className="text-sm font-medium text-gray-900">Lưu dưới dạng bản nháp (chưa công bố)</span>
+                </label>
+
+                <div>
+                    <label className={`flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/70 px-3.5 py-3 ${isApprovalLocked ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}>
+                        <input
+                            type="checkbox"
+                            id="requiresApproval"
+                            name="requiresApproval"
+                            checked={!!formData.requiresApproval}
+                            onChange={handleChange}
+                            disabled={isApprovalLocked}
+                            className={`h-4 w-4 rounded border-gray-300 text-primary-900 focus:ring-primary-900 ${isApprovalLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        />
+                        <span className={`text-sm font-medium ${isApprovalLocked ? 'text-gray-500' : 'text-gray-900'}`}>
+                            Đăng ký cần duyệt (tắt để tự động duyệt)
+                        </span>
                     </label>
+                    {isApprovalLocked && (
+                        <p className="text-xs text-gray-500 mt-1.5 ml-1">Tự động duyệt cho sự kiện quan trọng / bắt buộc</p>
+                    )}
                 </div>
 
-                <div className="flex items-center">
-                    <input
-                        type="checkbox"
-                        id="requiresApproval"
-                        name="requiresApproval"
-                        checked={!!formData.requiresApproval}
-                        onChange={handleChange}
-                        disabled={isApprovalLocked}
-                        className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${isApprovalLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    />
-                    <label htmlFor="requiresApproval" className={`ml-2 block text-sm ${isApprovalLocked ? 'text-gray-500' : 'text-gray-900'}`}>
-                        Đăng ký cần duyệt (tắt để auto-approve)
-                    </label>
-                </div>
-                {isApprovalLocked && (
-                    <p className="text-xs text-gray-500 ml-6 -mt-2">Tự động duyệt cho sự kiện quan trọng/bắt buộc</p>
-                )}
-
-                <div className="flex items-center">
+                <label className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/70 px-3.5 py-3 cursor-pointer">
                     <input
                         type="checkbox"
                         id="requiresSubmission"
                         name="requiresSubmission"
                         checked={!!formData.requiresSubmission}
                         onChange={handleChange}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        className="h-4 w-4 rounded border-gray-300 text-primary-900 focus:ring-primary-900"
                     />
-                    <label htmlFor="requiresSubmission" className="ml-2 block text-sm text-gray-900">
-                        Yêu cầu nộp bài thu hoạch
-                    </label>
-                </div>
+                    <span className="text-sm font-medium text-gray-900">Yêu cầu nộp bài thu hoạch</span>
+                </label>
             </div>
 
             {/* Share Link */}
             <div>
-                <label htmlFor="shareLink" className="block text-sm font-medium text-gray-700 mb-2">
-                    Link chia sẻ
+                <label htmlFor="shareLink" className={labelClass}>
+                    Liên kết chia sẻ
                 </label>
                 <input
                     type="url"
@@ -498,8 +486,8 @@ const renderStandardFields = (props: RenderFieldsProps<StandardActivityCreateReq
                     name="shareLink"
                     value={formData.shareLink || ''}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="https://example.com/event-link"
+                    className={fieldClass()}
+                    placeholder="https://..."
                 />
             </div>
         </>

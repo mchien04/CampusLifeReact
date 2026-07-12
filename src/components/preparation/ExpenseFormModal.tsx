@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { X, Receipt, Camera, SpinnerGap } from '@phosphor-icons/react';
 import { BudgetCategoryDto, PreparationTaskDto } from '../../types';
 import { compressImage } from '../../utils/compressImage';
 
@@ -85,27 +86,43 @@ export default function ExpenseFormModal({
 
   if (!open) return null;
 
+  const inputClass =
+    'w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900/30';
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl">
-        <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] px-6 py-4 rounded-t-xl">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-bold text-white">Thêm chi phí</h3>
-              <p className="text-xs text-gray-200 mt-0.5">Gửi chi phí để quản trị duyệt</p>
+    <div className="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+      <div className="relative rounded-2xl border border-gray-100 bg-white shadow-premium w-full max-w-2xl overflow-hidden">
+        <div className="relative overflow-hidden bg-primary-900 px-6 py-4 text-white">
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.12]"
+            style={{
+              backgroundImage: 'radial-gradient(ellipse at 100% 0%, #FFD66D 0%, transparent 55%)',
+            }}
+          />
+          <div className="relative flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Receipt size={22} weight="duotone" className="text-accent" />
+              <div>
+                <h3 className="text-lg font-bold">Thêm chi phí</h3>
+                <p className="text-xs text-primary-100/80 mt-0.5">Gửi chi phí để quản trị duyệt</p>
+              </div>
             </div>
-            <button type="button" onClick={onClose} className="text-white hover:text-[#FFD66D] transition-colors">
-              <span className="sr-only">Đóng</span>
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white ring-1 ring-white/20 hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+              aria-label="Đóng"
+            >
+              <X size={18} weight="bold" />
             </button>
           </div>
         </div>
 
         <div className="p-6 space-y-4">
           <div>
-            <label htmlFor="prep-org-expense-task" className="block text-sm font-semibold text-gray-700 mb-2">Task tài chính</label>
+            <label htmlFor="prep-org-expense-task" className="block text-sm font-semibold text-gray-700 mb-2">
+              Nhiệm vụ tài chính
+            </label>
             <select
               id="prep-org-expense-task"
               name="prepOrgExpenseTask"
@@ -114,9 +131,9 @@ export default function ExpenseFormModal({
                 const v = Number(e.target.value);
                 setTaskId(Number.isFinite(v) && v > 0 ? v : null);
               }}
-              className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
+              className={inputClass}
             >
-              <option value="">Chọn task...</option>
+              <option value="">Chọn nhiệm vụ...</option>
               {financialTasks.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.title}
@@ -126,7 +143,9 @@ export default function ExpenseFormModal({
           </div>
 
           <div>
-            <label htmlFor="prep-org-expense-category" className="block text-sm font-semibold text-gray-700 mb-2">Hạng mục ngân sách</label>
+            <label htmlFor="prep-org-expense-category" className="block text-sm font-semibold text-gray-700 mb-2">
+              Hạng mục ngân sách
+            </label>
             <select
               id="prep-org-expense-category"
               name="prepOrgExpenseCategory"
@@ -135,7 +154,7 @@ export default function ExpenseFormModal({
                 const v = Number(e.target.value);
                 setCategoryId(Number.isFinite(v) && v > 0 ? v : null);
               }}
-              className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
+              className={inputClass}
               disabled={!categories.length}
             >
               <option value="">Chọn hạng mục...</option>
@@ -148,7 +167,9 @@ export default function ExpenseFormModal({
           </div>
 
           <div>
-            <label htmlFor="prep-org-expense-amount" className="block text-sm font-semibold text-gray-700 mb-2">Số tiền</label>
+            <label htmlFor="prep-org-expense-amount" className="block text-sm font-semibold text-gray-700 mb-2">
+              Số tiền
+            </label>
             <input
               id="prep-org-expense-amount"
               name="prepOrgExpenseAmount"
@@ -156,12 +177,14 @@ export default function ExpenseFormModal({
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="Ví dụ: 120000"
-              className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
+              className={inputClass}
             />
           </div>
 
           <div>
-            <label htmlFor="prep-org-expense-desc" className="block text-sm font-semibold text-gray-700 mb-2">Nội dung</label>
+            <label htmlFor="prep-org-expense-desc" className="block text-sm font-semibold text-gray-700 mb-2">
+              Nội dung
+            </label>
             <textarea
               id="prep-org-expense-desc"
               name="prepOrgExpenseDesc"
@@ -169,33 +192,39 @@ export default function ExpenseFormModal({
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               placeholder="Mô tả chi phí (tùy chọn)"
-              className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
+              className={inputClass}
             />
           </div>
 
           <div>
-            <label htmlFor="prep-org-expense-evidence" className="block text-sm font-semibold text-gray-700 mb-2">Chụp ảnh hóa đơn</label>
-            <input
-              id="prep-org-expense-evidence"
-              name="prepOrgExpenseEvidence"
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) {
-                  pickEvidence(f).catch(() => null);
-                }
-              }}
-              className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
-            />
+            <label htmlFor="prep-org-expense-evidence" className="block text-sm font-semibold text-gray-700 mb-2">
+              Chụp ảnh hóa đơn
+            </label>
+            <label className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold border cursor-pointer ${inputClass} bg-white hover:bg-gray-50`}>
+              <Camera size={18} weight="duotone" className="text-primary-900" />
+              Chọn ảnh
+              <input
+                id="prep-org-expense-evidence"
+                name="prepOrgExpenseEvidence"
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) {
+                    pickEvidence(f).catch(() => null);
+                  }
+                }}
+              />
+            </label>
             {evidencePreview && (
               <div className="mt-3 flex items-start gap-3">
-                <img src={evidencePreview} alt="preview" className="w-24 h-24 object-cover rounded-lg border border-gray-200" />
+                <img src={evidencePreview} alt="preview" className="w-24 h-24 object-cover rounded-xl border border-gray-200 ring-1 ring-gray-100" />
                 <button
                   type="button"
                   onClick={clearEvidence}
-                  className="px-4 py-2 text-sm font-medium bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  className="rounded-xl px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-gray-200 bg-gray-50 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300/50"
                 >
                   Xóa ảnh
                 </button>
@@ -203,16 +232,21 @@ export default function ExpenseFormModal({
             )}
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 mt-4 border-t border-gray-200">
-            <button type="button" onClick={onClose} className="px-6 py-2.5 text-sm font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+          <div className="flex justify-end gap-3 pt-4 mt-4 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl px-6 py-2.5 text-sm font-semibold text-gray-700 ring-1 ring-gray-200 bg-gray-50 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300/50"
+            >
               Hủy
             </button>
             <button
               type="button"
               disabled={!canSubmit}
               onClick={submit}
-              className="px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-lg hover:from-[#002A66] hover:to-[#001C44] focus:outline-none focus:ring-2 focus:ring-[#001C44] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
+              className="inline-flex items-center gap-2 rounded-xl bg-primary-900 px-6 py-2.5 text-sm font-semibold text-white shadow-premium hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900/30"
             >
+              {submitting && <SpinnerGap size={16} className="animate-spin" />}
               {submitting ? 'Đang gửi...' : 'Gửi'}
             </button>
           </div>

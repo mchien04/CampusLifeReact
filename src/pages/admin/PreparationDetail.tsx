@@ -1,6 +1,15 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import {
+    ArrowLeft,
+    Toolbox,
+    ToggleLeft,
+    ToggleRight,
+    SpinnerGap,
+    WarningCircle,
+    ShieldCheck,
+} from '@phosphor-icons/react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
 import { eventAPI, preparationAPI, studentAPI } from '../../services';
@@ -35,6 +44,22 @@ import {
     WorkloadWarningDto,
 } from '../../types';
 import { getImageUrl } from '../../utils/imageUtils';
+
+const prepCard = 'rounded-2xl border border-gray-100 bg-white shadow-premium';
+
+const PreparationDetailSkeleton: React.FC = () => (
+    <div className="mx-auto max-w-6xl space-y-6 animate-pulse pb-12">
+        <div className="h-40 rounded-2xl bg-gray-200/80" />
+        <div className="h-14 rounded-2xl bg-gray-200/80" />
+        <div className="h-64 rounded-2xl bg-gray-200/80" />
+        <div className="h-96 rounded-2xl bg-gray-200/80" />
+    </div>
+);
+
+const managerTabBtn = (active: boolean) =>
+    `rounded-xl px-4 py-2 text-sm font-semibold transition-all active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900/30 ${
+        active ? 'bg-primary-900 text-white shadow-sm' : 'bg-gray-50 text-gray-600 ring-1 ring-gray-200 hover:bg-gray-100'
+    }`;
 
 const currencyFormatter = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' });
 
@@ -85,10 +110,10 @@ function fundAdvanceStatusBadgeClass(status: FundAdvanceStatus) {
 }
 
 function taskStatusLabel(status: PreparationTaskStatus) {
-    if (status === 'PENDING') return 'PENDING';
-    if (status === 'ACCEPTED') return 'ACCEPTED';
-    if (status === 'COMPLETION_REQUESTED') return 'COMPLETION_REQUESTED';
-    return 'COMPLETED';
+    if (status === 'PENDING') return 'Chưa nhận';
+    if (status === 'ACCEPTED') return 'Đang làm';
+    if (status === 'COMPLETION_REQUESTED') return 'Chờ duyệt hoàn thành';
+    return 'Hoàn thành';
 }
 
 function taskStatusBadgeClass(status: PreparationTaskStatus) {
@@ -96,6 +121,13 @@ function taskStatusBadgeClass(status: PreparationTaskStatus) {
     if (status === 'COMPLETION_REQUESTED') return 'bg-yellow-50 text-yellow-700 border border-yellow-200';
     if (status === 'ACCEPTED') return 'bg-blue-50 text-blue-700 border border-blue-200';
     return 'bg-gray-50 text-gray-700 border border-gray-200';
+}
+
+function adjustmentStatusLabel(status: string) {
+    if (status === 'PENDING') return 'Chờ xử lý';
+    if (status === 'APPROVED') return 'Đã duyệt';
+    if (status === 'REJECTED') return 'Từ chối';
+    return status;
 }
 
 type ManagerTabKey = 'overview' | 'task-center' | 'exports';
@@ -338,7 +370,7 @@ export default function PreparationDetail() {
             setAdjustmentRequests(list ?? []);
         } catch (e: any) {
             setAdjustmentRequests([]);
-            toast.error(e?.response?.data?.message || e?.message || 'Không thể tải adjustment requests');
+            toast.error(e?.response?.data?.message || e?.message || 'Không thể tải yêu cầu điều chỉnh cấp phát');
         } finally {
             setLoadingAdjustments(false);
         }
@@ -546,7 +578,7 @@ export default function PreparationDetail() {
 
     const createTask = async () => {
         if (!taskAssigneeId) {
-            toast.warning('Vui lòng chọn leader');
+            toast.warning('Vui lòng chọn trưởng nhóm');
             return;
         }
         if (!taskTitle.trim()) {
@@ -599,7 +631,7 @@ export default function PreparationDetail() {
             setTaskDetailMembers([]);
             setTaskAdvanceHistory([]);
             setTaskAllocationSources([]);
-            toast.error(e?.response?.data?.message || e?.message || 'Không thể tải chi tiết task');
+            toast.error(e?.response?.data?.message || e?.message || 'Không thể tải chi tiết nhiệm vụ');
         } finally {
             setLoadingTaskDetail(false);
             setLoadingTaskMembers(false);
@@ -667,7 +699,7 @@ export default function PreparationDetail() {
         try {
             setSavingAllocation(true);
             await preparationAPI.allocateTaskFromCategory(allocTaskId, allocCategoryId, allocAmount.trim());
-            toast.success('Đã cập nhật cấp phát cho task');
+            toast.success('Đã cập nhật cấp phát cho nhiệm vụ');
             setShowAllocateModal(false);
             await loadCore();
             await loadReports();
@@ -694,7 +726,7 @@ export default function PreparationDetail() {
             setDecisionSourcesByRequest((prev) => ({ ...prev, [requestId]: normalized }));
             setSourcePlanLoadedByRequest((prev) => ({ ...prev, [requestId]: true }));
         } catch (e: any) {
-            const message = e?.response?.data?.message || e?.message || 'Không thể lấy source-plan';
+            const message = e?.response?.data?.message || e?.message || 'Không thể lấy kế hoạch nguồn cấp phát';
             setSourcePlanLoadedByRequest((prev) => ({ ...prev, [requestId]: false }));
             setSourcePlanErrorByRequest((prev) => ({ ...prev, [requestId]: message }));
             toast.error(message);
@@ -737,11 +769,11 @@ export default function PreparationDetail() {
     };
 
     const getApproveBlockReason = (requestId: number, requestAmount: string): string | null => {
-        if (sourcePlanLoadingByRequest[requestId]) return 'Đang lấy source-plan...';
-        if (!sourcePlanLoadedByRequest[requestId]) return 'Cần lấy source-plan trước khi duyệt.';
-        if (sourcePlanErrorByRequest[requestId]) return sourcePlanErrorByRequest[requestId] || 'Source-plan không hợp lệ.';
+        if (sourcePlanLoadingByRequest[requestId]) return 'Đang lấy kế hoạch nguồn cấp phát…';
+        if (!sourcePlanLoadedByRequest[requestId]) return 'Cần lấy kế hoạch nguồn cấp phát trước khi duyệt.';
+        if (sourcePlanErrorByRequest[requestId]) return sourcePlanErrorByRequest[requestId] || 'Kế hoạch nguồn cấp phát không hợp lệ.';
         const sources = decisionSourcesByRequest[requestId] ?? [];
-        if (sources.length === 0) return 'Source-plan rỗng. Không thể duyệt.';
+        if (sources.length === 0) return 'Kế hoạch nguồn cấp phát trống. Không thể duyệt.';
         if (!sources.every((s) => s.categoryId > 0 && Number(s.amount) > 0)) {
             return 'Mỗi nguồn cần có ví và số tiền > 0.';
         }
@@ -749,7 +781,7 @@ export default function PreparationDetail() {
         const requested = parseAmountToNumber(requestAmount);
         const allocated = sources.reduce((sum, s) => sum + parseAmountToNumber(s.amount), 0);
         if (Math.abs(allocated - requested) > 0.0001) {
-            return 'Tổng nguồn phải bằng số tiền request.';
+            return 'Tổng nguồn phải bằng số tiền yêu cầu.';
         }
 
         return null;
@@ -788,11 +820,11 @@ export default function PreparationDetail() {
         try {
             if (approved) {
                 if (!sourcePlanLoadedByRequest[requestId]) {
-                    toast.warning('Vui lòng lấy source-plan trước khi duyệt.');
+                    toast.warning('Vui lòng lấy kế hoạch nguồn cấp phát trước khi duyệt.');
                     return;
                 }
                 const request = adjustmentRequests.find((item) => item.id === requestId);
-                const blockReason = request ? getApproveBlockReason(requestId, request.amount) : 'Không tìm thấy request.';
+                const blockReason = request ? getApproveBlockReason(requestId, request.amount) : 'Không tìm thấy yêu cầu.';
                 if (blockReason) {
                     toast.warning(blockReason);
                     return;
@@ -811,34 +843,31 @@ export default function PreparationDetail() {
             } else {
                 await preparationAPI.adminDecideAllocationAdjustment(requestId, { approved: false });
             }
-            toast.success(approved ? 'Đã duyệt adjustment request' : 'Đã từ chối adjustment request');
+            toast.success(approved ? 'Đã duyệt yêu cầu điều chỉnh cấp phát' : 'Đã từ chối yêu cầu điều chỉnh cấp phát');
             clearDecisionStateForRequest(requestId);
             await loadAdjustmentRequests();
             await loadCore();
             await loadReports();
         } catch (e: any) {
-            toast.error(e?.response?.data?.message || e?.message || 'Không thể xử lý adjustment request');
+            toast.error(e?.response?.data?.message || e?.message || 'Không thể xử lý yêu cầu điều chỉnh cấp phát');
         }
     };
 
     if (!Number.isFinite(id) || id <= 0) {
         return (
-            <div className="space-y-4">
-                <div className="card">
-                    <div className="p-6">
-                        <div className="text-sm text-gray-600">ActivityId không hợp lệ.</div>
+            <div className="mx-auto max-w-6xl pb-12">
+                <div className="rounded-2xl border border-dashed border-gray-200 bg-white px-6 py-12 text-center shadow-premium">
+                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-600">
+                        <WarningCircle size={28} weight="duotone" />
                     </div>
+                    <p className="text-sm text-gray-600">ActivityId không hợp lệ.</p>
                 </div>
             </div>
         );
     }
 
     if (loading) {
-        return (
-            <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#001C44]"></div>
-            </div>
-        );
+        return <PreparationDetailSkeleton />;
     }
 
     const decideFundAdvance = async (
@@ -932,7 +961,7 @@ export default function PreparationDetail() {
             window.open(previewUrl, '_blank', 'noopener,noreferrer');
             setTimeout(() => window.URL.revokeObjectURL(previewUrl), 60000);
             setLastFailedExport(null);
-            toast.success('Đã mở review PDF ở tab mới');
+            toast.success('Đã mở xem trước PDF ở tab mới');
         } catch (e: any) {
             setLastFailedExport({ reportType, format: 'pdf' });
             toast.error(e?.response?.data?.message || e?.message || 'Không thể review PDF báo cáo');
@@ -942,81 +971,122 @@ export default function PreparationDetail() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="mx-auto max-w-6xl space-y-6 pb-12">
             {user?.role === 'STUDENT' && (
-                <div className="border-b border-gray-200">
-                    <nav className="-mb-px flex space-x-8">
+                <div className="rounded-2xl border border-gray-100 bg-white p-1.5 shadow-premium">
+                    <nav className="flex gap-1">
                         <button
+                            type="button"
                             onClick={() => navigate(`/student/preparation/${id}`)}
-                            className="py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                            className="flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-600 ring-1 ring-transparent hover:bg-gray-50 hover:text-primary-900 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900/20"
                         >
                             Thông tin chuẩn bị (Sinh viên)
                         </button>
                         <button
-                            className="py-4 px-1 border-b-2 font-medium text-sm border-[#001C44] text-[#001C44]"
+                            type="button"
+                            className="flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold bg-primary-900 text-white shadow-sm"
                         >
-                            Quản trị (Supervisor)
+                            Quản trị (Giám sát)
                         </button>
                     </nav>
                 </div>
             )}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-[#001C44] flex items-center">
-                        <span className="mr-3 text-4xl">🧩</span>
-                        Chi tiết chuẩn bị
-                    </h1>
-                    <p className="mt-2 text-gray-600">{activity ? activity.name : `Activity #${id}`}</p>
-                </div>
-                <div className="flex items-center gap-2">
+
+            <header className="relative overflow-hidden rounded-2xl border border-primary-900/10 bg-primary-900 px-6 py-7 sm:px-8 text-white shadow-premium">
+                <div
+                    className="pointer-events-none absolute inset-0 opacity-[0.12]"
+                    style={{
+                        backgroundImage:
+                            'radial-gradient(ellipse at 0% 0%, #FFD66D 0%, transparent 55%), radial-gradient(ellipse at 100% 100%, #4b88b6 0%, transparent 50%)',
+                    }}
+                />
+                <div className="relative space-y-5">
                     <button
                         type="button"
                         onClick={() => navigate('/manager/preparation')}
-                        className="px-5 py-2.5 text-sm font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-100/90 transition-colors hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 rounded-lg px-1 -ml-1"
                     >
-                        Quay lại
+                        <ArrowLeft size={16} weight="bold" />
+                        Danh sách chuẩn bị
                     </button>
-                    {isAdminOrManager && (
-                        <button
-                            type="button"
-                            onClick={() => togglePreparation(!hasPreparation)}
-                            className={`px-5 py-2.5 text-sm font-semibold rounded-lg border transition-colors ${hasPreparation
-                                ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
-                                : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+
+                    <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
+                        <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                                <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-2.5 py-1 text-xs font-semibold text-primary-100 ring-1 ring-white/15">
+                                    <Toolbox size={14} weight="duotone" />
+                                    Quản lý chuẩn bị
+                                </span>
+                                {user?.role === 'STUDENT' && (
+                                    <span className="inline-flex items-center gap-1 rounded-lg bg-violet-400/20 px-2.5 py-1 text-xs font-semibold text-violet-100 ring-1 ring-violet-300/30">
+                                        <ShieldCheck size={14} weight="duotone" />
+                                        Giám sát
+                                    </span>
+                                )}
+                                <span
+                                    className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold ring-1 ${
+                                        hasPreparation
+                                            ? 'bg-emerald-400/20 text-emerald-100 ring-emerald-300/30'
+                                            : 'bg-white/10 text-primary-100 ring-white/15'
+                                    }`}
+                                >
+                                    {hasPreparation ? 'Đang bật' : 'Đang tắt'}
+                                </span>
+                            </div>
+                            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-balance">
+                                {activity ? activity.name : `Hoạt động #${id}`}
+                            </h1>
+                            <p className="mt-2 text-sm text-primary-100/90 max-w-2xl leading-relaxed">
+                                Chi tiết công tác chuẩn bị — nhiệm vụ, ngân sách, chi phí và báo cáo.
+                            </p>
+                        </div>
+
+                        {isAdminOrManager && (
+                            <button
+                                type="button"
+                                onClick={() => togglePreparation(!hasPreparation)}
+                                className={`inline-flex items-center gap-2 shrink-0 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${
+                                    hasPreparation
+                                        ? 'bg-emerald-400/20 text-emerald-100 ring-1 ring-emerald-300/40 hover:bg-emerald-400/30'
+                                        : 'bg-white/10 text-white ring-1 ring-white/20 hover:bg-white/20'
                                 }`}
-                        >
-                            {hasPreparation ? 'Chuẩn bị: Bật' : 'Chuẩn bị: Tắt'}
-                        </button>
-                    )}
+                            >
+                                {hasPreparation ? (
+                                    <ToggleRight size={20} weight="duotone" />
+                                ) : (
+                                    <ToggleLeft size={20} weight="duotone" />
+                                )}
+                                {hasPreparation ? 'Chuẩn bị: Bật' : 'Chuẩn bị: Tắt'}
+                            </button>
+                        )}
+                    </div>
                 </div>
-            </div>
+            </header>
 
             {!hasPreparation ? (
-                <div className="card">
-                    <div className="p-6">
-                        <div className="text-sm text-gray-600">Chức năng chuẩn bị đang tắt cho hoạt động này.</div>
+                <div className={prepCard}>
+                    <div className="p-6 text-center">
+                        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100 text-gray-400">
+                            <Toolbox size={24} weight="duotone" />
+                        </div>
+                        <p className="text-sm text-gray-600">Chức năng chuẩn bị đang tắt cho hoạt động này.</p>
                     </div>
                 </div>
             ) : (
                 <>
-                    <div className="card">
-                        <div className="p-4 sm:p-6">
-                            <div className="overflow-x-auto">
-                                <div className="inline-flex items-center gap-2 min-w-max">
-                                    {managerTabs.map((t) => (
-                                        <button
-                                            key={t.key}
-                                            type="button"
-                                            onClick={() => setManagerTab(t.key)}
-                                            className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${managerTab === t.key
-                                                ? 'bg-gradient-to-r from-[#001C44] to-[#002A66] text-white border-transparent'
-                                                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-                                                }`}
-                                        >
-                                            {t.label}
-                                        </button>
-                                    ))}
-                                </div>
+                    <div className={`${prepCard} p-4 sm:p-5`}>
+                        <div className="overflow-x-auto">
+                            <div className="inline-flex items-center gap-2 min-w-max">
+                                {managerTabs.map((t) => (
+                                    <button
+                                        key={t.key}
+                                        type="button"
+                                        onClick={() => setManagerTab(t.key)}
+                                        className={managerTabBtn(managerTab === t.key)}
+                                    >
+                                        {t.label}
+                                    </button>
+                                ))}
                             </div>
                         </div>
                     </div>
@@ -1030,15 +1100,15 @@ export default function PreparationDetail() {
                             />
                             
                             <div className="grid grid-cols-1 xl:grid-cols-[1fr_2fr] gap-6">
-                                <div className="card">
+                                <div className={prepCard}>
                                     <div className="p-6">
                                     <div className="flex items-center justify-between mb-4">
-                                        <h2 className="text-lg font-semibold text-[#001C44]">Organizer</h2>
+                                        <h2 className="text-lg font-semibold text-primary-900">Organizer</h2>
                                         {isAdminOrManager && (
                                             <button
                                                 type="button"
                                                 onClick={() => setShowAddOrganizer(true)}
-                                                className="btn-yellow px-5 py-2 rounded-lg text-sm font-medium"
+                                                className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2 text-sm font-semibold text-primary-900 shadow-sm hover:bg-accent/90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                                             >
                                                 + Thêm organizer
                                             </button>
@@ -1099,10 +1169,10 @@ export default function PreparationDetail() {
                     )}
 
                     {showExportSection && (
-                        <div className="card">
+                        <div className={prepCard}>
                             <div className="p-6 space-y-4">
                                 <div className="flex items-center justify-between gap-3">
-                                    <h2 className="text-lg font-semibold text-[#001C44]">Xuất báo cáo</h2>
+                                    <h2 className="text-lg font-semibold text-primary-900">Xuất báo cáo</h2>
                                     <div className="flex items-center gap-2">
                                         {lastFailedExport && (
                                             <button
@@ -1114,25 +1184,25 @@ export default function PreparationDetail() {
                                                 Thử lại lần tải gần nhất
                                             </button>
                                         )}
-                                        <span className="text-xs text-gray-500">Có thể review PDF trước khi tải</span>
+                                        <span className="text-xs text-gray-500">Có thể xem trước PDF trước khi tải</span>
                                     </div>
                                 </div>
 
                                 {[
                                     {
                                         key: 'financial' as PreparationExportType,
-                                        title: 'Financial',
-                                        subtitle: 'Budget vs Actual + Cash Flow + Debts',
+                                        title: 'Tài chính',
+                                        subtitle: 'Ngân sách vs thực chi + dòng tiền + công nợ',
                                     },
                                     {
                                         key: 'operational' as PreparationExportType,
-                                        title: 'Operational',
-                                        subtitle: 'Tasks + Workload + Evidence',
+                                        title: 'Vận hành',
+                                        subtitle: 'Nhiệm vụ + khối lượng + minh chứng',
                                     },
                                     {
                                         key: 'audit' as PreparationExportType,
-                                        title: 'Audit',
-                                        subtitle: 'Audit logs + Reserve transfers',
+                                        title: 'Kiểm toán',
+                                        subtitle: 'Nhật ký kiểm toán + chuyển quỹ dự phòng',
                                     },
                                 ].map((item) => {
                                     const xlsxKey = getExportKey(item.key, 'xlsx');
@@ -1153,7 +1223,7 @@ export default function PreparationDetail() {
                                                     disabled={Boolean(exportingByKey[pdfKey])}
                                                     className="px-3 py-1.5 text-xs font-medium rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
-                                                    {exportingByKey[pdfKey] ? 'Đang mở review...' : 'Review PDF'}
+                                                    {exportingByKey[pdfKey] ? 'Đang mở xem trước…' : 'Xem trước PDF'}
                                                 </button>
                                                 <button
                                                     type="button"
@@ -1180,14 +1250,14 @@ export default function PreparationDetail() {
                     )}
 
                     {showTaskTable && (
-                        <div className="card">
+                        <div className={prepCard}>
                         <div className="p-6">
                             {showTaskTable && (
                                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                                    <h2 className="text-lg font-semibold text-[#001C44]">
-                                        Task Center
+                                    <h2 className="text-lg font-semibold text-primary-900">
+                                        Trung tâm nhiệm vụ
                                     </h2>
-                                    <button type="button" onClick={openTaskModal} className="btn-yellow px-5 py-2 rounded-lg text-sm font-medium">
+                                    <button type="button" onClick={openTaskModal} className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2 text-sm font-semibold text-primary-900 shadow-sm hover:bg-accent/90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50">
                                         + Tạo nhiệm vụ
                                     </button>
                                 </div>
@@ -1199,12 +1269,12 @@ export default function PreparationDetail() {
                                         <thead className="bg-gray-50">
                                             <tr>
                                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tiêu đề</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Leader</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trưởng nhóm</th>
                                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tài chính</th>
                                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Đã cấp phát</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deadline</th>
-                                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hạn chót</th>
+                                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-200">
@@ -1223,7 +1293,7 @@ export default function PreparationDetail() {
                                                         )}
                                                     </td>
                                                     <td className="px-4 py-3 text-sm text-gray-700">{t.ownerName || `#${t.ownerId}`}</td>
-                                                    <td className="px-4 py-3 text-sm text-gray-700">{t.isFinancial ? 'Yes' : 'No'}</td>
+                                                    <td className="px-4 py-3 text-sm text-gray-700">{t.isFinancial ? 'Có' : 'Không'}</td>
                                                     <td className="px-4 py-3 text-sm text-gray-700">{formatMoney(t.allocatedAmount)}</td>
                                                     <td className="px-4 py-3 text-sm text-gray-700">
                                                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${taskStatusBadgeClass(t.status)}`}>
@@ -1258,7 +1328,7 @@ export default function PreparationDetail() {
                                                             <button
                                                                 type="button"
                                                                 onClick={() => openTaskDetail(t.id)}
-                                                                className="px-3 py-1.5 text-sm font-medium border border-[#001C44] text-[#001C44] rounded-lg hover:bg-[#001C44] hover:text-white"
+                                                                className="px-3 py-1.5 text-sm font-medium border border-primary-900 text-primary-900 rounded-lg hover:bg-primary-900 hover:text-white"
                                                             >
                                                                 Xem chi tiết
                                                             </button>
@@ -1275,14 +1345,14 @@ export default function PreparationDetail() {
 
                             {showAllocationSection && (
                                 <div className="mt-5 border border-gray-200 rounded-xl overflow-hidden">
-                                <div className="bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">Yêu Cầu Bổ Sung Cấp Phát</div>
+                                <div className="bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">Yêu cầu bổ sung cấp phát</div>
                                 <div className="p-4 space-y-4">
                                     <div className="flex items-center gap-2">
-                                        <label className="text-sm font-medium text-gray-700">Filter</label>
+                                        <label className="text-sm font-medium text-gray-700">Lọc</label>
                                         <select
                                             value={adjustmentFilter}
                                             onChange={(e) => setAdjustmentFilter(e.target.value as 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED')}
-                                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#001C44]"
+                                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-900"
                                         >
                                             <option value="ALL">Tất cả</option>
                                             <option value="PENDING">Chờ xử lý</option>
@@ -1292,21 +1362,21 @@ export default function PreparationDetail() {
                                     </div>
 
                                     {loadingAdjustments ? (
-                                        <div className="text-sm text-gray-500">Đang tải requests...</div>
+                                        <div className="text-sm text-gray-500">Đang tải yêu cầu…</div>
                                     ) : adjustmentRequests.length === 0 ? (
-                                        <div className="text-sm text-gray-500">Chưa có adjustment request.</div>
+                                        <div className="text-sm text-gray-500">Chưa có yêu cầu điều chỉnh cấp phát.</div>
                                     ) : (
                                         <div className="overflow-x-auto border border-gray-200 rounded-xl">
                                             <table className="min-w-full divide-y divide-gray-200">
                                                 <thead className="bg-gray-50">
                                                     <tr>
-                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nhiệm Vụ</th>
-                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số Tiền</th>
-                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lý Do / Mô Tả</th>
-                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Người Yêu Cầu</th>
-                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng Thái</th>
-                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nguồn Duyệt</th>
-                                                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Thao Tác</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nhiệm vụ</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số tiền</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lý do / mô tả</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Người yêu cầu</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nguồn duyệt</th>
+                                                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="bg-white divide-y divide-gray-200">
@@ -1318,7 +1388,7 @@ export default function PreparationDetail() {
                                                             <td className="px-4 py-3 text-sm font-semibold text-gray-900">{formatMoney(r.amount)}</td>
                                                             <td className="px-4 py-3 text-sm text-gray-700 max-w-[200px] truncate" title={r.description || ''}>{r.description || '-'}</td>
                                                             <td className="px-4 py-3 text-sm text-gray-700">{r.requestedByName || `#${r.requestedById}`}</td>
-                                                            <td className="px-4 py-3 text-sm text-gray-700">{r.status}</td>
+                                                            <td className="px-4 py-3 text-sm text-gray-700">{adjustmentStatusLabel(r.status)}</td>
                                                             <td className="px-4 py-3 text-sm text-gray-700">
                                                                 {r.status === 'PENDING' ? (
                                                                     <div className="space-y-2 min-w-[340px]">
@@ -1327,9 +1397,9 @@ export default function PreparationDetail() {
                                                                                 type="button"
                                                                                 onClick={() => loadSourcePlanForRequest(r.id)}
                                                                                 disabled={sourcePlanLoadingByRequest[r.id]}
-                                                                                className="px-3 py-1.5 text-xs font-semibold border border-[#001C44] text-[#001C44] rounded-lg hover:bg-[#001C44] hover:text-white disabled:opacity-50"
+                                                                                className="px-3 py-1.5 text-xs font-semibold border border-primary-900 text-primary-900 rounded-lg hover:bg-primary-900 hover:text-white disabled:opacity-50"
                                                                             >
-                                                                                {sourcePlanLoadingByRequest[r.id] ? 'Đang lấy plan...' : (sourcePlanLoadedByRequest[r.id] ? 'Lấy lại source-plan' : 'Lấy source-plan')}
+                                                                                {sourcePlanLoadingByRequest[r.id] ? 'Đang lấy kế hoạch…' : (sourcePlanLoadedByRequest[r.id] ? 'Lấy lại kế hoạch nguồn' : 'Lấy kế hoạch nguồn cấp phát')}
                                                                             </button>
                                                                             <button
                                                                                 type="button"
@@ -1345,7 +1415,7 @@ export default function PreparationDetail() {
                                                                         )}
 
                                                                         {(decisionSourcesByRequest[r.id] ?? []).length === 0 ? (
-                                                                            <div className="text-xs text-gray-500">Chưa có nguồn. Vui lòng lấy source-plan trước khi duyệt.</div>
+                                                                            <div className="text-xs text-gray-500">Chưa có nguồn. Vui lòng lấy kế hoạch nguồn cấp phát trước khi duyệt.</div>
                                                                         ) : (
                                                                             <div className="space-y-2">
                                                                                 {(decisionSourcesByRequest[r.id] ?? []).map((source, sourceIndex) => (
@@ -1359,7 +1429,7 @@ export default function PreparationDetail() {
                                                                                                         categoryId: Number.isFinite(v) && v > 0 ? v : 0,
                                                                                                     });
                                                                                                 }}
-                                                                                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#001C44]"
+                                                                                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-primary-900"
                                                                                             >
                                                                                                 <option value="">Chọn ví</option>
                                                                                                 {budgetCategories.map((c) => (
@@ -1372,7 +1442,7 @@ export default function PreparationDetail() {
                                                                                                 type="text"
                                                                                                 value={source.amount}
                                                                                                 onChange={(e) => updateDecisionSource(r.id, sourceIndex, { amount: e.target.value })}
-                                                                                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#001C44]"
+                                                                                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-primary-900"
                                                                                                 placeholder="Số tiền"
                                                                                             />
                                                                                         </div>
@@ -1450,16 +1520,16 @@ export default function PreparationDetail() {
 
                             {showFundSection && (
                                 <div className="mt-5 border border-gray-200 rounded-xl overflow-hidden">
-                                <div className="bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">Yêu Cầu Tạm Ứng</div>
+                                <div className="bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">Yêu cầu tạm ứng</div>
                                 <div className="p-4 space-y-4">
                                     {loadingFundAdvances ? (
                                         <div className="text-sm text-gray-500">Đang tải yêu cầu tạm ứng...</div>
                                     ) : (
                                         <>
                                             <div>
-                                                <div className="text-sm font-semibold text-gray-700 mb-2">Chờ duyệt (REQUESTED)</div>
+                                                <div className="text-sm font-semibold text-gray-700 mb-2">Chờ duyệt</div>
                                                 {fundAdvances.filter((f) => f.status === 'REQUESTED').length === 0 ? (
-                                                    <div className="text-sm text-gray-500">Không có yêu cầu REQUESTED.</div>
+                                                    <div className="text-sm text-gray-500">Không có yêu cầu chờ duyệt.</div>
                                                 ) : (
                                                     <div className="space-y-2">
                                                         {fundAdvances
@@ -1469,11 +1539,11 @@ export default function PreparationDetail() {
                                                                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
                                                                         <div>
                                                                             <div className="text-sm font-semibold text-gray-900">{f.studentName || `#${f.studentId}`} • {formatMoney(f.amount)}</div>
-                                                                            <div className="text-xs text-gray-500 mt-1">Task #{f.taskId} • Ví: {f.categoryName} • Người tạo: {f.requestedByName || `#${f.requestedById}`}</div>
+                                                                            <div className="text-xs text-gray-500 mt-1">Nhiệm vụ #{f.taskId} • Ví: {f.categoryName} • Người tạo: {f.requestedByName || `#${f.requestedById}`}</div>
                                                                             <div className="text-xs text-gray-500 mt-1">Tạo lúc: {new Date(f.createdAt).toLocaleString('vi-VN')}</div>
                                                                             {(debtByStudentId[f.studentId] ?? 0) > 0 && (
                                                                                 <div className="text-xs text-amber-700 mt-1">
-                                                                                    Cảnh báo: đang có khoản HOLDING {formatMoney(String(debtByStudentId[f.studentId]))}.
+                                                                                    Cảnh báo: đang có khoản giữ tiền {formatMoney(String(debtByStudentId[f.studentId]))}.
                                                                                 </div>
                                                                             )}
                                                                         </div>
@@ -1501,9 +1571,9 @@ export default function PreparationDetail() {
                                             </div>
 
                                             <div className="pt-3 border-t border-gray-200">
-                                                <div className="text-sm font-semibold text-gray-700 mb-2">Đang giữ tiền (HOLDING, có thể hoàn ứng)</div>
+                                                <div className="text-sm font-semibold text-gray-700 mb-2">Đang giữ tiền (có thể hoàn ứng)</div>
                                                 {fundAdvances.filter((f) => f.status === 'HOLDING').length === 0 ? (
-                                                    <div className="text-sm text-gray-500">Không có khoản HOLDING.</div>
+                                                    <div className="text-sm text-gray-500">Không có khoản đang giữ tiền.</div>
                                                 ) : (
                                                     <div className="space-y-2">
                                                         {fundAdvances
@@ -1513,12 +1583,12 @@ export default function PreparationDetail() {
                                                                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
                                                                         <div>
                                                                             <div className="text-sm font-semibold text-gray-900">{f.studentName || `#${f.studentId}`} • Còn giữ: {formatMoney(f.remainingAmount)}</div>
-                                                                            <div className="text-xs text-gray-500 mt-1">Task #{f.taskId} • Ví: {f.categoryName} • Duyệt lúc: {f.decidedAt ? new Date(f.decidedAt).toLocaleString('vi-VN') : '-'}</div>
+                                                                            <div className="text-xs text-gray-500 mt-1">Nhiệm vụ #{f.taskId} • Ví: {f.categoryName} • Duyệt lúc: {f.decidedAt ? new Date(f.decidedAt).toLocaleString('vi-VN') : '-'}</div>
                                                                         </div>
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => returnFundAdvance(f.id)}
-                                                                            className="px-3 py-1.5 text-sm font-medium bg-[#001C44] bg-opacity-10 text-[#001C44] rounded-lg border border-[#001C44] border-opacity-20 hover:bg-opacity-20"
+                                                                            className="px-3 py-1.5 text-sm font-medium bg-primary-900 bg-opacity-10 text-primary-900 rounded-lg border border-primary-900 border-opacity-20 hover:bg-opacity-20"
                                                                             title="Xác nhận thành viên đã nộp lại tiền dư để tất toán khoản tạm ứng."
                                                                         >
                                                                             Hoàn ứng
@@ -1537,12 +1607,12 @@ export default function PreparationDetail() {
 
                             {showFundSection && (
                                 <div className="mt-5 border border-gray-200 rounded-xl overflow-hidden">
-                                <div className="bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">Báo Cáo Tiền Ngoài Ví (Nợ Tạm Ứng)</div>
+                                <div className="bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">Báo cáo tiền ngoài ví (nợ tạm ứng)</div>
                                 <div className="p-4">
                                     {loadingDebts ? (
                                         <div className="text-sm text-gray-500">Đang tải báo cáo nợ tạm ứng...</div>
                                     ) : fundAdvanceDebts.length === 0 ? (
-                                        <div className="text-sm text-gray-500">Không có nợ tạm ứng trong activity.</div>
+                                        <div className="text-sm text-gray-500">Không có nợ tạm ứng trong hoạt động.</div>
                                     ) : (
                                         <div className="overflow-x-auto border border-gray-200 rounded-lg">
                                             <table className="min-w-full divide-y divide-gray-200">
@@ -1558,7 +1628,7 @@ export default function PreparationDetail() {
                                                         .map((d) => (
                                                         <tr key={d.studentId}>
                                                             <td className="px-4 py-3 text-sm text-gray-700">{d.studentName || `#${d.studentId}`}</td>
-                                                            <td className="px-4 py-3 text-sm font-semibold text-[#001C44]">{formatMoney(d.holdingAmount)}</td>
+                                                            <td className="px-4 py-3 text-sm font-semibold text-primary-900">{formatMoney(d.holdingAmount)}</td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
@@ -1592,10 +1662,10 @@ export default function PreparationDetail() {
             {selectedTaskId && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
                     <div className="relative bg-white rounded-2xl border border-gray-200 shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-                        <div className="sticky top-0 bg-gradient-to-r from-[#001C44] to-[#002A66] px-6 py-4 z-10 rounded-t-2xl border-b border-white/10">
+                        <div className="sticky top-0 bg-primary-900 px-6 py-4 z-10 rounded-t-2xl border-b border-white/10">
                             <div className="flex items-center justify-between">
                                 <div className="min-w-0">
-                                    <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/10 text-xs font-semibold text-[#FFD66D] border border-white/20 mb-2">
+                                    <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/10 text-xs font-semibold text-accent border border-white/20 mb-2">
                                         Trung tâm nhiệm vụ
                                     </div>
                                     <h3 className="text-xl font-bold text-white">Chi tiết nhiệm vụ</h3>
@@ -1612,7 +1682,7 @@ export default function PreparationDetail() {
                                         setTaskAdvanceHistory([]);
                                         setTaskAllocationSources([]);
                                     }}
-                                    className="h-9 w-9 inline-flex items-center justify-center rounded-full border border-white/25 bg-white/10 text-white hover:text-[#FFD66D] hover:bg-white/20 transition-colors"
+                                    className="h-9 w-9 inline-flex items-center justify-center rounded-full border border-white/25 bg-white/10 text-white hover:text-accent hover:bg-white/20 transition-colors"
                                 >
                                     <span className="sr-only">Đóng</span>
                                     <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1629,9 +1699,9 @@ export default function PreparationDetail() {
                                 <div className="text-sm text-gray-500">Không có dữ liệu nhiệm vụ.</div>
                             ) : (
                                 <>
-                                    <div className="card overflow-hidden">
-                                        <div className="bg-gradient-to-r from-[#001C44]/5 to-[#FFD66D]/20 px-5 py-3 border-b border-gray-200">
-                                            <div className="text-lg font-semibold text-[#001C44]">Thông tin nhiệm vụ</div>
+                                    <div className="${prepCard} overflow-hidden">
+                                        <div className="bg-primary-50/40 border-b border-gray-100">
+                                            <div className="text-lg font-semibold text-primary-900">Thông tin nhiệm vụ</div>
                                         </div>
                                         <div className="p-5 space-y-3 bg-white">
                                             <div>
@@ -1656,14 +1726,14 @@ export default function PreparationDetail() {
                                                         <button
                                                             type="button"
                                                             onClick={() => setShowTaskAllocationSources(true)}
-                                                            className="mt-2 px-2.5 py-1 text-xs font-medium border border-[#001C44] text-[#001C44] rounded-lg hover:bg-[#001C44] hover:text-white"
+                                                            className="mt-2 px-2.5 py-1 text-xs font-medium border border-primary-900 text-primary-900 rounded-lg hover:bg-primary-900 hover:text-white"
                                                         >
                                                             Xem nguồn
                                                         </button>
                                                     )}
                                                 </div>
                                                 <div className="rounded-lg border border-gray-200 p-3 bg-gray-50/70">
-                                                    <div className="text-sm font-semibold text-gray-700">Deadline</div>
+                                                    <div className="text-sm font-semibold text-gray-700">Hạn chót</div>
                                                     <div className="text-sm text-gray-900 mt-1">{taskForMembers.deadline ? new Date(taskForMembers.deadline).toLocaleString('vi-VN') : '-'}</div>
                                                 </div>
                                             </div>
@@ -1692,7 +1762,7 @@ export default function PreparationDetail() {
                                                     <button
                                                         type="button"
                                                         onClick={() => setShowTaskAdvanceHistory((prev) => !prev)}
-                                                        className="px-3 py-1.5 text-sm font-medium border border-[#001C44] text-[#001C44] rounded-lg hover:bg-[#001C44] hover:text-white"
+                                                        className="px-3 py-1.5 text-sm font-medium border border-primary-900 text-primary-900 rounded-lg hover:bg-primary-900 hover:text-white"
                                                     >
                                                         {showTaskAdvanceHistory ? 'Ẩn lịch sử tạm ứng' : 'Xem lịch sử tạm ứng'}
                                                     </button>
@@ -1704,7 +1774,7 @@ export default function PreparationDetail() {
                                     {taskForMembers.isFinancial && showTaskAllocationSources && (
                                         <div className="fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4">
                                             <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
-                                                <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] px-5 py-3 flex items-center justify-between">
+                                                <div className="bg-primary-900 px-5 py-3 flex items-center justify-between">
                                                     <div className="text-sm font-semibold text-white">Nguồn cấp phát theo ví</div>
                                                     <button
                                                         type="button"
@@ -1741,7 +1811,7 @@ export default function PreparationDetail() {
                                                     {loadingTaskAllocationSources ? (
                                                         <div className="text-sm text-gray-500">Đang tải nguồn cấp phát...</div>
                                                     ) : taskAllocationSources.length === 0 ? (
-                                                        <div className="text-sm text-gray-500">Chưa có dữ liệu allocation theo ví cho nhiệm vụ này.</div>
+                                                        <div className="text-sm text-gray-500">Chưa có dữ liệu cấp phát theo ví cho nhiệm vụ này.</div>
                                                     ) : (
                                                         <div className="overflow-x-auto border border-gray-200 rounded-lg">
                                                             <table className="min-w-full divide-y divide-gray-200">
@@ -1761,7 +1831,7 @@ export default function PreparationDetail() {
                                                                             <td className="px-4 py-3 text-sm font-semibold text-gray-900">{formatMoney(item.allocatedAmount)}</td>
                                                                             <td className="px-4 py-3 text-sm text-gray-700">{formatMoney(item.holdingAdvanceAmount)}</td>
                                                                             <td className="px-4 py-3 text-sm text-gray-700">{formatMoney(item.approvedSpentAmount)}</td>
-                                                                            <td className="px-4 py-3 text-sm font-semibold text-[#001C44]">{formatMoney(item.allocationRemainingAmount)}</td>
+                                                                            <td className="px-4 py-3 text-sm font-semibold text-primary-900">{formatMoney(item.allocationRemainingAmount)}</td>
                                                                         </tr>
                                                                     ))}
                                                                 </tbody>
@@ -1774,7 +1844,7 @@ export default function PreparationDetail() {
                                     )}
 
                                     {taskForMembers.isFinancial && showTaskAdvanceHistory && (
-                                        <div className="card overflow-hidden">
+                                        <div className="${prepCard} overflow-hidden">
                                             <div className="bg-gray-50 px-5 py-3 border-b border-gray-200 flex items-center justify-between">
                                                 <div className="text-sm font-semibold text-gray-700">Lịch sử tạm ứng của nhiệm vụ</div>
                                                 <button
@@ -1820,7 +1890,7 @@ export default function PreparationDetail() {
                                                                         <td className="px-4 py-3 text-sm text-gray-700">{item.studentName || `#${item.studentId}`}</td>
                                                                         <td className="px-4 py-3 text-sm text-gray-700">{item.categoryName || '-'}</td>
                                                                         <td className="px-4 py-3 text-sm font-semibold text-gray-900">{formatMoney(item.amount)}</td>
-                                                                        <td className="px-4 py-3 text-sm font-semibold text-[#001C44]">{formatMoney(item.remainingAmount)}</td>
+                                                                        <td className="px-4 py-3 text-sm font-semibold text-primary-900">{formatMoney(item.remainingAmount)}</td>
                                                                         <td className="px-4 py-3 text-sm">
                                                                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${fundAdvanceStatusBadgeClass(item.status)}`}>
                                                                                 {fundAdvanceStatusLabel(item.status)}
@@ -1862,13 +1932,13 @@ export default function PreparationDetail() {
             {showAddOrganizer && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
                     <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl">
-                        <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] px-6 py-4 rounded-t-xl">
+                        <div className="bg-primary-900 px-6 py-4 rounded-t-xl">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <h3 className="text-lg font-bold text-white">Thêm organizer</h3>
                                     <p className="text-xs text-gray-200 mt-0.5">Tìm sinh viên và thêm vào BTC</p>
                                 </div>
-                                <button type="button" onClick={closeAddOrganizerModal} className="text-white hover:text-[#FFD66D] transition-colors">
+                                <button type="button" onClick={closeAddOrganizerModal} className="text-white hover:text-accent transition-colors">
                                     <span className="sr-only">Đóng</span>
                                     <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1886,17 +1956,17 @@ export default function PreparationDetail() {
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     placeholder="Nhập tên hoặc mã sinh viên..."
-                                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
+                                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-900 focus:border-primary-900 transition-colors"
                                 />
                                 <p className="mt-1 text-xs text-gray-500">Nhập ít nhất 2 ký tự để tìm kiếm</p>
                                 {selectedStudentIds.length > 0 && (
-                                    <p className="mt-1 text-xs text-[#001C44] font-medium">Đã chọn {selectedStudentIds.length} người để thêm.</p>
+                                    <p className="mt-1 text-xs text-primary-900 font-medium">Đã chọn {selectedStudentIds.length} người để thêm.</p>
                                 )}
                             </div>
 
                             {searching ? (
                                 <div className="text-center py-6">
-                                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#001C44] mx-auto"></div>
+                                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-900 mx-auto"></div>
                                     <p className="mt-2 text-sm text-gray-600">Đang tìm kiếm...</p>
                                 </div>
                             ) : searchResults.length === 0 && searchQuery.trim().length >= 2 ? (
@@ -1909,7 +1979,7 @@ export default function PreparationDetail() {
                                             return (
                                             <div
                                                 key={s.id}
-                                                className={`p-4 hover:bg-gray-50 cursor-pointer transition-all ${isSelected ? 'bg-gradient-to-r from-[#001C44] to-[#002A66] bg-opacity-10 border-l-4 border-[#001C44]' : ''
+                                                className={`p-4 hover:bg-gray-50 cursor-pointer transition-all ${isSelected ? 'bg-primary-900 bg-opacity-10 border-l-4 border-primary-900' : ''
                                                     }`}
                                                 onClick={() => toggleOrganizerCandidate(s.id)}
                                             >
@@ -1919,7 +1989,7 @@ export default function PreparationDetail() {
                                                         <div className="text-xs text-gray-500 mt-0.5">{s.studentCode} • {s.email}</div>
                                                     </div>
                                                     {isSelected && (
-                                                        <div className="text-[#001C44] bg-[#FFD66D] rounded-full p-1">
+                                                        <div className="text-primary-900 bg-accent rounded-full p-1">
                                                             <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                                                                 <path
                                                                     fillRule="evenodd"
@@ -1949,7 +2019,7 @@ export default function PreparationDetail() {
                                     type="button"
                                     disabled={selectedStudentIds.length === 0 || addingOrganizer}
                                     onClick={addOrganizer}
-                                    className="px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-lg hover:from-[#002A66] hover:to-[#001C44] focus:outline-none focus:ring-2 focus:ring-[#001C44] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
+                                    className="px-6 py-2.5 text-sm font-semibold text-white bg-primary-900 rounded-lg hover:from-[#002A66] hover:to-[#001C44] focus:outline-none focus:ring-2 focus:ring-primary-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
                                 >
                                     {addingOrganizer ? 'Đang thêm...' : `Thêm (${selectedStudentIds.length})`}
                                 </button>
@@ -1962,12 +2032,12 @@ export default function PreparationDetail() {
             {showTaskModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
                     <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl">
-                        <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] px-6 py-4 rounded-t-xl">
+                        <div className="bg-primary-900 px-6 py-4 rounded-t-xl">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <h3 className="text-lg font-bold text-white">Tạo nhiệm vụ</h3>
                                 </div>
-                                <button type="button" onClick={() => setShowTaskModal(false)} className="text-white hover:text-[#FFD66D] transition-colors">
+                                <button type="button" onClick={() => setShowTaskModal(false)} className="text-white hover:text-accent transition-colors">
                                     <span className="sr-only">Đóng</span>
                                     <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1977,15 +2047,15 @@ export default function PreparationDetail() {
                         </div>
                         <div className="p-6 space-y-4">
                             <div>
-                                <label htmlFor="prep-task-leader" className="block text-sm font-semibold text-gray-700 mb-2">Leader</label>
+                                <label htmlFor="prep-task-leader" className="block text-sm font-semibold text-gray-700 mb-2">Trưởng nhóm</label>
                                 <select
                                     id="prep-task-leader"
                                     name="prepTaskLeader"
-                                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
+                                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-900 focus:border-primary-900 transition-colors"
                                     value={taskAssigneeId ?? ''}
                                     onChange={(e) => setTaskAssigneeId(e.target.value ? Number(e.target.value) : null)}
                                 >
-                                    <option value="">Chọn organizer</option>
+                                    <option value="">Chọn ban tổ chức</option>
                                     {organizers.map((o) => (
                                         <option key={o.studentId} value={o.studentId}>
                                             {o.fullName}
@@ -2002,9 +2072,9 @@ export default function PreparationDetail() {
                                             onChange={(e) => setTaskIsFinancial(e.target.checked)}
                                             className="h-4 w-4"
                                         />
-                                        Task tài chính
+                                        Nhiệm vụ tài chính
                                     </label>
-                                    <div className="text-xs text-gray-500 mt-1">Bật để cho phép member tạo chi phí theo task này.</div>
+                                    <div className="text-xs text-gray-500 mt-1">Bật để cho phép thành viên tạo chi phí theo nhiệm vụ này.</div>
                                 </div>
                                 <div className="flex-1 border border-gray-200 rounded-xl p-4 bg-white">
                                     <label className="inline-flex items-center gap-2 text-sm font-semibold text-gray-700">
@@ -2014,7 +2084,7 @@ export default function PreparationDetail() {
                                             onChange={(e) => setTaskIsCheckinScanner(e.target.checked)}
                                             className="h-4 w-4"
                                         />
-                                        Nhiệm vụ quét QR check-in
+                                        Nhiệm vụ quét QR điểm danh
                                     </label>
                                     <div className="text-xs text-gray-500 mt-1">Cho phép người thực hiện mở camera quét QR vé sự kiện.</div>
                                 </div>
@@ -2027,7 +2097,7 @@ export default function PreparationDetail() {
                                     type="text"
                                     value={taskTitle}
                                     onChange={(e) => setTaskTitle(e.target.value)}
-                                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
+                                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-900 focus:border-primary-900 transition-colors"
                                 />
                             </div>
                             <div>
@@ -2038,18 +2108,18 @@ export default function PreparationDetail() {
                                     value={taskDesc}
                                     onChange={(e) => setTaskDesc(e.target.value)}
                                     rows={3}
-                                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
+                                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-900 focus:border-primary-900 transition-colors"
                                 />
                             </div>
                             <div>
-                                <label htmlFor="prep-task-deadline" className="block text-sm font-semibold text-gray-700 mb-2">Deadline</label>
+                                <label htmlFor="prep-task-deadline" className="block text-sm font-semibold text-gray-700 mb-2">Hạn chót</label>
                                 <input
                                     id="prep-task-deadline"
                                     name="prepTaskDeadline"
                                     type="datetime-local"
                                     value={taskDeadline}
                                     onChange={(e) => setTaskDeadline(e.target.value)}
-                                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
+                                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-900 focus:border-primary-900 transition-colors"
                                 />
                             </div>
                             <div className="flex justify-end gap-3 pt-4 mt-4 border-t border-gray-200">
@@ -2064,7 +2134,7 @@ export default function PreparationDetail() {
                                     type="button"
                                     disabled={creatingTask}
                                     onClick={createTask}
-                                    className="px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-lg hover:from-[#002A66] hover:to-[#001C44] focus:outline-none focus:ring-2 focus:ring-[#001C44] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
+                                    className="px-6 py-2.5 text-sm font-semibold text-white bg-primary-900 rounded-lg hover:from-[#002A66] hover:to-[#001C44] focus:outline-none focus:ring-2 focus:ring-primary-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
                                 >
                                     {creatingTask ? 'Đang tạo...' : 'Tạo'}
                                 </button>
@@ -2077,13 +2147,13 @@ export default function PreparationDetail() {
             {showAllocateModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
                     <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-xl">
-                        <div className="bg-gradient-to-r from-[#001C44] to-[#002A66] px-6 py-4 rounded-t-xl">
+                        <div className="bg-primary-900 px-6 py-4 rounded-t-xl">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <h3 className="text-lg font-bold text-white">Phân bổ cho nhiệm vụ</h3>
-                                    <p className="text-xs text-gray-200 mt-0.5">Cấp phát ngân sách cho task tài chính</p>
+                                    <p className="text-xs text-gray-200 mt-0.5">Cấp phát ngân sách cho nhiệm vụ tài chính</p>
                                 </div>
-                                <button type="button" onClick={() => setShowAllocateModal(false)} className="text-white hover:text-[#FFD66D] transition-colors">
+                                <button type="button" onClick={() => setShowAllocateModal(false)} className="text-white hover:text-accent transition-colors">
                                     <span className="sr-only">Đóng</span>
                                     <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -2102,7 +2172,7 @@ export default function PreparationDetail() {
                                         const v = Number(e.target.value);
                                         setAllocCategoryId(Number.isFinite(v) && v > 0 ? v : null);
                                     }}
-                                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
+                                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-900 focus:border-primary-900 transition-colors"
                                 >
                                     <option value="">Chọn ví nguồn...</option>
                                     {budgetCategories.map((c) => (
@@ -2121,7 +2191,7 @@ export default function PreparationDetail() {
                                     value={allocAmount}
                                     onChange={(e) => setAllocAmount(e.target.value)}
                                     placeholder="Ví dụ: 3000000"
-                                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001C44] focus:border-[#001C44] transition-colors"
+                                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-900 focus:border-primary-900 transition-colors"
                                 />
                             </div>
                             <div className="flex justify-end gap-3 pt-4 mt-4 border-t border-gray-200">
@@ -2136,7 +2206,7 @@ export default function PreparationDetail() {
                                     type="button"
                                     disabled={savingAllocation}
                                     onClick={saveAllocation}
-                                    className="px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="px-6 py-2.5 text-sm font-semibold text-white bg-primary-900 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {savingAllocation ? 'Đang lưu...' : 'Lưu'}
                                 </button>

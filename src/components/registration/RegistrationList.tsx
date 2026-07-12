@@ -59,9 +59,9 @@ const RegistrationList: React.FC<RegistrationListProps> = ({
                 const failedCount = result?.failedCount ?? 0;
 
                 if (failedCount > 0) {
-                    toast.warn(`Da xu ly ${successCount}/${selectedIds.length} dang ky. ${failedCount} muc that bai.`);
+                    toast.warn(`Đã xử lý ${successCount}/${selectedIds.length} đăng ký. ${failedCount} mục thất bại.`);
                 } else {
-                    toast.success(`Da xu ly ${successCount} dang ky.`);
+                    toast.success(`Đã xử lý ${successCount} đăng ký.`);
                 }
             } else if (onUpdateStatus) {
                 const results = await Promise.all(
@@ -74,9 +74,9 @@ const RegistrationList: React.FC<RegistrationListProps> = ({
                 const failedCount = results.length - successCount;
 
                 if (failedCount > 0) {
-                    toast.warn(`Da xu ly ${successCount}/${results.length} dang ky. ${failedCount} muc that bai.`);
+                    toast.warn(`Đã xử lý ${successCount}/${results.length} đăng ký. ${failedCount} mục thất bại.`);
                 } else {
-                    toast.success(`Da xu ly ${successCount} dang ky.`);
+                    toast.success(`Đã xử lý ${successCount} đăng ký.`);
                 }
             }
 
@@ -103,7 +103,7 @@ const RegistrationList: React.FC<RegistrationListProps> = ({
         <div className="space-y-4">
             {registrations.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
-                    <p className="text-gray-500 text-lg">Chua co dang ky nao</p>
+                    <p className="text-gray-500 text-lg">Chưa có đăng ký nào</p>
                 </div>
             ) : (
                 <>
@@ -117,7 +117,7 @@ const RegistrationList: React.FC<RegistrationListProps> = ({
                                     className="h-5 w-5 text-[#001C44] rounded focus:ring-2 focus:ring-[#001C44] cursor-pointer"
                                 />
                                 <span className="text-sm font-bold text-[#001C44]">
-                                    Chon tat ca ({registrations.filter((r) => r.status !== 'ATTENDED').length} dang ky co the thao tac)
+                                    Chọn tất cả ({registrations.filter((r) => r.status !== 'ATTENDED').length} đăng ký có thể thao tác)
                                 </span>
                             </div>
                             <div className="flex items-center space-x-4 text-xs font-semibold text-[#001C44]">
@@ -170,18 +170,18 @@ const RegistrationList: React.FC<RegistrationListProps> = ({
                                             </span>
                                         </div>
                                         <p className={`text-sm ${attended ? 'text-gray-500' : 'text-gray-600'}`}>
-                                            Ma SV: <span className="font-semibold">{registration.studentCode}</span>
+                                            Mã SV: <span className="font-semibold">{registration.studentCode}</span>
                                         </p>
                                         {registration.ticketCode && (
                                             <p className={`text-xs mt-1 ${attended ? 'text-gray-400' : 'text-gray-500'}`}>
-                                                Ma ve: <span className="font-mono font-semibold">{registration.ticketCode}</span>
+                                                Mã vé: <span className="font-mono font-semibold">{registration.ticketCode}</span>
                                             </p>
                                         )}
                                     </div>
 
                                     {attended ? (
                                         <div className="px-4 py-2 bg-gray-100 text-gray-500 text-sm font-medium rounded-lg border border-gray-200">
-                                            Da hoan thanh
+                                            Đã hoàn thành
                                         </div>
                                     ) : canAction && (canApprove || canReject) ? (
                                         <div className="flex space-x-2">
@@ -190,7 +190,7 @@ const RegistrationList: React.FC<RegistrationListProps> = ({
                                                     onClick={() => onUpdateStatus && onUpdateStatus(registration.id, 'APPROVED')}
                                                     className="px-4 py-2 bg-emerald-50 text-emerald-700 text-sm font-medium rounded-lg hover:bg-emerald-100 border border-emerald-200 transition-all shadow-sm hover:shadow"
                                                 >
-                                                    Duyet
+                                                    Duyệt
                                                 </button>
                                             )}
                                             {canReject && (
@@ -198,7 +198,7 @@ const RegistrationList: React.FC<RegistrationListProps> = ({
                                                     onClick={() => onUpdateStatus && onUpdateStatus(registration.id, 'REJECTED')}
                                                     className="px-4 py-2 bg-rose-50 text-rose-700 text-sm font-medium rounded-lg hover:bg-rose-100 border border-rose-200 transition-all shadow-sm hover:shadow"
                                                 >
-                                                    {registration.status === 'APPROVED' ? 'Huy duyet' : 'Tu choi'}
+                                                    {registration.status === 'APPROVED' ? 'Hủy duyệt' : 'Từ chối'}
                                                 </button>
                                             )}
                                         </div>
@@ -212,7 +212,7 @@ const RegistrationList: React.FC<RegistrationListProps> = ({
                         <div className="mt-6 p-5 bg-gradient-to-r from-[#001C44] to-[#002A66] rounded-xl flex items-center justify-between shadow-lg">
                             <div className="flex items-center space-x-4">
                                 <span className="text-white font-bold text-lg">
-                                    Da chon {selectedIds.length} dang ky
+                                    Đã chọn {selectedIds.length} đăng ký
                                 </span>
                                 <div className="flex items-center space-x-2 text-sm text-gray-200">
                                     <span className="px-2 py-1 bg-white bg-opacity-20 rounded">
@@ -232,21 +232,21 @@ const RegistrationList: React.FC<RegistrationListProps> = ({
                                     disabled={isBulkUpdating}
                                     className="px-6 py-2.5 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 border border-emerald-200 font-medium transition-all shadow-sm hover:shadow transform hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
                                 >
-                                    {isBulkUpdating ? 'Dang xu ly...' : `Duyet ${selectedIds.length}`}
+                                    {isBulkUpdating ? 'Đang xử lý...' : `Duyệt ${selectedIds.length}`}
                                 </button>
                                 <button
                                     onClick={() => void handleBulkUpdate('REJECTED')}
                                     disabled={isBulkUpdating}
                                     className="px-6 py-2.5 bg-rose-50 text-rose-700 rounded-lg hover:bg-rose-100 border border-rose-200 font-medium transition-all shadow-sm hover:shadow transform hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
                                 >
-                                    {isBulkUpdating ? 'Dang xu ly...' : `Tu choi ${selectedIds.length}`}
+                                    {isBulkUpdating ? 'Đang xử lý...' : `Từ chối ${selectedIds.length}`}
                                 </button>
                                 <button
                                     onClick={() => setSelectedIds([])}
                                     disabled={isBulkUpdating}
                                     className="px-4 py-2.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 border border-gray-300 font-medium transition-all shadow-sm hover:shadow disabled:opacity-60 disabled:cursor-not-allowed"
                                 >
-                                    Huy chon
+                                    Hủy chọn
                                 </button>
                             </div>
                         </div>

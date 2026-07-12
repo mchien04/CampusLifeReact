@@ -47,12 +47,7 @@ const Home: React.FC = () => {
                         <span className="text-xl font-extrabold tracking-tight text-[#001C44]">Campus Life</span>
                     </div>
                     <div className="flex items-center gap-4">
-                        <Link
-                            to="/login"
-                            className="text-sm font-bold text-stone-600 hover:text-[#001C44] transition-colors"
-                        >
-                            Dành cho Quản trị viên
-                        </Link>
+
                         <Link
                             to="/login"
                             className="bg-[#001C44] text-white px-5 py-2.5 rounded-full text-sm font-bold hover:bg-[#002A66] transition-all active:scale-95 shadow-sm hover:shadow"

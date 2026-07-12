@@ -176,12 +176,12 @@ export type EventArticleAdminResponse = {
     content: string;
     seoTitle?: string | null;
     seoDescription?: string | null;
-    published: boolean;
+    isPublished: boolean;
     publishedAt?: ISODateTime | null;
     viewCount: number;
     wishlistCount: number;
-    featured?: boolean;
-    pinned?: boolean;
+    isFeatured?: boolean;
+    isPinned?: boolean;
     priority?: number;
     categoryId?: number | null;
     categoryName?: string | null;
@@ -210,6 +210,13 @@ export type ArticleCategoryResponse = {
     createdAt?: ISODateTime | null;
 };
 
+export type ArticleCategoryPublicResponse = {
+    id: number;
+    name: string;
+    slug: string;
+    articleCount: number;
+};
+
 export type ArticleTagRequest = {
     name: string;
     slug?: string | null;
@@ -222,6 +229,13 @@ export type ArticleTagResponse = {
     slug?: string | null;
     isActive: boolean;
     createdAt?: ISODateTime | null;
+};
+
+export type ArticleTagPublicResponse = {
+    id: number;
+    name: string;
+    slug: string;
+    articleCount: number;
 };
 
 export type ArticleImageRequest = {

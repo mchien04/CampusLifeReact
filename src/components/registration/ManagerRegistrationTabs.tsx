@@ -1,11 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
+import { registrationAPI } from '../../services/registrationAPI';
 import { ActivityRegistrationResponse, RegistrationStatus, getRegistrationStatusLabel } from '../../types/registration';
+import { downloadBlobResponse, getBlobErrorMessage } from '../../utils/downloadBlob';
 
 type RegistrationViewTab = 'pending' | 'approved' | 'attended' | 'cancelled';
 
 interface ManagerRegistrationTabsProps {
     registrations: ActivityRegistrationResponse[];
+    activityId?: number | null;
     eventName?: string;
     onUpdateStatus: (registrationId: number, status: string) => Promise<boolean | void> | boolean | void;
     onBulkUpdateStatus?: (
@@ -26,33 +29,33 @@ const TAB_META: Record<
     }
 > = {
     pending: {
-        label: 'Chua duyet',
+        label: 'Chưa duyệt',
         badgeClass: 'bg-amber-100 text-amber-800 border-amber-200',
-        emptyTitle: 'Khong co dang ky cho duyet',
-        emptyDescription: 'Tat ca dang ky da duoc xu ly hoac khong khop bo loc hien tai.',
+        emptyTitle: 'Không có đăng ký chờ duyệt',
+        emptyDescription: 'Tất cả đăng ký đã được xử lý hoặc không khớp bộ lọc hiện tại.',
     },
     approved: {
-        label: 'Da duyet',
+        label: 'Đã duyệt',
         badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-        emptyTitle: 'Khong co dang ky da duyet',
-        emptyDescription: 'Khong tim thay sinh vien nao da duoc duyet trong bo loc hien tai.',
+        emptyTitle: 'Không có đăng ký đã duyệt',
+        emptyDescription: 'Không tìm thấy sinh viên nào đã được duyệt trong bộ lọc hiện tại.',
     },
     attended: {
-        label: 'Da tham gia',
+        label: 'Đã tham gia',
         badgeClass: 'bg-sky-100 text-sky-800 border-sky-200',
-        emptyTitle: 'Khong co sinh vien da tham gia',
-        emptyDescription: 'Khong tim thay sinh vien nao da hoan thanh tham gia trong bo loc hien tai.',
+        emptyTitle: 'Không có sinh viên đã tham gia',
+        emptyDescription: 'Không tìm thấy sinh viên nào đã hoàn thành tham gia trong bộ lọc hiện tại.',
     },
     cancelled: {
-        label: 'Da huy',
+        label: 'Đã hủy',
         badgeClass: 'bg-rose-100 text-rose-800 border-rose-200',
-        emptyTitle: 'Khong co dang ky bi huy/tu choi',
-        emptyDescription: 'Khong co dang ky huy duyet hoac tu choi trong bo loc hien tai.',
+        emptyTitle: 'Không có đăng ký bị hủy / từ chối',
+        emptyDescription: 'Không có đăng ký hủy duyệt hoặc từ chối trong bộ lọc hiện tại.',
     },
 };
 
 const formatRegistrationDate = (value?: string) => {
-    if (!value) return 'Chua co';
+    if (!value) return 'Chưa có';
     return new Date(value).toLocaleString('vi-VN', {
         day: '2-digit',
         month: '2-digit',
@@ -88,6 +91,7 @@ const getSafeFileName = (value?: string) => {
 
 const ManagerRegistrationTabs: React.FC<ManagerRegistrationTabsProps> = ({
     registrations,
+    activityId,
     eventName,
     onUpdateStatus,
     onBulkUpdateStatus,
@@ -98,6 +102,7 @@ const ManagerRegistrationTabs: React.FC<ManagerRegistrationTabsProps> = ({
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [isBulkUpdating, setIsBulkUpdating] = useState(false);
     const [isUpdatingId, setIsUpdatingId] = useState<number | null>(null);
+    const [exporting, setExporting] = useState(false);
 
     const counts = useMemo(
         () => ({
@@ -191,9 +196,9 @@ const ManagerRegistrationTabs: React.FC<ManagerRegistrationTabsProps> = ({
                 const failedCount = result?.failedCount ?? 0;
 
                 if (failedCount > 0) {
-                    toast.warn(`Da xu ly ${successCount}/${selectedIds.length} dang ky. ${failedCount} muc that bai.`);
+                    toast.warn(`Đã xử lý ${successCount}/${selectedIds.length} đăng ký. ${failedCount} mục thất bại.`);
                 } else {
-                    toast.success(`Da xu ly ${successCount} dang ky.`);
+                    toast.success(`Đã xử lý ${successCount} đăng ký.`);
                 }
             } else {
                 const results = await Promise.all(
@@ -206,9 +211,9 @@ const ManagerRegistrationTabs: React.FC<ManagerRegistrationTabsProps> = ({
                 const failedCount = results.length - successCount;
 
                 if (failedCount > 0) {
-                    toast.warn(`Da xu ly ${successCount}/${results.length} dang ky. ${failedCount} muc that bai.`);
+                    toast.warn(`Đã xử lý ${successCount}/${results.length} đăng ký. ${failedCount} mục thất bại.`);
                 } else {
-                    toast.success(`Da xu ly ${successCount} dang ky.`);
+                    toast.success(`Đã xử lý ${successCount} đăng ký.`);
                 }
             }
         } finally {
@@ -219,12 +224,12 @@ const ManagerRegistrationTabs: React.FC<ManagerRegistrationTabsProps> = ({
 
     const handleExportAttended = () => {
         if (activeTab !== 'attended' || filteredRegistrations.length === 0) {
-            toast.info('Khong co du lieu da tham gia de xuat.');
+            toast.info('Không có dữ liệu đã tham gia để xuất.');
             return;
         }
 
         const rows = [
-            ['Ho ten', 'MSSV', 'Ma ve', 'Thoi gian dang ky', 'Trang thai'],
+            ['Họ tên', 'MSSV', 'Mã vé', 'Thời gian đăng ký', 'Trạng thái'],
             ...filteredRegistrations.map((registration) => [
                 registration.studentName,
                 registration.studentCode,
@@ -247,7 +252,24 @@ const ManagerRegistrationTabs: React.FC<ManagerRegistrationTabsProps> = ({
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
 
-        toast.success(`Da xuat ${filteredRegistrations.length} sinh vien da tham gia.`);
+        toast.success(`Đã xuất ${filteredRegistrations.length} sinh viên đã tham gia.`);
+    };
+
+    const handleExportExcel = async () => {
+        if (!activityId) {
+            toast.error('Chưa chọn sự kiện để xuất.');
+            return;
+        }
+        try {
+            setExporting(true);
+            const res = await registrationAPI.exportActivityParticipationExcel(activityId);
+            await downloadBlobResponse(res, `ds_tham_gia_${activityId}.xlsx`);
+            toast.success('Xuất danh sách tham gia thành công');
+        } catch (error) {
+            toast.error(await getBlobErrorMessage(error));
+        } finally {
+            setExporting(false);
+        }
     };
 
     return (
@@ -259,38 +281,48 @@ const ManagerRegistrationTabs: React.FC<ManagerRegistrationTabsProps> = ({
                             type="text"
                             value={searchTerm}
                             onChange={(event) => setSearchTerm(event.target.value)}
-                            placeholder="Tim theo ten, MSSV, ma ve..."
-                            className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-700 focus:border-[#001C44] focus:outline-none focus:ring-2 focus:ring-[#001C44]/20"
+                            placeholder="Tìm theo tên, MSSV, mã vé..."
+                            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder:text-gray-400 focus:border-primary-900 focus:outline-none focus:ring-2 focus:ring-primary-900/15 transition-all"
                         />
+                        {activityId != null && (
+                            <button
+                                type="button"
+                                onClick={() => void handleExportExcel()}
+                                disabled={exporting}
+                                className="whitespace-nowrap rounded-xl border border-emerald-200/80 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 transition-all hover:bg-emerald-100 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                            >
+                                {exporting ? 'Đang xuất...' : 'Xuất DS tham gia'}
+                            </button>
+                        )}
                         {activeTab === 'attended' && (
                             <button
                                 type="button"
                                 onClick={handleExportAttended}
                                 disabled={filteredRegistrations.length === 0}
-                                className="whitespace-nowrap rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-700 transition-all hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                className="whitespace-nowrap rounded-xl border border-sky-200/80 bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-800 transition-all hover:bg-sky-100 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                             >
-                                Xuat file CSV
+                                Xuất file CSV
                             </button>
                         )}
                     </div>
                 </div>
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2">
                 {(['pending', 'approved', 'attended', 'cancelled'] as RegistrationViewTab[]).map((tab) => (
                     <button
                         key={tab}
                         type="button"
                         onClick={() => setActiveTab(tab)}
-                        className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold transition-all ${
+                        className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900/30 ${
                             activeTab === tab
-                                ? 'border-[#001C44] bg-[#001C44] text-white shadow-lg'
-                                : 'border-gray-200 bg-white text-gray-700 hover:border-[#001C44] hover:text-[#001C44]'
+                                ? 'border-primary-900 bg-primary-900 text-white shadow-premium'
+                                : 'border-gray-200 bg-white text-gray-700 hover:border-primary-900/30 hover:text-primary-900'
                         }`}
                     >
                         <span>{TAB_META[tab].label}</span>
                         <span
-                            className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                            className={`rounded-full px-2 py-0.5 text-xs font-bold tabular-nums ${
                                 activeTab === tab ? 'bg-white/20 text-white' : TAB_META[tab].badgeClass
                             }`}
                         >
@@ -307,30 +339,30 @@ const ManagerRegistrationTabs: React.FC<ManagerRegistrationTabsProps> = ({
             </div>
 
             {activeTab === 'pending' && filteredRegistrations.length > 0 && (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3">
+                <div className="rounded-xl border border-amber-200/80 bg-amber-50/60 px-4 py-3">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                         <div className="flex items-center gap-3">
                             <input
                                 type="checkbox"
                                 checked={paginatedRegistrations.length > 0 && paginatedRegistrations.every((item) => selectedIds.includes(item.id))}
                                 onChange={toggleSelectAllOnPage}
-                                className="h-5 w-5 rounded border-gray-300 text-[#001C44] focus:ring-[#001C44]"
+                                className="h-4 w-4 rounded border-gray-300 text-primary-900 focus:ring-primary-900"
                             />
-                            <span className="text-sm font-semibold text-[#001C44]">
-                                Chon tat ca tren trang ({paginatedRegistrations.length})
+                            <span className="text-sm font-medium text-primary-900">
+                                Chọn tất cả trên trang ({paginatedRegistrations.length})
                             </span>
                         </div>
-                        <span className="text-sm text-amber-900">
-                            Dang cho xu ly: {filteredRegistrations.length} sinh vien
+                        <span className="text-sm text-amber-900/90 tabular-nums">
+                            Đang chờ xử lý: {filteredRegistrations.length} sinh viên
                         </span>
                     </div>
                 </div>
             )}
 
             {filteredRegistrations.length === 0 ? (
-                <div className="rounded-3xl border border-dashed border-gray-300 bg-gray-50 px-6 py-14 text-center">
-                    <h4 className="text-lg font-semibold text-gray-700">{TAB_META[activeTab].emptyTitle}</h4>
-                    <p className="mt-2 text-sm text-gray-500">{TAB_META[activeTab].emptyDescription}</p>
+                <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/80 px-6 py-14 text-center">
+                    <h4 className="text-base font-semibold text-gray-800">{TAB_META[activeTab].emptyTitle}</h4>
+                    <p className="mt-2 text-sm text-gray-500 max-w-md mx-auto leading-relaxed">{TAB_META[activeTab].emptyDescription}</p>
                 </div>
             ) : (
                 <div className="space-y-4">
@@ -350,7 +382,7 @@ const ManagerRegistrationTabs: React.FC<ManagerRegistrationTabsProps> = ({
                         return (
                             <div
                                 key={registration.id}
-                                className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:border-[#001C44]/30 hover:shadow-md"
+                                className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:border-primary-900/20 hover:shadow-premium"
                             >
                                 <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                                     <div className="flex min-w-0 flex-1 gap-4">
@@ -365,15 +397,15 @@ const ManagerRegistrationTabs: React.FC<ManagerRegistrationTabsProps> = ({
                                         <div className="min-w-0 flex-1">
                                             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                                                 <div className="min-w-0">
-                                                    <h4 className="text-xl font-bold text-[#001C44]">{registration.studentName}</h4>
-                                                    <div className="mt-3 flex flex-wrap gap-3 text-sm text-gray-600">
-                                                        <span>MSSV: <span className="font-semibold text-gray-800">{registration.studentCode}</span></span>
-                                                        <span>Ma ve: <span className="font-mono font-semibold text-gray-800">{registration.ticketCode || 'Chua cap'}</span></span>
-                                                        <span>Dang ky luc: <span className="font-semibold text-gray-800">{formatRegistrationDate(registration.registeredDate)}</span></span>
+                                                    <h4 className="text-lg font-semibold tracking-tight text-primary-900">{registration.studentName}</h4>
+                                                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
+                                                        <span>MSSV: <span className="font-medium text-gray-800 tabular-nums">{registration.studentCode}</span></span>
+                                                        <span>Mã vé: <span className="font-mono font-medium text-gray-800">{registration.ticketCode || 'Chưa cấp'}</span></span>
+                                                        <span>Đăng ký lúc: <span className="font-medium text-gray-800 tabular-nums">{formatRegistrationDate(registration.registeredDate)}</span></span>
                                                     </div>
                                                     {activeTab === 'cancelled' && reason && (
-                                                        <div className="mt-3 inline-flex max-w-full rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-                                                            Ly do: {reason}
+                                                        <div className="mt-3 inline-flex max-w-full rounded-xl border border-rose-200/80 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                                                            Lý do: {reason}
                                                         </div>
                                                     )}
                                                 </div>
@@ -396,7 +428,7 @@ const ManagerRegistrationTabs: React.FC<ManagerRegistrationTabsProps> = ({
                                                     disabled={isUpdatingId === registration.id}
                                                     className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 transition-all hover:bg-emerald-100 disabled:opacity-60"
                                                 >
-                                                    Duyet
+                                                    Duyệt
                                                 </button>
                                                 <button
                                                     type="button"
@@ -404,7 +436,7 @@ const ManagerRegistrationTabs: React.FC<ManagerRegistrationTabsProps> = ({
                                                     disabled={isUpdatingId === registration.id}
                                                     className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 transition-all hover:bg-rose-100 disabled:opacity-60"
                                                 >
-                                                    Tu choi
+                                                    Từ chối
                                                 </button>
                                             </>
                                         )}
@@ -420,14 +452,14 @@ const ManagerRegistrationTabs: React.FC<ManagerRegistrationTabsProps> = ({
                                                     disabled={isUpdatingId === registration.id}
                                                     className="inline-flex min-h-[42px] items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 transition-all hover:bg-rose-100 disabled:opacity-60"
                                                 >
-                                                    Huy duyet
+                                                    Hủy duyệt
                                                 </button>
                                             </>
                                         )}
 
                                         {activeTab === 'attended' && (
                                             <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-semibold text-sky-700">
-                                                Da tham gia
+                                                Đã tham gia
                                             </div>
                                         )}
 
@@ -438,7 +470,7 @@ const ManagerRegistrationTabs: React.FC<ManagerRegistrationTabsProps> = ({
                                                 disabled={isUpdatingId === registration.id}
                                                 className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 transition-all hover:bg-emerald-100 disabled:opacity-60"
                                             >
-                                                Duyet lai
+                                                Duyệt lại
                                             </button>
                                         )}
                                     </div>
@@ -450,36 +482,36 @@ const ManagerRegistrationTabs: React.FC<ManagerRegistrationTabsProps> = ({
             )}
 
             {activeTab === 'pending' && selectedIds.length > 0 && (
-                <div className="sticky bottom-4 z-10 rounded-3xl bg-gradient-to-r from-[#001C44] to-[#133b78] px-5 py-4 shadow-2xl">
+                <div className="sticky bottom-4 z-10 rounded-2xl bg-primary-900 px-5 py-4 shadow-premium ring-1 ring-primary-900/10">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div className="text-white">
-                            <div className="text-lg font-bold">Da chon {selectedIds.length} dang ky</div>
-                            <div className="text-sm text-blue-100">Ban co the duyet nhanh hoac tu choi hang loat.</div>
+                            <div className="text-base font-semibold tracking-tight">Đã chọn {selectedIds.length} đăng ký</div>
+                            <div className="text-sm text-primary-100/90 mt-0.5">Bạn có thể duyệt nhanh hoặc từ chối hàng loạt.</div>
                         </div>
-                        <div className="flex flex-wrap gap-3">
+                        <div className="flex flex-wrap gap-2">
                             <button
                                 type="button"
                                 onClick={() => void handleBulkAction('APPROVED')}
                                 disabled={isBulkUpdating}
-                                className="rounded-2xl bg-white px-4 py-2.5 text-sm font-semibold text-[#001C44] transition-all hover:bg-slate-100 disabled:opacity-60"
+                                className="rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-primary-900 transition-all hover:bg-accent-hover active:scale-[0.98] disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                             >
-                                {isBulkUpdating ? 'Dang xu ly...' : 'Duyet da chon'}
+                                {isBulkUpdating ? 'Đang xử lý...' : 'Duyệt đã chọn'}
                             </button>
                             <button
                                 type="button"
                                 onClick={() => void handleBulkAction('REJECTED')}
                                 disabled={isBulkUpdating}
-                                className="rounded-2xl border border-white/30 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-white/20 disabled:opacity-60"
+                                className="rounded-xl border border-white/25 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-white/15 active:scale-[0.98] disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                             >
-                                {isBulkUpdating ? 'Dang xu ly...' : 'Tu choi da chon'}
+                                {isBulkUpdating ? 'Đang xử lý...' : 'Từ chối đã chọn'}
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setSelectedIds([])}
                                 disabled={isBulkUpdating}
-                                className="rounded-2xl border border-white/30 bg-transparent px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-white/10 disabled:opacity-60"
+                                className="rounded-xl border border-white/20 bg-transparent px-4 py-2.5 text-sm font-semibold text-white/90 transition-all hover:bg-white/10 active:scale-[0.98] disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
                             >
-                                Bo chon
+                                Bỏ chọn
                             </button>
                         </div>
                     </div>
@@ -488,26 +520,26 @@ const ManagerRegistrationTabs: React.FC<ManagerRegistrationTabsProps> = ({
 
             {filteredRegistrations.length > 0 && totalPages > 1 && (
                 <div className="flex items-center justify-between border-t border-gray-100 pt-4">
-                    <span className="text-sm text-gray-500">
-                        Hien thi {(page - 1) * REGISTRATIONS_PER_PAGE + 1}-{Math.min(page * REGISTRATIONS_PER_PAGE, filteredRegistrations.length)} / {filteredRegistrations.length}
+                    <span className="text-sm text-gray-500 tabular-nums">
+                        Hiển thị {(page - 1) * REGISTRATIONS_PER_PAGE + 1}–{Math.min(page * REGISTRATIONS_PER_PAGE, filteredRegistrations.length)} / {filteredRegistrations.length}
                     </span>
                     <div className="flex items-center gap-2">
                         <button
                             type="button"
                             onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                             disabled={page === 1}
-                            className="rounded-xl border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition-all hover:border-[#001C44] hover:text-[#001C44] disabled:opacity-50"
+                            className="rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition-all hover:border-primary-900 hover:text-primary-900 active:scale-[0.98] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900/20"
                         >
-                            Trang truoc
+                            Trang trước
                         </button>
-                        <span className="px-2 text-sm font-medium text-gray-600">
+                        <span className="px-2 text-sm font-medium text-gray-600 tabular-nums">
                             {page}/{totalPages}
                         </span>
                         <button
                             type="button"
                             onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
                             disabled={page === totalPages}
-                            className="rounded-xl border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition-all hover:border-[#001C44] hover:text-[#001C44] disabled:opacity-50"
+                            className="rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition-all hover:border-primary-900 hover:text-primary-900 active:scale-[0.98] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900/20"
                         >
                             Trang sau
                         </button>

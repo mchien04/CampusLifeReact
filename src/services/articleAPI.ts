@@ -2,6 +2,7 @@ import api from './api';
 import publicApi from './publicApi';
 import type {
     ApiResponse,
+    ArticleCategoryPublicResponse,
     ArticleCategoryRequest,
     ArticleCategoryResponse,
     ArticleCommentResponse,
@@ -10,6 +11,7 @@ import type {
     ArticleImageResponse,
     ArticleListResponse,
     ArticleStatisticsResponse,
+    ArticleTagPublicResponse,
     ArticleTagRequest,
     ArticleTagResponse,
     ArticleType,
@@ -112,7 +114,11 @@ export const articleAPI = {
         return toApiResponse<DashboardAnalytics>(response.data);
     },
 
-    // Track article view
+    /**
+     * @deprecated Detail page already increments views via GET /articles/{slug}.
+     * Do not call this together with getArticleBySlug (causes double/triple counting).
+     * Keep only for rare preview paths that never hit GET detail.
+     */
     trackArticleView: async (slug: string): Promise<void> => {
         try {
             await publicApi.post(`/api/articles/${encodeURIComponent(slug)}/track-view`);
@@ -169,6 +175,19 @@ export const articleAPI = {
         return toApiResponse<SpringPage<ArticleListResponse>>(response.data);
     },
 
+    getArticlesByTag: async (tagSlug: string, params?: {
+        page?: number;
+        size?: number;
+    }): Promise<ApiResponse<SpringPage<ArticleListResponse>>> => {
+        const response = await publicApi.get(`/api/articles/tag/${encodeURIComponent(tagSlug)}`, { params });
+        return toApiResponse<SpringPage<ArticleListResponse>>(response.data);
+    },
+
+    getPublicTags: async (): Promise<ApiResponse<ArticleTagPublicResponse[]>> => {
+        const response = await publicApi.get('/api/articles/tags');
+        return toApiResponse<ArticleTagPublicResponse[]>(response.data);
+    },
+
     // Search articles
     searchArticles: async (keyword: string, params?: {
         page?: number;
@@ -192,9 +211,9 @@ export const articleAPI = {
     },
 
     // Categories management
-    getCategories: async (): Promise<ApiResponse<{ id: number; name: string; slug: string; description?: string }[]>> => {
+    getCategories: async (): Promise<ApiResponse<ArticleCategoryPublicResponse[]>> => {
         const response = await publicApi.get('/api/articles/categories');
-        return toApiResponse(response.data);
+        return toApiResponse<ArticleCategoryPublicResponse[]>(response.data);
     },
 
     getAdminCategories: async (): Promise<ApiResponse<ArticleCategoryResponse[]>> => {

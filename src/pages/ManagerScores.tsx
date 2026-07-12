@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { scoresAPI } from '../services/scoresAPI';
@@ -16,6 +17,9 @@ import {
 } from '../types/score';
 import ScoreHistoryPanel from '../components/scores/ScoreHistoryPanel';
 import ScoreSkeleton from '../components/scores/ScoreSkeleton';
+import ManualScoreEntryModal from '../components/scores/ManualScoreEntryModal';
+import { downloadBlobResponse, getBlobErrorMessage } from '../utils/downloadBlob';
+import { localizeVi, getCodeLabel } from '../utils/vietnameseLabels';
 
 const RankBadge: React.FC<{ rank: number }> = ({ rank }) => {
     const topStyle =
@@ -71,6 +75,10 @@ const ManagerScores: React.FC = () => {
     const [isRecalculatingStudent, setIsRecalculatingStudent] = useState(false);
     const [recalculationJob, setRecalculationJob] = useState<RecalculationJobResponse | null>(null);
     const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const [manualScoreOpen, setManualScoreOpen] = useState(false);
+    const [manualStudentId, setManualStudentId] = useState<number | null>(null);
+    const [manualStudentLabel, setManualStudentLabel] = useState<string | null>(null);
+    const [exporting, setExporting] = useState(false);
 
     useEffect(() => {
         loadSemesters();
@@ -210,6 +218,28 @@ const ManagerScores: React.FC = () => {
         setHistoryPage(0);
     };
 
+    const handleExportScores = async () => {
+        if (!semesterId) {
+            toast.warning('Vui lòng chọn học kỳ');
+            return;
+        }
+        try {
+            setExporting(true);
+            const res = await scoresAPI.exportSemesterScoresExcel({
+                semesterId,
+                departmentId: departmentId ?? undefined,
+                classId: classId ?? undefined,
+                scoreType: scoreType ?? undefined,
+            });
+            await downloadBlobResponse(res, `bang_diem_hk${semesterId}.xlsx`);
+            toast.success('Xuất bảng điểm thành công');
+        } catch (error) {
+            toast.error(await getBlobErrorMessage(error));
+        } finally {
+            setExporting(false);
+        }
+    };
+
     const handleRecalculateAll = async () => {
         if (!semesterId) {
             toast.warning('Vui lòng chọn học kỳ');
@@ -223,7 +253,7 @@ const ManagerScores: React.FC = () => {
             const response = await scoresAPI.recalculateAsync(semesterId);
             if (response.status && response.data) {
                 const { jobId } = response.data;
-                toast.info('Job tính lại điểm đã được khởi tạo.');
+                toast.info('Đã bắt đầu tính lại điểm.');
 
                 const poll = async () => {
                     try {
@@ -238,7 +268,7 @@ const ManagerScores: React.FC = () => {
                                 loadRanking();
                             } else if (s === 'FAILED' || s === 'TIMEOUT') {
                                 stopPolling();
-                                toast.error(`Job thất bại: ${statusRes.data.errorDetails || s}`);
+                                toast.error(`Tính lại điểm thất bại: ${statusRes.data.errorDetails || s}`);
                             }
                         }
                     } catch {
@@ -249,7 +279,7 @@ const ManagerScores: React.FC = () => {
                 pollingRef.current = setInterval(poll, 3000);
                 poll();
             } else {
-                toast.error(response.message || 'Không thể khởi tạo job tính lại điểm');
+                toast.error(response.message || 'Không thể bắt đầu tính lại điểm');
                 setIsRecalculatingAll(false);
             }
         } catch (error: unknown) {
@@ -266,7 +296,7 @@ const ManagerScores: React.FC = () => {
             const response = await scoresAPI.retryRecalculation(recalculationJob.id);
             if (response.status && response.data) {
                 const newJobId = (response.data as { jobId?: number }).jobId || (response.data as unknown as number);
-                toast.info('Đang thử lại job...');
+                toast.info('Đang thử lại...');
                 setRecalculationJob(null);
                 const poll = async () => {
                     try {
@@ -281,7 +311,7 @@ const ManagerScores: React.FC = () => {
                                 loadRanking();
                             } else if (s === 'FAILED' || s === 'TIMEOUT') {
                                 stopPolling();
-                                toast.error(`Job thất bại: ${statusRes.data.errorDetails || s}`);
+                                toast.error(`Tính lại điểm thất bại: ${statusRes.data.errorDetails || s}`);
                             }
                         }
                     } catch { /* keep polling */ }
@@ -289,12 +319,12 @@ const ManagerScores: React.FC = () => {
                 pollingRef.current = setInterval(poll, 3000);
                 poll();
             } else {
-                toast.error(response.message || 'Retry thất bại');
+                toast.error(response.message || 'Thử lại thất bại');
                 setIsRecalculatingAll(false);
             }
         } catch (error: unknown) {
             const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
-            toast.error(msg || 'Có lỗi xảy ra khi retry');
+            toast.error(msg || 'Có lỗi xảy ra khi thử lại');
             setIsRecalculatingAll(false);
         }
     };
@@ -325,15 +355,39 @@ const ManagerScores: React.FC = () => {
     return (
         <div className="space-y-8 pb-10">
             <header className="rounded-2xl bg-gradient-to-br from-primary-900 via-primary-800 to-primary-900 p-6 sm:p-8 text-white shadow-premium">
-                <p className="text-sm font-medium text-white/60 uppercase tracking-wide">
-                    Quản lý điểm
-                </p>
-                <h1 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight">
-                    Xếp hạng sinh viên
-                </h1>
-                <p className="mt-2 text-white/70 max-w-prose">
-                    Lọc theo học kỳ, loại điểm, khoa và lớp. Xem lịch sử chi tiết từng sinh viên.
-                </p>
+                <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+                    <div>
+                        <p className="text-sm font-medium text-white/60">
+                            Quản lý điểm
+                        </p>
+                        <h1 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight">
+                            Xếp hạng sinh viên
+                        </h1>
+                        <p className="mt-2 text-white/70 max-w-prose">
+                            Lọc theo học kỳ, loại điểm, khoa và lớp. Xem lịch sử chi tiết từng sinh viên.
+                        </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setManualStudentId(null);
+                                setManualStudentLabel(null);
+                                setManualScoreOpen(true);
+                            }}
+                            disabled={semesters.length === 0}
+                            className="rounded-xl bg-white px-4 py-2.5 text-sm font-medium text-primary-900 hover:bg-white/90 disabled:opacity-40 transition-colors"
+                        >
+                            Nhập điểm thủ công
+                        </button>
+                        <Link
+                            to="/manager/scores/appeals"
+                            className="rounded-xl border border-white/30 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition-colors"
+                        >
+                            Hàng đợi khiếu nại
+                        </Link>
+                    </div>
+                </div>
             </header>
 
             <section className="rounded-2xl border border-gray-100 bg-white p-5 sm:p-6 shadow-premium">
@@ -391,6 +445,15 @@ const ManagerScores: React.FC = () => {
                             className="flex-1 rounded-xl bg-primary-900 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-primary-800 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900"
                         >
                             Làm mới
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => void handleExportScores()}
+                            disabled={!semesterId || exporting}
+                            className="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2.5 text-sm font-medium text-emerald-900 transition-all hover:bg-emerald-100 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                            title="Xuất bảng điểm Excel"
+                        >
+                            {exporting ? 'Đang xuất...' : 'Xuất Excel'}
                         </button>
                         <button
                             type="button"
@@ -477,7 +540,9 @@ const ManagerScores: React.FC = () => {
                                             <span className="text-base font-bold text-primary-900 tabular-nums">
                                                 {formatScore(ranking.score)}
                                             </span>
-                                            <p className="text-xs text-gray-400 mt-0.5">{ranking.scoreTypeLabel}</p>
+                                            <p className="text-xs text-gray-400 mt-0.5">
+                                                {localizeVi(ranking.scoreTypeLabel) || getCodeLabel(ranking.scoreType) || ranking.scoreTypeLabel}
+                                            </p>
                                         </td>
                                         <td className="px-4 py-3.5 text-right">
                                             <button
@@ -514,6 +579,21 @@ const ManagerScores: React.FC = () => {
                                 </p>
                             </div>
                             <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setManualStudentId(selectedStudentId);
+                                        setManualStudentLabel(
+                                            historyData
+                                                ? `${historyData.studentCode} - ${historyData.studentName}`
+                                                : null
+                                        );
+                                        setManualScoreOpen(true);
+                                    }}
+                                    className="rounded-lg border border-primary-900/20 bg-primary-900/5 px-3 py-2 text-xs font-medium text-primary-900 transition-colors hover:bg-primary-900/10"
+                                >
+                                    Nhập điểm
+                                </button>
                                 <button
                                     type="button"
                                     onClick={handleRecalculateStudent}
@@ -605,7 +685,7 @@ const ManagerScores: React.FC = () => {
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-primary-900/60 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
                         <h2 className="text-lg font-bold text-primary-900 text-center mb-4">
-                            {recalculationJob ? 'Đang tính lại điểm...' : 'Đang khởi tạo job...'}
+                            {recalculationJob ? 'Đang tính lại điểm...' : 'Đang khởi tạo...'}
                         </h2>
                         {recalculationJob ? (
                             <div className="space-y-4">
@@ -630,6 +710,28 @@ const ManagerScores: React.FC = () => {
                         )}
                     </div>
                 </div>
+            )}
+
+            {semesters.length > 0 && (
+                <ManualScoreEntryModal
+                    open={manualScoreOpen}
+                    semesters={semesters.map((s) => ({ id: s.id, name: s.name }))}
+                    defaultSemesterId={semesterId}
+                    defaultStudentId={manualStudentId}
+                    defaultStudentLabel={manualStudentLabel}
+                    defaultScoreType={scoreType}
+                    onClose={() => setManualScoreOpen(false)}
+                    onSuccess={(usedSemesterId) => {
+                        if (selectedStudentId) {
+                            queryClient.invalidateQueries({
+                                queryKey: ['scoreHistory', selectedStudentId, usedSemesterId],
+                            });
+                        }
+                        if (usedSemesterId === semesterId) {
+                            loadRanking();
+                        }
+                    }}
+                />
             )}
         </div>
     );

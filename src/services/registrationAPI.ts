@@ -1,3 +1,4 @@
+import type { AxiosResponse } from 'axios';
 import api from './api';
 import {
     ActivityRegistrationRequest,
@@ -6,7 +7,9 @@ import {
     ActivityParticipationRequest,
     ActivityParticipationResponse,
     RegistrationStatus,
-    TicketCodeValidateResponse
+    TicketCodeValidateResponse,
+    EventTimeStatus,
+    PersonalCalendarResponse,
 } from '../types/registration';
 import { ApiResponse } from '../types/common';
 import axios from "axios";
@@ -22,9 +25,23 @@ export const registrationAPI = {
         await api.delete(`/api/registrations/activity/${activityId}`);
     },
 
-    getMyRegistrations: async (): Promise<ActivityRegistrationResponse[]> => {
-        const response = await api.get('/api/registrations/my');
+    getMyRegistrations: async (eventStatus?: EventTimeStatus): Promise<ActivityRegistrationResponse[]> => {
+        const params = eventStatus ? `?eventStatus=${eventStatus}` : '';
+        const response = await api.get(`/api/registrations/my${params}`);
         return response.data.body;
+    },
+
+    /**
+     * GET /api/registrations/personal-calendar
+     * body: PersonalCalendarResponse { markedDates, events } — not a flat array.
+     */
+    getPersonalCalendar: async (params?: {
+        from?: string;
+        to?: string;
+        date?: string;
+    }): Promise<ApiResponse<PersonalCalendarResponse>> => {
+        const response = await api.get('/api/registrations/personal-calendar', { params });
+        return response.data;
     },
 
     checkRegistrationStatus: async (activityId: number): Promise<ActivityRegistrationResponse | null> => {
@@ -104,5 +121,11 @@ export const registrationAPI = {
         return res.data.body;
     },
 
-
+    /** GET /api/registrations/activities/{activityId}/export — Excel binary (3 sheets). */
+    exportActivityParticipationExcel: (
+        activityId: number
+    ): Promise<AxiosResponse<Blob>> =>
+        api.get(`/api/registrations/activities/${activityId}/export`, {
+            responseType: 'blob',
+        }),
 };

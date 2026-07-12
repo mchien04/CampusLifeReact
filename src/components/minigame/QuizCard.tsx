@@ -2,21 +2,21 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { MiniGame } from '../../types/minigame';
 import { ActivityResponse } from '../../types/activity';
+import { CalendarBlank, GameController, Clock, CheckCircle, ArrowsClockwise, Infinity as InfinityIcon, ChartBar, WarningCircle } from '@phosphor-icons/react';
 
 interface QuizCardProps {
     minigame: MiniGame;
     activity?: ActivityResponse;
-    onStart?: (activityId: number) => void; // Changed to activityId
+    onStart?: (activityId: number) => void;
     hasAttempts?: boolean;
-    attemptCount?: number; // Số lần đã làm
-    isRegistered?: boolean; // Đã đăng ký sự kiện chưa
+    attemptCount?: number;
+    isRegistered?: boolean;
 }
 
 const QuizCard: React.FC<QuizCardProps> = ({ minigame, activity, onStart, hasAttempts, attemptCount = 0, isRegistered = false }) => {
     const canStart = () => {
         if (!activity) return false;
         
-        // Phải đăng ký sự kiện trước
         if (!isRegistered) {
             return false;
         }
@@ -26,7 +26,6 @@ const QuizCard: React.FC<QuizCardProps> = ({ minigame, activity, onStart, hasAtt
         const endDate = new Date(activity.endDate);
         const withinTimeRange = now >= startDate && now <= endDate;
         
-        // Check maxAttempts limit
         if (minigame.maxAttempts !== null && minigame.maxAttempts !== undefined) {
             if (attemptCount >= minigame.maxAttempts) {
                 return false;
@@ -44,118 +43,112 @@ const QuizCard: React.FC<QuizCardProps> = ({ minigame, activity, onStart, hasAtt
     };
 
     return (
-        <div className="card overflow-hidden hover:shadow-lg transition-all duration-200 flex flex-col h-full border-2 border-transparent hover:border-[#FFD66D]">
-            <div className="p-6 flex flex-col flex-grow">
-                {/* Header */}
-                <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
-                            {minigame.title}
-                        </h3>
-                        {/* Activity Info */}
-                        {activity && (
-                            <div className="mb-2">
-                                <Link
-                                    to={`/student/events/${activity.id}`}
-                                    className="text-sm text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center"
-                                >
-                                    <span className="mr-1">📅</span>
-                                    <span className="font-medium">{activity.name}</span>
-                                </Link>
-                            </div>
-                        )}
-                        <div className="flex flex-wrap gap-2">
-                            <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
-                                Mini Game
-                            </span>
-                            <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                                Quiz
-                            </span>
-                        </div>
+        <div className="relative group flex flex-col h-full bg-white/70 backdrop-blur-xl rounded-[24px] overflow-hidden transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_20px_40px_-15px_rgba(0,28,68,0.1)] border border-white/40 shadow-sm">
+            {/* Background noise/grain overlay */}
+            <div className="absolute inset-0 opacity-[0.02] pointer-events-none mix-blend-overlay bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
+            
+            <div className="relative p-6 sm:p-8 flex flex-col flex-grow z-10">
+                {/* Header Section */}
+                <div className="mb-6">
+                    <div className="flex flex-wrap gap-2 mb-4">
+                        <span className="inline-flex items-center px-3 py-1 text-xs font-semibold tracking-wide uppercase rounded-full bg-[#001C44]/5 text-[#001C44]">
+                            <GameController weight="fill" className="w-3.5 h-3.5 mr-1.5" />
+                            Mini Game
+                        </span>
                     </div>
+                    <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 leading-tight line-clamp-2">
+                        {minigame.title}
+                    </h3>
+                    
+                    {activity && (
+                        <Link
+                            to={`/student/events/${activity.id}`}
+                            className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors group/link"
+                        >
+                            <CalendarBlank weight="duotone" className="w-4 h-4 mr-1.5 transition-transform group-hover/link:-translate-y-0.5" />
+                            <span className="border-b border-transparent group-hover/link:border-blue-600/30">{activity.name}</span>
+                        </Link>
+                    )}
                 </div>
 
                 {/* Description */}
                 {minigame.description && (
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-3 flex-grow">
+                    <p className="text-gray-600 text-sm leading-relaxed mb-6 line-clamp-3 flex-grow">
                         {minigame.description}
                     </p>
                 )}
 
-                {/* Quiz Info */}
-                <div className="space-y-2 text-sm text-gray-500 mb-4">
-                    <div className="flex items-center">
-                        <span className="w-4 h-4 mr-2">❓</span>
-                        <span className="truncate">{minigame.questionCount} câu hỏi</span>
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 gap-4 text-sm mb-8 p-4 bg-gray-50/50 rounded-2xl border border-gray-100/50">
+                    <div className="flex flex-col">
+                        <span className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-1 flex items-center">
+                            <ChartBar className="w-3.5 h-3.5 mr-1" /> Câu hỏi
+                        </span>
+                        <span className="font-semibold text-gray-900">{minigame.questionCount}</span>
                     </div>
+                    
                     {minigame.timeLimit && (
-                        <div className="flex items-center">
-                            <span className="w-4 h-4 mr-2">⏱️</span>
-                            <span className="truncate">
-                                Thời gian: {Math.floor(minigame.timeLimit / 60)} phút
+                        <div className="flex flex-col">
+                            <span className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-1 flex items-center">
+                                <Clock className="w-3.5 h-3.5 mr-1" /> Thời gian
                             </span>
+                            <span className="font-semibold text-gray-900">{Math.floor(minigame.timeLimit / 60)} phút</span>
                         </div>
                     )}
+                    
                     {minigame.requiredCorrectAnswers && (
-                        <div className="flex items-center">
-                            <span className="w-4 h-4 mr-2">✅</span>
-                            <span className="truncate">
-                                Cần đúng: {minigame.requiredCorrectAnswers}/{minigame.questionCount} câu
+                        <div className="flex flex-col">
+                            <span className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-1 flex items-center">
+                                <CheckCircle className="w-3.5 h-3.5 mr-1" /> Cần đúng
                             </span>
+                            <span className="font-semibold text-gray-900">{minigame.requiredCorrectAnswers}/{minigame.questionCount}</span>
                         </div>
                     )}
 
-                    {minigame.maxAttempts !== null && minigame.maxAttempts !== undefined ? (
-                        <div className="flex items-center">
-                            <span className="w-4 h-4 mr-2">🔄</span>
-                            <span className="truncate">
-                                Số lần làm tối đa: {minigame.maxAttempts}
-                            </span>
-                        </div>
-                    ) : (
-                        <div className="flex items-center">
-                            <span className="w-4 h-4 mr-2">♾️</span>
-                            <span className="truncate">Không giới hạn số lần làm</span>
-                        </div>
-                    )}
-                    {minigame.maxAttempts !== null && minigame.maxAttempts !== undefined && attemptCount > 0 && (
-                        <div className="flex items-center">
-                            <span className="w-4 h-4 mr-2">📊</span>
-                            <span className="truncate">
-                                Đã làm: {attemptCount}/{minigame.maxAttempts} lần
-                            </span>
-                        </div>
-                    )}
+                    <div className="flex flex-col">
+                        <span className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-1 flex items-center">
+                            {minigame.maxAttempts ? <ArrowsClockwise className="w-3.5 h-3.5 mr-1" /> : <InfinityIcon className="w-3.5 h-3.5 mr-1" />}
+                            Lần thử
+                        </span>
+                        <span className="font-semibold text-gray-900">
+                            {minigame.maxAttempts ? `${attemptCount}/${minigame.maxAttempts}` : 'Không giới hạn'}
+                        </span>
+                    </div>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex flex-col space-y-2 mt-auto">
+                <div className="flex flex-col gap-3 mt-auto">
                     {canStart() && onStart && activity && !isMaxAttemptsReached() ? (
                         <button
-                            onClick={() => {
-                                console.log('QuizCard: Button clicked, activity.id:', activity.id);
-                                onStart(activity.id);
-                            }}
-                            className="w-full btn-yellow px-4 py-2 rounded-lg text-sm font-medium"
+                            onClick={() => onStart(activity.id)}
+                            className="w-full bg-[#001C44] text-white hover:bg-[#002A66] active:scale-[0.98] transition-all duration-200 px-6 py-3.5 rounded-xl text-sm font-semibold flex items-center justify-center shadow-md hover:shadow-lg shadow-[#001C44]/10"
                         >
-                            Bắt đầu làm quiz
+                            Bắt đầu làm bài
                         </button>
                     ) : (
-                        <div className="text-center text-sm text-gray-500 py-2">
+                        <div className="flex items-center justify-center p-3 bg-gray-50 rounded-xl text-sm text-gray-500 border border-gray-100">
                             {activity && (
                                 <>
                                     {!isRegistered ? (
-                                        <p className="text-orange-600 font-medium">
-                                            Vui lòng đăng ký sự kiện trước khi làm quiz
-                                        </p>
+                                        <span className="flex items-center text-orange-600 font-medium">
+                                            <WarningCircle className="w-4 h-4 mr-1.5" />
+                                            Cần đăng ký sự kiện
+                                        </span>
                                     ) : isMaxAttemptsReached() ? (
-                                        <p className="text-red-600 font-medium">
-                                            Đã đạt số lần làm tối đa ({minigame.maxAttempts} lần)
-                                        </p>
+                                        <span className="flex items-center text-red-600 font-medium">
+                                            <WarningCircle className="w-4 h-4 mr-1.5" />
+                                            Đã hết lượt làm bài
+                                        </span>
                                     ) : new Date(activity.startDate) > new Date() ? (
-                                        <p>Chưa đến thời gian làm quiz</p>
+                                        <span className="flex items-center">
+                                            <Clock className="w-4 h-4 mr-1.5" />
+                                            Chưa mở
+                                        </span>
                                     ) : (
-                                        <p>Đã hết thời gian làm quiz</p>
+                                        <span className="flex items-center text-gray-400">
+                                            <Clock className="w-4 h-4 mr-1.5" />
+                                            Đã đóng
+                                        </span>
                                     )}
                                 </>
                             )}
@@ -165,7 +158,7 @@ const QuizCard: React.FC<QuizCardProps> = ({ minigame, activity, onStart, hasAtt
                     {hasAttempts && (
                         <Link
                             to={`/student/minigames/${activity?.id}/history`}
-                            className="w-full btn-primary px-4 py-2 rounded-lg text-sm font-medium text-center"
+                            className="w-full bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 active:scale-[0.98] transition-all duration-200 px-6 py-3.5 rounded-xl text-sm font-semibold flex items-center justify-center"
                         >
                             Xem lịch sử
                         </Link>

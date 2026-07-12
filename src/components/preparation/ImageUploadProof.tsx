@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Camera, X, SpinnerGap } from '@phosphor-icons/react';
 import { toast } from 'react-toastify';
 import { preparationAPI } from '../../services';
 
@@ -58,7 +59,6 @@ export default function ImageUploadProof({
       toast.error(err?.response?.data?.message || err?.message || 'Upload ảnh thất bại.');
     } finally {
       setUploading(false);
-      // Reset input
       if (e.target) {
         e.target.value = '';
       }
@@ -69,49 +69,51 @@ export default function ImageUploadProof({
     setUploadedUrls((prev) => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
+  const disabled = uploading || uploadedUrls.length >= maxFiles;
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-3">
         <label
-          className={`px-4 py-2 text-sm font-medium border rounded-lg cursor-pointer transition-colors ${
-            uploading || uploadedUrls.length >= maxFiles
-              ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-              : 'bg-white text-[#001C44] border-[#001C44] hover:bg-gray-50'
+          className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold border transition-all cursor-pointer focus-within:ring-2 focus-within:ring-primary-900/30 ${
+            disabled
+              ? 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'
+              : 'bg-white text-primary-900 border-primary-900/30 hover:bg-primary-50 active:scale-[0.98]'
           }`}
         >
-          {uploading ? 'Đang upload...' : '+ Chọn ảnh minh chứng'}
+          {uploading ? (
+            <SpinnerGap size={18} className="animate-spin" />
+          ) : (
+            <Camera size={18} weight="duotone" />
+          )}
+          {uploading ? 'Đang upload...' : 'Chọn ảnh minh chứng'}
           <input
             type="file"
             multiple
             accept="image/jpeg,image/png"
             className="hidden"
             onChange={handleFileChange}
-            disabled={uploading || uploadedUrls.length >= maxFiles}
+            disabled={disabled}
           />
         </label>
         <span className="text-xs text-gray-500">
-          (Tối đa {maxFiles} ảnh, JPEG/PNG, &le;10MB)
+          Tối đa {maxFiles} ảnh · JPEG/PNG · ≤10MB
         </span>
       </div>
 
       {uploadedUrls.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           {uploadedUrls.map((url, idx) => (
-            <div key={idx} className="relative group rounded-lg overflow-hidden border border-gray-200">
-              <img
-                src={url}
-                alt={`Proof ${idx + 1}`}
-                className="w-full h-24 object-cover"
-              />
+            <div key={idx} className="relative group rounded-xl overflow-hidden border border-gray-200 ring-1 ring-gray-100">
+              <img src={url} alt={`Proof ${idx + 1}`} className="w-full h-24 object-cover" />
               <button
                 type="button"
                 onClick={() => removeImage(idx)}
-                className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-700 focus:outline-none focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-red-400/50"
                 title="Xóa ảnh"
+                aria-label="Xóa ảnh"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <X size={14} weight="bold" />
               </button>
             </div>
           ))}
