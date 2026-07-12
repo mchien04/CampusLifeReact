@@ -26,6 +26,7 @@ const ViewScores: React.FC = () => {
     const [activeTab, setActiveTab] = useState<TabId>('overview');
     const [historyPage, setHistoryPage] = useState(0);
     const historyPageSize = 20;
+    const [historyScoreType, setHistoryScoreType] = useState<ScoreType>('REN_LUYEN');
     const [appealEntry, setAppealEntry] = useState<ScoreHistoryDetailResponse | null>(null);
     const [appealOpen, setAppealOpen] = useState(false);
 
@@ -81,12 +82,13 @@ const ViewScores: React.FC = () => {
 
     const { data: historyData, isFetching: isHistoryFetching, isError: isHistoryError } = useQuery({
         enabled: queryEnabled && activeTab === 'history',
-        queryKey: ['scoreHistory', studentId, semesterId, scoreType, historyPage],
+        queryKey: ['scoreHistory', studentId, semesterId, scoreType, historyScoreType, historyPage],
         queryFn: async () => {
+            const currentHistoryScoreType = scoreType === 'ALL' ? historyScoreType : scoreType;
             const response = await scoresAPI.getScoreHistory({
                 studentId: Number(studentId),
                 semesterId: Number(semesterId),
-                scoreType: scoreType === 'ALL' ? null : scoreType,
+                scoreType: currentHistoryScoreType,
                 page: historyPage,
                 size: historyPageSize,
             });
@@ -200,17 +202,54 @@ const ViewScores: React.FC = () => {
                     </>
                 )}
 
-                {activeTab === 'history' && !isHistoryFetching && !isHistoryError && historyData && (
-                    <>
-                        <ScoreHistoryPanel
-                            data={historyData}
-                            totalData={totalData}
-                            eventLinkPrefix="/student/events"
-                            onAppeal={(entry) => {
-                                setAppealEntry(entry);
-                                setAppealOpen(true);
-                            }}
-                        />
+                {activeTab === 'history' && (
+                    <div className="space-y-6">
+                        {scoreType === 'ALL' && (
+                            <div className="flex gap-2 border-b border-gray-200 pb-2 overflow-x-auto">
+                                {(["REN_LUYEN", "CONG_TAC_XA_HOI", "CHUYEN_DE"] as ScoreType[]).map((type) => (
+                                    <button
+                                        key={type}
+                                        type="button"
+                                        onClick={() => {
+                                            setHistoryScoreType(type);
+                                            setHistoryPage(0);
+                                        }}
+                                        className={`whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                            historyScoreType === type
+                                                ? 'bg-primary-50 text-primary-900 border border-primary-200'
+                                                : 'text-gray-600 hover:bg-gray-50 border border-transparent'
+                                        }`}
+                                    >
+                                        {type === 'REN_LUYEN' ? 'Rèn luyện' : type === 'CONG_TAC_XA_HOI' ? 'Công tác xã hội' : 'Chuyên đề'}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                        
+                        {isHistoryFetching ? (
+                            <ScoreSkeleton variant="history" />
+                        ) : isHistoryError ? (
+                            <div className="rounded-2xl border border-red-100 bg-red-50 p-8 text-center">
+                                <p className="text-red-800 font-medium">Không tải được dữ liệu lịch sử điểm.</p>
+                                <button
+                                    type="button"
+                                    onClick={() => refetch()}
+                                    className="mt-4 rounded-lg bg-primary-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-800"
+                                >
+                                    Thử lại
+                                </button>
+                            </div>
+                        ) : historyData ? (
+                            <>
+                                <ScoreHistoryPanel
+                                    data={historyData}
+                                    totalData={totalData}
+                                    eventLinkPrefix="/student/events"
+                                    onAppeal={(entry) => {
+                                        setAppealEntry(entry);
+                                        setAppealOpen(true);
+                                    }}
+                                />
 
                         {historyData.totalPages > 1 && (
                             <nav
@@ -239,6 +278,8 @@ const ViewScores: React.FC = () => {
                             </nav>
                         )}
                     </>
+                        ) : null}
+                    </div>
                 )}
 
                 {semesterId && (
