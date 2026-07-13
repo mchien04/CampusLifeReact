@@ -1077,7 +1077,7 @@ const EventDetail: React.FC = () => {
                                             {registrationStatus.status === 'CANCELLED' && 'Bạn đã hủy đăng ký sự kiện này.'}
                                         </p>
                                         <div className="flex justify-center space-x-3">
-                                            {(registrationStatus.status === 'PENDING' || registrationStatus.status === 'APPROVED') && (
+                                            {(registrationStatus.status === 'PENDING' || registrationStatus.status === 'APPROVED') && event.seriesId == null && (
                                                 <button
                                                     onClick={handleCancelRegistration}
                                                     className="px-4 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
