@@ -23,6 +23,7 @@ import { SeriesProgress, MilestoneDisplay, SeriesProgressBanner } from '../compo
 import { SeriesActivityList } from '../components/series';
 import StudentLayout from '../components/layout/StudentLayout';
 import { toast } from 'react-toastify';
+import { departmentAPI } from '../services/api';
 import { RegistrationStatus } from '../types/registration';
 import { computeSeriesSlots } from '../utils/seriesSlots';
 import { canStudentRegisterSeries, visibleToStudent } from '../utils/seriesHelpers';
@@ -83,6 +84,7 @@ const StudentSeriesDetail: React.FC = () => {
     const navigate = useNavigate();
     const [series, setSeries] = useState<SeriesResponse | null>(null);
     const [activities, setActivities] = useState<ActivityResponse[]>([]);
+    const [departments, setDepartments] = useState<any[]>([]);
     const [progress, setProgress] = useState<StudentSeriesProgress | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -99,7 +101,27 @@ const StudentSeriesDetail: React.FC = () => {
         if (id) {
             loadSeries();
         }
+        loadDepartments();
     }, [id]);
+
+    const loadDepartments = async () => {
+        try {
+            const res = await departmentAPI.getAll();
+            if (res.status && res.data) {
+                const raw = res.data as any;
+                const list = Array.isArray(raw)
+                    ? raw
+                    : Array.isArray(raw?.body)
+                        ? raw.body
+                        : Array.isArray(raw?.data)
+                        ? raw.data
+                        : [];
+                setDepartments(list);
+            }
+        } catch (err) {
+            console.error('Error loading departments:', err);
+        }
+    };
 
     const loadSeries = async () => {
         if (!id) return;
@@ -296,6 +318,15 @@ const StudentSeriesDetail: React.FC = () => {
         return canStudentRegisterSeries(series);
     };
 
+    const getDepartmentNames = (ids?: number[] | null): string => {
+        if (!ids || ids.length === 0) return 'Tất cả sinh viên (hoặc chưa cấu hình)';
+        const names = ids.map(id => {
+            const dept = departments.find(d => d.id === id);
+            return dept ? dept.name : `ID: ${id}`;
+        });
+        return names.join(', ');
+    };
+
     if (loading) {
         return (
             <StudentLayout>
@@ -428,9 +459,22 @@ const StudentSeriesDetail: React.FC = () => {
                                     <InfoTile
                                         icon={<Users size={18} weight="duotone" />}
                                         label="Đối tượng"
-                                        value={getCodeLabel(series.audience, series.audience)}
+                                        value={
+                                            series.audience === 'SPECIFIC_FACULTY' 
+                                                ? getDepartmentNames(series.targetDepartmentIds)
+                                                : getCodeLabel(series.audience, series.audience)
+                                        }
                                     />
                                 )}
+                                <InfoTile
+                                    icon={<Users size={18} weight="duotone" />}
+                                    label="Khoa tổ chức"
+                                    value={
+                                        series.organizerIds?.length
+                                            ? getDepartmentNames(series.organizerIds)
+                                            : 'Chưa cấu hình'
+                                    }
+                                />
                             </div>
 
                             <div className="mt-4 flex flex-wrap gap-2">
@@ -444,11 +488,6 @@ const StudentSeriesDetail: React.FC = () => {
                                     <span className="inline-flex items-center gap-1 rounded-lg bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-800 ring-1 ring-orange-200/80">
                                         <Flag size={14} weight="duotone" />
                                         Bắt buộc cho sinh viên khoa
-                                    </span>
-                                )}
-                                {series.presetCode && series.presetCode !== 'CUSTOM' && (
-                                    <span className="inline-flex items-center gap-1 rounded-lg bg-primary-50 px-2.5 py-1 text-xs font-semibold text-primary-900 ring-1 ring-primary-100">
-                                        Mẫu: {getPresetDisplayName(series.presetCode, series.presetCode)}
                                     </span>
                                 )}
                                 {series.minimumRequirementEnabled && (

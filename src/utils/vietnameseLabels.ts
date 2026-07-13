@@ -662,6 +662,8 @@ const PHRASE_LABELS: Record<string, string> = {
     'map qua trigger': 'map qua trigger',
     'nhu diem': 'như điểm',
     'co the duoc': 'có thể được',
+    'khong the huy vi ban da tham gia su kien': 'Không thể huỷ vì bạn đã tham gia sự kiện',
+    'khong the huy vi ban da tham gia su kien.': 'Không thể huỷ vì bạn đã tham gia sự kiện.',
 };
 
 const PHRASE_KEYS_BY_LENGTH = Object.keys(PHRASE_LABELS).sort((a, b) => b.length - a.length);

@@ -25,6 +25,19 @@ export const studentAPI = {
         return response.data.body;
     },
 
+    // Upload avatar sinh viên
+    uploadAvatar: async (file: File): Promise<{ avatarUrl: string }> => {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const response = await api.post('/api/student/profile/avatar', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        return response.data.body;
+    },
+
     // Lấy profile sinh viên theo ID (Admin/Manager)
     getStudentProfile: async (studentId: number): Promise<Student> => {
         const response = await api.get(`/api/student/profile/${studentId}`);
