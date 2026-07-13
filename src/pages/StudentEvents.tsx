@@ -201,7 +201,7 @@ const StudentEvents: React.FC = () => {
             return eventStatus === 'UPCOMING' || eventStatus === 'ONGOING';
         })();
 
-        const canCancel = canCancelMap.get(event.id) === true;
+        const canCancel = canCancelMap.get(event.id) === true && event.seriesId == null;
         const alreadyCancelled = cancelledIds.has(event.id);
 
         return (

@@ -454,9 +454,8 @@ const StudentEventDetail: React.FC = () => {
     };
 
     const canCancel = () => {
-        if (!event) return false;
         // P7-2: dùng canCancel từ BE (/registration-status) thay vì tự tính (line 413, L715).
-        return regStatus?.canCancel === true;
+        return regStatus?.canCancel === true && event?.seriesId == null;
     };
 
     const canRecordParticipation = () => {
