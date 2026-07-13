@@ -332,9 +332,9 @@ const StudentProfile: React.FC = () => {
 
             // Upload new image if selected
             if (imageFile) {
-                const uploadResponse = await uploadAPI.uploadImage(imageFile);
-                if (uploadResponse.status && uploadResponse.data) {
-                    profileImageUrl = uploadResponse.data;
+                const uploadResponse = await studentAPI.uploadAvatar(imageFile);
+                if (uploadResponse && uploadResponse.avatarUrl) {
+                    profileImageUrl = uploadResponse.avatarUrl;
                 }
             }
 
@@ -779,7 +779,7 @@ const StudentProfile: React.FC = () => {
                                                 type="button"
                                                 onClick={handleDeleteAddress}
                                                 disabled={addressSaving}
-                                                className="px-5 py-2.5 bg-white border-2 border-red-100 text-red-600 font-bold rounded-xl hover:bg-red-50 hover:border-red-200 transition-all disabled:opacity-50 flex items-center gap-2"
+                                                className="px-5 py-2.5 bg-red-50 text-red-600 font-bold rounded-xl hover:bg-red-100 transition-all disabled:opacity-50 flex items-center gap-2"
                                             >
                                                 <Trash weight="bold" />
                                                 {addressSaving ? 'Đang xử lý...' : 'Xóa địa chỉ'}
@@ -789,7 +789,7 @@ const StudentProfile: React.FC = () => {
                                             type="button"
                                             onClick={handleAddressSubmit}
                                             disabled={addressSaving}
-                                            className="px-5 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 flex items-center gap-2"
+                                            className="px-5 py-2.5 bg-primary-900 text-white font-bold rounded-xl hover:bg-primary-800 transition-all shadow-md hover:shadow-lg disabled:opacity-50 flex items-center gap-2"
                                         >
                                             <FloppyDisk weight="bold" />
                                             {addressSaving ? 'Đang lưu...' : (address ? 'Cập nhật địa chỉ' : 'Lưu địa chỉ')}

@@ -28,6 +28,7 @@ import { getScoreTypeLabel } from '../../types/score';
 import SeriesActivityForm from '../../components/events/SeriesActivityForm';
 import QuizForm from '../../components/minigame/QuizForm';
 import { minigameAPI } from '../../services/minigameAPI';
+import { departmentAPI } from '../../services/api';
 import { CreateMiniGameRequest, UpdateMiniGameRequest } from '../../types/minigame';
 import { getPresetDisplayName, getCodeLabel, localizeVi } from '../../utils/vietnameseLabels';
 import { mapSeriesError } from '../../utils/seriesHelpers';
@@ -107,6 +108,7 @@ const SeriesDetail: React.FC = () => {
     const navigate = useNavigate();
     const [series, setSeries] = useState<SeriesResponse | null>(null);
     const [activities, setActivities] = useState<ActivityResponse[]>([]);
+    const [departments, setDepartments] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showAddActivityModal, setShowAddActivityModal] = useState(false);
@@ -136,7 +138,27 @@ const SeriesDetail: React.FC = () => {
             loadSeries();
             loadOverview();
         }
+        loadDepartments();
     }, [id]);
+
+    const loadDepartments = async () => {
+        try {
+            const res = await departmentAPI.getAll();
+            if (res.status && res.data) {
+                const raw = res.data as any;
+                const list = Array.isArray(raw)
+                    ? raw
+                    : Array.isArray(raw?.body)
+                        ? raw.body
+                        : Array.isArray(raw?.data)
+                        ? raw.data
+                        : [];
+                setDepartments(list);
+            }
+        } catch (err) {
+            console.error('Error loading departments:', err);
+        }
+    };
 
     // Debounce search keyword
     useEffect(() => {
@@ -383,6 +405,15 @@ const SeriesDetail: React.FC = () => {
         return colors[milestoneKey] || 'bg-gray-100 text-gray-800 ring-gray-200/80';
     };
 
+    const getDepartmentNames = (ids?: number[] | null): string => {
+        if (!ids || ids.length === 0) return 'Tất cả sinh viên (hoặc chưa cấu hình)';
+        const names = ids.map(id => {
+            const dept = departments.find(d => d.id === id);
+            return dept ? dept.name : `ID: ${id}`;
+        });
+        return names.join(', ');
+    };
+
     const milestoneEntries = Object.entries(series?.milestonePoints || {})
         .map(([count, points]) => ({ count: parseInt(count, 10), points: Number(points) }))
         .filter((m) => !Number.isNaN(m.count))
@@ -507,18 +538,15 @@ const SeriesDetail: React.FC = () => {
                                 label="Loại điểm"
                                 value={getScoreTypeLabel(series.scoreType)}
                             />
-                            {series.presetCode && (
-                                <InfoTile
-                                    icon={<Flag size={18} weight="duotone" />}
-                                    label="Mẫu cấu hình"
-                                    value={getPresetDisplayName(series.presetCode)}
-                                />
-                            )}
                             {series.audience && (
                                 <InfoTile
                                     icon={<Users size={18} weight="duotone" />}
                                     label="Đối tượng điểm"
-                                    value={getCodeLabel(series.audience, series.audience)}
+                                    value={
+                                        series.audience === 'SPECIFIC_FACULTY' 
+                                            ? getDepartmentNames(series.targetDepartmentIds)
+                                            : getCodeLabel(series.audience, series.audience)
+                                    }
                                 />
                             )}
                             <InfoTile
@@ -526,7 +554,7 @@ const SeriesDetail: React.FC = () => {
                                 label="Khoa tổ chức"
                                 value={
                                     series.organizerIds?.length
-                                        ? `${series.organizerIds.length} khoa (ID: ${series.organizerIds.join(', ')})`
+                                        ? getDepartmentNames(series.organizerIds)
                                         : 'Chưa cấu hình'
                                 }
                             />

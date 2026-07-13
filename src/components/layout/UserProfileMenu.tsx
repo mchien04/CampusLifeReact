@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Role } from '../../types';
+import { studentAPI } from '../../services';
 
 interface UserProfileMenuProps {
     sidebarOpen: boolean;
@@ -11,6 +12,7 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ sidebarOpen }) => {
     const { username, userRole, logout } = useAuth();
     const navigate = useNavigate();
     const [isOpen, setIsOpen] = useState(false);
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
 
     // Get email from token if available
@@ -66,6 +68,18 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ sidebarOpen }) => {
         };
     }, [isOpen]);
 
+    useEffect(() => {
+        if (userRole === Role.STUDENT) {
+            studentAPI.getMyProfile()
+                .then(profile => {
+                    if (profile.avatarUrl) {
+                        setAvatarUrl(profile.avatarUrl);
+                    }
+                })
+                .catch(err => console.error('Failed to load avatar:', err));
+        }
+    }, [userRole]);
+
     const handleChangePassword = () => {
         setIsOpen(false);
         navigate('/change-password');
@@ -84,11 +98,17 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ sidebarOpen }) => {
                 className="w-full flex items-center p-2 rounded-lg hover:bg-[#002A66] transition-colors focus:outline-none"
             >
                 <div className="flex-shrink-0">
-                    <div className="w-10 h-10 rounded-full bg-[#FFD66D] flex items-center justify-center">
-                        <span className="text-[#001C44] font-semibold text-sm">
-                            {username?.charAt(0).toUpperCase() || 'U'}
-                        </span>
-                    </div>
+                    {avatarUrl ? (
+                        <div className="w-10 h-10 rounded-full overflow-hidden border border-white/20">
+                            <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                        </div>
+                    ) : (
+                        <div className="w-10 h-10 rounded-full bg-[#FFD66D] flex items-center justify-center">
+                            <span className="text-[#001C44] font-semibold text-sm">
+                                {username?.charAt(0).toUpperCase() || 'U'}
+                            </span>
+                        </div>
+                    )}
                 </div>
                 {sidebarOpen && (
                     <div className="ml-3 flex-1 min-w-0 text-left">
@@ -114,10 +134,18 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ sidebarOpen }) => {
                 <div className="absolute bottom-full left-0 mb-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                     <div className="p-4 border-b border-gray-200">
                         <div className="flex items-center space-x-3">
-                            <div className="w-12 h-12 rounded-full bg-[#FFD66D] flex items-center justify-center flex-shrink-0">
-                                <span className="text-[#001C44] font-semibold text-lg">
-                                    {username?.charAt(0).toUpperCase() || 'U'}
-                                </span>
+                            <div className="flex-shrink-0">
+                                {avatarUrl ? (
+                                    <div className="w-12 h-12 rounded-full overflow-hidden border border-gray-200">
+                                        <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                                    </div>
+                                ) : (
+                                    <div className="w-12 h-12 rounded-full bg-[#FFD66D] flex items-center justify-center">
+                                        <span className="text-[#001C44] font-semibold text-lg">
+                                            {username?.charAt(0).toUpperCase() || 'U'}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-semibold text-gray-900 truncate">{username}</p>
