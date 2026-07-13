@@ -11,6 +11,7 @@ import {
 import { SeriesResponse } from '../../types/series';
 import { getScoreTypeLabel } from '../../types/score';
 import { localizeVi } from '../../utils/vietnameseLabels';
+import { canStudentRegisterSeries, getSeriesStatus } from '../../utils/seriesHelpers';
 import ProgressBar from '../common/ProgressBar';
 
 interface SeriesCardProps {
@@ -51,15 +52,10 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
 
     const canRegister = () => {
         if (isRegistered) return false;
-        const now = new Date();
-        if (series.registrationStartDate && new Date(series.registrationStartDate) > now) {
-            return false;
-        }
-        if (series.registrationDeadline && new Date(series.registrationDeadline) < now) {
-            return false;
-        }
-        return true;
+        return canStudentRegisterSeries(series);
     };
+
+    const status = getSeriesStatus(series);
 
     return (
         <article className="group flex flex-col h-full rounded-2xl border border-gray-100 bg-white shadow-premium overflow-hidden transition-all hover:border-accent/40 hover:shadow-lg">
@@ -77,6 +73,11 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
                                 <Medal size={12} weight="duotone" />
                                 {getScoreTypeLabel(series.scoreType)}
                             </span>
+                            {status.tone === 'ended' && (
+                                <span className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-700 ring-1 ring-gray-200/80">
+                                    Đã kết thúc
+                                </span>
+                            )}
                             {isRegistered && (
                                 <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 ring-1 ring-emerald-200/80">
                                     <CheckCircle size={12} weight="fill" />

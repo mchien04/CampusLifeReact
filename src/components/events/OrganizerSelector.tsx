@@ -6,13 +6,15 @@ interface OrganizerSelectorProps {
     onChange: (ids: number[]) => void;
     error?: string;
     required?: boolean;
+    label?: string;
 }
 
 const OrganizerSelector: React.FC<OrganizerSelectorProps> = ({
     selectedIds,
     onChange,
     error,
-    required = true
+    required = true,
+    label = 'Đơn vị tổ chức',
 }) => {
     const [departments, setDepartments] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -24,7 +26,15 @@ const OrganizerSelector: React.FC<OrganizerSelectorProps> = ({
                 setLoading(true);
                 const response = await departmentAPI.getAll();
                 if (response.status && response.data) {
-                    setDepartments(response.data);
+                    const raw = response.data as any;
+                    const list = Array.isArray(raw)
+                        ? raw
+                        : Array.isArray(raw?.body)
+                          ? raw.body
+                          : Array.isArray(raw?.data)
+                            ? raw.data
+                            : [];
+                    setDepartments(list);
                 }
             } catch (error) {
                 console.error('Error loading departments:', error);
@@ -51,7 +61,7 @@ const OrganizerSelector: React.FC<OrganizerSelectorProps> = ({
     return (
         <div>
             <label className="block text-sm font-medium text-[#001C44] mb-2">
-                Đơn vị tổ chức {required && '*'}
+                {label} {required && '*'}
             </label>
 
             {/* Search Input */}

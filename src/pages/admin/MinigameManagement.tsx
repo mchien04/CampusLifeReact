@@ -14,6 +14,7 @@ const MinigameManagement: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [activeTab, setActiveTab] = useState<'ONGOING' | 'UPCOMING' | 'ENDED'>('ONGOING');
 
     useEffect(() => {
         loadMinigames();
@@ -81,7 +82,23 @@ const MinigameManagement: React.FC = () => {
             minigame.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
             minigame.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             activity.name.toLowerCase().includes(searchTerm.toLowerCase());
-        return matchesSearch;
+            
+        if (!matchesSearch) return false;
+        
+        const now = new Date();
+        const start = new Date(activity.startDate);
+        const end = new Date(activity.endDate);
+        
+        if (activeTab === 'ONGOING') {
+            return now >= start && now <= end;
+        }
+        if (activeTab === 'UPCOMING') {
+            return now < start;
+        }
+        if (activeTab === 'ENDED') {
+            return now > end;
+        }
+        return true;
     });
 
     if (loading) {
@@ -145,25 +162,43 @@ const MinigameManagement: React.FC = () => {
                 </div>
             </div>
 
-            {/* Search Bar - Sleek */}
-            <div className="relative max-w-2xl">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
-                    <MagnifyingGlass weight="bold" className="w-5 h-5" />
+            {/* Filters & Search */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex p-1 space-x-1 bg-gray-100/80 rounded-xl border border-gray-200/50 w-full md:w-auto overflow-x-auto hide-scrollbar">
+                    {(['ONGOING', 'UPCOMING', 'ENDED'] as const).map(tab => (
+                        <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={`flex-1 md:flex-none whitespace-nowrap px-6 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${
+                                activeTab === tab
+                                    ? 'bg-white text-[#001C44] shadow-sm border border-gray-200/50'
+                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
+                            }`}
+                        >
+                            {tab === 'ONGOING' ? 'Đang diễn ra' : tab === 'UPCOMING' ? 'Sắp diễn ra' : 'Đã kết thúc'}
+                        </button>
+                    ))}
                 </div>
-                <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Tìm kiếm minigame theo tiêu đề, mô tả..."
-                    className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#001C44]/20 focus:border-[#001C44] transition-all shadow-sm"
-                />
+
+                <div className="relative w-full md:w-80 shrink-0">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+                        <MagnifyingGlass weight="bold" className="w-5 h-5" />
+                    </div>
+                    <input
+                        type="text"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder="Tìm kiếm minigame..."
+                        className="w-full pl-11 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#001C44]/20 focus:border-[#001C44] transition-all shadow-sm text-sm"
+                    />
+                </div>
             </div>
 
             {/* Minigames List */}
             {filteredMinigames.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 px-4 bg-gray-50 rounded-2xl border border-gray-200 border-dashed text-center">
                     <GameController weight="duotone" className="w-16 h-16 text-gray-300 mb-4" />
-                    <h3 className="text-xl font-bold text-gray-800 mb-2">Chưa có minigame nào</h3>
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">Chưa có minigame {activeTab === 'ONGOING' ? 'đang diễn ra' : activeTab === 'UPCOMING' ? 'sắp diễn ra' : 'nào'}</h3>
                     <p className="text-gray-500 max-w-md mb-6">
                         Bạn chưa tạo minigame nào hoặc không có kết quả phù hợp với tìm kiếm.
                     </p>

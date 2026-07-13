@@ -30,6 +30,7 @@ import QuizForm from '../../components/minigame/QuizForm';
 import { minigameAPI } from '../../services/minigameAPI';
 import { CreateMiniGameRequest, UpdateMiniGameRequest } from '../../types/minigame';
 import { getPresetDisplayName, getCodeLabel, localizeVi } from '../../utils/vietnameseLabels';
+import { mapSeriesError } from '../../utils/seriesHelpers';
 
 const formatDateTime = (date: string) =>
     new Date(date).toLocaleString('vi-VN', {
@@ -78,14 +79,25 @@ const SeriesStatusBadge: React.FC<{ series: SeriesResponse }> = ({ series }) => 
     if (isDraft) {
         return (
             <span className="inline-flex items-center rounded-lg bg-amber-400/20 px-2.5 py-1 text-xs font-semibold text-amber-100 ring-1 ring-amber-300/30">
-                Bản nháp
+                Nháp
+            </span>
+        );
+    }
+
+    if (series.ended) {
+        return (
+            <span className="inline-flex items-center rounded-lg bg-white/15 px-2.5 py-1 text-xs font-semibold text-white/90 ring-1 ring-white/25">
+                Đã kết thúc
+                {series.latestEndDate
+                    ? ` · ${new Date(series.latestEndDate).toLocaleDateString('vi-VN')}`
+                    : ''}
             </span>
         );
     }
 
     return (
         <span className="inline-flex items-center rounded-lg bg-emerald-400/20 px-2.5 py-1 text-xs font-semibold text-emerald-100 ring-1 ring-emerald-300/30">
-            Đã công bố
+            Đang diễn ra
         </span>
     );
 };
@@ -183,7 +195,12 @@ const SeriesDetail: React.FC = () => {
     };
 
     const handleCreateActivity = async (data: SeriesChildActivityCreateRequest) => {
-        if (!id) return;
+        if (!id || !series) return;
+
+        if (!series.organizerIds?.length) {
+            toast.error('Chuỗi chưa có khoa tổ chức — cập nhật chuỗi trước');
+            return;
+        }
 
         try {
             setIsCreating(true);
@@ -204,10 +221,10 @@ const SeriesDetail: React.FC = () => {
                     await loadSeries();
                 }
             } else {
-                toast.error(response.message || 'Tạo sự kiện thất bại');
+                toast.error(mapSeriesError(response.message || 'Tạo sự kiện thất bại'));
             }
         } catch (err: any) {
-            toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi tạo sự kiện');
+            toast.error(mapSeriesError(err.response?.data?.message || 'Có lỗi xảy ra khi tạo sự kiện'));
             console.error('Error creating activity:', err);
         } finally {
             setIsCreating(false);
@@ -500,10 +517,19 @@ const SeriesDetail: React.FC = () => {
                             {series.audience && (
                                 <InfoTile
                                     icon={<Users size={18} weight="duotone" />}
-                                    label="Đối tượng"
+                                    label="Đối tượng điểm"
                                     value={getCodeLabel(series.audience, series.audience)}
                                 />
                             )}
+                            <InfoTile
+                                icon={<Users size={18} weight="duotone" />}
+                                label="Khoa tổ chức"
+                                value={
+                                    series.organizerIds?.length
+                                        ? `${series.organizerIds.length} khoa (ID: ${series.organizerIds.join(', ')})`
+                                        : 'Chưa cấu hình'
+                                }
+                            />
                             {series.registrationStartDate && (
                                 <InfoTile
                                     icon={<CalendarBlank size={18} weight="duotone" />}
@@ -1094,6 +1120,7 @@ const SeriesDetail: React.FC = () => {
                                     onSubmit={handleCreateActivity}
                                     loading={isCreating}
                                     isMinigame={activityType === 'minigame'}
+                                    seriesOrganizerIds={series?.organizerIds ?? []}
                                     initialData={{
                                         order: activities.length > 0 ? Math.max(...activities.map(a => a.seriesOrder || 0), 0) + 1 : 1
                                     }}

@@ -4,6 +4,7 @@ import { SeriesForm } from '../../components/series';
 import { CreateSeriesRequest, UpdateSeriesRequest, SeriesResponse } from '../../types/series';
 import { seriesAPI } from '../../services/seriesAPI';
 import { LoadingSpinner } from '../../components/common';
+import { mapSeriesError } from '../../utils/seriesHelpers';
 import { toast } from 'react-toastify';
 
 const EditSeries: React.FC = () => {
@@ -44,7 +45,6 @@ const EditSeries: React.FC = () => {
 
         setSaving(true);
         try {
-            // Convert CreateSeriesRequest to UpdateSeriesRequest (all fields optional)
             const updateData: UpdateSeriesRequest = {
                 name: data.name,
                 description: data.description,
@@ -61,6 +61,7 @@ const EditSeries: React.FC = () => {
                 targetSemesterId: data.targetSemesterId,
                 audience: data.audience,
                 departmentIds: data.departmentIds,
+                organizerIds: data.organizerIds,
                 isImportant: data.isImportant,
                 mandatoryForFacultyStudents: data.mandatoryForFacultyStudents,
                 isDraft: data.isDraft,
@@ -70,12 +71,13 @@ const EditSeries: React.FC = () => {
             const response = await seriesAPI.updateSeries(parseInt(id), updateData);
             if (response.status && response.data) {
                 toast.success('Cập nhật chuỗi sự kiện thành công!');
+                // Navigate → SeriesDetail reload series + activities (invalidate children)
                 navigate(`/manager/series/${id}`);
             } else {
-                toast.error(response.message || 'Cập nhật thất bại');
+                toast.error(mapSeriesError(response.message || 'Cập nhật thất bại'));
             }
         } catch (err: any) {
-            toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi cập nhật');
+            toast.error(mapSeriesError(err.response?.data?.message || 'Có lỗi xảy ra khi cập nhật'));
             console.error('Error updating series:', err);
         } finally {
             setSaving(false);
@@ -132,6 +134,7 @@ const EditSeries: React.FC = () => {
                     targetSemesterId: series.targetSemesterId,
                     audience: series.audience || 'ALL_PARTICIPANTS',
                     departmentIds: series.targetDepartmentIds ?? [],
+                    organizerIds: series.organizerIds ?? [],
                     isImportant: series.isImportant ?? false,
                     mandatoryForFacultyStudents: series.mandatoryForFacultyStudents ?? false,
                     isDraft: series.isDraft ?? true,
@@ -146,4 +149,3 @@ const EditSeries: React.FC = () => {
 };
 
 export default EditSeries;
-

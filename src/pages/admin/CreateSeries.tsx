@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { SeriesForm } from '../../components/series';
 import { CreateSeriesRequest } from '../../types/series';
 import { seriesAPI } from '../../services/seriesAPI';
+import { mapSeriesError } from '../../utils/seriesHelpers';
 import { toast } from 'react-toastify';
 
 const CreateSeries: React.FC = () => {
@@ -17,10 +18,10 @@ const CreateSeries: React.FC = () => {
                 toast.success('Tạo chuỗi sự kiện thành công');
                 navigate(`/manager/series/${response.data.id}`);
             } else {
-                toast.error(response.message || 'Tạo chuỗi sự kiện thất bại');
+                toast.error(mapSeriesError(response.message || 'Tạo chuỗi sự kiện thất bại'));
             }
         } catch (err: any) {
-            toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi tạo chuỗi sự kiện');
+            toast.error(mapSeriesError(err.response?.data?.message || 'Có lỗi xảy ra khi tạo chuỗi sự kiện'));
             console.error('Error creating series:', err);
         } finally {
             setLoading(false);
@@ -49,7 +50,7 @@ const CreateSeries: React.FC = () => {
                         Tạo chuỗi sự kiện mới
                     </h1>
                     <p className="mt-2 text-sm text-primary-100/90 max-w-2xl leading-relaxed">
-                        Thiết lập thông tin chuỗi, mốc điểm thưởng và mẫu cấu hình điểm cho các sự kiện con.
+                        Thiết lập thông tin chuỗi, khoa tổ chức, mốc điểm thưởng và mẫu cấu hình điểm cho các sự kiện con.
                     </p>
                 </div>
             </header>
@@ -66,4 +67,3 @@ const CreateSeries: React.FC = () => {
 };
 
 export default CreateSeries;
-

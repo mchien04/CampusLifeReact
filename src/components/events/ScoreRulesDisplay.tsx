@@ -1,136 +1,188 @@
 import React, { useState, useEffect } from 'react';
-import { 
-    ActivityScoreRuleResponse, 
-    ScoreType, 
-    ScoreRuleTrigger, 
-    ScoreRuleCalculation, 
-    ScoreSemesterPolicy 
+import {
+    ActivityScoreRuleResponse,
+    ScoreType,
+    ScoreRuleTrigger,
+    ScoreRuleCalculation,
 } from '../../types/activity';
-import { academicPublicAPI } from '../../services/academicPublicAPI';
 import api from '../../services/api';
 import { getCodeLabel } from '../../utils/vietnameseLabels';
 
 interface ScoreRulesDisplayProps {
     rules?: ActivityScoreRuleResponse[];
+    /** Ẩn tiêu đề nội bộ khi parent đã có heading "Luật tính điểm" */
+    hideTitle?: boolean;
 }
 
-export const ScoreRulesDisplay: React.FC<ScoreRulesDisplayProps> = ({ rules }) => {
+const PENALTY_TRIGGERS = [
+    ScoreRuleTrigger.NO_SHOW,
+    ScoreRuleTrigger.TASK_OVERDUE,
+    ScoreRuleTrigger.MINIGAME_EXHAUSTED_ATTEMPTS,
+];
+
+type ScoreTone = {
+    chip: string;
+    badge: string;
+    points: string;
+    dot: string;
+};
+
+function getTone(scoreType: ScoreType | string): ScoreTone {
+    if (scoreType === ScoreType.REN_LUYEN) {
+        return {
+            chip: 'border-emerald-200/70 bg-white',
+            badge: 'bg-emerald-50',
+            points: 'text-emerald-700',
+            dot: 'bg-emerald-500',
+        };
+    }
+    if (scoreType === ScoreType.CONG_TAC_XA_HOI) {
+        return {
+            chip: 'border-sky-200/70 bg-white',
+            badge: 'bg-sky-50',
+            points: 'text-sky-700',
+            dot: 'bg-sky-500',
+        };
+    }
+    return {
+        chip: 'border-amber-200/70 bg-white',
+        badge: 'bg-amber-50',
+        points: 'text-amber-800',
+        dot: 'bg-amber-500',
+    };
+}
+
+function formatPoints(rule: ActivityScoreRuleResponse): {
+    primary: string;
+    secondary?: string;
+    isPenalty: boolean;
+} {
+    const isPenaltyOnly = PENALTY_TRIGGERS.includes(rule.triggerType);
+    const isPassFail = rule.calculation === ScoreRuleCalculation.PASS_FAIL_POINTS;
+
+    if (isPenaltyOnly) {
+        return {
+            primary: `−${rule.failPoints ?? rule.points ?? 0}`,
+            isPenalty: true,
+        };
+    }
+    if (isPassFail) {
+        return {
+            primary: `+${rule.points || 0}`,
+            secondary: rule.failPoints != null ? `−${rule.failPoints}` : undefined,
+            isPenalty: false,
+        };
+    }
+    return {
+        primary: `+${rule.points || 0}`,
+        isPenalty: false,
+    };
+}
+
+function buildAudienceText(
+    rule: ActivityScoreRuleResponse,
+    getDepartmentNames: (ids: number[]) => string
+): string {
+    const deptIds = rule.targetDepartmentIds || (rule as any).departmentIds || [];
+    const audience = getCodeLabel(rule.audience);
+    if (deptIds.length === 0) return audience;
+    return `${audience} (${getDepartmentNames(deptIds)})`;
+}
+
+export const ScoreRulesDisplay: React.FC<ScoreRulesDisplayProps> = ({
+    rules,
+    hideTitle = false,
+}) => {
     const [departments, setDepartments] = useState<any[]>([]);
-    const [semesters, setSemesters] = useState<any[]>([]);
-    const [years, setYears] = useState<any[]>([]);
 
     useEffect(() => {
-        const fetchMappingData = async () => {
+        const fetchDepartments = async () => {
             try {
-                // Fetch Departments
                 const deptRes = await api.get('/api/departments');
                 if (deptRes.data) {
-                    // API returns list or wrapped list
-                    setDepartments(Array.isArray(deptRes.data) ? deptRes.data : (deptRes.data.body || []));
+                    const raw = deptRes.data;
+                    setDepartments(
+                        Array.isArray(raw) ? raw : raw.body || raw.data || []
+                    );
                 }
-                
-                // Fetch Academic Years and Semesters
-                const fetchedYears = await academicPublicAPI.getYears();
-                setYears(fetchedYears);
-                const fetchedSemesters = await academicPublicAPI.getSemesters();
-                setSemesters(fetchedSemesters);
             } catch (err) {
-                console.error("Error fetching mapping data for rules", err);
+                console.error('Error fetching departments for rules', err);
             }
         };
-        fetchMappingData();
+        fetchDepartments();
     }, []);
 
     const getDepartmentNames = (ids: number[]) => {
         if (!ids || ids.length === 0) return '';
-        return ids.map(id => {
-            const dept = departments.find(d => d.id === id);
-            return dept ? dept.name : `Khoa ${id}`;
-        }).join(', ');
-    };
-
-    const getSemesterDisplay = (semesterId?: number | null) => {
-        if (!semesterId) return null;
-        const sem = semesters.find(s => s.id === semesterId);
-        if (!sem) return `Học kỳ ${semesterId}`;
-        const year = years.find(y => y.id === sem.academicYearId || y.id === sem.yearId);
-        if (year) {
-            return `${sem.name} (${year.name})`;
-        }
-        return sem.name;
+        return ids
+            .map((id) => {
+                const dept = departments.find((d) => d.id === id);
+                return dept ? dept.name : `Khoa ${id}`;
+            })
+            .join(', ');
     };
 
     if (!rules || rules.length === 0) {
-        return <div className="text-sm text-gray-500 italic">Không có cấu hình điểm.</div>;
+        return (
+            <p className="text-sm text-gray-500 italic">Không có cấu hình điểm.</p>
+        );
     }
 
     return (
-        <div className="space-y-3 mt-2">
-            <h4 className="text-sm font-medium text-gray-700">Luật tính điểm:</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {rules.map(rule => (
-                    <div key={rule.id} className="bg-white border rounded-lg p-3 shadow-sm text-sm flex flex-col space-y-1 relative overflow-hidden">
-                        <div className={`absolute top-0 left-0 w-1 h-full ${
-                            rule.scoreType === ScoreType.REN_LUYEN ? 'bg-green-500' :
-                            rule.scoreType === ScoreType.CONG_TAC_XA_HOI ? 'bg-blue-500' : 'bg-purple-500'
-                        }`} />
-                        <div className="flex justify-between items-start pl-2">
-                            <span className="font-semibold text-gray-800 flex items-center gap-2">
-                                {getCodeLabel(rule.scoreType)}
-                                {rule.isPresetGenerated === true && (
-                                    <span
-                                        title="Luật này được sinh ra từ mẫu cấu hình (preset)"
-                                        className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-100 text-indigo-700 uppercase tracking-wide"
-                                    >
-                                        Mẫu
+        <div className="w-full space-y-2">
+            {!hideTitle && (
+                <h4 className="text-sm font-medium text-gray-700">Luật tính điểm:</h4>
+            )}
+
+            <div className="flex w-full flex-col gap-2.5">
+                {rules.map((rule, index) => {
+                    const tone = getTone(rule.scoreType);
+                    const pts = formatPoints(rule);
+                    const audienceText = buildAudienceText(rule, getDepartmentNames);
+                    const key = rule.id ?? `${rule.triggerType}-${rule.scoreType}-${index}`;
+
+                    return (
+                        <div
+                            key={key}
+                            title={audienceText}
+                            className={`flex w-full min-w-0 items-start gap-3 rounded-xl border ${tone.chip} p-2.5 shadow-sm`}
+                        >
+                            <div
+                                className={`flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-lg ${tone.badge}`}
+                            >
+                                <span
+                                    className={`text-base font-bold tabular-nums leading-none ${
+                                        pts.isPenalty ? 'text-rose-600' : tone.points
+                                    }`}
+                                >
+                                    {pts.primary}
+                                </span>
+                                {pts.secondary && (
+                                    <span className="mt-0.5 text-[10px] font-bold tabular-nums text-rose-500 leading-none">
+                                        {pts.secondary}
                                     </span>
                                 )}
-                            </span>
-                            {(() => {
-                                const isPenaltyOnly = [ScoreRuleTrigger.NO_SHOW, ScoreRuleTrigger.TASK_OVERDUE, ScoreRuleTrigger.MINIGAME_EXHAUSTED_ATTEMPTS].includes(rule.triggerType);
-                                const isPassFail = rule.calculation === ScoreRuleCalculation.PASS_FAIL_POINTS;
-                                
-                                if (isPassFail) {
-                                    return (
-                                        <div className="flex flex-col text-right">
-                                            <span className="font-bold text-green-600">+{rule.points || 0}</span>
-                                            {rule.failPoints && (
-                                                <span className="text-red-500 text-xs">Trượt: -{rule.failPoints}</span>
-                                            )}
-                                        </div>
-                                    );
-                                }
-                                
-                                if (isPenaltyOnly) {
-                                    return <span className="font-bold text-red-600">-{rule.failPoints || 0}</span>;
-                                }
-                                
-                                return <span className="font-bold text-green-600">+{rule.points || 0}</span>;
-                            })()}
-                        </div>
-                        <div className="text-gray-600 pl-2 flex flex-col gap-1">
-                            <div><span className="font-medium">Khi:</span> {getCodeLabel(rule.triggerType)}</div>
-                            {rule.semesterPolicy === ScoreSemesterPolicy.EXPLICIT_SEMESTER && rule.explicitSemesterId && (
-                                <div className="text-xs text-blue-700 bg-blue-50 inline-block px-2 py-0.5 rounded-md border border-blue-100 self-start">
-                                    Áp dụng: {getSemesterDisplay(rule.explicitSemesterId)}
-                                </div>
-                            )}
-                        </div>
-                        <div className="flex flex-col pl-2 pt-1 mt-1 border-t border-gray-100 text-xs text-gray-500 gap-1">
-                            <div className="flex justify-between items-center">
-                                <span>Đối tượng: <span className="font-medium">{getCodeLabel(rule.audience)}</span></span>
                             </div>
-                            {(() => {
-                                const deptIds = rule.targetDepartmentIds || (rule as any).departmentIds;
-                                return deptIds && deptIds.length > 0 ? (
-                                    <div className="text-gray-600 line-clamp-2 mt-0.5">
-                                        <span className="font-medium text-gray-700">Khoa áp dụng:</span> {getDepartmentNames(deptIds)}
-                                    </div>
-                                ) : null;
-                            })()}
+
+                            <div className="min-w-0 flex-1 space-y-1">
+                                <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                                    <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${tone.dot}`} />
+                                    <span className="text-xs font-semibold text-gray-900">
+                                        {getCodeLabel(rule.scoreType)}
+                                    </span>
+                                    <span className="text-[10px] text-gray-300">·</span>
+                                    <span className="text-[11px] text-gray-600">
+                                        {getCodeLabel(rule.triggerType)}
+                                    </span>
+                                </div>
+                                <p className="text-[11px] leading-snug text-gray-500">
+                                    <span className="text-gray-400">Đối tượng · </span>
+                                    {audienceText}
+                                </p>
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </div>
     );

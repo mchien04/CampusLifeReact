@@ -1305,7 +1305,7 @@ const EventDetail: React.FC = () => {
                                 <h3 className="text-lg font-bold text-stone-900">Luật tính điểm</h3>
                             </div>
                             <div className="bg-stone-50 rounded-2xl p-4 border border-stone-100">
-                                <ScoreRulesDisplay rules={event.scoreRules} />
+                                <ScoreRulesDisplay rules={event.scoreRules} hideTitle />
                             </div>
                         </div>
                     )}

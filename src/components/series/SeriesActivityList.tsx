@@ -128,9 +128,16 @@ const ActivityRow: React.FC<{ activity: ActivityResponse; canManage: boolean }> 
                 </span>
             </td>
             <td className="px-5 py-4">
-                <p className="font-semibold text-primary-900 line-clamp-2" title={activity.name}>
-                    {activity.name}
-                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-semibold text-primary-900 line-clamp-2" title={activity.name}>
+                        {activity.name}
+                    </p>
+                    {canManage && (activity.isDraft ?? activity.draft) && (
+                        <span className="inline-flex items-center rounded-lg bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800 ring-1 ring-amber-200/80">
+                            Nháp
+                        </span>
+                    )}
+                </div>
             </td>
             <td className="px-5 py-4 text-gray-600">
                 <span className="inline-flex items-center gap-1.5 tabular-nums">
