@@ -1,14 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { CreateSeriesRequest } from '../../types/series';
-import { ScoreType } from '../../types/activity';
+import { ScoreType, ScoreRuleAudience } from '../../types/activity';
 import { seriesAPI } from '../../services/seriesAPI';
 import { academicPublicAPI } from '../../services/academicPublicAPI';
-import { departmentAPI } from '../../services/adminAPI';
+import { departmentAPI as adminDepartmentAPI, userAPI } from '../../services/adminAPI';
+import { departmentAPI as publicDepartmentAPI } from '../../services/api';
 import { SeriesPresetPreviewResponse, SeriesPresetDefinition, SeriesPresetCode, SeriesPresetConfig } from '../../types/presets';
 import PresetConfigPanel from '../presets/PresetConfigPanel';
 import MultiSelectField from '../presets/MultiSelectField';
+import OrganizerSelector from '../events/OrganizerSelector';
 import { Department } from '../../types/admin';
 import { validateSeriesPresetConfig } from '../../utils/presetValidation';
+import { assertManagerOrganizers } from '../../utils/seriesHelpers';
+import { useAuth } from '../../contexts/AuthContext';
+import { Role } from '../../types/auth';
 import { toast } from 'react-toastify';
 import { Plus, Trash } from '@phosphor-icons/react';
 
@@ -41,6 +46,8 @@ interface SeriesFormProps {
     onCancel?: () => void;
     /** When true, omit outer page chrome (used inside CreateSeries hero layout). */
     embedded?: boolean;
+    /** Khoa trong phạm vi quản lý (Manager) — soft scope check */
+    managerDepartmentIds?: number[];
 }
 
 const SeriesForm: React.FC<SeriesFormProps> = ({
@@ -49,9 +56,20 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
     initialData = {},
     title = 'Tạo chuỗi sự kiện mới',
     onCancel,
-    embedded = false
+    embedded = false,
+    managerDepartmentIds: managerDepartmentIdsProp
 }) => {
+    const { userRole, username } = useAuth();
+    const [managerDepartmentIds, setManagerDepartmentIds] = useState<number[]>(
+        managerDepartmentIdsProp ?? []
+    );
+
     const [formData, setFormData] = useState<CreateSeriesRequest>(() => {
+        const defaultOrganizerIds =
+            initialData.organizerIds?.length
+                ? initialData.organizerIds
+                : (managerDepartmentIdsProp?.length === 1 ? managerDepartmentIdsProp : []);
+
         const defaultData: CreateSeriesRequest = {
             name: '',
             description: '',
@@ -65,8 +83,9 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
             minimumRequiredEvents: undefined,
             minimumPenaltyPoints: undefined,
             targetSemesterId: undefined,
-            audience: 'ALL_PARTICIPANTS',
+            audience: ScoreRuleAudience.ALL_PARTICIPANTS,
             departmentIds: [],
+            organizerIds: defaultOrganizerIds,
             isImportant: false,
             mandatoryForFacultyStudents: false,
             isDraft: true,
@@ -76,7 +95,8 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
 
         return {
             ...defaultData,
-            ...initialData
+            ...initialData,
+            organizerIds: initialData.organizerIds ?? defaultOrganizerIds,
         };
     });
 
@@ -177,20 +197,59 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
         fetchSemesters();
     }, []);
 
-    // Load departments
+    // Load departments — ưu tiên public API (manager cũng gọi được), fallback admin
     useEffect(() => {
         const fetchDepartments = async () => {
             try {
-                const res = await departmentAPI.getDepartments();
-                if (res.status && res.data) {
-                    setDepartments(res.data);
+                const publicRes = await publicDepartmentAPI.getAll();
+                let list: Department[] = [];
+                if (publicRes.status && Array.isArray(publicRes.data) && publicRes.data.length > 0) {
+                    list = publicRes.data;
+                } else {
+                    const adminRes = await adminDepartmentAPI.getDepartments();
+                    if (adminRes.status && adminRes.data) {
+                        list = adminRes.data;
+                    }
                 }
+                setDepartments(list);
             } catch (error) {
                 console.error('Lỗi khi tải danh sách khoa:', error);
             }
         };
         fetchDepartments();
     }, []);
+
+    // Soft-load manager department scope khi prop chưa truyền
+    useEffect(() => {
+        if (managerDepartmentIdsProp?.length) {
+            setManagerDepartmentIds(managerDepartmentIdsProp);
+            return;
+        }
+        if (userRole !== Role.MANAGER || !username) return;
+
+        const loadManagerScope = async () => {
+            try {
+                const res = await userAPI.getUsers('MANAGER');
+                if (!res.status || !res.data) return;
+                const me = res.data.find(
+                    (u) => u.username?.toLowerCase() === username.toLowerCase()
+                );
+                if (me?.departmentIds?.length) {
+                    setManagerDepartmentIds(me.departmentIds);
+                    setFormData((prev) => {
+                        if (prev.organizerIds?.length) return prev;
+                        if (me.departmentIds!.length === 1) {
+                            return { ...prev, organizerIds: [...me.departmentIds!] };
+                        }
+                        return prev;
+                    });
+                }
+            } catch (error) {
+                console.error('Lỗi khi tải phạm vi khoa của manager:', error);
+            }
+        };
+        loadManagerScope();
+    }, [managerDepartmentIdsProp, userRole, username]);
 
     const externalOptions = {
         departmentIds: departments.map(d => ({ value: d.id, label: d.name })),
@@ -408,6 +467,19 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
             }
         }
 
+        // Khoa tổ chức bắt buộc
+        if (!formData.organizerIds || formData.organizerIds.length === 0) {
+            newErrors.organizerIds = 'Chọn ít nhất một khoa tổ chức';
+        } else if (userRole === Role.MANAGER) {
+            const scopeError = assertManagerOrganizers(
+                formData.organizerIds,
+                managerDepartmentIds
+            );
+            if (scopeError) {
+                newErrors.organizerIds = scopeError;
+            }
+        }
+
         // Cross-field validation: departmentIds required when audience scoped
         if (formData.audience && formData.audience !== 'ALL_PARTICIPANTS') {
             if (!formData.departmentIds || formData.departmentIds.length === 0) {
@@ -598,6 +670,24 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
                                         </div>
                                     </div>
 
+                                    <div className="pt-1">
+                                        <OrganizerSelector
+                                            selectedIds={formData.organizerIds || []}
+                                            onChange={(ids) => {
+                                                setFormData(prev => ({ ...prev, organizerIds: ids }));
+                                                if (errors.organizerIds) {
+                                                    setErrors(prev => ({ ...prev, organizerIds: '' }));
+                                                }
+                                            }}
+                                            error={errors.organizerIds}
+                                            required
+                                            label="Khoa tổ chức"
+                                        />
+                                        <p className="text-xs text-gray-500 mt-2">
+                                            Sự kiện con sẽ dùng khoa này. Không chỉnh khoa tổ chức ở từng sự kiện con.
+                                        </p>
+                                    </div>
+
                                     <label className="flex items-start gap-3 rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3 cursor-pointer transition-colors hover:bg-gray-50">
                                         <input
                                             type="checkbox"
@@ -737,7 +827,7 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
                                     <div className="space-y-4 pt-2 border-t border-gray-100">
                                         <div>
                                             <label htmlFor="audience" className="block text-sm font-medium text-gray-700 mb-1.5">
-                                                Đối tượng nhận điểm
+                                                Khoa áp dụng điểm (audience)
                                             </label>
                                             <select
                                                 id="audience"
@@ -753,7 +843,7 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
                                         </div>
                                         {formData.audience && formData.audience !== 'ALL_PARTICIPANTS' && (
                                             <MultiSelectField
-                                                label="Danh sách khoa"
+                                                label="Danh sách khoa áp dụng điểm"
                                                 options={departments.map(d => ({ value: d.id, label: d.name }))}
                                                 value={formData.departmentIds || []}
                                                 onChange={(val) => setFormData(prev => ({ ...prev, departmentIds: val as number[] }))}
@@ -825,7 +915,7 @@ const SeriesForm: React.FC<SeriesFormProps> = ({
                                                 className="mt-0.5 rounded border-gray-300 text-primary-900 focus:ring-primary-900/30"
                                             />
                                             <span className="text-sm text-gray-700">
-                                                Bắt buộc với sinh viên khoa tổ chức
+                                                Bắt buộc với sinh viên khoa tổ chức (auto đăng ký)
                                             </span>
                                         </label>
                                         <label className="flex items-start gap-3 rounded-xl px-1 py-2 cursor-pointer">

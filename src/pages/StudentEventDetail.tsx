@@ -1085,7 +1085,7 @@ const StudentEventDetail: React.FC = () => {
                                                 {translatePreset(event.presetCode)}
                                             </div>
                                         )}
-                                        <ScoreRulesDisplay rules={event.scoreRules} />
+                                        <ScoreRulesDisplay rules={event.scoreRules} hideTitle />
                                     </>
                                 )}
                             </div>

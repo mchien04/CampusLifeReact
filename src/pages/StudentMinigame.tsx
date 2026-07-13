@@ -17,6 +17,7 @@ const StudentMinigame: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [activeTab, setActiveTab] = useState<'ONGOING' | 'UPCOMING' | 'ENDED'>('ONGOING');
     const [attemptsMap, setAttemptsMap] = useState<Map<number, boolean>>(new Map());
     const [attemptCountsMap, setAttemptCountsMap] = useState<Map<number, number>>(new Map());
     const [registrationStatuses, setRegistrationStatuses] = useState<Map<number, RegistrationStatus | null>>(new Map());
@@ -95,7 +96,23 @@ const StudentMinigame: React.FC = () => {
             minigame.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
             minigame.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             activity.name.toLowerCase().includes(searchTerm.toLowerCase());
-        return matchesSearch;
+            
+        if (!matchesSearch) return false;
+        
+        const now = new Date();
+        const start = new Date(activity.startDate);
+        const end = new Date(activity.endDate);
+        
+        if (activeTab === 'ONGOING') {
+            return now >= start && now <= end;
+        }
+        if (activeTab === 'UPCOMING') {
+            return now < start;
+        }
+        if (activeTab === 'ENDED') {
+            return now > end;
+        }
+        return true;
     });
 
     if (loading) {
@@ -152,18 +169,34 @@ const StudentMinigame: React.FC = () => {
                     </div>
                 </header>
 
-                <div className="rounded-2xl border border-gray-100 bg-white p-4 sm:p-5 shadow-premium space-y-4">
-                    <div className="relative max-w-xl">
-                        <MagnifyingGlass
-                            size={20}
-                            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
-                        />
+                {/* Filters & Search */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex p-1 space-x-1 bg-gray-100/80 rounded-xl border border-gray-200/50 w-full md:w-auto overflow-x-auto hide-scrollbar">
+                        {(['ONGOING', 'UPCOMING', 'ENDED'] as const).map(tab => (
+                            <button
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
+                                className={`flex-1 md:flex-none whitespace-nowrap px-6 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${
+                                    activeTab === tab
+                                        ? 'bg-white text-primary-900 shadow-sm border border-gray-200/50'
+                                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
+                                }`}
+                            >
+                                {tab === 'ONGOING' ? 'Đang diễn ra' : tab === 'UPCOMING' ? 'Sắp diễn ra' : 'Đã kết thúc'}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="relative w-full md:w-80 shrink-0">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+                            <MagnifyingGlass weight="bold" className="w-5 h-5" />
+                        </div>
                         <input
                             type="text"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             placeholder="Tìm kiếm quiz, hoạt động, mô tả..."
-                            className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-11 pr-4 text-sm text-gray-900 placeholder:text-gray-400 transition-colors hover:border-gray-300 focus:border-primary-900/40 focus:outline-none focus:ring-2 focus:ring-primary-900/20"
+                            className="w-full pl-11 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 transition-all shadow-sm text-sm"
                         />
                     </div>
                 </div>
@@ -175,7 +208,7 @@ const StudentMinigame: React.FC = () => {
                             <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6 shadow-inner">
                                 <GameController weight="duotone" className="w-10 h-10 text-gray-300" />
                             </div>
-                            <h3 className="text-xl font-bold text-gray-800 mb-2">Không tìm thấy quiz nào</h3>
+                            <h3 className="text-xl font-bold text-gray-800 mb-2">Không có minigame {activeTab === 'ONGOING' ? 'đang diễn ra' : activeTab === 'UPCOMING' ? 'sắp diễn ra' : 'nào'}</h3>
                             <p className="text-gray-500 text-center max-w-sm">
                                 Thử thay đổi từ khóa tìm kiếm hoặc quay lại sau nhé.
                             </p>

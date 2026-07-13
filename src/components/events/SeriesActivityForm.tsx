@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import BaseEventForm, { BaseEventFormData, RenderFieldsProps } from './BaseEventForm';
 import { ActivityType, SeriesChildActivityCreateRequest } from '../../types/activity';
-import OrganizerSelector from './OrganizerSelector';
 import { getImageUrl } from '../../utils/imageUtils';
+import { departmentAPI } from '../../services/api';
 
 interface SeriesActivityFormProps {
     onSubmit: (data: SeriesChildActivityCreateRequest) => void;
@@ -11,16 +11,62 @@ interface SeriesActivityFormProps {
     title?: string;
     onCancel?: () => void;
     isMinigame?: boolean;
+    /** Khoa tổ chức kế thừa từ series — read-only trên UI */
+    seriesOrganizerIds?: number[];
 }
 
-const renderSeriesActivityFields = (props: RenderFieldsProps & { isMinigame?: boolean }) => {
+const OrganizerChips: React.FC<{ ids: number[] }> = ({ ids }) => {
+    const [departments, setDepartments] = useState<{ id: number; name: string }[]>([]);
+
+    useEffect(() => {
+        const load = async () => {
+            try {
+                const response = await departmentAPI.getAll();
+                if (response.status && response.data) {
+                    setDepartments(response.data);
+                }
+            } catch (error) {
+                console.error('Error loading departments:', error);
+            }
+        };
+        load();
+    }, []);
+
+    if (!ids.length) {
+        return (
+            <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                Chuỗi chưa có khoa tổ chức — cập nhật chuỗi trước khi tạo sự kiện con.
+            </p>
+        );
+    }
+
+    return (
+        <div className="flex flex-wrap gap-2">
+            {ids.map((id) => {
+                const dept = departments.find((d) => d.id === id);
+                return (
+                    <span
+                        key={id}
+                        className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-[#FFD66D] bg-opacity-30 text-[#001C44]"
+                    >
+                        {dept ? dept.name : `ID: ${id}`}
+                    </span>
+                );
+            })}
+        </div>
+    );
+};
+
+const renderSeriesActivityFields = (
+    props: RenderFieldsProps & { isMinigame?: boolean; seriesOrganizerIds?: number[] }
+) => {
     const {
         formData,
         errors,
         handleChange,
-        handleOrganizerChange,
         originalBannerUrl,
-        isMinigame
+        isMinigame,
+        seriesOrganizerIds = []
     } = props;
 
     const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,11 +95,11 @@ const renderSeriesActivityFields = (props: RenderFieldsProps & { isMinigame?: bo
                     </div>
                     <div className="ml-3">
                         <p className="text-sm text-[#001C44] font-medium">
-                            <strong>Lưu ý:</strong> Sự kiện trong chuỗi sẽ tự động lấy các thông tin đăng ký, 
-                            điểm số và số lượng vé từ chuỗi sự kiện. Bạn chỉ cần điền thông tin cơ bản bên dưới.
+                            <strong>Lưu ý:</strong> Sự kiện trong chuỗi sẽ tự động lấy các thông tin đăng ký,
+                            điểm số, số lượng vé và khoa tổ chức từ chuỗi sự kiện. Bạn chỉ cần điền thông tin cơ bản bên dưới.
                             {props.isMinigame && (
                                 <span className="block mt-2 text-[#FFD66D] font-semibold">
-                                    🎮 Bạn đang tạo minigame. Sau khi tạo activity, bạn sẽ tiếp tục tạo quiz.
+                                    Bạn đang tạo minigame. Sau khi tạo activity, bạn sẽ tiếp tục tạo quiz.
                                 </span>
                             )}
                         </p>
@@ -305,14 +351,15 @@ const renderSeriesActivityFields = (props: RenderFieldsProps & { isMinigame?: bo
                 />
             </div>
 
-            {/* Organizer Selection */}
-            <div>
-                <OrganizerSelector
-                    selectedIds={formData.organizerIds || []}
-                    onChange={handleOrganizerChange}
-                    error={errors.organizerIds}
-                    required={false}
-                />
+            {/* READ-ONLY organizers từ series */}
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <span className="block text-sm font-medium text-[#001C44] mb-2">
+                    Khoa tổ chức (theo chuỗi)
+                </span>
+                <OrganizerChips ids={seriesOrganizerIds} />
+                <p className="text-xs text-gray-500 mt-2">
+                    Chỉnh tại trang chuỗi sự kiện nếu cần đổi.
+                </p>
             </div>
         </>
     );
@@ -324,11 +371,11 @@ const SeriesActivityForm: React.FC<SeriesActivityFormProps> = ({
     initialData = {},
     title = "Tạo sự kiện trong chuỗi",
     onCancel,
-    isMinigame = false
+    isMinigame = false,
+    seriesOrganizerIds = []
 }) => {
     const handleSubmit = (data: BaseEventFormData) => {
-        // BaseEventForm already handles banner upload, so bannerUrl is already set
-        // Convert to SeriesChildActivityCreateRequest
+        // Không gửi organizerIds — child kế thừa từ series
         const seriesActivityData: SeriesChildActivityCreateRequest = {
             name: data.name,
             type: isMinigame ? ActivityType.MINIGAME : ActivityType.SUKIEN,
@@ -342,7 +389,6 @@ const SeriesActivityForm: React.FC<SeriesActivityFormProps> = ({
             benefits: data.benefits || null,
             requirements: data.requirements || null,
             contactInfo: data.contactInfo || null,
-            organizerIds: data.organizerIds && data.organizerIds.length > 0 ? data.organizerIds : undefined,
         };
         onSubmit(seriesActivityData);
     };
@@ -359,12 +405,12 @@ const SeriesActivityForm: React.FC<SeriesActivityFormProps> = ({
         benefits: initialData.benefits || '',
         requirements: initialData.requirements || '',
         contactInfo: initialData.contactInfo || '',
-        organizerIds: initialData.organizerIds || [],
-        type: isMinigame ? ActivityType.MINIGAME : ActivityType.SUKIEN, // Set correct type based on prop
-        registrationStartDate: undefined, // From series
-        registrationDeadline: undefined, // From series
-        ticketQuantity: undefined, // From series
-        requiresApproval: undefined, // From series
+        organizerIds: seriesOrganizerIds,
+        type: isMinigame ? ActivityType.MINIGAME : ActivityType.SUKIEN,
+        registrationStartDate: undefined,
+        registrationDeadline: undefined,
+        ticketQuantity: undefined,
+        requiresApproval: undefined,
         ...(initialData.order !== undefined && initialData.order !== null ? { order: initialData.order } : {})
     };
 
@@ -376,11 +422,12 @@ const SeriesActivityForm: React.FC<SeriesActivityFormProps> = ({
             initialData={processedInitialData}
             title={title}
             onCancel={onCancel}
-            renderFields={(props) => renderSeriesActivityFields({ ...props, isMinigame })}
+            renderFields={(props) =>
+                renderSeriesActivityFields({ ...props, isMinigame, seriesOrganizerIds })
+            }
             inline={!title}
         />
     );
 };
 
 export default SeriesActivityForm;
-

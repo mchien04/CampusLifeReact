@@ -106,6 +106,34 @@ const RULE_LABELS: Record<string, { label: string; description: string }> = {
         label: 'Đạt mốc chuỗi sự kiện',
         description: 'Cộng điểm khi đạt số sự kiện mốc trong chuỗi.',
     },
+    SERIES_MILESTONE: {
+        label: 'Điểm mốc tích lũy',
+        description: 'Cộng điểm thưởng khi sinh viên đạt các mốc số lượng sự kiện con đã hoàn thành.',
+    },
+    MILESTONE_POINTS: {
+        label: 'Điểm mốc tích lũy',
+        description: 'Cộng điểm thưởng khi sinh viên đạt các mốc số lượng sự kiện con đã hoàn thành.',
+    },
+    MINIMUM_REQUIREMENT: {
+        label: 'Yêu cầu tối thiểu',
+        description: 'Phạt điểm nếu đăng ký tham gia chuỗi nhưng không đạt số sự kiện tối thiểu.',
+    },
+    SERIES_MINIMUM_REQUIREMENT: {
+        label: 'Yêu cầu tối thiểu',
+        description: 'Phạt điểm nếu đăng ký tham gia chuỗi nhưng không đạt số sự kiện tối thiểu.',
+    },
+    AUDIENCE: {
+        label: 'Giới hạn đối tượng nhận điểm',
+        description: 'Kiểm soát việc sinh viên thuộc khoa nào sẽ được cộng/trừ điểm từ chuỗi này.',
+    },
+    SCORE_AUDIENCE: {
+        label: 'Giới hạn đối tượng nhận điểm',
+        description: 'Kiểm soát việc sinh viên thuộc khoa nào sẽ được cộng/trừ điểm từ chuỗi này.',
+    },
+    AUDIENCE_SCOPE: {
+        label: 'Giới hạn đối tượng nhận điểm',
+        description: 'Kiểm soát việc sinh viên thuộc khoa nào sẽ được cộng/trừ điểm từ chuỗi này.',
+    },
     BONUS_POINTS: {
         label: 'Điểm thưởng',
         description: 'Cộng thêm điểm thưởng (thường là điểm rèn luyện) khi hoàn thành tham gia.',
@@ -256,6 +284,14 @@ const PHRASE_LABELS: Record<string, string> = {
         'Minigame chỉ cộng điểm khi đạt quiz, có thể trừ khi hết lượt hoặc vắng mặt.',
     'minigame chi cong diem khi dat quiz, co the tru khi het luot hoac vang mat':
         'Minigame chỉ cộng điểm khi đạt quiz, có thể trừ khi hết lượt hoặc vắng mặt.',
+    'chi cong diem khi vuot nguong minigame. diem chi lay tu lan dat.':
+        'Chỉ cộng điểm khi vượt ngưỡng minigame. Điểm chỉ lấy từ lần Đạt.',
+    'chi cong diem khi vuot nguong minigame. diem chi lay tu lan dat':
+        'Chỉ cộng điểm khi vượt ngưỡng minigame. Điểm chỉ lấy từ lần Đạt.',
+    'mac dinh sinh rule dat minigame.':
+        'Mặc định sinh rule Đạt minigame.',
+    'mac dinh sinh rule dat minigame':
+        'Mặc định sinh rule Đạt minigame.',
     'mac dinh sinh rule dat minigame (minigame_passed).':
         'Mặc định sinh rule Đạt minigame (MINIGAME_PASSED).',
     'mac dinh sinh rule dat minigame (minigame_passed)':
@@ -264,10 +300,52 @@ const PHRASE_LABELS: Record<string, string> = {
         'Mặc định tắt phạt vắng mặt (noShowPenaltyEnabled=false).',
     'mac dinh tat phat vang mat (noshowpenaltyenabled=false)':
         'Mặc định tắt phạt vắng mặt (noShowPenaltyEnabled=false).',
+    'co the bat vang mat (khong tham gia) cho sinh vien dang ky ma khong lam minigame.':
+        'Có thể bật Vắng mặt (Không tham gia) cho sinh viên đăng ký mà không làm minigame.',
+    'co the bat vang mat (khong tham gia) cho sinh vien dang ky ma khong lam minigame':
+        'Có thể bật Vắng mặt (Không tham gia) cho sinh viên đăng ký mà không làm minigame.',
+
+    'co the them rule het luot minigame de xu ly truong hop het luot ma van khong pass.':
+        'Có thể thêm rule Hết lượt minigame để xử lý trường hợp hết lượt mà vẫn không pass.',
+    'co the them rule het luot minigame de xu ly truong hop het luot ma van khong pass':
+        'Có thể thêm rule Hết lượt minigame để xử lý trường hợp hết lượt mà vẫn không pass.',
     'co the bat het luot minigame de tru diem khi sinh vien het luot ma chua dat.':
         'Có thể bật Hết lượt minigame để trừ điểm khi sinh viên hết lượt mà chưa đạt.',
     'co the bat het luot minigame de tru diem khi sinh vien het luot ma chua dat':
         'Có thể bật Hết lượt minigame để trừ điểm khi sinh viên hết lượt mà chưa đạt.',
+    'khong tao rule nop bai va duoc cham hoac hoan thanh tham gia cho minigame.':
+        'Không tạo rule Nộp bài và được chấm hoặc Hoàn thành tham gia cho minigame.',
+    'khong tao rule nop bai va duoc cham hoac hoan thanh tham gia cho minigame':
+        'Không tạo rule Nộp bài và được chấm hoặc Hoàn thành tham gia cho minigame.',
+    'minigame co the dung trigger dat minigame va het luot minigame.':
+        'Minigame. Có thể dùng trigger Đạt minigame và Hết lượt minigame.',
+    'minigame co the dung trigger dat minigame va het luot minigame':
+        'Minigame. Có thể dùng trigger Đạt minigame và Hết lượt minigame.',
+    'phu hop: minigame': 'Phù hợp: Minigame',
+    'diem phat het luot': 'Điểm phạt hết lượt',
+    'cong diem khi vuot qua minigame': 'Cộng điểm khi vượt qua minigame',
+
+    // Minigame preview rows — cột Tình huống (BE có thể lẫn dấu / không dấu)
+    'tru diem khi het luot ma khong pass': 'Trừ điểm khi hết lượt mà không pass',
+    'tru diem khi het luot ma van khong pass': 'Trừ điểm khi hết lượt mà vẫn không pass',
+    'tru diem khi het luot minigame ma khong pass': 'Trừ điểm khi hết lượt minigame mà không pass',
+    'tru diem khi sinh vien het luot ma chua dat': 'Trừ điểm khi sinh viên hết lượt mà chưa đạt',
+    'tru diem khi het luot minigame ma chua dat': 'Trừ điểm khi hết lượt minigame mà chưa đạt',
+    'tru diem khi het luot ma chua dat': 'Trừ điểm khi hết lượt mà chưa đạt',
+    'cong diem khi dat quiz': 'Cộng điểm khi đạt quiz',
+    'cong diem khi vuot nguong minigame': 'Cộng điểm khi vượt ngưỡng minigame',
+    'tru diem khi vang mat (khong tham gia)': 'Trừ điểm khi vắng mặt (không tham gia)',
+    'tru diem khi da dang ky nhung vang mat': 'Trừ điểm khi đã đăng ký nhưng vắng mặt',
+    'het luot ma khong pass': 'Hết lượt mà không pass',
+    'het luot ma van khong pass': 'Hết lượt mà vẫn không pass',
+    'khi het luot ma khong pass': 'khi hết lượt mà không pass',
+    'khi het luot ma van khong pass': 'khi hết lượt mà vẫn không pass',
+    'ma khong pass': 'mà không pass',
+    'ma van khong pass': 'mà vẫn không pass',
+    'van khong pass': 'vẫn không pass',
+    'khong pass': 'không pass',
+    'khi dat quiz': 'khi đạt quiz',
+    'vuot nguong minigame': 'vượt ngưỡng minigame',
 
     // —— SERIES_MILESTONE_BASIC ——
     'dinh nghia cac moc hoan thanh va diem thuong tuong ung cho chuoi su kien.':
@@ -302,6 +380,36 @@ const PHRASE_LABELS: Record<string, string> = {
         'Có thể bật yêu cầu tối thiểu và phạt điểm nếu không đạt số sự kiện tối thiểu.',
     'co the bat yeu cau toi thieu va phat diem neu khong dat so su kien toi thieu':
         'Có thể bật yêu cầu tối thiểu và phạt điểm nếu không đạt số sự kiện tối thiểu.',
+
+    // Rule labels / descriptions từ BE series preset (không dấu / lẫn dấu)
+    'diem moc tich luy (milestones)': 'Điểm mốc tích lũy (milestones)',
+    'diem moc tich luy': 'Điểm mốc tích lũy',
+    'cong diem thuong khi sinh vien dat cac moc so luong su kien con da hoan thanh.':
+        'Cộng điểm thưởng khi sinh viên đạt các mốc số lượng sự kiện con đã hoàn thành.',
+    'cong diem thuong khi sinh vien dat cac moc so luong su kien con da hoan thanh':
+        'Cộng điểm thưởng khi sinh viên đạt các mốc số lượng sự kiện con đã hoàn thành.',
+    'yeu cau toi thieu': 'Yêu cầu tối thiểu',
+    'phat diem neu dang ky tham gia chuoi nhung khong dat so su kien toi thieu.':
+        'Phạt điểm nếu đăng ký tham gia chuỗi nhưng không đạt số sự kiện tối thiểu.',
+    'phat diem neu dang ky tham gia chuoi nhung khong dat so su kien toi thieu':
+        'Phạt điểm nếu đăng ký tham gia chuỗi nhưng không đạt số sự kiện tối thiểu.',
+    'gioi han doi tuong nhan diem': 'Giới hạn đối tượng nhận điểm',
+    'kiem soat viec student thuoc khoa nao se duoc cong/tru diem tu chuoi nay.':
+        'Kiểm soát việc sinh viên thuộc khoa nào sẽ được cộng/trừ điểm từ chuỗi này.',
+    'kiem soat viec student thuoc khoa nao se duoc cong/tru diem tu chuoi nay':
+        'Kiểm soát việc sinh viên thuộc khoa nào sẽ được cộng/trừ điểm từ chuỗi này.',
+    'kiem soat viec sinh vien thuoc khoa nao se duoc cong/tru diem tu chuoi nay.':
+        'Kiểm soát việc sinh viên thuộc khoa nào sẽ được cộng/trừ điểm từ chuỗi này.',
+    'kiem soat viec sinh vien thuoc khoa nao se duoc cong/tru diem tu chuoi nay':
+        'Kiểm soát việc sinh viên thuộc khoa nào sẽ được cộng/trừ điểm từ chuỗi này.',
+    'nhap so buoi': 'Nhập số buổi',
+    'nhap diem': 'Nhập điểm',
+    'moc diem theo so su kien': 'Mốc điểm theo số sự kiện',
+    'bat yeu cau toi thieu': 'Bật yêu cầu tối thiểu',
+    'so su kien toi thieu': 'Số sự kiện tối thiểu',
+    'diem phat khi khong dat toi thieu': 'Điểm phạt khi không đạt tối thiểu',
+    'danh sach khoa': 'Danh sách khoa',
+    'doi tuong nhan diem': 'Đối tượng nhận điểm',
 
     // —— ENTERPRISE_SERIES ——
     'chuoi chuyen de doanh nghiep tich luy theo so buoi hoan thanh.':
@@ -493,7 +601,7 @@ const PHRASE_LABELS: Record<string, string> = {
     'cong them': 'cộng thêm',
     'khac nhu': 'khác như',
     'sinh 2 rule': 'sinh 2 rule',
-    'so buoi': 'số buổi',
+    'so buoi': 'Số buổi',
     'penalty no-show': 'penalty no-show',
     'neu can': 'nếu cần',
     'neu bat': 'nếu bật',
@@ -519,7 +627,6 @@ const PHRASE_LABELS: Record<string, string> = {
     'so buoi da tham gia': 'số buổi đã tham gia',
     'mac dinh scoretype la': 'Mặc định scoreType là',
     'toi thieu': 'tối thiểu',
-    'yeu cau toi thieu': 'yêu cầu tối thiểu',
     'thu cong': 'thủ công',
     'tung luat diem': 'từng luật điểm',
     'co san': 'có sẵn',
@@ -530,7 +637,6 @@ const PHRASE_LABELS: Record<string, string> = {
     'ma chua dat': 'mà chưa đạt',
     'phat vang mat': 'phạt vắng mặt',
     'chi cong diem': 'chỉ cộng điểm',
-    'khi dat quiz': 'khi đạt quiz',
     'hoac vang mat': 'hoặc vắng mặt',
     'ghi diem rieng': 'ghi điểm riêng',
     'da hoan thanh': 'đã hoàn thành',
@@ -622,11 +728,15 @@ export function getPresetNotes(notes?: string[] | null): string[] {
 }
 
 export function getRuleLabel(ruleKey: string, fallback?: string | null): string {
-    return RULE_LABELS[ruleKey]?.label ?? localizeVi(fallback) ?? getCodeLabel(ruleKey, fallback || ruleKey);
+    if (RULE_LABELS[ruleKey]?.label) return RULE_LABELS[ruleKey].label;
+    return localizeVi(fallback) || getCodeLabel(ruleKey, fallback || ruleKey) || ruleKey;
 }
 
 export function getRuleDescription(ruleKey: string, fallback?: string | null): string {
-    return RULE_LABELS[ruleKey]?.description ?? localizeVi(fallback) ?? fallback ?? '';
+    if (RULE_LABELS[ruleKey]?.description) return RULE_LABELS[ruleKey].description;
+    const localized = localizeVi(fallback);
+    // Nếu localize chỉ trả về chuỗi gốc (không khớp), vẫn trả localized đã rebuild nếu có
+    return localized || fallback || '';
 }
 
 export function getFieldLabel(fieldName: string, fallback?: string | null): string {

@@ -16,6 +16,7 @@ import {
 import { seriesAPI } from '../../services/seriesAPI';
 import { SeriesResponse } from '../../types/series';
 import { getScoreTypeLabel } from '../../types/score';
+import { sortSeriesForDisplay } from '../../utils/seriesHelpers';
 import { toast } from 'react-toastify';
 
 const formatDate = (date: string) =>
@@ -31,14 +32,22 @@ const SeriesStatusBadge: React.FC<{ series: SeriesResponse }> = ({ series }) => 
     if (isDraft) {
         return (
             <span className="inline-flex items-center rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-200/80">
-                Bản nháp
+                Nháp
+            </span>
+        );
+    }
+
+    if (series.ended) {
+        return (
+            <span className="inline-flex items-center rounded-lg bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700 ring-1 ring-gray-200/80">
+                Đã kết thúc
             </span>
         );
     }
 
     return (
         <span className="inline-flex items-center rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200/80">
-            Đã công bố
+            Đang diễn ra
         </span>
     );
 };
@@ -79,7 +88,9 @@ const SeriesManagement: React.FC = () => {
             setError(null);
             const response = await seriesAPI.getSeries();
             if (response.status && response.data) {
-                const activeSeries = response.data.filter((s) => !s.isDeleted);
+                const activeSeries = sortSeriesForDisplay(
+                    response.data.filter((s) => !s.isDeleted)
+                );
                 setSeries(activeSeries);
             } else {
                 setError(response.message || 'Không thể tải danh sách chuỗi sự kiện');

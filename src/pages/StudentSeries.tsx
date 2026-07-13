@@ -11,9 +11,11 @@ import { seriesAPI } from '../services/seriesAPI';
 import { SeriesResponse, StudentSeriesProgress } from '../types/series';
 import { SeriesCard } from '../components/series';
 import StudentLayout from '../components/layout/StudentLayout';
+import { sortSeriesForDisplay, getSeriesStatus } from '../utils/seriesHelpers';
 import { toast } from 'react-toastify';
 
 type RegistrationFilter = 'ALL' | 'REGISTERED' | 'NOT_REGISTERED';
+type StatusFilter = 'ALL' | 'ACTIVE' | 'ENDED';
 
 const StudentSeriesSkeleton: React.FC = () => (
     <div className="mx-auto max-w-6xl space-y-6 animate-pulse">
@@ -36,6 +38,7 @@ const StudentSeries: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [registrationFilter, setRegistrationFilter] = useState<RegistrationFilter>('ALL');
+    const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
     const [registeredSeriesIds, setRegisteredSeriesIds] = useState<Set<number>>(new Set());
     const [progressMap, setProgressMap] = useState<Map<number, StudentSeriesProgress>>(new Map());
 
@@ -49,7 +52,11 @@ const StudentSeries: React.FC = () => {
             setError(null);
             const response = await seriesAPI.getSeries();
             if (response.status && response.data) {
-                const activeSeries = response.data.filter((s) => !s.isDeleted);
+                const activeSeries = sortSeriesForDisplay(
+                    response.data.filter(
+                        (s) => !s.isDeleted && !(s.isDraft ?? s.draft)
+                    )
+                );
                 setSeries(activeSeries);
                 await loadProgressForAllSeries(activeSeries);
             } else {
@@ -120,16 +127,37 @@ const StudentSeries: React.FC = () => {
             (registrationFilter === 'REGISTERED' && isRegistered) ||
             (registrationFilter === 'NOT_REGISTERED' && !isRegistered);
 
-        return matchesSearch && matchesRegistration;
+        const tone = getSeriesStatus(s).tone;
+        const matchesStatus =
+            statusFilter === 'ALL' ||
+            (statusFilter === 'ACTIVE' && tone === 'active') ||
+            (statusFilter === 'ENDED' && tone === 'ended');
+
+        return matchesSearch && matchesRegistration && matchesStatus;
     });
 
     const registeredCount = registeredSeriesIds.size;
 
-    const filterOptions: { value: RegistrationFilter; label: string }[] = [
+    const registrationFilterOptions: { value: RegistrationFilter; label: string }[] = [
         { value: 'ALL', label: 'Tất cả' },
         { value: 'REGISTERED', label: 'Đã đăng ký' },
         { value: 'NOT_REGISTERED', label: 'Chưa đăng ký' },
     ];
+
+    const statusFilterOptions: { value: StatusFilter; label: string }[] = [
+        { value: 'ALL', label: 'Tất cả trạng thái' },
+        { value: 'ACTIVE', label: 'Đang diễn ra' },
+        { value: 'ENDED', label: 'Đã kết thúc' },
+    ];
+
+    const hasActiveFilters =
+        !!searchTerm || registrationFilter !== 'ALL' || statusFilter !== 'ALL';
+
+    const resetFilters = () => {
+        setSearchTerm('');
+        setRegistrationFilter('ALL');
+        setStatusFilter('ALL');
+    };
 
     return (
         <StudentLayout>
@@ -176,24 +204,53 @@ const StudentSeries: React.FC = () => {
                             />
                         </div>
 
-                        <div className="flex flex-wrap gap-2">
-                            {filterOptions.map((opt) => (
-                                <button
-                                    key={opt.value}
-                                    type="button"
-                                    onClick={() => setRegistrationFilter(opt.value)}
-                                    className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900/30 ${
-                                        registrationFilter === opt.value
-                                            ? 'bg-primary-900 text-white shadow-sm'
-                                            : 'bg-gray-50 text-gray-600 ring-1 ring-gray-200 hover:bg-gray-100'
-                                    }`}
-                                >
-                                    {opt.label}
-                                </button>
-                            ))}
+                        <div className="space-y-3">
+                            <div>
+                                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                                    Đăng ký
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                    {registrationFilterOptions.map((opt) => (
+                                        <button
+                                            key={opt.value}
+                                            type="button"
+                                            onClick={() => setRegistrationFilter(opt.value)}
+                                            className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900/30 ${
+                                                registrationFilter === opt.value
+                                                    ? 'bg-primary-900 text-white shadow-sm'
+                                                    : 'bg-gray-50 text-gray-600 ring-1 ring-gray-200 hover:bg-gray-100'
+                                            }`}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div>
+                                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                                    Trạng thái
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                    {statusFilterOptions.map((opt) => (
+                                        <button
+                                            key={opt.value}
+                                            type="button"
+                                            onClick={() => setStatusFilter(opt.value)}
+                                            className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900/30 ${
+                                                statusFilter === opt.value
+                                                    ? 'bg-primary-900 text-white shadow-sm'
+                                                    : 'bg-gray-50 text-gray-600 ring-1 ring-gray-200 hover:bg-gray-100'
+                                            }`}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
 
-                        {(searchTerm || registrationFilter !== 'ALL') && (
+                        {hasActiveFilters && (
                             <p className="text-xs text-gray-500 tabular-nums">
                                 {filteredSeries.length} kết quả
                                 {searchTerm && (
@@ -237,22 +294,19 @@ const StudentSeries: React.FC = () => {
                             <FolderOpen size={28} weight="duotone" />
                         </div>
                         <h3 className="text-lg font-semibold tracking-tight text-primary-900">
-                            {searchTerm || registrationFilter !== 'ALL'
+                            {hasActiveFilters
                                 ? 'Không tìm thấy chuỗi sự kiện'
                                 : 'Chưa có chuỗi sự kiện nào'}
                         </h3>
                         <p className="mt-2 text-sm text-gray-500 max-w-md mx-auto leading-relaxed">
-                            {searchTerm || registrationFilter !== 'ALL'
-                                ? 'Thử từ khóa khác hoặc đổi bộ lọc đăng ký.'
+                            {hasActiveFilters
+                                ? 'Thử từ khóa khác hoặc đổi bộ lọc.'
                                 : 'Hiện chưa có chuỗi sự kiện nào được mở cho sinh viên.'}
                         </p>
-                        {(searchTerm || registrationFilter !== 'ALL') && (
+                        {hasActiveFilters && (
                             <button
                                 type="button"
-                                onClick={() => {
-                                    setSearchTerm('');
-                                    setRegistrationFilter('ALL');
-                                }}
+                                onClick={resetFilters}
                                 className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary-900 px-5 py-2.5 text-sm font-semibold text-white shadow-premium transition-all hover:bg-primary-800 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-900/30"
                             >
                                 <Stack size={18} weight="bold" />

@@ -13,6 +13,7 @@ import {
 } from '../types/series';
 import { ActivityResponse, SeriesChildActivityResponse, SeriesChildActivityCreateRequest, SeriesChildActivityUpdateRequest } from '../types/activity';
 import { SeriesPresetPreviewResponse } from '../types/presets';
+import { mapSeriesError, stripChildOrganizerIds } from '../utils/seriesHelpers';
 
 const normalizeSeries = (raw: any): SeriesResponse => {
     // milestonePoints: BE list endpoint trả JSON string, detail endpoint trả object
@@ -33,6 +34,9 @@ const normalizeSeries = (raw: any): SeriesResponse => {
         draft: raw.draft ?? raw.isDraft,
         isDraft: raw.isDraft ?? raw.draft,
         mainActivityId: raw.mainActivityId ?? raw.mainActivity,
+        organizerIds: Array.isArray(raw.organizerIds) ? raw.organizerIds : [],
+        latestEndDate: raw.latestEndDate ?? null,
+        ended: !!raw.ended,
     };
 };
 
@@ -147,16 +151,19 @@ export const seriesAPI = {
     createSeries: async (data: CreateSeriesRequest): Promise<Response<SeriesResponse>> => {
         try {
             const response = await api.post('/api/series', data);
+            const raw = response.data.body || response.data.data;
             return {
                 status: response.data.status,
-                message: response.data.message,
-                data: response.data.body || response.data.data
+                message: mapSeriesError(response.data.message || ''),
+                data: raw ? normalizeSeries(raw) : undefined
             };
         } catch (error: any) {
             console.error('Error creating series:', error);
             return {
                 status: false,
-                message: error.response?.data?.message || 'Có lỗi xảy ra khi tạo chuỗi sự kiện',
+                message: mapSeriesError(
+                    error.response?.data?.message || 'Có lỗi xảy ra khi tạo chuỗi sự kiện'
+                ),
                 data: undefined
             };
         }
@@ -168,17 +175,20 @@ export const seriesAPI = {
         data: SeriesChildActivityCreateRequest
     ): Promise<Response<SeriesChildActivityResponse>> => {
         try {
-            const response = await api.post(`/api/series/${seriesId}/activities`, data);
+            const safe = stripChildOrganizerIds(data as SeriesChildActivityCreateRequest & { organizerIds?: number[] });
+            const response = await api.post(`/api/series/${seriesId}/activities`, safe);
             return {
                 status: response.data.status,
-                message: response.data.message,
+                message: mapSeriesError(response.data.message || ''),
                 data: response.data.body || response.data.data
             };
         } catch (error: any) {
             console.error('Error creating activity in series:', error);
             return {
                 status: false,
-                message: error.response?.data?.message || 'Có lỗi xảy ra khi tạo sự kiện trong chuỗi',
+                message: mapSeriesError(
+                    error.response?.data?.message || 'Có lỗi xảy ra khi tạo sự kiện trong chuỗi'
+                ),
                 data: undefined
             };
         }
@@ -191,17 +201,20 @@ export const seriesAPI = {
         data: SeriesChildActivityUpdateRequest
     ): Promise<Response<SeriesChildActivityResponse>> => {
         try {
-            const response = await api.put(`/api/series/${seriesId}/activities/${activityId}`, data);
+            const safe = stripChildOrganizerIds(data as SeriesChildActivityUpdateRequest & { organizerIds?: number[] });
+            const response = await api.put(`/api/series/${seriesId}/activities/${activityId}`, safe);
             return {
                 status: response.data.status,
-                message: response.data.message,
+                message: mapSeriesError(response.data.message || ''),
                 data: response.data.body || response.data.data
             };
         } catch (error: any) {
             console.error('Error updating activity in series:', error);
             return {
                 status: false,
-                message: error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật sự kiện trong chuỗi',
+                message: mapSeriesError(
+                    error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật sự kiện trong chuỗi'
+                ),
                 data: undefined
             };
         }
@@ -429,16 +442,19 @@ export const seriesAPI = {
     updateSeries: async (id: number, data: UpdateSeriesRequest): Promise<Response<SeriesResponse>> => {
         try {
             const response = await api.put(`/api/series/${id}`, data);
+            const raw = response.data.body || response.data.data;
             return {
                 status: response.data.status,
-                message: response.data.message,
-                data: response.data.body || response.data.data
+                message: mapSeriesError(response.data.message || ''),
+                data: raw ? normalizeSeries(raw) : undefined
             };
         } catch (error: any) {
             console.error('Error updating series:', error);
             return {
                 status: false,
-                message: error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật chuỗi sự kiện',
+                message: mapSeriesError(
+                    error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật chuỗi sự kiện'
+                ),
                 data: undefined
             };
         }

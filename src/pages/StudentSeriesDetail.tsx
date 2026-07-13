@@ -25,6 +25,7 @@ import StudentLayout from '../components/layout/StudentLayout';
 import { toast } from 'react-toastify';
 import { RegistrationStatus } from '../types/registration';
 import { computeSeriesSlots } from '../utils/seriesSlots';
+import { canStudentRegisterSeries, visibleToStudent } from '../utils/seriesHelpers';
 import { getScoreTypeLabel } from '../types/score';
 import { getPresetDisplayName, getCodeLabel, localizeVi } from '../utils/vietnameseLabels';
 
@@ -114,26 +115,34 @@ const StudentSeriesDetail: React.FC = () => {
             ]);
 
             if (seriesResponse.status && seriesResponse.data) {
-                setSeries(seriesResponse.data);
-                await loadRegistrationAndProgress(seriesResponse.data.id);
+                const loaded = seriesResponse.data;
+                if (loaded.isDraft ?? loaded.draft) {
+                    setError('Chuỗi sự kiện này chưa được công bố');
+                    return;
+                }
+                if (loaded.ended) {
+                    // Vẫn cho xem, nhưng canRegister sẽ false
+                }
+                setSeries(loaded);
+                await loadRegistrationAndProgress(loaded.id);
                 const loadedActivities =
                     activitiesResponse.status && activitiesResponse.data
-                        ? activitiesResponse.data
+                        ? activitiesResponse.data.filter(visibleToStudent)
                         : [];
-                const regResponse = await seriesAPI.getMySeriesRegistrationStatus(seriesResponse.data.id);
+                const regResponse = await seriesAPI.getMySeriesRegistrationStatus(loaded.id);
                 const registered = !!(regResponse.status && regResponse.data?.isRegistered);
                 loadSeriesSlotsAndWaitlist(
-                    seriesResponse.data.id,
+                    loaded.id,
                     loadedActivities,
                     registered,
-                    seriesResponse.data.ticketQuantity
+                    loaded.ticketQuantity
                 );
             } else {
                 setError(seriesResponse.message || 'Không thể tải thông tin chuỗi sự kiện');
             }
 
             if (activitiesResponse.status && activitiesResponse.data) {
-                setActivities(activitiesResponse.data);
+                setActivities(activitiesResponse.data.filter(visibleToStudent));
             } else {
                 console.warn('Could not load activities:', activitiesResponse.message);
                 setActivities([]);
@@ -284,14 +293,7 @@ const StudentSeriesDetail: React.FC = () => {
 
     const canRegister = () => {
         if (!series || isRegistered) return false;
-        const now = new Date();
-        if (series.registrationStartDate && new Date(series.registrationStartDate) > now) {
-            return false;
-        }
-        if (series.registrationDeadline && new Date(series.registrationDeadline) < now) {
-            return false;
-        }
-        return true;
+        return canStudentRegisterSeries(series);
     };
 
     if (loading) {

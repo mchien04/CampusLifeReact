@@ -1,6 +1,8 @@
-import { ScoreType } from './activity';
+import { ScoreType, ScoreRuleAudience } from './activity';
 import { ActivityResponse } from './activity';
 import { SeriesPresetCode, SeriesPresetConfig } from './presets';
+
+export type { ScoreRuleAudience };
 
 export interface StudentSeriesProgress {
     id?: number;
@@ -60,9 +62,16 @@ export interface CreateSeriesRequest {
     minimumRequiredEvents?: number | null;
     minimumPenaltyPoints?: number | null;
     targetSemesterId?: number | null;
-    audience?: string | null;
+    audience?: ScoreRuleAudience | string | null;
+    /** Khoa áp dụng điểm (audience) — khác khoa tổ chức */
     departmentIds?: number[] | null;
+    /**
+     * Khoa tổ chức của chuỗi — BẮT BUỘC khi create.
+     * Child kế thừa; không chỉnh ở form child.
+     */
+    organizerIds: number[];
     isImportant?: boolean | null;
+    /** Auto-đăng ký SV thuộc organizerIds của series */
     mandatoryForFacultyStudents?: boolean | null;
     isDraft?: boolean | null;
     presetCode?: SeriesPresetCode | null;
@@ -83,8 +92,9 @@ export interface UpdateSeriesRequest {
     minimumRequiredEvents?: number | null;
     minimumPenaltyPoints?: number | null;
     targetSemesterId?: number | null;
-    audience?: string | null;
+    audience?: ScoreRuleAudience | string | null;
     departmentIds?: number[] | null;
+    organizerIds?: number[];
     isImportant?: boolean | null;
     mandatoryForFacultyStudents?: boolean | null;
     isDraft?: boolean | null;
@@ -115,8 +125,11 @@ export interface SeriesResponse {
     minimumRequiredEvents?: number | null;
     minimumPenaltyPoints?: number | null;
     targetSemesterId?: number | null;
-    audience?: string | null;
+    audience?: ScoreRuleAudience | string | null;
+    /** Khoa áp dụng điểm (audience) */
     targetDepartmentIds?: number[] | null;
+    /** Khoa tổ chức — child kế thừa */
+    organizerIds: number[];
     /** BE detail endpoint dùng important, list endpoint dùng isImportant. */
     important?: boolean;
     isImportant?: boolean;
@@ -130,6 +143,10 @@ export interface SeriesResponse {
     createdAt: string;
     activities?: ActivityResponse[];
     totalActivities?: number;
+    /** max(endDate) của child — null nếu chưa có */
+    latestEndDate?: string | null;
+    /** now > latestEndDate */
+    ended?: boolean;
 }
 
 export interface SeriesRegistrationResponse {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MiniGame, QuestionWithoutAnswer } from '../../types/minigame';
 import { getImageUrl } from '../../utils/imageUtils';
+import { Timer, CaretLeft, CaretRight, CheckCircle, WarningCircle, Check } from '@phosphor-icons/react';
 
 interface QuizPlayerProps {
     minigame: MiniGame;
@@ -55,11 +56,11 @@ const QuizPlayer: React.FC<QuizPlayerProps> = ({
     // Validate questions are provided (after all hooks)
     if (!questions || questions.length === 0) {
         return (
-            <div className="max-w-4xl mx-auto p-6">
-                <div className="card">
-                    <div className="p-6 text-center">
-                        <p className="text-red-600">Không có câu hỏi nào để hiển thị.</p>
-                    </div>
+            <div className="max-w-4xl mx-auto p-6 flex items-center justify-center min-h-[60vh]">
+                <div className="bg-white rounded-3xl p-8 text-center shadow-premium border border-gray-100 max-w-md w-full">
+                    <WarningCircle weight="duotone" className="w-16 h-16 text-red-500 mx-auto mb-4" />
+                    <p className="text-gray-900 font-bold text-xl mb-2">Lỗi tải câu hỏi</p>
+                    <p className="text-gray-500">Không có câu hỏi nào để hiển thị.</p>
                 </div>
             </div>
         );
@@ -131,148 +132,167 @@ const QuizPlayer: React.FC<QuizPlayerProps> = ({
     const answeredCount = Object.keys(answers).length;
 
     return (
-        <div className="max-w-4xl mx-auto p-6">
-            <div className="card">
-                {/* Header */}
-                <div className="p-6 border-b border-gray-200">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-2xl font-bold text-[#001C44]">{minigame.title}</h2>
-                        {timeRemaining !== null && (
-                            <div
-                                className={`px-4 py-2 rounded-lg font-bold ${
-                                    timeRemaining < 60
-                                        ? 'bg-red-100 text-red-800'
-                                        : 'bg-blue-100 text-blue-800'
-                                }`}
-                            >
-                                ⏱️ {formatTime(timeRemaining)}
+        <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex flex-col lg:flex-row gap-6 items-start">
+                {/* Main Content (Left) */}
+                <div className="flex-1 w-full order-2 lg:order-1">
+                    <div className="bg-white rounded-[2rem] shadow-premium border border-gray-100 overflow-hidden flex flex-col min-h-[600px]">
+                        {/* Header Mobile / Title */}
+                        <div className="p-6 sm:p-8 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight leading-tight">{minigame.title}</h2>
+                            <div className="bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm text-sm font-semibold text-gray-500">
+                                Câu {currentQuestionIndex + 1}/{questions.length}
                             </div>
-                        )}
-                    </div>
-
-                    {/* Progress */}
-                    <div className="space-y-2">
-                        <div className="flex justify-between text-sm text-gray-600">
-                            <span>
-                                Câu {currentQuestionIndex + 1} / {questions.length}
-                            </span>
-                            <span>Đã trả lời: {answeredCount} / {questions.length}</span>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
+
+                        {/* Progress Bar (Top of question) */}
+                        <div className="w-full bg-gray-100 h-1.5 relative overflow-hidden">
                             <div
-                                className="bg-[#001C44] h-2 rounded-full transition-all duration-300"
+                                className="absolute top-0 left-0 h-full bg-primary-600 transition-all duration-500 ease-out"
                                 style={{ width: `${progress}%` }}
                             />
                         </div>
+
+                        {/* Question Area */}
+                        {currentQuestion && (
+                            <div className="p-6 sm:p-8 flex-1 flex flex-col relative z-10">
+                                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-8 leading-snug">
+                                    {currentQuestion.questionText}
+                                </h3>
+                                
+                                {/* Question Image */}
+                                {currentQuestion.imageUrl && (
+                                    <div className="mb-8 rounded-2xl overflow-hidden border border-gray-100 shadow-sm bg-gray-50 flex items-center justify-center p-2">
+                                        <img
+                                            src={getImageUrl(currentQuestion.imageUrl) || ''}
+                                            alt="Question illustration"
+                                            className="max-w-full h-auto max-h-[400px] object-contain rounded-xl"
+                                            onError={(e) => {
+                                                (e.target as HTMLImageElement).style.display = 'none';
+                                            }}
+                                        />
+                                    </div>
+                                )}
+
+                                <div className="space-y-4 mt-auto">
+                                    {sortedOptions.map((option) => {
+                                        const isSelected = answers[currentQuestion.id] === option.id;
+                                        return (
+                                            <button
+                                                key={option.id}
+                                                onClick={() => handleAnswerSelect(option.id)}
+                                                className={`group relative w-full text-left p-5 rounded-2xl border-2 transition-all duration-200 overflow-hidden flex items-center gap-4 ${
+                                                    isSelected
+                                                        ? 'border-primary-600 bg-primary-50/50 shadow-sm transform scale-[1.01]'
+                                                        : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+                                                }`}
+                                            >
+                                                {/* Selection Indicator */}
+                                                <div
+                                                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
+                                                        isSelected
+                                                            ? 'border-primary-600 bg-primary-600 text-white'
+                                                            : 'border-gray-300 bg-white group-hover:border-gray-400'
+                                                    }`}
+                                                >
+                                                    {isSelected && <Check weight="bold" className="w-3.5 h-3.5" />}
+                                                </div>
+                                                <span className={`flex-1 text-base sm:text-lg transition-colors ${isSelected ? 'text-primary-900 font-semibold' : 'text-gray-700 font-medium'}`}>
+                                                    {option.text}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {/* Question */}
-                {currentQuestion && (
-                    <div className="p-6">
-                        <div className="mb-6">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                                {currentQuestion.questionText}
-                            </h3>
-                            
-                            {/* Question Image */}
-                            {currentQuestion.imageUrl && (
-                                <div className="mb-4">
-                                    <img
-                                        src={getImageUrl(currentQuestion.imageUrl) || ''}
-                                        alt="Question illustration"
-                                        className="max-w-full h-auto max-h-64 rounded-lg border border-gray-300 mx-auto"
-                                        onError={(e) => {
-                                            (e.target as HTMLImageElement).style.display = 'none';
-                                        }}
-                                    />
+                {/* Sticky Sidebar (Right) */}
+                <div className="w-full lg:w-80 shrink-0 order-1 lg:order-2 flex flex-col gap-4 lg:sticky lg:top-24">
+                    {/* Timer Card */}
+                    {timeRemaining !== null && (
+                        <div className={`bg-white rounded-2xl p-5 border shadow-sm flex items-center justify-between transition-colors ${
+                            timeRemaining < 60 ? 'border-red-200 bg-red-50/50' : 'border-gray-100'
+                        }`}>
+                            <div className="flex items-center gap-3">
+                                <div className={`p-2 rounded-xl ${timeRemaining < 60 ? 'bg-red-100 text-red-600' : 'bg-primary-50 text-primary-600'}`}>
+                                    <Timer weight="duotone" className="w-6 h-6" />
                                 </div>
-                            )}
-
-                            <div className="space-y-3">
-                                {sortedOptions.map((option) => {
-                                    const isSelected = answers[currentQuestion.id] === option.id;
-                                    return (
-                                        <button
-                                            key={option.id}
-                                            onClick={() => handleAnswerSelect(option.id)}
-                                            className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
-                                                isSelected
-                                                    ? 'border-[#001C44] bg-blue-50'
-                                                    : 'border-gray-200 hover:border-gray-300'
-                                            }`}
-                                        >
-                                            <div className="flex items-center space-x-3">
-                                                <div
-                                                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                                                        isSelected
-                                                            ? 'border-[#001C44] bg-[#001C44]'
-                                                            : 'border-gray-300'
-                                                    }`}
-                                                >
-                                                    {isSelected && (
-                                                        <span className="text-white text-xs">✓</span>
-                                                    )}
-                                                </div>
-                                                <span className="text-gray-900">{option.text}</span>
-                                            </div>
-                                        </button>
-                                    );
-                                })}
+                                <span className="font-semibold text-gray-500 uppercase tracking-wider text-xs">Thời gian còn lại</span>
                             </div>
+                            <span className={`text-2xl font-bold tabular-nums tracking-tight ${timeRemaining < 60 ? 'text-red-600 animate-pulse' : 'text-gray-900'}`}>
+                                {formatTime(timeRemaining)}
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Navigation Card */}
+                    <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col">
+                        <div className="flex items-center justify-between mb-4">
+                            <span className="font-semibold text-gray-900">Danh sách câu hỏi</span>
+                            <span className="text-xs font-bold bg-green-50 text-green-700 px-2 py-1 rounded-md border border-green-200">
+                                {answeredCount}/{questions.length} đã làm
+                            </span>
+                        </div>
+                        
+                        {/* Question Grid */}
+                        <div className="grid grid-cols-5 gap-2 mb-6">
+                            {questions.map((_, index) => {
+                                const isAnswered = answers[questions[index].id] !== undefined;
+                                const isCurrent = index === currentQuestionIndex;
+                                return (
+                                    <button
+                                        key={index}
+                                        onClick={() => setCurrentQuestionIndex(index)}
+                                        className={`aspect-square rounded-xl flex items-center justify-center text-sm font-bold transition-all ${
+                                            isCurrent
+                                                ? 'bg-gray-900 text-white shadow-md transform scale-110 border-2 border-gray-900 z-10'
+                                                : isAnswered
+                                                ? 'bg-primary-50 text-primary-700 border border-primary-200 hover:bg-primary-100'
+                                                : 'bg-white text-gray-500 border border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        {index + 1}
+                                    </button>
+                                );
+                            })}
                         </div>
 
-                        {/* Navigation */}
-                        <div className="flex justify-between items-center pt-4 border-t">
+                        {/* Prev/Next/Submit Controls */}
+                        <div className="grid grid-cols-2 gap-2 mt-auto">
                             <button
                                 onClick={handlePrevious}
                                 disabled={currentQuestionIndex === 0}
-                                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                className="flex items-center justify-center py-3 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium text-sm"
                             >
-                                ← Câu trước
+                                <CaretLeft weight="bold" className="w-4 h-4 mr-1" /> Trước
                             </button>
-
-                            <div className="flex space-x-2">
-                                {questions.map((_, index) => {
-                                    const isAnswered = answers[questions[index].id] !== undefined;
-                                    const isCurrent = index === currentQuestionIndex;
-                                    return (
-                                        <button
-                                            key={index}
-                                            onClick={() => setCurrentQuestionIndex(index)}
-                                            className={`w-8 h-8 rounded ${
-                                                isCurrent
-                                                    ? 'bg-[#001C44] text-white'
-                                                    : isAnswered
-                                                    ? 'bg-green-500 text-white'
-                                                    : 'bg-gray-200 text-gray-600'
-                                            } text-sm font-medium hover:opacity-80 transition-opacity`}
-                                        >
-                                            {index + 1}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-
+                            
                             {currentQuestionIndex < questions.length - 1 ? (
                                 <button
                                     onClick={handleNext}
-                                    className="px-4 py-2 bg-[#001C44] text-white rounded-lg hover:bg-[#002A66] transition-colors"
+                                    className="flex items-center justify-center py-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-900 hover:bg-gray-200 transition-all font-medium text-sm"
                                 >
-                                    Câu sau →
+                                    Sau <CaretRight weight="bold" className="w-4 h-4 ml-1" />
                                 </button>
                             ) : (
                                 <button
                                     onClick={handleSubmit}
                                     disabled={isSubmitting}
-                                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="flex items-center justify-center py-3 bg-green-600 border border-green-600 rounded-xl text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold text-sm shadow-sm"
                                 >
-                                    {isSubmitting ? 'Đang nộp...' : 'Nộp bài'}
+                                    {isSubmitting ? 'Đang nộp...' : (
+                                        <>
+                                            <CheckCircle weight="bold" className="w-4 h-4 mr-1" /> Nộp bài
+                                        </>
+                                    )}
                                 </button>
                             )}
                         </div>
                     </div>
-                )}
+                </div>
             </div>
         </div>
     );

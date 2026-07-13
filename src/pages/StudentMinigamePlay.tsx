@@ -10,6 +10,17 @@ import { LoadingSpinner } from '../components/common';
 import { QuizPlayer, QuizResults } from '../components/minigame';
 import StudentLayout from '../components/layout/StudentLayout';
 import { toast } from 'react-toastify';
+import { 
+    GameController, 
+    Clock, 
+    CheckCircle, 
+    WarningCircle, 
+    Question,
+    Timer,
+    Info,
+    PlayCircle,
+    ArrowLeft
+} from '@phosphor-icons/react';
 
 const StudentMinigamePlay: React.FC = () => {
     const { activityId } = useParams<{ activityId: string }>();
@@ -288,34 +299,48 @@ const StudentMinigamePlay: React.FC = () => {
         console.log('Rendering error screen:', { error, hasMinigame: !!minigame, hasActivity: !!activity });
         return (
             <StudentLayout>
-                <div className="flex items-center justify-center min-h-[60vh]">
-                    <div className="text-center max-w-md">
-                        <div className="text-red-600 text-6xl mb-4">⚠️</div>
-                        <h2 className="text-2xl font-bold text-[#001C44] mb-2">Không tìm thấy Quiz</h2>
-                        <p className="text-gray-600 mb-4">
-                            {error || 'Không tìm thấy quiz cho activity này'}
+                <div className="flex items-center justify-center min-h-[70vh] p-4">
+                    <div className="max-w-md w-full bg-white rounded-3xl p-8 text-center shadow-premium border border-gray-100">
+                        <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                            <WarningCircle weight="duotone" className="w-10 h-10 text-red-500" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-3 tracking-tight">Không tìm thấy Quiz</h2>
+                        <p className="text-gray-500 mb-8 leading-relaxed">
+                            {error || 'Không tìm thấy quiz cho activity này. Vui lòng thử lại sau.'}
                         </p>
+                        
                         {activity && (
-                            <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
-                                <p className="text-sm text-gray-500 mb-1">Activity ID:</p>
-                                <p className="text-sm font-semibold text-gray-900">{activity.id}</p>
-                                <p className="text-sm text-gray-500 mb-1 mt-2">Tên Activity:</p>
-                                <p className="text-sm font-semibold text-gray-900">{activity.name}</p>
+                            <div className="bg-gray-50/80 rounded-2xl p-5 mb-8 text-left border border-gray-100">
+                                <div className="flex items-center text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                                    <Info weight="bold" className="w-4 h-4 mr-1.5" />
+                                    Thông tin sự kiện
+                                </div>
+                                <div className="space-y-3">
+                                    <div>
+                                        <p className="text-xs text-gray-500 mb-1">Mã sự kiện</p>
+                                        <p className="text-sm font-semibold text-gray-900 bg-white px-3 py-1.5 rounded-lg border border-gray-200 inline-block">#{activity.id}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-gray-500 mb-1">Tên sự kiện</p>
+                                        <p className="text-sm font-medium text-gray-900 leading-snug">{activity.name}</p>
+                                    </div>
+                                </div>
                             </div>
                         )}
-                        <div className="flex gap-3 justify-center">
+                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
                             <button
                                 onClick={() => navigate('/student/minigames')}
-                                className="btn-primary px-6 py-3 rounded-lg font-medium"
+                                className="w-full sm:w-auto px-6 py-3 rounded-xl font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-all flex items-center justify-center"
                             >
-                                Quay lại danh sách
+                                <ArrowLeft className="w-4 h-4 mr-2" />
+                                Quay lại
                             </button>
                             <button
                                 onClick={() => {
                                     setError(null);
                                     loadMinigame();
                                 }}
-                                className="btn-yellow px-6 py-3 rounded-lg font-medium"
+                                className="w-full sm:w-auto btn-primary px-6 py-3 rounded-xl font-medium shadow-sm flex items-center justify-center"
                             >
                                 Thử lại
                             </button>
@@ -335,19 +360,22 @@ const StudentMinigamePlay: React.FC = () => {
     if (!attemptId && !isAvailable) {
         return (
             <StudentLayout>
-                <div className="flex items-center justify-center min-h-[60vh]">
-                    <div className="text-center">
-                        <div className="text-gray-400 text-6xl mb-4">⏰</div>
-                        <h2 className="text-2xl font-bold text-[#001C44] mb-2">Quiz chưa mở</h2>
-                        <p className="text-gray-600 mb-6">
+                <div className="flex items-center justify-center min-h-[70vh] p-4">
+                    <div className="max-w-md w-full bg-white rounded-3xl p-8 text-center shadow-premium border border-gray-100">
+                        <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                            <Clock weight="duotone" className="w-10 h-10 text-gray-400" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-3 tracking-tight">Quiz chưa mở</h2>
+                        <p className="text-gray-500 mb-8 leading-relaxed max-w-xs mx-auto">
                             {now < startDate
-                                ? `Quiz sẽ mở vào: ${startDate.toLocaleString('vi-VN')}`
-                                : `Quiz đã kết thúc vào: ${endDate.toLocaleString('vi-VN')}`}
+                                ? `Quiz sẽ mở vào lúc ${startDate.toLocaleTimeString('vi-VN')} ngày ${startDate.toLocaleDateString('vi-VN')}. Bạn vui lòng quay lại sau.`
+                                : `Quiz đã kết thúc vào lúc ${endDate.toLocaleTimeString('vi-VN')} ngày ${endDate.toLocaleDateString('vi-VN')}. Bạn không thể làm bài nữa.`}
                         </p>
                         <button
                             onClick={() => navigate('/student/minigames')}
-                            className="btn-primary px-6 py-3 rounded-lg font-medium"
+                            className="btn-primary px-6 py-3 rounded-xl font-medium inline-flex items-center justify-center w-full sm:w-auto shadow-sm"
                         >
+                            <ArrowLeft className="w-4 h-4 mr-2" />
                             Quay lại danh sách
                         </button>
                     </div>
@@ -358,81 +386,96 @@ const StudentMinigamePlay: React.FC = () => {
 
     if (!attemptId) {
         console.log('=== RENDERING START SCREEN ===');
-        console.log('minigame:', minigame);
-        console.log('minigame?.id:', minigame?.id);
-        console.log('minigame is null?', minigame === null);
-        console.log('Button will be disabled?', !minigame);
         return (
             <StudentLayout>
-                <div className="max-w-2xl mx-auto p-6">
-                    <div className="card p-8 text-center">
-                        <h2 className="text-2xl font-bold text-[#001C44] mb-4">{minigame?.title || 'Loading...'}</h2>
-                        {minigame?.description && (
-                            <p className="text-gray-600 mb-6">{minigame.description}</p>
-                        )}
-                        <div className="bg-gray-50 rounded-lg p-6 mb-6 space-y-2 text-left">
-                            <div className="flex justify-between">
-                                <span className="text-gray-600">Số câu hỏi:</span>
-                                <span className="font-semibold">{minigame?.questionCount || 0}</span>
+                <div className="max-w-3xl mx-auto p-4 sm:p-6 lg:py-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="bg-white rounded-[2rem] p-6 sm:p-10 shadow-premium border border-gray-100 overflow-hidden relative">
+                        {/* Decorative Background Elements */}
+                        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-primary-50 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
+                        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-64 h-64 bg-yellow-50 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
+                        
+                        <div className="relative z-10 text-center mb-10">
+                            <div className="w-20 h-20 mx-auto bg-gradient-to-br from-primary-900 to-primary-700 rounded-2xl flex items-center justify-center shadow-lg shadow-primary-900/20 mb-6 transform -rotate-3">
+                                <GameController weight="fill" className="w-10 h-10 text-white" />
                             </div>
-                            {minigame?.timeLimit && (
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Thời gian:</span>
-                                    <span className="font-semibold">
-                                        {Math.floor(minigame.timeLimit / 60)} phút
-                                    </span>
-                                </div>
+                            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4 tracking-tight text-balance">
+                                {minigame?.title || 'Đang tải...'}
+                            </h2>
+                            {minigame?.description && (
+                                <p className="text-gray-500 text-lg max-w-xl mx-auto leading-relaxed">
+                                    {minigame.description}
+                                </p>
                             )}
-                            {minigame?.requiredCorrectAnswers && (
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Yêu cầu tối thiểu:</span>
-                                    <span className="font-semibold">
-                                        {minigame.requiredCorrectAnswers}/{minigame.questionCount} câu đúng
-                                    </span>
-                                </div>
-                            )}
-                            
                         </div>
-                        <button
-                            type="button"
-                            disabled={!minigame}
-                            onClick={async (e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                console.log('=== BUTTON CLICKED ===');
-                                console.log('minigame:', minigame);
-                                console.log('minigame.id:', minigame?.id);
-                                console.log('minigame object keys:', minigame ? Object.keys(minigame) : 'null');
-                                
-                                if (!minigame) {
-                                    console.error('Cannot start: minigame is null');
-                                    alert('Lỗi: Không tìm thấy thông tin quiz');
-                                    return;
-                                }
-                                
-                                if (!minigame.id) {
-                                    console.error('Cannot start: minigame.id is missing');
-                                    alert('Lỗi: Minigame ID không hợp lệ');
-                                    return;
-                                }
-                                
-                                console.log('Calling handleStart with minigame.id:', minigame.id);
-                                try {
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10 relative z-10">
+                            <div className="bg-gray-50/80 backdrop-blur-sm rounded-2xl p-5 border border-gray-100 flex flex-col items-center justify-center text-center transition-transform hover:scale-[1.02]">
+                                <Question weight="duotone" className="w-7 h-7 text-primary-500 mb-2" />
+                                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Số câu hỏi</span>
+                                <span className="text-xl font-bold text-gray-900">{minigame?.questionCount || 0}</span>
+                            </div>
+                            
+                            {minigame?.timeLimit ? (
+                                <div className="bg-gray-50/80 backdrop-blur-sm rounded-2xl p-5 border border-gray-100 flex flex-col items-center justify-center text-center transition-transform hover:scale-[1.02]">
+                                    <Timer weight="duotone" className="w-7 h-7 text-blue-500 mb-2" />
+                                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Thời gian</span>
+                                    <span className="text-xl font-bold text-gray-900">{Math.floor(minigame.timeLimit / 60)} <span className="text-sm font-medium text-gray-500 lowercase">phút</span></span>
+                                </div>
+                            ) : (
+                                <div className="bg-gray-50/80 backdrop-blur-sm rounded-2xl p-5 border border-gray-100 flex flex-col items-center justify-center text-center">
+                                    <Timer weight="duotone" className="w-7 h-7 text-gray-400 mb-2" />
+                                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Thời gian</span>
+                                    <span className="text-sm font-medium text-gray-600">Không giới hạn</span>
+                                </div>
+                            )}
+
+                            {minigame?.requiredCorrectAnswers ? (
+                                <div className="bg-gray-50/80 backdrop-blur-sm rounded-2xl p-5 border border-gray-100 flex flex-col items-center justify-center text-center transition-transform hover:scale-[1.02]">
+                                    <CheckCircle weight="duotone" className="w-7 h-7 text-green-500 mb-2" />
+                                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Điều kiện qua</span>
+                                    <span className="text-xl font-bold text-gray-900">
+                                        {minigame.requiredCorrectAnswers}<span className="text-sm font-medium text-gray-500">/{minigame.questionCount}</span>
+                                    </span>
+                                </div>
+                            ) : (
+                                <div className="bg-gray-50/80 backdrop-blur-sm rounded-2xl p-5 border border-gray-100 flex flex-col items-center justify-center text-center">
+                                    <CheckCircle weight="duotone" className="w-7 h-7 text-gray-400 mb-2" />
+                                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Điều kiện qua</span>
+                                    <span className="text-sm font-medium text-gray-600">Không yêu cầu</span>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-center relative z-10">
+                            <button
+                                type="button"
+                                disabled={!minigame}
+                                onClick={async (e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    if (!minigame || !minigame.id) return;
                                     await handleStart();
-                                    console.log('handleStart completed successfully');
-                                } catch (error) {
-                                    console.error('handleStart threw an error:', error);
-                                }
-                            }}
-                            className={`btn-yellow px-8 py-3 rounded-lg text-lg font-medium ${
-                                !minigame ? 'opacity-50 cursor-not-allowed' : 'hover:bg-yellow-500 active:bg-yellow-600'
-                            }`}
-                            style={{
-                                pointerEvents: !minigame ? 'none' : 'auto'
-                            }}
-                        >
-                            {!minigame ? 'Đang tải...' : 'Bắt đầu làm quiz'}
-                        </button>
+                                }}
+                                className={`group relative inline-flex items-center justify-center px-10 py-4 text-lg font-bold rounded-2xl transition-all duration-300 overflow-hidden ${
+                                    !minigame 
+                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                                        : 'bg-primary-900 text-white shadow-xl shadow-primary-900/20 hover:bg-primary-800 hover:-translate-y-1 active:translate-y-0'
+                                }`}
+                                style={{ pointerEvents: !minigame ? 'none' : 'auto' }}
+                            >
+                                {minigame && (
+                                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out pointer-events-none rounded-2xl"></div>
+                                )}
+                                <span className="relative z-10 flex items-center">
+                                    {minigame ? (
+                                        <>
+                                            <PlayCircle weight="fill" className="w-6 h-6 mr-2" />
+                                            Bắt đầu làm quiz
+                                        </>
+                                    ) : 'Đang tải...'}
+                                </span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </StudentLayout>
@@ -475,18 +518,20 @@ const StudentMinigamePlay: React.FC = () => {
                     onTimeUp={handleTimeUp}
                 />
             ) : attemptId && questions.length === 0 ? (
-                <div className="flex items-center justify-center min-h-[60vh]">
-                    <div className="text-center">
-                        <div className="text-red-600 text-6xl mb-4">⚠️</div>
-                        <h2 className="text-2xl font-bold text-[#001C44] mb-2">Lỗi tải câu hỏi</h2>
-                        <p className="text-gray-600 mb-6">Không thể tải câu hỏi cho quiz này</p>
+                <div className="flex items-center justify-center min-h-[70vh] p-4">
+                    <div className="max-w-md w-full bg-white rounded-3xl p-8 text-center shadow-premium border border-gray-100">
+                        <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                            <WarningCircle weight="duotone" className="w-10 h-10 text-red-500" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-3 tracking-tight">Lỗi tải câu hỏi</h2>
+                        <p className="text-gray-500 mb-8 leading-relaxed">Không thể tải câu hỏi cho quiz này. Vui lòng thử lại.</p>
                         <button
                             onClick={() => {
                                 setAttemptId(null);
                                 setStartedAt('');
                                 setQuestions([]);
                             }}
-                            className="btn-primary px-6 py-3 rounded-lg font-medium"
+                            className="btn-primary px-6 py-3 rounded-xl font-medium shadow-sm w-full sm:w-auto"
                         >
                             Thử lại
                         </button>

@@ -103,7 +103,7 @@ const MapInputField: React.FC<MapInputFieldProps> = ({
                         value={inputKey}
                         onChange={(e) => setInputKey(e.target.value)}
                         placeholder={keyPlaceholder}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-colors placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-900/25 focus:border-primary-900/40 border-gray-200 hover:border-gray-300"
                     />
                 </div>
                 <div className="flex-1">
@@ -114,38 +114,38 @@ const MapInputField: React.FC<MapInputFieldProps> = ({
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
                         placeholder={valuePlaceholder}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-colors placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-900/25 focus:border-primary-900/40 border-gray-200 hover:border-gray-300"
                     />
                 </div>
                 <button
                     type="button"
                     onClick={validateAndAdd}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary-900 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-primary-800 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-primary-900/30"
                 >
                     Thêm
                 </button>
             </div>
 
             {(localError || error) && (
-                <p className="text-red-500 text-sm">{localError || error}</p>
+                <p className="text-rose-600 text-sm mt-1">{localError || error}</p>
             )}
 
             {entries.length > 0 && (
-                <div className="space-y-2">
-                    <div className="grid grid-cols-2 gap-2 text-xs font-medium text-gray-500 px-2">
+                <div className="space-y-2 mt-4">
+                    <div className="grid grid-cols-2 gap-2 text-xs font-semibold text-gray-500 px-4 uppercase tracking-wider">
                         <span>{keyLabel}</span>
                         <span>{valueLabel}</span>
                     </div>
                     {entries.map((entry) => (
-                        <div key={entry.key} className="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-200">
+                        <div key={entry.key} className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50/80 px-4 py-3 transition-colors hover:bg-gray-50">
                             <div className="grid grid-cols-2 gap-2 flex-1 text-sm">
-                                <span className="font-medium">{entry.key}</span>
-                                <span>{entry.value}</span>
+                                <span className="font-medium text-gray-900 tabular-nums">{entry.key}</span>
+                                <span className="text-gray-900 tabular-nums">{entry.value}</span>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => removeEntry(entry.key)}
-                                className="text-red-600 hover:text-red-800 text-sm font-medium ml-2"
+                                className="inline-flex items-center gap-1 text-sm font-medium text-rose-600 hover:text-rose-800 transition-colors focus:outline-none focus:ring-2 focus:ring-rose-200 rounded-lg px-2 py-1"
                             >
                                 Xóa
                             </button>

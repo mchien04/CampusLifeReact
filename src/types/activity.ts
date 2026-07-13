@@ -325,12 +325,13 @@ export interface SeriesChildActivityCreateRequest {
     benefits?: string | null;
     requirements?: string | null;
     contactInfo?: string | null;
-    organizerIds?: number[];
+    /** Không gửi — child kế thừa organizerIds từ series */
     type: ActivityType;
 }
 
 // Standalone update request per backend contract (no extends, no type field)
 // IMPORTANT: The activity `id` is provided in the URL path; do NOT include it in the request body.
+// organizerIds bị BE ignore — không gửi từ FE.
 export interface SeriesChildActivityUpdateRequest {
     name: string;
     description?: string | null;
@@ -343,7 +344,6 @@ export interface SeriesChildActivityUpdateRequest {
     benefits?: string | null;
     requirements?: string | null;
     contactInfo?: string | null;
-    organizerIds?: number[];
 }
 
 export interface SeriesChildActivityResponse {

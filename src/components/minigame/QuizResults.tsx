@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { SubmitAttemptResponse, MiniGame, AttemptDetailResponse } from '../../types/minigame';
 import { getImageUrl } from '../../utils/imageUtils';
+import { Trophy, XCircle, ArrowCounterClockwise, ListMagnifyingGlass, X, Check, Medal, CheckCircle, Info, ArrowLeft } from '@phosphor-icons/react';
 
 interface QuizResultsProps {
     result: SubmitAttemptResponse;
@@ -37,42 +38,50 @@ const QuizResults: React.FC<QuizResultsProps> = ({ result, minigame, attemptDeta
     };
 
     return (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-            <div className={`relative bg-white rounded-lg shadow-xl ${attemptDetail ? 'max-w-4xl' : 'max-w-md'} w-full mx-4 ${attemptDetail ? 'max-h-[90vh]' : ''} flex flex-col`}>
-                <div className={`${attemptDetail && showDetails ? 'hidden' : ''} p-6`}>
-                    <div className="text-center">
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-300">
+            <div className={`relative bg-white rounded-[2rem] shadow-premium ${attemptDetail ? 'max-w-4xl' : 'max-w-md'} w-full mx-auto ${attemptDetail ? 'max-h-[90vh]' : ''} flex flex-col overflow-hidden transform scale-in duration-300`}>
+                <div className={`${attemptDetail && showDetails ? 'hidden' : ''} p-8 sm:p-10`}>
+                    <div className="text-center relative">
+                    {/* Decorative confeti-like elements could go here */}
+                    
                     {/* Result Icon */}
-                    <div className="mb-4">
+                    <div className="mb-6 relative inline-block">
+                        <div className={`absolute inset-0 rounded-full blur-xl opacity-50 ${passed ? 'bg-green-400' : 'bg-red-400'}`}></div>
                         {passed ? (
-                            <div className="mx-auto w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
-                                <span className="text-4xl text-green-600">✓</span>
+                            <div className="relative w-24 h-24 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-lg shadow-green-500/30 border-4 border-white">
+                                <Trophy weight="fill" className="w-12 h-12 text-white" />
                             </div>
                         ) : (
-                            <div className="mx-auto w-20 h-20 bg-red-100 rounded-full flex items-center justify-center">
-                                <span className="text-4xl text-red-600">✗</span>
+                            <div className="relative w-24 h-24 bg-gradient-to-br from-red-400 to-red-600 rounded-full flex items-center justify-center shadow-lg shadow-red-500/30 border-4 border-white">
+                                <XCircle weight="fill" className="w-12 h-12 text-white" />
                             </div>
                         )}
                     </div>
 
                     {/* Result Title */}
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                    <h2 className="text-3xl font-extrabold text-gray-900 mb-2 tracking-tight">
                         {passed ? 'Chúc mừng!' : 'Chưa đạt yêu cầu'}
                     </h2>
 
                     {/* Score */}
-                    <div className="mb-6">
-                        <div className="text-4xl font-bold text-[#001C44] mb-2">
-                            {result.correctCount}/{result.totalQuestions}
+                    <div className="mb-8">
+                        <div className="flex items-baseline justify-center gap-1 mb-2">
+                            <span className="text-5xl font-black text-gray-900 tabular-nums tracking-tighter">
+                                {result.correctCount}
+                            </span>
+                            <span className="text-2xl font-bold text-gray-400">
+                                /{result.totalQuestions}
+                            </span>
                         </div>
-                        <div className="text-lg text-gray-600">
-                            {percentage.toFixed(1)}% đúng
+                        <div className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-gray-100 text-gray-700 font-semibold text-sm">
+                            {percentage.toFixed(1)}% chính xác
                         </div>
                     </div>
 
                     {/* Progress Bar */}
-                    <div className="w-full bg-gray-200 rounded-full h-4 mb-6">
+                    <div className="w-full bg-gray-100 rounded-full h-3 mb-8 overflow-hidden shadow-inner">
                         <div
-                            className={`h-4 rounded-full transition-all duration-500 ${
+                            className={`h-full transition-all duration-1000 ease-out rounded-full ${
                                 passed ? 'bg-green-500' : 'bg-red-500'
                             }`}
                             style={{ width: `${percentage}%` }}
@@ -80,27 +89,29 @@ const QuizResults: React.FC<QuizResultsProps> = ({ result, minigame, attemptDeta
                     </div>
 
                     {/* Details */}
-                    <div className="bg-gray-50 rounded-lg p-4 mb-6 space-y-2 text-left">
-                        <div className="flex justify-between">
-                            <span className="text-gray-600">Số câu đúng:</span>
-                            <span className="font-semibold">{result.correctCount}</span>
+                    <div className="bg-gray-50/80 backdrop-blur-sm rounded-2xl p-5 mb-8 space-y-3 text-left border border-gray-100">
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium text-gray-500">Số câu đúng</span>
+                            <span className="font-bold text-gray-900">{result.correctCount}</span>
                         </div>
-                        <div className="flex justify-between">
-                            <span className="text-gray-600">Tổng số câu:</span>
-                            <span className="font-semibold">{result.totalQuestions}</span>
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium text-gray-500">Tổng số câu</span>
+                            <span className="font-bold text-gray-900">{result.totalQuestions}</span>
                         </div>
                         {(result.requiredCorrectAnswers !== undefined || minigame.requiredCorrectAnswers) && (
-                            <div className="flex justify-between">
-                                <span className="text-gray-600">Yêu cầu tối thiểu:</span>
-                                <span className="font-semibold">
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm font-medium text-gray-500">Yêu cầu tối thiểu</span>
+                                <span className="font-semibold text-sm">
                                     {(() => {
                                         const required = result.requiredCorrectAnswers ?? minigame.requiredCorrectAnswers ?? 0;
                                         const achieved = result.correctCount >= required;
                                         return achieved ? (
-                                            <span className="text-green-600">✓ Đạt ({required} câu)</span>
+                                            <span className="inline-flex items-center text-green-700 bg-green-50 px-2 py-0.5 rounded border border-green-200">
+                                                <Check weight="bold" className="w-3.5 h-3.5 mr-1" /> Đạt ({required} câu)
+                                            </span>
                                         ) : (
-                                            <span className="text-red-600">
-                                                Cần {required} câu (hiện tại: {result.correctCount})
+                                            <span className="text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-200">
+                                                Cần {required} câu
                                             </span>
                                         );
                                     })()}
@@ -108,30 +119,34 @@ const QuizResults: React.FC<QuizResultsProps> = ({ result, minigame, attemptDeta
                             </div>
                         )}
                         {result.pointsEarned && passed && (
-                            <div className="flex justify-between pt-2 border-t">
-                                <span className="text-gray-600">Điểm nhận được:</span>
-                                <span className="font-bold text-[#001C44]">
+                            <div className="flex justify-between items-center pt-3 mt-3 border-t border-gray-200">
+                                <span className="text-sm font-medium text-gray-500">Điểm nhận được</span>
+                                <span className="font-black text-primary-600 flex items-center bg-primary-50 px-2.5 py-1 rounded-lg border border-primary-100">
+                                    <Medal weight="fill" className="w-4 h-4 mr-1 text-yellow-500" />
                                     +{parseFloat(result.pointsEarned).toFixed(1)} điểm
                                 </span>
                             </div>
                         )}
                         {result.participation && passed && (
-                            <div className="flex justify-between pt-2 border-t">
-                                <span className="text-gray-600">Trạng thái:</span>
-                                <span className="font-semibold text-green-600">
-                                    {result.participation.isCompleted ? '✓ Hoàn thành' : 'Đang xử lý'}
+                            <div className="flex justify-between items-center pt-3 border-t border-gray-200">
+                                <span className="text-sm font-medium text-gray-500">Trạng thái</span>
+                                <span className="font-semibold text-green-700 flex items-center">
+                                    {result.participation.isCompleted ? (
+                                        <><CheckCircle weight="fill" className="w-4 h-4 mr-1" /> Hoàn thành</>
+                                    ) : 'Đang xử lý'}
                                 </span>
                             </div>
                         )}
                     </div>
 
                     {/* Actions */}
-                    <div className="flex space-x-3">
+                    <div className="flex flex-col sm:flex-row gap-3">
                         {attemptDetail && (
                             <button
                                 onClick={() => setShowDetails(true)}
-                                className="flex-1 btn-primary px-4 py-2 rounded-lg text-sm font-medium"
+                                className="flex-1 flex items-center justify-center bg-white border-2 border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 px-6 py-3.5 rounded-xl font-bold transition-all shadow-sm"
                             >
+                                <ListMagnifyingGlass weight="bold" className="w-5 h-5 mr-2" />
                                 Xem chi tiết
                             </button>
                         )}
@@ -139,20 +154,21 @@ const QuizResults: React.FC<QuizResultsProps> = ({ result, minigame, attemptDeta
                             <button
                                 onClick={handleRetryClick}
                                 disabled={!canRetry()}
-                                className="flex-1 btn-yellow px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex-1 flex items-center justify-center bg-primary-900 text-white hover:bg-primary-800 hover:-translate-y-0.5 px-6 py-3.5 rounded-xl font-bold transition-all shadow-md shadow-primary-900/20 disabled:opacity-50 disabled:transform-none"
                             >
+                                <ArrowCounterClockwise weight="bold" className="w-5 h-5 mr-2" />
                                 Làm lại
                             </button>
                         )}
                         {onRetry && !canRetry() && (
-                            <div className="flex-1 text-center text-sm text-gray-500 py-2">
+                            <div className="flex-1 flex items-center justify-center text-sm font-medium text-gray-500 bg-gray-100 rounded-xl px-6 py-3.5">
                                 Đã đạt số lần làm tối đa
                             </div>
                         )}
                         {onClose && (
                             <button
                                 onClick={onClose}
-                                className="flex-1 btn-primary px-4 py-2 rounded-lg text-sm font-medium"
+                                className="flex-1 flex items-center justify-center bg-gray-100 text-gray-700 hover:bg-gray-200 px-6 py-3.5 rounded-xl font-bold transition-colors"
                             >
                                 Đóng
                             </button>
@@ -163,40 +179,51 @@ const QuizResults: React.FC<QuizResultsProps> = ({ result, minigame, attemptDeta
 
                 {/* Detailed Results */}
                 {attemptDetail && showDetails && (
-                    <div className="flex-1 overflow-y-auto p-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-xl font-bold text-[#001C44]">Chi tiết câu trả lời</h3>
+                    <div className="flex-1 overflow-y-auto p-6 sm:p-8 bg-gray-50/50">
+                        <div className="sticky top-0 bg-gray-50/90 backdrop-blur-md z-10 -mx-6 sm:-mx-8 -mt-6 sm:-mt-8 px-6 sm:px-8 py-4 mb-6 border-b border-gray-200 flex items-center justify-between">
+                            <div className="flex items-center">
+                                <h3 className="text-xl font-bold text-gray-900 tracking-tight">Chi tiết bài làm</h3>
+                            </div>
                             <button
                                 onClick={() => setShowDetails(false)}
-                                className="text-gray-500 hover:text-gray-700"
+                                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-200 text-gray-500 transition-colors"
                             >
-                                ✕
+                                <X weight="bold" className="w-5 h-5" />
                             </button>
                         </div>
-                        <div className="space-y-4">
+                        <div className="space-y-6 max-w-3xl mx-auto">
                             {attemptDetail.questions
                                 .sort((a, b) => a.displayOrder - b.displayOrder)
                                 .map((question, index) => (
                                     <div
                                         key={question.id}
-                                        className={`border-2 rounded-lg p-4 ${
+                                        className={`bg-white rounded-2xl p-5 sm:p-6 shadow-sm border ${
                                             attemptDetail.showAnswers === false
-                                                ? 'border-gray-200 bg-gray-50'
+                                                ? 'border-gray-200'
                                                 : question.isCorrect
-                                                    ? 'border-green-500 bg-green-50'
-                                                    : 'border-red-500 bg-red-50'
+                                                    ? 'border-green-200'
+                                                    : 'border-red-200'
                                         }`}
                                     >
-                                        <div className="flex items-start justify-between mb-3">
-                                            <h4 className="font-semibold text-gray-900 flex-1">
-                                                Câu {index + 1}: {question.questionText}
+                                        <div className="flex items-start gap-4 mb-4">
+                                            <div className={`shrink-0 flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm ${
+                                                attemptDetail.showAnswers === false
+                                                    ? 'bg-gray-100 text-gray-600'
+                                                    : question.isCorrect
+                                                        ? 'bg-green-100 text-green-700'
+                                                        : 'bg-red-100 text-red-700'
+                                            }`}>
+                                                {index + 1}
+                                            </div>
+                                            <h4 className="font-semibold text-gray-900 text-lg flex-1 pt-0.5 leading-snug">
+                                                {question.questionText}
                                             </h4>
                                             {attemptDetail.showAnswers !== false && (
-                                                <div className="ml-4">
+                                                <div className="shrink-0 mt-0.5">
                                                     {question.isCorrect ? (
-                                                        <span className="text-green-600 text-2xl">✓</span>
+                                                        <CheckCircle weight="fill" className="text-green-500 w-7 h-7" />
                                                     ) : (
-                                                        <span className="text-red-600 text-2xl">✗</span>
+                                                        <XCircle weight="fill" className="text-red-500 w-7 h-7" />
                                                     )}
                                                 </div>
                                             )}
@@ -204,92 +231,77 @@ const QuizResults: React.FC<QuizResultsProps> = ({ result, minigame, attemptDeta
                                         
                                         {/* Question Image */}
                                         {question.imageUrl && (
-                                            <div className="mb-3">
+                                            <div className="mb-5 bg-gray-50 rounded-xl p-2 border border-gray-100">
                                                 <img
                                                     src={getImageUrl(question.imageUrl) || ''}
                                                     alt="Question illustration"
-                                                    className="max-w-full h-auto max-h-48 rounded-lg border border-gray-300"
+                                                    className="max-w-full h-auto max-h-[300px] object-contain mx-auto rounded-lg"
                                                     onError={(e) => {
                                                         (e.target as HTMLImageElement).style.display = 'none';
                                                     }}
                                                 />
                                             </div>
                                         )}
-                                        <div className="space-y-2">
+                                        <div className="space-y-2.5 pl-0 sm:pl-12">
                                             {question.options.map((option) => {
                                                 const isCorrect = option.isCorrect;
                                                 const isSelected = option.isSelected;
-                                                let bgColor = 'bg-white';
-                                                let borderColor = 'border-gray-200';
-                                                let textColor = 'text-gray-900';
-
+                                                
+                                                let stateClasses = 'bg-white border-gray-200 text-gray-700';
+                                                
                                                 if (attemptDetail.showAnswers === false) {
                                                     if (isSelected) {
-                                                        bgColor = 'bg-blue-50';
-                                                        borderColor = 'border-blue-400';
-                                                        textColor = 'text-blue-900';
+                                                        stateClasses = 'bg-primary-50 border-primary-200 text-primary-900 font-medium';
                                                     }
                                                 } else {
-                                                    if (isCorrect) {
-                                                        bgColor = 'bg-green-100';
-                                                        borderColor = 'border-green-500';
-                                                        textColor = 'text-green-900';
-                                                    } else if (isSelected) {
-                                                        bgColor = 'bg-red-100';
-                                                        borderColor = 'border-red-500';
-                                                        textColor = 'text-red-900';
+                                                    if (isCorrect && isSelected) {
+                                                        stateClasses = 'bg-green-50 border-green-300 text-green-900 font-medium shadow-sm';
+                                                    } else if (isCorrect && !isSelected) {
+                                                        stateClasses = 'bg-green-50/50 border-green-200 text-green-800 border-dashed';
+                                                    } else if (!isCorrect && isSelected) {
+                                                        stateClasses = 'bg-red-50 border-red-300 text-red-900 font-medium shadow-sm';
+                                                    } else {
+                                                        stateClasses = 'bg-gray-50 border-gray-200 text-gray-500 opacity-60';
                                                     }
                                                 }
 
                                                 return (
                                                     <div
                                                         key={option.id}
-                                                        className={`p-3 rounded-lg border-2 ${bgColor} ${borderColor} ${textColor} flex items-center space-x-2`}
+                                                        className={`p-3.5 rounded-xl border-2 flex items-center gap-3 transition-all ${stateClasses}`}
                                                     >
-                                                        {attemptDetail.showAnswers !== false ? (
-                                                            <>
-                                                                {isCorrect && (
-                                                                    <span className="text-green-600 font-bold">✓ Đúng</span>
-                                                                )}
-                                                                {isSelected && !isCorrect && (
-                                                                    <span className="text-red-600 font-bold">✗ Bạn chọn</span>
-                                                                )}
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                {isSelected && (
-                                                                    <span className="text-blue-600 font-bold">Bạn chọn</span>
-                                                                )}
-                                                            </>
+                                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                                                            isSelected ? 'border-current bg-current' : 'border-gray-300'
+                                                        }`}>
+                                                            {isSelected && <Check weight="bold" className="w-3 h-3 text-white" />}
+                                                        </div>
+                                                        <span className="flex-1 text-[15px]">{option.text}</span>
+                                                        
+                                                        {attemptDetail.showAnswers !== false && isCorrect && (
+                                                            <span className="shrink-0 text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded flex items-center">
+                                                                <Check weight="bold" className="w-3 h-3 mr-1" /> ĐÁP ÁN
+                                                            </span>
                                                         )}
-                                                        <span className="flex-1">{option.text}</span>
                                                     </div>
                                                 );
                                             })}
                                         </div>
                                         {!question.isCorrect && question.selectedOptionId && attemptDetail.showAnswers !== false && (
-                                            <div className="mt-2 text-sm text-gray-600">
-                                                Đáp án đúng: Câu {question.options.findIndex(o => o.id === question.correctOptionId) + 1}
+                                            <div className="mt-4 pl-0 sm:pl-12 text-sm font-medium text-gray-500 flex items-center">
+                                                <Info weight="duotone" className="w-4 h-4 mr-1.5" />
+                                                Bạn đã chọn sai đáp án.
                                             </div>
                                         )}
                                     </div>
                                 ))}
                         </div>
-                        <div className="mt-6 flex space-x-3">
+                        <div className="mt-8 flex justify-center sticky bottom-0 bg-gray-50/90 backdrop-blur-md p-4 -mx-6 sm:-mx-8 -mb-6 sm:-mb-8 border-t border-gray-200">
                             <button
                                 onClick={() => setShowDetails(false)}
-                                className="flex-1 btn-primary px-4 py-2 rounded-lg text-sm font-medium"
+                                className="btn-primary px-8 py-3 rounded-xl font-bold flex items-center shadow-sm hover:shadow"
                             >
-                                Quay lại
+                                <ArrowLeft className="w-5 h-5 mr-2" /> Quay lại kết quả
                             </button>
-                            {onClose && (
-                                <button
-                                    onClick={onClose}
-                                    className="flex-1 btn-primary px-4 py-2 rounded-lg text-sm font-medium"
-                                >
-                                    Đóng
-                                </button>
-                            )}
                         </div>
                     </div>
                 )}

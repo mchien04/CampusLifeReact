@@ -36,7 +36,7 @@ const getInputTypeComponent = (
 ) => {
     // P6.1: BE chỉ ra editable=false → field read-only (vd enterprise participationPoints).
     const readOnly = field.editable === false;
-    const baseClass = `w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${error ? 'border-red-500' : 'border-gray-300'} ${readOnly ? 'bg-gray-100 cursor-not-allowed text-gray-500' : ''}`;
+    const baseClass = `w-full px-3.5 py-2.5 bg-white border rounded-xl text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-900/25 focus:border-primary-900/40 ${error ? 'border-rose-500' : 'border-gray-200 hover:border-gray-300'} ${readOnly ? 'bg-gray-50 cursor-not-allowed text-gray-500 hover:border-gray-200' : 'text-gray-900'}`;
 
     const resolveOptions = (): Array<{ value: string | number; label: string }> => {
         if (field.options && field.options.length > 0) {
@@ -73,9 +73,9 @@ const getInputTypeComponent = (
                         checked={!!value}
                         disabled={readOnly}
                         onChange={(e) => onChange(e.target.checked)}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="h-4 w-4 text-primary-900 focus:ring-primary-900/50 border-gray-300 rounded disabled:opacity-60 disabled:cursor-not-allowed transition-colors cursor-pointer"
                     />
-                    <label htmlFor={field.fieldName} className="ml-2 text-sm text-gray-700">
+                    <label htmlFor={field.fieldName} className="ml-2.5 text-sm font-medium text-gray-700 cursor-pointer select-none">
                         {getFieldLabel(field.fieldName, field.label)}
                     </label>
                 </div>
@@ -83,8 +83,8 @@ const getInputTypeComponent = (
         case 'SELECT':
             return (
                 <div>
-                    <label htmlFor={field.fieldName} className="block text-sm font-medium text-gray-700 mb-1">
-                        {getFieldLabel(field.fieldName, field.label)} {field.required && <span className="text-red-500">*</span>}
+                    <label htmlFor={field.fieldName} className="block text-sm font-semibold text-gray-700 mb-1.5">
+                        {getFieldLabel(field.fieldName, field.label)} {field.required && <span className="text-rose-500 ml-0.5">*</span>}
                     </label>
                     <select
                         id={field.fieldName}
@@ -103,8 +103,8 @@ const getInputTypeComponent = (
         case 'NUMBER':
             return (
                 <div>
-                    <label htmlFor={field.fieldName} className="block text-sm font-medium text-gray-700 mb-1">
-                        {getFieldLabel(field.fieldName, field.label)} {field.required && <span className="text-red-500">*</span>}
+                    <label htmlFor={field.fieldName} className="block text-sm font-semibold text-gray-700 mb-1.5">
+                        {getFieldLabel(field.fieldName, field.label)} {field.required && <span className="text-rose-500 ml-0.5">*</span>}
                     </label>
                     <input
                         id={field.fieldName}
@@ -152,7 +152,7 @@ const getInputTypeComponent = (
         default:
             return (
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                         {getFieldLabel(field.fieldName, field.label)}
                     </label>
                     <input
@@ -168,7 +168,7 @@ const getInputTypeComponent = (
     }
 };
 
-const shouldShowField = (field: FieldDefinition, isRuleEnabled: boolean, configValues: Record<string, unknown>): boolean => {
+const shouldShowField = (field: FieldDefinition, isRuleEnabled: boolean, configValues: Record<string, unknown>, ruleKey: string): boolean => {
     if (field.visibility === 'ALWAYS') return true;
     if (field.visibility === 'rule_enabled') return isRuleEnabled;
     if (field.visibility === 'audience_department_scoped') {
@@ -205,55 +205,62 @@ const PresetRuleCard: React.FC<PresetRuleCardProps> = ({
 
     const handleToggle = () => {
         if (!isDisabled) {
-            onToggle(rule.ruleKey, !enabled);
+            const newEnabled = !enabled;
+            onToggle(rule.ruleKey, newEnabled);
+            
+            if (rule.ruleKey === 'NO_SHOW') {
+                onFieldChange('noShowPenaltyEnabled', newEnabled);
+            } else if (rule.ruleKey.includes('MINIMUM_REQUIREMENT')) {
+                onFieldChange('minimumRequirementEnabled', newEnabled);
+            }
         }
     };
 
     return (
-        <div className={`border rounded-lg p-4 space-y-4 ${enabled ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100'}`}>
+        <div className={`border p-5 sm:p-6 rounded-2xl transition-all duration-300 ${enabled ? 'bg-white border-primary-900/10 shadow-sm hover:border-primary-900/20 hover:shadow-md' : 'bg-gray-50/80 border-gray-100 opacity-80'}`}>
             {/* Header with Toggle */}
             <div className="flex items-start justify-between">
                 <div className="flex-1">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4">
                         <button
                             type="button"
                             role="switch"
                             aria-checked={enabled}
                             onClick={handleToggle}
                             disabled={isDisabled}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                                enabled ? 'bg-blue-600' : 'bg-gray-300'
-                            } ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                            className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-900/50 focus:ring-offset-2 ${
+                                enabled ? 'bg-primary-900' : 'bg-gray-200'
+                            } ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-90'}`}
                         >
                             <span
-                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
                                     enabled ? 'translate-x-6' : 'translate-x-1'
                                 }`}
                             />
                         </button>
                         <div>
-                            <h4 className="text-sm font-semibold text-gray-900">
+                            <h4 className={`text-base font-bold ${enabled ? 'text-gray-900' : 'text-gray-600'}`}>
                                 {getRuleLabel(rule.ruleKey, rule.label)}
                             </h4>
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            <span className={`text-[11px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full mt-1 inline-block ${
                                 rule.required
-                                    ? 'bg-red-100 text-red-700'
+                                    ? 'bg-rose-100 text-rose-700'
                                     : 'bg-gray-100 text-gray-600'
                             }`}>
                                 {rule.required ? 'Bắt buộc' : 'Tùy chọn'}
                             </span>
                         </div>
                     </div>
-                    <p className="mt-1 text-sm text-gray-500 ml-14">
+                    <p className={`mt-2 text-sm leading-relaxed ml-14 ${enabled ? 'text-gray-600' : 'text-gray-500'}`}>
                         {getRuleDescription(rule.ruleKey, rule.description)}
                     </p>
                     {rule.suggestedCombinations && rule.suggestedCombinations.length > 0 && (
-                        <div className="mt-2 ml-14 flex flex-wrap items-center gap-1.5">
-                            <span className="text-xs text-gray-400">Có thể kết hợp với:</span>
+                        <div className="mt-3 ml-14 flex flex-wrap items-center gap-1.5">
+                            <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Có thể kết hợp với:</span>
                             {rule.suggestedCombinations.map((tr) => (
                                 <span
                                     key={tr}
-                                    className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-100"
+                                    className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100"
                                 >
                                     {getSuggestedCombinationLabel(tr)}
                                 </span>
@@ -265,20 +272,21 @@ const PresetRuleCard: React.FC<PresetRuleCardProps> = ({
 
             {/* Fields */}
             {enabled && (
-                <div className="ml-14 space-y-4">
+                <div className="mt-6 ml-14 space-y-5">
                     {(() => {
                         // P6.1: phân loại fields — main (số điểm, scoreType) vs extended (đối tượng, học kỳ).
                         const isExtendedField = (fn: string) =>
                             fn.endsWith('Audience') || fn.endsWith('DepartmentIds') ||
                             fn.endsWith('SemesterPolicy') || fn.endsWith('ExplicitSemesterId');
-                        const isNoShowEnabled = (fn: string) =>
-                            rule.ruleKey === 'NO_SHOW' && fn === 'noShowPenaltyEnabled';
+                        const isRedundantEnabledField = (fn: string) =>
+                            (rule.ruleKey === 'NO_SHOW' && fn === 'noShowPenaltyEnabled') ||
+                            (rule.ruleKey.includes('MINIMUM_REQUIREMENT') && fn === 'minimumRequirementEnabled');
 
                         const mainFields = rule.fieldDefinitions.filter(f =>
-                            !isNoShowEnabled(f.fieldName) && shouldShowField(f, enabled, fieldValues) && !isExtendedField(f.fieldName)
+                            !isRedundantEnabledField(f.fieldName) && shouldShowField(f, enabled, fieldValues, rule.ruleKey) && !isExtendedField(f.fieldName)
                         );
                         const extendedFields = rule.fieldDefinitions.filter(f =>
-                            !isNoShowEnabled(f.fieldName) && shouldShowField(f, enabled, fieldValues) && isExtendedField(f.fieldName)
+                            !isRedundantEnabledField(f.fieldName) && shouldShowField(f, enabled, fieldValues, rule.ruleKey) && isExtendedField(f.fieldName)
                         );
 
                         return (
@@ -289,12 +297,12 @@ const PresetRuleCard: React.FC<PresetRuleCardProps> = ({
                                     </div>
                                 ))}
                                 {extendedFields.length > 0 && (
-                                    <details className="group border border-gray-200 rounded-lg">
-                                        <summary className="cursor-pointer text-xs font-medium text-gray-500 hover:text-gray-700 px-3 py-2 rounded-lg bg-gray-50 hover:bg-gray-100 list-none flex items-center gap-1.5">
-                                            <span className="group-open:rotate-90 transition-transform">▶</span>
+                                    <details className="group border border-gray-100 rounded-xl bg-white overflow-hidden shadow-sm">
+                                        <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wider text-gray-600 hover:text-gray-900 px-4 py-3 bg-gray-50/80 hover:bg-gray-100 transition-colors list-none flex items-center gap-2">
+                                            <span className="group-open:rotate-90 transition-transform duration-200 text-gray-400 group-hover:text-gray-600">▶</span>
                                             Cấu hình mở rộng (đối tượng, học kỳ)
                                         </summary>
-                                        <div className="px-3 pb-3 pt-2 space-y-3">
+                                        <div className="px-5 pb-5 pt-4 space-y-4 border-t border-gray-100 bg-white">
                                             {extendedFields.map(field => (
                                                 <div key={field.fieldName}>
                                                     {getInputTypeComponent(field, fieldValues[field.fieldName], (val) => onFieldChange(field.fieldName, val), errors[field.fieldName], externalOptions)}
