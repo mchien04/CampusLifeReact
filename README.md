@@ -131,5 +131,4 @@ GitHub Actions [CI](.github/workflows/ci.yml) runs `npm ci`, typecheck, lint, an
 
 ## Author
 
-- GitHub profile: **add URL**
-- LinkedIn profile: **add URL**
+- GitHub profile: https://github.com/mchien04
